@@ -1,0 +1,282 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r140 - in trunk: . apps channels include/asterisk res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r140%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk%20res&In-Reply-To=%3C200605112028.k4BKSsGm027977%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000136.html">
+   <LINK REL="Next"  HREF="000135.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r140 - in trunk: . apps channels include/asterisk res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r140%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk%20res&In-Reply-To=%3C200605112028.k4BKSsGm027977%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r140 - in trunk: . apps channels include/asterisk res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May 11 22:28:54 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000136.html">[solid-pbx-svn] r139 - in trunk: . include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000135.html">[solid-pbx-svn] r141 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#134">[ date ]</a>
+              <a href="thread.html#134">[ thread ]</a>
+              <a href="subject.html#134">[ subject ]</a>
+              <a href="author.html#134">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-11 22:28:50 +0200 (Thu, 11 May 2006)
+New Revision: 140
+
+Modified:
+   trunk/apps/app_externalivr.c
+   trunk/channels/chan_agent.c
+   trunk/dnsmgr.c
+   trunk/include/asterisk/linkedlists.h
+   trunk/include/asterisk/lock.h
+   trunk/pbx.c
+   trunk/res/res_features.c
+Log:
+Update to Asterisk SVN trunk r26991
+
+------------------------------------------------------------------------
+r26989 | rizzo | 2006-05-11 22:03:52 +0200 (Thu, 11 May 2006) | 4 lines
+
+oops, missing ! in matchcid...
+this should fix bug #7142
+
+
+------------------------------------------------------------------------
+r26990 | russell | 2006-05-11 22:07:44 +0200 (Thu, 11 May 2006) | 7 lines
+
+ - The recent change to linklists.h broke the build on linux for some reason.
+   So, I have removed all of the uses of AST_LIST_HEAD_INIT and replaced them
+   with the equivalent static initializations.
+ - On passing, fix a memory leak in the unload_module() function of chan_agent.
+   The agents list mutex was never destroyed, and the elements in the agents
+   list were not freed.
+
+------------------------------------------------------------------------
+r26991 | rizzo | 2006-05-11 22:21:11 +0200 (Thu, 11 May 2006) | 3 lines
+
+set correct type for lock initializers
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_externalivr.c
+===================================================================
+--- trunk/apps/app_externalivr.c	2006-05-11 16:28:54 UTC (rev 139)
++++ trunk/apps/app_externalivr.c	2006-05-11 20:28:50 UTC (rev 140)
+@@ -258,14 +258,14 @@
+ 	FILE *child_commands = NULL;
+ 	FILE *child_errors = NULL;
+ 	FILE *child_events = NULL;
+-	struct ivr_localuser foo, *u = &foo;
++	struct ivr_localuser foo = {
++		.playlist = AST_LIST_HEAD_INIT_VALUE,
++		.finishlist = AST_LIST_HEAD_INIT_VALUE,
++	};
++	struct ivr_localuser *u = &foo;
+ 
+-	bzero(u, sizeof(*u));
+-
+ 	LOCAL_USER_ADD(lu);
+ 	
+-	AST_LIST_HEAD_INIT(&amp;u-&gt;playlist);
+-	AST_LIST_HEAD_INIT(&amp;u-&gt;finishlist);
+ 	u-&gt;abort_current_sound = 0;
+ 	u-&gt;chan = chan;
+ 	
+
+Modified: trunk/channels/chan_agent.c
+===================================================================
+--- trunk/channels/chan_agent.c	2006-05-11 16:28:54 UTC (rev 139)
++++ trunk/channels/chan_agent.c	2006-05-11 20:28:50 UTC (rev 140)
+@@ -2597,19 +2597,16 @@
+ 	ast_manager_unregister(&quot;AgentLogoff&quot;);
+ 	ast_manager_unregister(&quot;AgentCallbackLogin&quot;);
+ 	/* Unregister channel */
+-	ast_channel_unregister(&amp;agent_tech);
+-	if (!AST_LIST_LOCK(&amp;agents)) {
+-		/* Hangup all interfaces if they have an owner */
+-		AST_LIST_TRAVERSE(&amp;agents, p, list) {
+-			if (p-&gt;owner)
+-				ast_softhangup(p-&gt;owner, AST_SOFTHANGUP_APPUNLOAD);
+-		}
+-		AST_LIST_UNLOCK(&amp;agents);
+-		AST_LIST_HEAD_INIT(&amp;agents);
+-	} else {
+-		ast_log(LOG_WARNING, &quot;Unable to lock the monitor\n&quot;);
+-		return -1;
+-	}		
++	AST_LIST_LOCK(&amp;agents);
++	/* Hangup all interfaces if they have an owner */
++	while ((p = AST_LIST_REMOVE_HEAD(&amp;agents, list))) {
++		if (p-&gt;owner)
++			ast_softhangup(p-&gt;owner, AST_SOFTHANGUP_APPUNLOAD);
++		free(p);
++	}
++	AST_LIST_UNLOCK(&amp;agents);
++	AST_LIST_HEAD_DESTROY(&amp;agents);
++
+ 	return 0;
+ }
+ 
+
+Modified: trunk/dnsmgr.c
+===================================================================
+--- trunk/dnsmgr.c	2006-05-11 16:28:54 UTC (rev 139)
++++ trunk/dnsmgr.c	2006-05-11 20:28:50 UTC (rev 140)
+@@ -58,7 +58,7 @@
+ 	char name[1];
+ };
+ 
+-static AST_LIST_HEAD(entry_list, ast_dnsmgr_entry) entry_list;
++static AST_LIST_HEAD_STATIC(entry_list, ast_dnsmgr_entry);
+ 
+ AST_MUTEX_DEFINE_STATIC(refresh_lock);
+ 
+@@ -285,7 +285,6 @@
+ 		ast_log(LOG_ERROR, &quot;Unable to create schedule context.\n&quot;);
+ 		return -1;
+ 	}
+-	AST_LIST_HEAD_INIT(&amp;entry_list);
+ 	ast_cli_register(&amp;cli_reload);
+ 	ast_cli_register(&amp;cli_status);
+ 	return do_reload(1);
+
+Modified: trunk/include/asterisk/linkedlists.h
+===================================================================
+--- trunk/include/asterisk/linkedlists.h	2006-05-11 16:28:54 UTC (rev 139)
++++ trunk/include/asterisk/linkedlists.h	2006-05-11 20:28:50 UTC (rev 140)
+@@ -354,20 +354,6 @@
+ #define AST_LIST_TRAVERSE_SAFE_END  }
+ 
+ /*!
+-  \brief Initializes a list head structure.
+-  \param head This is a pointer to the list head structure
+-
+-  This macro initializes a list head structure by setting the head
+-  entry to \a NULL (empty list) and recreating the embedded lock.
+-*/
+-#define AST_LIST_HEAD_INIT(head) {					\
+-	(head)-&gt;first = NULL;						\
+-	(head)-&gt;last = NULL;						\
+-	(head)-&gt;lock = AST_MUTEX_INIT_VALUE;				\
+-	ast_mutex_init(&amp;(head)-&gt;lock);					\
+-}
+-
+-/*!
+   \brief Destroys a list head structure.
+   \param head This is a pointer to the list head structure
+ 
+
+Modified: trunk/include/asterisk/lock.h
+===================================================================
+--- trunk/include/asterisk/lock.h	2006-05-11 16:28:54 UTC (rev 139)
++++ trunk/include/asterisk/lock.h	2006-05-11 20:28:50 UTC (rev 140)
+@@ -571,11 +571,11 @@
+ #else /* !DEBUG_THREADS */
+ 
+ 
+-#define AST_MUTEX_INIT_VALUE	PTHREAD_MUTEX_INIT_VALUE
+ 
+-
+ typedef pthread_mutex_t ast_mutex_t;
+ 
++#define AST_MUTEX_INIT_VALUE	((ast_mutex_t)PTHREAD_MUTEX_INIT_VALUE)
++
+ static inline int ast_mutex_init(ast_mutex_t *pmutex)
+ {
+ 	pthread_mutexattr_t attr;
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-11 16:28:54 UTC (rev 139)
++++ trunk/pbx.c	2006-05-11 20:28:50 UTC (rev 140)
+@@ -950,7 +950,7 @@
+ 		int match = extension_match_core(eroot-&gt;exten, exten, action);
+ 		/* 0 on fail, 1 on match, 2 on earlymatch */
+ 
+-		if (!match || (eroot-&gt;matchcid &amp;&amp; matchcid(eroot-&gt;cidmatch, callerid)))
++		if (!match || (eroot-&gt;matchcid &amp;&amp; !matchcid(eroot-&gt;cidmatch, callerid)))
+ 			continue;	/* keep trying */
+ 		if (match == 2 &amp;&amp; action == E_MATCHMORE) {
+ 			/* We match an extension ending in '!'.
+@@ -3465,15 +3465,13 @@
+ void ast_merge_contexts_and_delete(struct ast_context **extcontexts, const char *registrar)
+ {
+ 	struct ast_context *tmp, *lasttmp = NULL;
+-	struct store_hints store;
++	struct store_hints store = AST_LIST_HEAD_INIT_VALUE;
+ 	struct store_hint *this;
+ 	struct ast_hint *hint;
+ 	struct ast_exten *exten;
+ 	int length;
+ 	struct ast_state_cb *thiscb, *prevcb;
+ 
+-	AST_LIST_HEAD_INIT(&amp;store);
+-
+ 	/* it is very important that this function hold the hint list lock _and_ the conlock
+ 	   during its operation; not only do we need to ensure that the list of contexts
+ 	   and extensions does not change, but also that no hint callbacks (watchers) are
+
+Modified: trunk/res/res_features.c
+===================================================================
+--- trunk/res/res_features.c	2006-05-11 16:28:54 UTC (rev 139)
++++ trunk/res/res_features.c	2006-05-11 20:28:50 UTC (rev 140)
+@@ -782,7 +782,7 @@
+ };
+ 
+ 
+-static AST_LIST_HEAD(feature_list,ast_call_feature) feature_list;
++static AST_LIST_HEAD_STATIC(feature_list,ast_call_feature);
+ 
+ /*! \brief register new feature into feature_list*/
+ void ast_register_feature(struct ast_call_feature *feature)
+@@ -2104,7 +2104,6 @@
+ 	int res;
+ 	
+ 	__mod_desc = mod;
+-	AST_LIST_HEAD_INIT(&amp;feature_list);
+ 	memset(parking_ext, 0, sizeof(parking_ext));
+ 	memset(parking_con, 0, sizeof(parking_con));
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000136.html">[solid-pbx-svn] r139 - in trunk: . include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000135.html">[solid-pbx-svn] r141 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#134">[ date ]</a>
+              <a href="thread.html#134">[ thread ]</a>
+              <a href="subject.html#134">[ subject ]</a>
+              <a href="author.html#134">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

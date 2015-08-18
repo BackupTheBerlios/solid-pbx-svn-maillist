@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r256 - trunk/configs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r256%20-%20trunk/configs&In-Reply-To=%3C200606181525.k5IFPPLs025931%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000250.html">
+   <LINK REL="Next"  HREF="000252.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r256 - trunk/configs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r256%20-%20trunk/configs&In-Reply-To=%3C200606181525.k5IFPPLs025931%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r256 - trunk/configs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 17:25:25 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000250.html">[solid-pbx-svn] r255 - in trunk: . apps configs include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000252.html">[solid-pbx-svn] r257 - trunk/contrib/utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#251">[ date ]</a>
+              <a href="thread.html#251">[ thread ]</a>
+              <a href="subject.html#251">[ subject ]</a>
+              <a href="author.html#251">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 17:25:24 +0200 (Sun, 18 Jun 2006)
+New Revision: 256
+
+Modified:
+   trunk/configs/indications.conf.sample
+Log:
+Update to Asterisk SVN trunk r32253
+
+------------------------------------------------------------------------
+r32252 | oej | 2006-06-05 11:27:38 +0200 (Mon, 05 Jun 2006) | 3 lines
+
+Issue #7231 - Missing indications from libtonezone (tzafrir)
+  - &quot;tuttter&quot; changed to &quot;stutter&quot; ;-)
+
+------------------------------------------------------------------------
+r32253 | oej | 2006-06-05 11:31:02 +0200 (Mon, 05 Jun 2006) | 2 lines
+
+Issue 7231 - Utility to convert libtonezone indications to indications.conf format
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/configs/indications.conf.sample
+===================================================================
+--- trunk/configs/indications.conf.sample	2006-06-18 14:25:27 UTC (rev 255)
++++ trunk/configs/indications.conf.sample	2006-06-18 15:25:24 UTC (rev 256)
+@@ -333,6 +333,33 @@
+ info = !950/330,!1400/330,!1800/330,!0/1000,!950/330,!1400/330,!1800/330,!0/1000,!950/330,!1400/330,!1800/330,!0/1000,0
+ stutter = 350+375+400
+ 
++[il]
++description = Israel
++ringcadence = 1000,3000
++dial = 414
++busy = 414/500,0/500
++ring = 414/1000,0/3000
++congestion = 414/250,0/250
++callwaiting = 414/100,0/100,414/100,0/100,414/600,0/3000
++dialrecall = !414/100,!0/100,!414/100,!0/100,!414/100,!0/100,414
++record = 1400/500,0/15000
++info = 1000/330,1400/330,1800/330,0/1000
++stutter = !414/160,!0/160,!414/160,!0/160,!414/160,!0/160,!414/160,!0/160,!414/160,!0/160,!414/160,!0/160,!414/160,!0/160,!414/160,!0/160,!414/160,!0/160,!414/160,!0/160,414
++
++
++[in]
++description = India
++ringcadence = 400,200,400,2000
++dial = 400*25
++busy = 400/750,0/750
++ring = 400*25/400,0/200,400*25/400,0/2000
++congestion = 400/250,0/250
++callwaiting = 400/200,0/100,400/200,0/7500
++dialrecall = !350+440/100,!0/100,!350+440/100,!0/100,!350+440/100,!0/100,350+440
++record = 1400/500,0/15000
++info = !950/330,!1400/330,!1800/330,0/1000
++stutter = !350+440/100,!0/100,!350+440/100,!0/100,!350+440/100,!0/100,!350+440/100,!0/100,!350+440/100,!0/100,!350+440/100,!0/100,350+440
++
+ [it]
+ description = Italy
+ ; Reference: <A HREF="http://www.itu.int/ITU-T/inr/forms/files/tones-0203.pdf">http://www.itu.int/ITU-T/inr/forms/files/tones-0203.pdf</A>
+@@ -363,6 +390,19 @@
+ ; STUTTER - not specified
+ stutter = !425/100,!0/100,!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,!425/100,!0/100,425
+ 
++[jp]
++description = Japan
++ringcadence = 1000,2000
++dial = 400
++busy = 400/500,0/500
++ring = 400+15/1000,0/2000
++congestion = 400/500,0/500
++callwaiting = 400+16/500,0/8000
++dialrecall = !400/200,!0/200,!400/200,!0/200,!400/200,!0/200,400
++record = 1400/500,0/15000
++info = !950/330,!1400/330,!1800/330,0
++stutter = !400/100,!0/100,!400/100,!0/100,!400/100,!0/100,!400/100,!0/100,!400/100,!0/100,!400/100,!0/100,400
++
+ [mx]
+ description = Mexico
+ ringcadence = 2000,4000
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000250.html">[solid-pbx-svn] r255 - in trunk: . apps configs include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000252.html">[solid-pbx-svn] r257 - trunk/contrib/utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#251">[ date ]</a>
+              <a href="thread.html#251">[ thread ]</a>
+              <a href="subject.html#251">[ subject ]</a>
+              <a href="author.html#251">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

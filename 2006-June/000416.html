@@ -1,0 +1,5225 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r421 - in trunk: . apps channels codecs codecs/gsm configs formats
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r421%20-%20in%20trunk%3A%20.%20apps%20channels%20codecs%20codecs/gsm%20configs%20formats&In-Reply-To=%3C200606281025.k5SAPjjR027129%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000415.html">
+   <LINK REL="Next"  HREF="000417.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r421 - in trunk: . apps channels codecs codecs/gsm configs formats</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r421%20-%20in%20trunk%3A%20.%20apps%20channels%20codecs%20codecs/gsm%20configs%20formats&In-Reply-To=%3C200606281025.k5SAPjjR027129%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r421 - in trunk: . apps channels codecs codecs/gsm configs formats">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 12:25:45 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000415.html">[solid-pbx-svn] r420 - in trunk: . apps channels include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000417.html">[solid-pbx-svn] r422 - in trunk: . configs formats pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#416">[ date ]</a>
+              <a href="thread.html#416">[ thread ]</a>
+              <a href="subject.html#416">[ subject ]</a>
+              <a href="author.html#416">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 12:25:31 +0200 (Wed, 28 Jun 2006)
+New Revision: 421
+
+Modified:
+   trunk/BUGS
+   trunk/README
+   trunk/apps/app_dial.c
+   trunk/channel.c
+   trunk/channels/DialTone.h
+   trunk/codecs/Makefile
+   trunk/codecs/codec_g723_1.c
+   trunk/codecs/g723_slin_ex.h
+   trunk/codecs/gsm/Makefile
+   trunk/codecs/gsm_slin_ex.h
+   trunk/configs/adtranvofr.conf.sample
+   trunk/configs/extensions.conf.sample
+   trunk/configs/modules.conf.sample
+   trunk/configs/voicemail.conf.sample
+   trunk/file.c
+   trunk/formats/format_g723.c
+   trunk/formats/format_wav.c
+   trunk/pbx.c
+   trunk/translate.c
+Log:
+Update to Asterisk SVN trunk r90
+
+------------------------------------------------------------------------
+r81 | markster | 1999-12-01 06:25:58 +0100 (Wed, 01 Dec 1999) | 2 lines
+
+Version 0.3.0 from FTP
+
+------------------------------------------------------------------------
+r82 | markster | 1999-12-02 21:24:59 +0100 (Thu, 02 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r83 | markster | 1999-12-04 21:45:45 +0100 (Sat, 04 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r84 | markster | 1999-12-04 22:35:07 +0100 (Sat, 04 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r85 | markster | 1999-12-04 23:05:35 +0100 (Sat, 04 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r86 | markster | 1999-12-05 02:29:36 +0100 (Sun, 05 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r87 | markster | 1999-12-05 02:40:43 +0100 (Sun, 05 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r88 | markster | 1999-12-05 03:03:40 +0100 (Sun, 05 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r89 | markster | 1999-12-05 03:10:05 +0100 (Sun, 05 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r90 | markster | 1999-12-05 08:09:27 +0100 (Sun, 05 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/BUGS
+===================================================================
+--- trunk/BUGS	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/BUGS	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,3 +1,12 @@
++* EVERYTHING MARKED WITH &quot;XXX&quot; IN THE SOURCE REPRESENTS A BUG!  Sometimes
++  these bugs are in asterisk, and sometimes they relate to the products
++  that asterisk uses.
++
++* The MP3 decoder is completely broken
++
++* The translator API may introduce warble in the case of going in both
++  directions, but I haven't verified that.  The trouble should only enter
++  in the case of mismatched frame lengths.
+ Solid PBX Bug Tracking Information
+ =================================
+ 
+
+Modified: trunk/README
+===================================================================
+--- trunk/README	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/README	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,3 +1,30 @@
++The Asterisk Open Source PBX
++by Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++Copyright (C) 1999, Linux Support Services, LLC and Adtran, Inc.
++================================================================
++* WHAT IS ASTERISK
++  Asterisk is an Open Source PBX and telephony toolkit.  It is, in a
++sense, middleware between Internet and telephony channels on the bottom,
++and Internet and telephony applications at the top.  For more information
++on the project itself, please visit the Asterisk home page at:
++
++           <A HREF="http://www.asteriskpbx.com">http://www.asteriskpbx.com</A>
++
++
++* REQUIRED COMPONENTS
++
++== Linux ==
++  Currently, the Asterisk Open Source PBX is only known to run on the
++Linux OS, although it may be portable to other UNIX-like operating systems
++as well.
++
++== libaudiofile ==
++
++  If you want to use format_wav module, then you need a very recent
++version of libaudiofile (at least version 0.2.0, or you can apply the
++following patch to version 0.1.9):
++
++
+ The Solid PBX Soft Switch Class 5
+ by the Solid PBX community
+ 
+
+Modified: trunk/apps/app_dial.c
+===================================================================
+--- trunk/apps/app_dial.c	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/apps/app_dial.c	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,4 +1,414 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Trivial application to dial a channel
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++
++#include &lt;asterisk/file.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;asterisk/channel.h&gt;
++#include &lt;asterisk/pbx.h&gt;
++#include &lt;asterisk/options.h&gt;
++#include &lt;asterisk/module.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;sys/time.h&gt;
++
++#include &lt;pthread.h&gt;
++
++
++static char *tdesc = &quot;Trivial Dialing Application&quot;;
++
++static char *app = &quot;Dial&quot;;
++
++/* We define a customer &quot;local user&quot; structure because we
++   use it not only for keeping track of what is in use but
++   also for keeping track of who we're dialing. */
++
++struct localuser {
++	struct ast_channel *chan;
++	int stillgoing;
++	int allowredirect;
++	struct localuser *next;
++};
++
++LOCAL_USER_DECL;
++
++static void hanguptree(struct localuser *outgoing, struct ast_channel *exception)
++{
++	/* Hang up a tree of stuff */
++	struct localuser *oo;
++	while(outgoing) {
++		/* Hangup any existing lines we have open */
++		if (outgoing-&gt;chan != exception)
++			ast_hangup(outgoing-&gt;chan);
++		oo = outgoing;
++		outgoing=outgoing-&gt;next;
++		free(oo);
++	}
++}
++
++static struct ast_channel *wait_for_answer(struct ast_channel *in, struct localuser *outgoing, int *to, int *allowredir)
++{
++	fd_set rfds, efds;
++	struct localuser *o;
++	int found;
++	int numlines;
++	int numbusies = 0;
++	int orig = *to;
++	struct timeval tv;
++	struct ast_frame *f;
++	struct ast_channel *peer = NULL;
++	/* Watch all outgoing channels looking for an answer of some sort.  */
++	tv.tv_sec = *to / 1000;
++	tv.tv_usec = (*to % 1000) * 1000;
++	while((tv.tv_sec || tv.tv_usec) &amp;&amp; !peer) {
++		FD_ZERO(&amp;rfds);
++		FD_ZERO(&amp;efds);
++		/* Always watch the input fd */
++		FD_SET(in-&gt;fd, &amp;rfds);
++		FD_SET(in-&gt;fd, &amp;efds);
++		o = outgoing;
++		found = -1;
++		numlines = 0;
++		while(o) {
++			if (o-&gt;stillgoing) {
++				/* Pay attention to this one */
++				CHECK_BLOCKING(o-&gt;chan);
++				FD_SET(o-&gt;chan-&gt;fd, &amp;rfds);
++				FD_SET(o-&gt;chan-&gt;fd, &amp;efds);
++				if (o-&gt;chan-&gt;fd &gt; found)
++					found = o-&gt;chan-&gt;fd;
++			}
++			numlines++;
++			o = o-&gt;next;
++		}
++		/* If nobody is left, just go ahead and stop */
++		if (found&lt;0) {
++			if (numlines == numbusies) {
++				if (option_verbose &gt; 2)
++					ast_verbose( VERBOSE_PREFIX_2 &quot;Everyone is busy at this time\n&quot;);
++				/* See if there is a special busy message */
++				if (ast_exists_extension(in, in-&gt;context, in-&gt;exten, in-&gt;priority + 101)) 
++					in-&gt;priority+=100;
++			} else {
++				if (option_verbose &gt; 2)
++					ast_verbose( VERBOSE_PREFIX_2 &quot;No one is available to answer at this time\n&quot;);
++			}
++			break;
++		}
++		if (in-&gt;fd &gt; found)
++			found = in-&gt;fd;
++		if (*to &gt; -1) 
++			found = select(found + 1, &amp;rfds, NULL, &amp;efds, &amp;tv);
++		else
++			found = select(found + 1, &amp;rfds, NULL, &amp;efds, NULL);
++		if (found &lt; 0) {
++			ast_log(LOG_WARNING, &quot;select failed, returned %d (%s)\n&quot;, errno, strerror(errno));
++			*to = -1;
++			o = outgoing;
++			while(o) {
++				if (o-&gt;stillgoing) {
++					o-&gt;chan-&gt;blocking = 0;
++				}
++				o = o-&gt;next;
++			}
++			return NULL;
++		}
++		o = outgoing;
++		while(o) {
++			if (o-&gt;stillgoing) {
++				o-&gt;chan-&gt;blocking = 0;
++				if (FD_ISSET(o-&gt;chan-&gt;fd, &amp;rfds) || FD_ISSET(o-&gt;chan-&gt;fd, &amp;efds)) {
++					f = ast_read(o-&gt;chan);
++					if (f) {
++						if (f-&gt;frametype == AST_FRAME_CONTROL) {
++							switch(f-&gt;subclass) {
++						    case AST_CONTROL_ANSWER:
++								/* This is our guy if someone answered. */
++								if (!peer) {
++									if (option_verbose &gt; 2)
++										ast_verbose( VERBOSE_PREFIX_3 &quot;%s answered %s\n&quot;, o-&gt;chan-&gt;name, in-&gt;name);
++									peer = o-&gt;chan;
++									*allowredir = o-&gt;allowredirect;
++								}
++								break;
++							case AST_CONTROL_BUSY:
++								if (option_verbose &gt; 2)
++									ast_verbose( VERBOSE_PREFIX_3 &quot;%s is busy\n&quot;, o-&gt;chan-&gt;name);
++								o-&gt;stillgoing = 0;
++								numbusies++;
++								break;
++							case AST_CONTROL_RINGING:
++								if (option_verbose &gt; 2)
++									ast_verbose( VERBOSE_PREFIX_3 &quot;%s is ringing\n&quot;, o-&gt;chan-&gt;name);
++								break;
++							case AST_CONTROL_OFFHOOK:
++								/* Ignore going off hook */
++								break;
++							default:
++								ast_log(LOG_DEBUG, &quot;Dunno what to do with control type %d\n&quot;, f-&gt;subclass);
++							}
++						}
++						ast_frfree(f);
++					} else {
++						o-&gt;stillgoing = 0;
++					}
++					
++				}
++			}
++			o = o-&gt;next;
++		}
++		if (FD_ISSET(in-&gt;fd, &amp;rfds) || FD_ISSET(in-&gt;fd, &amp;efds)) {
++			/* After unblocking the entirity of the list, check for the main channel */
++			f = ast_read(in);
++#if 0
++			if (f &amp;&amp; (f-&gt;frametype != AST_FRAME_VOICE))
++					printf(&quot;Frame type: %d, %d\n&quot;, f-&gt;frametype, f-&gt;subclass);
++#endif
++			if (!f || ((f-&gt;frametype == AST_FRAME_CONTROL) &amp;&amp; (f-&gt;subclass = AST_CONTROL_HANGUP))) {
++				/* Got hung up */
++				*to=-1;
++				return NULL;
++			}
++		}
++		
++	}
++	if (!(tv.tv_sec || tv.tv_usec) &amp;&amp; (option_verbose &gt; 2))
++		ast_verbose( VERBOSE_PREFIX_3 &quot;Nobody picked up in %d ms\n&quot;, orig);
++	*to = 0;
++	return peer;
++}
++
++static int bridge_call(struct ast_channel *chan, struct ast_channel *peer, int allowredirect)
++{
++	/* Copy voice back and forth between the two channels.  Give the peer
++	   the ability to transfer calls with '#&lt;extension' syntax. */
++	struct ast_channel *cs[3];
++	int to = -1, len;
++	struct ast_frame *f;
++	struct ast_channel *who;
++	char newext[256], *ptr;
++	int res;
++	/* Answer if need be */
++	if (chan-&gt;state != AST_STATE_UP)
++		if (ast_answer(chan))
++			return -1;
++	cs[0] = chan;
++	cs[1] = peer;
++	for (/* ever */;;) {
++		who = ast_waitfor_n(cs, 2, &amp;to);
++		if (!who) {
++			ast_log(LOG_WARNING, &quot;Nobody there??\n&quot;);
++			continue;
++		}
++		f = ast_read(who);
++		if (!f || ((f-&gt;frametype == AST_FRAME_CONTROL) &amp;&amp; (f-&gt;subclass == AST_CONTROL_HANGUP))) 
++			return -1;
++		if ((f-&gt;frametype == AST_FRAME_VOICE) ||
++		    (f-&gt;frametype == AST_FRAME_DTMF)) {
++			if ((f-&gt;frametype == AST_FRAME_DTMF) &amp;&amp; (who == peer) &amp;&amp; allowredirect) {
++				if (f-&gt;subclass == '#') {
++					memset(newext, 0, sizeof(newext));
++					ptr = newext;
++					len = ast_pbx_longest_extension(chan-&gt;context) + 1;
++
++					/* Transfer */
++					if ((res=ast_streamfile(peer, &quot;pbx-transfer&quot;)))
++						break;
++					if ((res=ast_waitstream(peer, AST_DIGIT_ANY)) &lt; 0)
++						break;
++					ast_stopstream(peer);
++					if (res &gt; 0) {
++						/* If they've typed a digit already, handle it */
++						newext[0] = res;
++						ptr++;
++						len --;
++					}
++					res = ast_readstring(peer, ptr, len, 3000, 2000, &quot;#&quot;);
++					if (res)
++						break;
++					if (ast_exists_extension(chan, chan-&gt;context, newext, 1)) {
++						/* Set the channel's new extension, since it exists */
++						strncpy(chan-&gt;exten, newext, sizeof(chan-&gt;exten));
++						chan-&gt;priority = 0;
++						ast_frfree(f);
++						res=0;
++						break;
++					}
++					res = ast_streamfile(peer, &quot;pbx-invalid&quot;);
++					if (res)
++						break;
++					res = ast_waitstream(peer, AST_DIGIT_ANY);
++					ast_stopstream(peer);
++					res = 0;
++				}
++			} else {
++#if 0
++				ast_log(LOG_DEBUG, &quot;Read from %s\n&quot;, who-&gt;name);
++#endif
++				if (who == chan) 
++					ast_write(peer, f);
++				else 
++					ast_write(chan, f);
++			}
++			ast_frfree(f);
++			
++		} else
++			ast_frfree(f);
++		/* Swap who gets priority */
++		cs[2] = cs[0];
++		cs[0] = cs[1];
++		cs[1] = cs[2];
++	}
++	return res;
++}
++
++static int dial_exec(struct ast_channel *chan, void *data)
++{
++	int res=-1;
++	struct localuser *u;
++	char *info, *peers, *timeout, *tech, *number, *rest, *cur;
++	struct localuser *outgoing=NULL, *tmp;
++	struct ast_channel *peer;
++	int to;
++	int allowredir=0;
++	
++	if (!data) {
++		ast_log(LOG_WARNING, &quot;Dial requires an argument (technology1/number1&amp;technology2/number2...|optional timeout)\n&quot;);
++		return -1;
++	}
++	
++	LOCAL_USER_ADD(u);
++	
++	/* Parse our arguments */
++	info = strdup((char *)data);
++	peers = strtok(info, &quot;|&quot;);
++	if (!peers) {
++		ast_log(LOG_WARNING, &quot;Dial argument takes format (technology1/number1&amp;technology2/number2...|optional timeout)\n&quot;);
++		goto out;
++	}
++	timeout = strtok(NULL, &quot;|&quot;);
++	rest = peers;
++	do {
++		cur = strtok(rest, &quot;&amp;&quot;);
++		/* Remember where to start next time */
++		rest = strtok(NULL, &quot;\128&quot;);
++		/* Get a technology/number pair */
++		tech = strtok(cur, &quot;/&quot;);
++		number = strtok(NULL, &quot;&amp;&quot;);
++		if (!number) {
++			ast_log(LOG_WARNING, &quot;Dial argument takes format (technology1/number1&amp;technology2/number2...|optional timeout)\n&quot;);
++			goto out;
++		}
++		tmp = malloc(sizeof(struct localuser));
++		if (!tmp) {
++			ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++			goto out;
++		}
++		tmp-&gt;allowredirect = 1;
++		/* If we're dialing by extension, look at the extension to know what to dial */
++		if (!strcasecmp(number, &quot;BYEXTENSION&quot;)) {
++			if (option_debug)
++				ast_log(LOG_DEBUG, &quot;Dialing by extension %s\n&quot;, chan-&gt;exten);
++			number = chan-&gt;exten;
++			/* By default, if we're dialing by extension, don't permit redirecting */
++			tmp-&gt;allowredirect = 0;
++		}
++		/* Request the peer */
++		tmp-&gt;chan = ast_request(tech, chan-&gt;format, number);
++		if (!tmp-&gt;chan) {
++			/* If we can't, just go on to the next call */
++			ast_log(LOG_WARNING, &quot;Unable to create channel of type '%s'\n&quot;, tech);
++			free(tmp);
++			continue;
++		}
++		/* Place the call, but don't wait on the answer */
++		res = ast_call(tmp-&gt;chan, number, 0);
++		if (res) {
++			/* Again, keep going even if there's an error */
++			if (option_debug)
++				ast_log(LOG_DEBUG, &quot;ast call on peer returned %d\n&quot;, res);
++			else if (option_verbose &gt; 2)
++				ast_verbose(VERBOSE_PREFIX_3 &quot;Couldn't call %s\n&quot;, number);
++			ast_hangup(tmp-&gt;chan);
++			free(tmp);
++			continue;
++		} else
++			if (option_verbose &gt; 2)
++				ast_verbose(VERBOSE_PREFIX_3 &quot;Called %s\n&quot;, number);
++		/* Put them in the list of outgoing thingies...  We're ready now. 
++		   XXX If we're forcibly removed, these outgoing calls won't get
++		   hung up XXX */
++		tmp-&gt;stillgoing = -1;
++		tmp-&gt;next = outgoing;
++		outgoing = tmp;
++	} while(rest);
++	if (timeout)
++		to = atoi(timeout) * 1000;
++	else
++		to = -1;
++	peer = wait_for_answer(chan, outgoing, &amp;to, &amp;allowredir);
++	if (!peer) {
++		if (to) 
++			/* Musta gotten hung up */
++			res = -1;
++		 else 
++		 	/* Nobody answered, next please? */
++			res=0;
++		
++		goto out;
++	}
++	if (peer) {
++		/* Ah ha!  Someone answered within the desired timeframe.  Of course after this
++		   we will always return with -1 so that it is hung up properly after the 
++		   conversation.  */
++		hanguptree(outgoing, peer);
++		outgoing = NULL;
++		res = bridge_call(chan, peer, allowredir);
++		ast_hangup(peer);
++	}	
++out:
++	hanguptree(outgoing, NULL);
++	free(info);
++	LOCAL_USER_REMOVE(u);
++	return res;
++}
++
++int unload_module(void)
++{
++	STANDARD_HANGUP_LOCALUSERS;
++	return ast_unregister_application(app);
++}
++
++int load_module(void)
++{
++	return ast_register_application(app, dial_exec);
++}
++
++char *description(void)
++{
++	return tdesc;
++}
++
++int usecount(void)
++{
++	int res;
++	STANDARD_USECOUNT(res);
++	return res;
++}
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2006, Digium, Inc.
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/channel.c	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,4 +1,406 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Channel Management
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++
++#include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;pthread.h&gt;
++#include &lt;string.h&gt;
++#include &lt;sys/time.h&gt;
++#include &lt;signal.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;asterisk/sched.h&gt;
++#include &lt;asterisk/options.h&gt;
++#include &lt;asterisk/channel.h&gt;
++#include &lt;asterisk/channel_pvt.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;asterisk/file.h&gt;
++
++struct chanlist {
++	char type[80];
++	char description[80];
++	int capabilities;
++	struct ast_channel * (*requester)(char *type, int format, void *data);
++	struct chanlist *next;
++} *backends = NULL;
++
++/* Protect the channel list (highly unlikely that two things would change
++   it at the same time, but still! */
++   
++static pthread_mutex_t chlock = PTHREAD_MUTEX_INITIALIZER;
++
++int ast_channel_register(char *type, char *description, int capabilities,
++		struct ast_channel *(*requester)(char *type, int format, void *data))
++{
++	struct chanlist *chan, *last=NULL;
++	if (pthread_mutex_lock(&amp;chlock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock channel list\n&quot;);
++		return -1;
++	}
++	chan = backends;
++	while(chan) {
++		if (!strcasecmp(type, chan-&gt;type)) {
++			ast_log(LOG_WARNING, &quot;Already have a handler for type '%s'\n&quot;, type);
++			pthread_mutex_unlock(&amp;chlock);
++			return -1;
++		}
++		last = chan;
++		chan = chan-&gt;next;
++	}
++	chan = malloc(sizeof(struct chanlist));
++	if (!chan) {
++		ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++		pthread_mutex_unlock(&amp;chlock);
++		return -1;
++	}
++	strncpy(chan-&gt;type, type, sizeof(chan-&gt;type));
++	strncpy(chan-&gt;description, description, sizeof(chan-&gt;description));
++	chan-&gt;capabilities = capabilities;
++	chan-&gt;requester = requester;
++	chan-&gt;next = NULL;
++	if (last)
++		last-&gt;next = chan;
++	else
++		backends = chan;
++	if (option_debug)
++		ast_log(LOG_DEBUG, &quot;Registered handler for '%s' (%s)\n&quot;, chan-&gt;type, chan-&gt;description);
++	else if (option_verbose &gt; 1)
++		ast_verbose( VERBOSE_PREFIX_2 &quot;Registered channel type '%s' (%s)\n&quot;, chan-&gt;type, chan-&gt;description);
++	pthread_mutex_unlock(&amp;chlock);
++	return 0;
++}
++
++struct ast_channel *ast_channel_alloc(void)
++{
++	struct ast_channel *tmp;
++	struct ast_channel_pvt *pvt;
++	tmp = malloc(sizeof(struct ast_channel));
++	memset(tmp, 0, sizeof(struct ast_channel));
++	if (tmp) {
++		pvt = malloc(sizeof(struct ast_channel_pvt));
++		if (pvt) {
++			memset(pvt, 0, sizeof(struct ast_channel_pvt));
++			tmp-&gt;sched = sched_context_create();
++			if (tmp-&gt;sched) {
++				tmp-&gt;fd = -1;
++				strncpy(tmp-&gt;name, &quot;**Unknown**&quot;, sizeof(tmp-&gt;name));
++				tmp-&gt;pvt = pvt;
++				tmp-&gt;state = AST_STATE_DOWN;
++				tmp-&gt;stack = -1;
++				tmp-&gt;streamid = -1;
++				strncpy(tmp-&gt;context, &quot;default&quot;, sizeof(tmp-&gt;context));
++				strncpy(tmp-&gt;exten, &quot;s&quot;, sizeof(tmp-&gt;exten));
++				tmp-&gt;priority=1;
++			} else {
++				ast_log(LOG_WARNING, &quot;Unable to create schedule context\n&quot;);
++				free(tmp);
++				tmp = NULL;
++			}
++		} else {
++			ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++			free(tmp);
++			tmp = NULL;
++		}
++	} else 
++		ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++	return tmp;
++}
++
++int ast_softhangup(struct ast_channel *chan)
++{
++	int res = 0;
++	if (chan-&gt;stream)
++		ast_stopstream(chan);
++	if (option_debug)
++		ast_log(LOG_DEBUG, &quot;Soft-Hanging up channel '%s'\n&quot;, chan-&gt;name);
++	if (chan-&gt;trans)
++		ast_log(LOG_WARNING, &quot;Soft hangup called on '%s' while a translator is in place!  Expect a failure.\n&quot;, chan-&gt;name);
++	if (chan-&gt;pvt-&gt;hangup)
++		res = chan-&gt;pvt-&gt;hangup(chan);
++	if (chan-&gt;pvt-&gt;pvt)
++		ast_log(LOG_WARNING, &quot;Channel '%s' may not have been hung up properly\n&quot;, chan-&gt;name);
++	if (chan-&gt;pbx) 
++		ast_log(LOG_WARNING, &quot;PBX may not have been terminated properly on '%s'\n&quot;, chan-&gt;name);	
++	/* Interrupt any select call or such */
++	if (chan-&gt;blocking)
++		pthread_kill(chan-&gt;blocker, SIGURG);
++	return res;
++}
++
++int ast_hangup(struct ast_channel *chan)
++{
++	int res = 0;
++	if (chan-&gt;stream)
++		ast_stopstream(chan);
++	if (chan-&gt;sched)
++		sched_context_destroy(chan-&gt;sched);
++	if (chan-&gt;blocking)
++		ast_log(LOG_WARNING, &quot;Hard hangup called, while fd is blocking!  Expect a failure\n&quot;);
++	if (option_debug)
++		ast_log(LOG_DEBUG, &quot;Hanging up channel '%s'\n&quot;, chan-&gt;name);
++	if (chan-&gt;pvt-&gt;hangup)
++		res = chan-&gt;pvt-&gt;hangup(chan);
++	if (chan-&gt;pvt-&gt;pvt)
++		ast_log(LOG_WARNING, &quot;Channel '%s' may not have been hung up properly\n&quot;, chan-&gt;name);
++	if (chan-&gt;trans)
++		ast_log(LOG_WARNING, &quot;Hard hangup called on '%s' while a translator is in place!  Expect a failure.\n&quot;, chan-&gt;name);
++	if (chan-&gt;pbx) 
++		ast_log(LOG_WARNING, &quot;PBX may not have been terminated properly on '%s'\n&quot;, chan-&gt;name);
++	if (chan-&gt;dnid)
++		free(chan-&gt;dnid);
++	if (chan-&gt;callerid)
++		free(chan-&gt;callerid);	
++	free(chan-&gt;pvt);
++	free(chan);
++	return res;
++}
++
++void ast_channel_unregister(char *type)
++{
++	struct chanlist *chan, *last=NULL;
++	if (option_debug)
++		ast_log(LOG_DEBUG, &quot;Unregistering channel type '%s'\n&quot;, type);
++	if (pthread_mutex_lock(&amp;chlock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock channel list\n&quot;);
++		return;
++	}
++	chan = backends;
++	while(chan) {
++		if (!strcasecmp(chan-&gt;type, type)) {
++			if (last)
++				last-&gt;next = chan-&gt;next;
++			else
++				backends = backends-&gt;next;
++			free(chan);
++			pthread_mutex_unlock(&amp;chlock);
++			return;
++		}
++		last = chan;
++		chan = chan-&gt;next;
++	}
++	pthread_mutex_unlock(&amp;chlock);
++}
++
++int ast_answer(struct ast_channel *chan)
++{
++	/* Answer the line, if possible */
++	if (chan-&gt;state == AST_STATE_RING) {
++		if (chan-&gt;pvt-&gt;answer)
++			return chan-&gt;pvt-&gt;answer(chan);
++	}
++	return 0;
++}
++
++int ast_waitfor_n_fd(int *fds, int n, int *ms)
++{
++	/* Wait for x amount of time on a file descriptor to have input.  */
++	struct timeval tv;
++	fd_set rfds, efds;
++	int res;
++	int x, max=-1;
++	int winner = -1;
++	
++	tv.tv_sec = *ms / 1000;
++	tv.tv_usec = (*ms % 1000) * 1000;
++	FD_ZERO(&amp;rfds);
++	FD_ZERO(&amp;efds);
++	for (x=0;x&lt;n;x++) {
++		FD_SET(fds[x], &amp;rfds);
++		FD_SET(fds[x], &amp;efds);
++		if (fds[x] &gt; max)
++			max = fds[x];
++	}
++	if (*ms &gt;= 0) 
++		res = select(max + 1, &amp;rfds, NULL, &amp;efds, &amp;tv);
++	else
++		res = select(max + 1, &amp;rfds, NULL, &amp;efds, NULL);
++	for (x=0;x&lt;n;x++) {
++		if ((FD_ISSET(fds[x], &amp;rfds) || FD_ISSET(fds[x], &amp;efds)) &amp;&amp; (winner &lt; 0))
++			winner = fds[x];
++	}
++	*ms = tv.tv_sec * 1000 + tv.tv_usec / 1000;
++	if (res &lt; 0)
++		*ms = -10;
++	return winner;
++}
++
++struct ast_channel *ast_waitfor_n(struct ast_channel **c, int n, int *ms)
++{
++	/* Wait for x amount of time on a file descriptor to have input.  */
++	struct timeval tv;
++	fd_set rfds, efds;
++	int res;
++	int x, max=-1;
++	struct ast_channel *winner = NULL;
++	
++	tv.tv_sec = *ms / 1000;
++	tv.tv_usec = (*ms % 1000) * 1000;
++	FD_ZERO(&amp;rfds);
++	FD_ZERO(&amp;efds);
++	for (x=0;x&lt;n;x++) {
++		FD_SET(c[x]-&gt;fd, &amp;rfds);
++		FD_SET(c[x]-&gt;fd, &amp;efds);
++		CHECK_BLOCKING(c[x]);
++		if (c[x]-&gt;fd &gt; max)
++			max = c[x]-&gt;fd;
++	}
++	if (*ms &gt;= 0) 
++		res = select(max + 1, &amp;rfds, NULL, &amp;efds, &amp;tv);
++	else
++		res = select(max + 1, &amp;rfds, NULL, &amp;efds, NULL);
++	for (x=0;x&lt;n;x++) {
++		c[x]-&gt;blocking = 0;
++		if ((FD_ISSET(c[x]-&gt;fd, &amp;rfds) || FD_ISSET(c[x]-&gt;fd, &amp;efds)) &amp;&amp; !winner)
++			winner = c[x];
++	}
++	*ms = tv.tv_sec * 1000 + tv.tv_usec / 1000;
++	if (res &lt; 0)
++		*ms = -10;
++	return winner;
++}
++
++int ast_waitfor(struct ast_channel *c, int ms)
++{
++	if (ast_waitfor_n(&amp;c, 1, &amp;ms)) {
++		if (ms &lt; 0)
++			return -ms;
++		return ms;
++	}
++	/* Error if ms &lt; 0 */
++	if (ms &lt; 0) 
++		return -1;
++	return 0;
++}
++
++char ast_waitfordigit(struct ast_channel *c, int ms)
++{
++	struct ast_frame *f;
++	char result = 0;
++	/* Wait for a digit, no more than ms milliseconds total. */
++	while(ms &amp;&amp; !result) {
++		ms = ast_waitfor(c, ms);
++		if (ms &lt; 0) /* Error */
++			result = -1; 
++		else if (ms &gt; 0) {
++			/* Read something */
++			f = ast_read(c);
++			if (f) {
++				if (f-&gt;frametype == AST_FRAME_DTMF) 
++					result = f-&gt;subclass;
++				ast_frfree(f);
++			} else
++				result = -1;
++		}
++	}
++	return result;
++}
++
++struct ast_frame *ast_read(struct ast_channel *chan)
++{
++	struct ast_frame *f = NULL;
++	chan-&gt;blocker = pthread_self();
++	if (chan-&gt;pvt-&gt;read)
++		f = chan-&gt;pvt-&gt;read(chan);
++	else
++		ast_log(LOG_WARNING, &quot;No read routine on channel %s\n&quot;, chan);
++	return f;
++}
++
++int ast_write(struct ast_channel *chan, struct ast_frame *fr)
++{
++	int res = -1;
++	CHECK_BLOCKING(chan);
++	switch(fr-&gt;frametype) {
++	case AST_FRAME_CONTROL:
++		/* XXX Interpret control frames XXX */
++		ast_log(LOG_WARNING, &quot;Don't know how to handle control frames yet\n&quot;);
++		break;
++	case AST_FRAME_DTMF:
++		
++		if (chan-&gt;pvt-&gt;send_digit)
++			res = chan-&gt;pvt-&gt;send_digit(chan, fr-&gt;subclass);
++		break;
++	default:
++		if (chan-&gt;pvt-&gt;write)
++			res = chan-&gt;pvt-&gt;write(chan, fr);
++	}
++	chan-&gt;blocking = 0;
++	return res;
++}
++
++struct ast_channel *ast_request(char *type, int format, void *data)
++{
++	struct chanlist *chan;
++	struct ast_channel *c = NULL;
++	if (pthread_mutex_lock(&amp;chlock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock channel list\n&quot;);
++		return NULL;
++	}
++	chan = backends;
++	while(chan) {
++		if (!strcasecmp(type, chan-&gt;type)) {
++			if (chan-&gt;requester)
++				c = chan-&gt;requester(type, format, data);
++			pthread_mutex_unlock(&amp;chlock);
++			break;
++		}
++		chan = chan-&gt;next;
++	}
++	if (!chan)
++		ast_log(LOG_WARNING, &quot;No channel type registered for '%s'\n&quot;, type);
++	return c;
++}
++
++int ast_call(struct ast_channel *chan, char *addr, int timeout) 
++{
++	/* Place an outgoing call, but don't wait any longer than timeout ms before returning. 
++	   If the remote end does not answer within the timeout, then do NOT hang up, but 
++	   return anyway.  */
++	int res = -1;
++	if (chan-&gt;pvt-&gt;call)
++		res = chan-&gt;pvt-&gt;call(chan, addr, timeout);
++	return res;
++}
++
++int ast_readstring(struct ast_channel *c, char *s, int len, int timeout, int ftimeout, char *enders)
++{
++	int pos=0;
++	int to = ftimeout;
++	char d;
++	if (!len)
++		return -1;
++	do {
++		if (c-&gt;streamid &gt; -1) {
++			d = ast_waitstream(c, AST_DIGIT_ANY);
++			ast_stopstream(c);
++			if (!d)
++				d = ast_waitfordigit(c, to);
++		} else {
++			d = ast_waitfordigit(c, to);
++		}
++		if (d &lt; 0)
++			return -1;
++		if (!strchr(enders, d))
++			s[pos++] = d;
++		if ((d == 0) || strchr(enders, d) || (pos &gt;= len - 1)) {
++			s[pos]='\0';
++			return 0;
++		}
++		to = timeout;
++	} while(1);
++	/* Never reached */
++	return 0;
++}
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2006, Digium, Inc.
+
+Modified: trunk/channels/DialTone.h
+===================================================================
+--- trunk/channels/DialTone.h	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/channels/DialTone.h	2006-06-28 10:25:31 UTC (rev 421)
+@@ -3,6 +3,258 @@
+   *
+   * Source: DialTone.ulaw
+   *
++  * Copyright (C) 1999, Mark Spencer and Linux Support Services
++  *
++  * Distributed under the terms of the GNU General Public License
++  *
++  */
++
++static unsigned char DialTone[] = {
++0xff, 0xab, 0x9d, 0x96, 0x91, 0x90, 0x91, 0x96, 0x9c, 0xaa, 
++0xd9, 0x2f, 0x1f, 0x19, 0x15, 0x14, 0x15, 0x19, 0x1f, 0x2c, 
++0x4e, 0xb9, 0xa7, 0x9f, 0x9c, 0x9b, 0x9c, 0x9f, 0xa7, 0xb3, 
++0xcf, 0x47, 0x34, 0x2d, 0x2a, 0x2a, 0x2c, 0x31, 0x3a, 0x47, 
++0x5f, 0xe4, 0xd8, 0xd9, 0xe9, 0x64, 0x4f, 0x49, 0x46, 0x49, 
++0x58, 0xde, 0xc2, 0xb5, 0xad, 0xa8, 0xa6, 0xa6, 0xa9, 0xaf, 
++0xbf, 0x56, 0x32, 0x26, 0x1e, 0x1b, 0x19, 0x1a, 0x1d, 0x24, 
++0x33, 0xdd, 0xad, 0x9f, 0x98, 0x94, 0x92, 0x93, 0x97, 0x9e, 
++0xac, 0xf8, 0x2c, 0x1d, 0x16, 0x11, 0xf, 0x10, 0x15, 0x1b, 
++0x29, 0x55, 0xae, 0x9e, 0x97, 0x92, 0x90, 0x91, 0x95, 0x9c, 
++0xa8, 0xca, 0x35, 0x22, 0x1a, 0x16, 0x15, 0x16, 0x19, 0x1f, 
++0x2b, 0x47, 0xbe, 0xab, 0xa2, 0x9e, 0x9d, 0x9e, 0xa2, 0xa9, 
++0xb4, 0xcc, 0x4f, 0x3a, 0x32, 0x2f, 0x2f, 0x32, 0x39, 0x41, 
++0x4f, 0x67, 0xf5, 0xf5, 0x67, 0x51, 0x46, 0x3e, 0x3b, 0x3b, 
++0x3f, 0x4d, 0xe2, 0xbe, 0xb0, 0xa9, 0xa4, 0xa1, 0xa1, 0xa5, 
++0xab, 0xba, 0x64, 0x33, 0x25, 0x1d, 0x19, 0x17, 0x18, 0x1b, 
++0x20, 0x2e, 0x72, 0xae, 0x9f, 0x98, 0x94, 0x91, 0x92, 0x96, 
++0x9c, 0xa9, 0xd4, 0x2f, 0x1e, 0x17, 0x11, 0xf, 0x10, 0x14, 
++0x1a, 0x26, 0x48, 0xb2, 0x9f, 0x98, 0x93, 0x91, 0x92, 0x95, 
++0x9b, 0xa7, 0xc1, 0x3a, 0x25, 0x1c, 0x18, 0x16, 0x17, 0x1a, 
++0x1f, 0x2b, 0x42, 0xc6, 0xae, 0xa6, 0xa0, 0x9f, 0xa0, 0xa5, 
++0xab, 0xb6, 0xcb, 0x5a, 0x40, 0x39, 0x36, 0x37, 0x3b, 0x43, 
++0x4e, 0x60, 0x7b, 0x7c, 0x60, 0x4e, 0x41, 0x3a, 0x34, 0x32, 
++0x33, 0x39, 0x45, 0xed, 0xbd, 0xae, 0xa6, 0xa0, 0x9e, 0x9e, 
++0xa0, 0xa8, 0xb4, 0xef, 0x34, 0x24, 0x1c, 0x18, 0x16, 0x16, 
++0x19, 0x1e, 0x2b, 0x54, 0xb1, 0x9f, 0x98, 0x93, 0x91, 0x91, 
++0x95, 0x9b, 0xa6, 0xc6, 0x33, 0x1f, 0x17, 0x12, 0xf, 0x10, 
++0x13, 0x1a, 0x24, 0x3e, 0xb8, 0xa2, 0x99, 0x94, 0x92, 0x92, 
++0x96, 0x9b, 0xa6, 0xbc, 0x40, 0x29, 0x1e, 0x1a, 0x18, 0x19, 
++0x1b, 0x20, 0x2b, 0x3f, 0xcf, 0xb3, 0xa9, 0xa5, 0xa3, 0xa4, 
++0xa8, 0xae, 0xb9, 0xcc, 0x67, 0x49, 0x40, 0x3f, 0x42, 0x4a, 
++0x59, 0x79, 0xe5, 0xe4, 0x7a, 0x54, 0x43, 0x39, 0x31, 0x2d, 
++0x2c, 0x2d, 0x32, 0x3e, 0x71, 0xbd, 0xad, 0xa4, 0x9e, 0x9c, 
++0x9c, 0x9e, 0xa4, 0xaf, 0xd7, 0x36, 0x24, 0x1c, 0x17, 0x15, 
++0x15, 0x17, 0x1d, 0x28, 0x47, 0xb5, 0xa1, 0x98, 0x93, 0x90, 
++0x90, 0x93, 0x99, 0xa4, 0xbd, 0x38, 0x21, 0x18, 0x13, 0x10, 
++0x10, 0x13, 0x19, 0x22, 0x39, 0xbe, 0xa5, 0x9b, 0x96, 0x93, 
++0x93, 0x96, 0x9b, 0xa5, 0xb9, 0x4a, 0x2c, 0x20, 0x1c, 0x1a, 
++0x1a, 0x1d, 0x22, 0x2c, 0x3d, 0xdc, 0xb8, 0xad, 0xa9, 0xa8, 
++0xa9, 0xac, 0xb2, 0xbd, 0xce, 0x78, 0x54, 0x4d, 0x4f, 0x5a, 
++0xff, 0xda, 0xcf, 0xcd, 0xd4, 0xf8, 0x4e, 0x3d, 0x32, 0x2c, 
++0x29, 0x28, 0x29, 0x2d, 0x38, 0x5c, 0xbd, 0xac, 0xa2, 0x9d, 
++0x9a, 0x9a, 0x9c, 0xa0, 0xac, 0xca, 0x39, 0x25, 0x1b, 0x16, 
++0x13, 0x13, 0x16, 0x1b, 0x25, 0x3e, 0xb9, 0xa2, 0x99, 0x93, 
++0x90, 0x90, 0x93, 0x98, 0xa1, 0xb8, 0x3d, 0x24, 0x19, 0x13, 
++0x10, 0x10, 0x13, 0x18, 0x21, 0x35, 0xc7, 0xa8, 0x9d, 0x97, 
++0x95, 0x95, 0x97, 0x9c, 0xa4, 0xb6, 0x57, 0x2f, 0x24, 0x1e, 
++0x1c, 0x1c, 0x1e, 0x24, 0x2d, 0x3d, 0xf1, 0xbe, 0xb2, 0xad, 
++0xac, 0xad, 0xb1, 0xb9, 0xc3, 0xd4, 0xfa, 0x64, 0x65, 0xf9, 
++0xd9, 0xca, 0xc2, 0xbf, 0xc0, 0xc9, 0xe7, 0x4c, 0x39, 0x2e, 
++0x28, 0x24, 0x23, 0x25, 0x29, 0x33, 0x4f, 0xbf, 0xab, 0xa0, 
++0x9b, 0x99, 0x98, 0x9a, 0x9e, 0xa9, 0xc0, 0x3c, 0x26, 0x1b, 
++0x16, 0x12, 0x12, 0x14, 0x19, 0x22, 0x38, 0xbe, 0xa4, 0x9a, 
++0x93, 0x90, 0x8f, 0x92, 0x97, 0x9f, 0xb3, 0x46, 0x26, 0x1b, 
++0x15, 0x11, 0x11, 0x13, 0x18, 0x1f, 0x31, 0xd4, 0xab, 0x9e, 
++0x99, 0x96, 0x96, 0x98, 0x9c, 0xa4, 0xb4, 0x6f, 0x34, 0x28, 
++0x20, 0x1e, 0x1e, 0x20, 0x26, 0x2e, 0x3d, 0x6d, 0xc5, 0xb9, 
++0xb3, 0xb2, 0xb4, 0xba, 0xc1, 0xcd, 0xe0, 0xfc, 0xfb, 0xe0, 
++0xce, 0xc3, 0xbb, 0xb7, 0xb6, 0xb9, 0xc0, 0xda, 0x4b, 0x36, 
++0x2b, 0x25, 0x20, 0x1f, 0x20, 0x26, 0x2e, 0x46, 0xc2, 0xab, 
++0x9f, 0x9a, 0x97, 0x96, 0x98, 0x9c, 0xa5, 0xba, 0x41, 0x27, 
++0x1b, 0x15, 0x12, 0x11, 0x13, 0x18, 0x1f, 0x32, 0xc8, 0xa6, 
++0x9a, 0x94, 0x90, 0x8f, 0x91, 0x97, 0x9e, 0xaf, 0x54, 0x29, 
++0x1c, 0x16, 0x12, 0x11, 0x14, 0x18, 0x1f, 0x2e, 0xf2, 0xae, 
++0xa0, 0x9b, 0x98, 0x97, 0x99, 0x9d, 0xa5, 0xb3, 0xe4, 0x3a, 
++0x2b, 0x25, 0x21, 0x21, 0x24, 0x29, 0x30, 0x3e, 0x62, 0xcd, 
++0xbf, 0xbb, 0xbb, 0xbe, 0xc6, 0xd1, 0xe7, 0x76, 0x75, 0xe7, 
++0xcf, 0xc1, 0xb9, 0xb2, 0xaf, 0xaf, 0xb2, 0xba, 0xcf, 0x4c, 
++0x34, 0x29, 0x22, 0x1e, 0x1d, 0x1e, 0x22, 0x2b, 0x3e, 0xc7, 
++0xab, 0x9f, 0x99, 0x96, 0x95, 0x96, 0x9a, 0xa2, 0xb5, 0x4a, 
++0x28, 0x1c, 0x15, 0x11, 0x10, 0x12, 0x17, 0x1e, 0x2e, 0xd5, 
++0xa9, 0x9b, 0x95, 0x90, 0x8f, 0x91, 0x96, 0x9d, 0xac, 0x78, 
++0x2c, 0x1e, 0x17, 0x13, 0x12, 0x14, 0x18, 0x1f, 0x2d, 0x5d, 
++0xb3, 0xa4, 0x9d, 0x9a, 0x99, 0x9b, 0x9e, 0xa6, 0xb2, 0xd6, 
++0x3f, 0x2f, 0x29, 0x26, 0x26, 0x28, 0x2d, 0x35, 0x42, 0x5e, 
++0xd8, 0xca, 0xc6, 0xc9, 0xcf, 0xe4, 0x69, 0x59, 0x58, 0x64, 
++0xdf, 0xc7, 0xba, 0xb1, 0xac, 0xaa, 0xaa, 0xad, 0xb4, 0xc7, 
++0x4f, 0x33, 0x27, 0x1f, 0x1c, 0x1b, 0x1c, 0x1f, 0x27, 0x39, 
++0xce, 0xac, 0x9f, 0x99, 0x95, 0x94, 0x95, 0x99, 0x9f, 0xaf, 
++0x59, 0x2a, 0x1c, 0x16, 0x11, 0x10, 0x11, 0x16, 0x1d, 0x2b, 
++0xff, 0xab, 0x9d, 0x96, 0x91, 0x90, 0x91, 0x96, 0x9c, 0xaa, 
++0xd9, 0x2f, 0x1f, 0x19, 0x15, 0x14, 0x15, 0x19, 0x1f, 0x2c, 
++0x4e, 0xb9, 0xa7, 0x9f, 0x9c, 0x9b, 0x9c, 0x9f, 0xa7, 0xb3, 
++0xcf, 0x47, 0x34, 0x2d, 0x2a, 0x2a, 0x2c, 0x31, 0x3a, 0x47, 
++0x5f, 0xe4, 0xd8, 0xd9, 0xe9, 0x64, 0x4f, 0x49, 0x46, 0x49, 
++0x58, 0xde, 0xc2, 0xb5, 0xad, 0xa8, 0xa6, 0xa6, 0xa9, 0xaf, 
++0xbf, 0x56, 0x32, 0x26, 0x1e, 0x1b, 0x19, 0x1a, 0x1d, 0x24, 
++0x33, 0xdd, 0xad, 0x9f, 0x98, 0x94, 0x92, 0x93, 0x97, 0x9e, 
++0xac, 0xf8, 0x2c, 0x1d, 0x16, 0x11, 0xf, 0x10, 0x15, 0x1b, 
++0x29, 0x55, 0xae, 0x9e, 0x97, 0x92, 0x90, 0x91, 0x95, 0x9c, 
++0xa8, 0xca, 0x35, 0x22, 0x1a, 0x16, 0x15, 0x16, 0x19, 0x1f, 
++0x2b, 0x47, 0xbe, 0xab, 0xa2, 0x9e, 0x9d, 0x9e, 0xa2, 0xa9, 
++0xb4, 0xcc, 0x4f, 0x3a, 0x32, 0x2f, 0x2f, 0x32, 0x39, 0x41, 
++0x4f, 0x67, 0xf5, 0xf5, 0x67, 0x51, 0x46, 0x3e, 0x3b, 0x3b, 
++0x3f, 0x4d, 0xe2, 0xbe, 0xb0, 0xa9, 0xa4, 0xa1, 0xa1, 0xa5, 
++0xab, 0xba, 0x64, 0x33, 0x25, 0x1d, 0x19, 0x17, 0x18, 0x1b, 
++0x20, 0x2e, 0x72, 0xae, 0x9f, 0x98, 0x94, 0x91, 0x92, 0x96, 
++0x9c, 0xa9, 0xd4, 0x2f, 0x1e, 0x17, 0x11, 0xf, 0x10, 0x14, 
++0x1a, 0x26, 0x48, 0xb2, 0x9f, 0x98, 0x93, 0x91, 0x92, 0x95, 
++0x9b, 0xa7, 0xc1, 0x3a, 0x25, 0x1c, 0x18, 0x16, 0x17, 0x1a, 
++0x1f, 0x2b, 0x42, 0xc6, 0xae, 0xa6, 0xa0, 0x9f, 0xa0, 0xa5, 
++0xab, 0xb6, 0xcb, 0x5a, 0x40, 0x39, 0x36, 0x37, 0x3b, 0x43, 
++0x4e, 0x60, 0x7b, 0x7c, 0x60, 0x4e, 0x41, 0x3a, 0x34, 0x32, 
++0x33, 0x39, 0x45, 0xed, 0xbd, 0xae, 0xa6, 0xa0, 0x9e, 0x9e, 
++0xa0, 0xa8, 0xb4, 0xef, 0x34, 0x24, 0x1c, 0x18, 0x16, 0x16, 
++0x19, 0x1e, 0x2b, 0x54, 0xb1, 0x9f, 0x98, 0x93, 0x91, 0x91, 
++0x95, 0x9b, 0xa6, 0xc6, 0x33, 0x1f, 0x17, 0x12, 0xf, 0x10, 
++0x13, 0x1a, 0x24, 0x3e, 0xb8, 0xa2, 0x99, 0x94, 0x92, 0x92, 
++0x96, 0x9b, 0xa6, 0xbc, 0x40, 0x29, 0x1e, 0x1a, 0x18, 0x19, 
++0x1b, 0x20, 0x2b, 0x3f, 0xcf, 0xb3, 0xa9, 0xa5, 0xa3, 0xa4, 
++0xa8, 0xae, 0xb9, 0xcc, 0x67, 0x49, 0x40, 0x3f, 0x42, 0x4a, 
++0x59, 0x79, 0xe5, 0xe4, 0x7a, 0x54, 0x43, 0x39, 0x31, 0x2d, 
++0x2c, 0x2d, 0x32, 0x3e, 0x71, 0xbd, 0xad, 0xa4, 0x9e, 0x9c, 
++0x9c, 0x9e, 0xa4, 0xaf, 0xd7, 0x36, 0x24, 0x1c, 0x17, 0x15, 
++0x15, 0x17, 0x1d, 0x28, 0x47, 0xb5, 0xa1, 0x98, 0x93, 0x90, 
++0x90, 0x93, 0x99, 0xa4, 0xbd, 0x38, 0x21, 0x18, 0x13, 0x10, 
++0x10, 0x13, 0x19, 0x22, 0x39, 0xbe, 0xa5, 0x9b, 0x96, 0x93, 
++0x93, 0x96, 0x9b, 0xa5, 0xb9, 0x4a, 0x2c, 0x20, 0x1c, 0x1a, 
++0x1a, 0x1d, 0x22, 0x2c, 0x3d, 0xdc, 0xb8, 0xad, 0xa9, 0xa8, 
++0xa9, 0xac, 0xb2, 0xbd, 0xce, 0x78, 0x54, 0x4d, 0x4f, 0x5a, 
++0xff, 0xda, 0xcf, 0xcd, 0xd4, 0xf8, 0x4e, 0x3d, 0x32, 0x2c, 
++0x29, 0x28, 0x29, 0x2d, 0x38, 0x5c, 0xbd, 0xac, 0xa2, 0x9d, 
++0x9a, 0x9a, 0x9c, 0xa0, 0xac, 0xca, 0x39, 0x25, 0x1b, 0x16, 
++0x13, 0x13, 0x16, 0x1b, 0x25, 0x3e, 0xb9, 0xa2, 0x99, 0x93, 
++0x90, 0x90, 0x93, 0x98, 0xa1, 0xb8, 0x3d, 0x24, 0x19, 0x13, 
++0x10, 0x10, 0x13, 0x18, 0x21, 0x35, 0xc7, 0xa8, 0x9d, 0x97, 
++0x95, 0x95, 0x97, 0x9c, 0xa4, 0xb6, 0x57, 0x2f, 0x24, 0x1e, 
++0x1c, 0x1c, 0x1e, 0x24, 0x2d, 0x3d, 0xf1, 0xbe, 0xb2, 0xad, 
++0xac, 0xad, 0xb1, 0xb9, 0xc3, 0xd4, 0xfa, 0x64, 0x65, 0xf9, 
++0xd9, 0xca, 0xc2, 0xbf, 0xc0, 0xc9, 0xe7, 0x4c, 0x39, 0x2e, 
++0x28, 0x24, 0x23, 0x25, 0x29, 0x33, 0x4f, 0xbf, 0xab, 0xa0, 
++0x9b, 0x99, 0x98, 0x9a, 0x9e, 0xa9, 0xc0, 0x3c, 0x26, 0x1b, 
++0x16, 0x12, 0x12, 0x14, 0x19, 0x22, 0x38, 0xbe, 0xa4, 0x9a, 
++0x93, 0x90, 0x8f, 0x92, 0x97, 0x9f, 0xb3, 0x46, 0x26, 0x1b, 
++0x15, 0x11, 0x11, 0x13, 0x18, 0x1f, 0x31, 0xd4, 0xab, 0x9e, 
++0x99, 0x96, 0x96, 0x98, 0x9c, 0xa4, 0xb4, 0x6f, 0x34, 0x28, 
++0x20, 0x1e, 0x1e, 0x20, 0x26, 0x2e, 0x3d, 0x6d, 0xc5, 0xb9, 
++0xb3, 0xb2, 0xb4, 0xba, 0xc1, 0xcd, 0xe0, 0xfc, 0xfb, 0xe0, 
++0xce, 0xc3, 0xbb, 0xb7, 0xb6, 0xb9, 0xc0, 0xda, 0x4b, 0x36, 
++0x2b, 0x25, 0x20, 0x1f, 0x20, 0x26, 0x2e, 0x46, 0xc2, 0xab, 
++0x9f, 0x9a, 0x97, 0x96, 0x98, 0x9c, 0xa5, 0xba, 0x41, 0x27, 
++0x1b, 0x15, 0x12, 0x11, 0x13, 0x18, 0x1f, 0x32, 0xc8, 0xa6, 
++0x9a, 0x94, 0x90, 0x8f, 0x91, 0x97, 0x9e, 0xaf, 0x54, 0x29, 
++0x1c, 0x16, 0x12, 0x11, 0x14, 0x18, 0x1f, 0x2e, 0xf2, 0xae, 
++0xa0, 0x9b, 0x98, 0x97, 0x99, 0x9d, 0xa5, 0xb3, 0xe4, 0x3a, 
++0x2b, 0x25, 0x21, 0x21, 0x24, 0x29, 0x30, 0x3e, 0x62, 0xcd, 
++0xbf, 0xbb, 0xbb, 0xbe, 0xc6, 0xd1, 0xe7, 0x76, 0x75, 0xe7, 
++0xcf, 0xc1, 0xb9, 0xb2, 0xaf, 0xaf, 0xb2, 0xba, 0xcf, 0x4c, 
++0x34, 0x29, 0x22, 0x1e, 0x1d, 0x1e, 0x22, 0x2b, 0x3e, 0xc7, 
++0xab, 0x9f, 0x99, 0x96, 0x95, 0x96, 0x9a, 0xa2, 0xb5, 0x4a, 
++0x28, 0x1c, 0x15, 0x11, 0x10, 0x12, 0x17, 0x1e, 0x2e, 0xd5, 
++0xa9, 0x9b, 0x95, 0x90, 0x8f, 0x91, 0x96, 0x9d, 0xac, 0x78, 
++0x2c, 0x1e, 0x17, 0x13, 0x12, 0x14, 0x18, 0x1f, 0x2d, 0x5d, 
++0xb3, 0xa4, 0x9d, 0x9a, 0x99, 0x9b, 0x9e, 0xa6, 0xb2, 0xd6, 
++0x3f, 0x2f, 0x29, 0x26, 0x26, 0x28, 0x2d, 0x35, 0x42, 0x5e, 
++0xd8, 0xca, 0xc6, 0xc9, 0xcf, 0xe4, 0x69, 0x59, 0x58, 0x64, 
++0xdf, 0xc7, 0xba, 0xb1, 0xac, 0xaa, 0xaa, 0xad, 0xb4, 0xc7, 
++0x4f, 0x33, 0x27, 0x1f, 0x1c, 0x1b, 0x1c, 0x1f, 0x27, 0x39, 
++0xce, 0xac, 0x9f, 0x99, 0x95, 0x94, 0x95, 0x99, 0x9f, 0xaf, 
++0x59, 0x2a, 0x1c, 0x16, 0x11, 0x10, 0x11, 0x16, 0x1d, 0x2b, 
++0xff, 0xab, 0x9d, 0x96, 0x91, 0x90, 0x91, 0x96, 0x9c, 0xaa, 
++0xd9, 0x2f, 0x1f, 0x19, 0x15, 0x14, 0x15, 0x19, 0x1f, 0x2c, 
++0x4e, 0xb9, 0xa7, 0x9f, 0x9c, 0x9b, 0x9c, 0x9f, 0xa7, 0xb3, 
++0xcf, 0x47, 0x34, 0x2d, 0x2a, 0x2a, 0x2c, 0x31, 0x3a, 0x47, 
++0x5f, 0xe4, 0xd8, 0xd9, 0xe9, 0x64, 0x4f, 0x49, 0x46, 0x49, 
++0x58, 0xde, 0xc2, 0xb5, 0xad, 0xa8, 0xa6, 0xa6, 0xa9, 0xaf, 
++0xbf, 0x56, 0x32, 0x26, 0x1e, 0x1b, 0x19, 0x1a, 0x1d, 0x24, 
++0x33, 0xdd, 0xad, 0x9f, 0x98, 0x94, 0x92, 0x93, 0x97, 0x9e, 
++0xac, 0xf8, 0x2c, 0x1d, 0x16, 0x11, 0xf, 0x10, 0x15, 0x1b, 
++0x29, 0x55, 0xae, 0x9e, 0x97, 0x92, 0x90, 0x91, 0x95, 0x9c, 
++0xa8, 0xca, 0x35, 0x22, 0x1a, 0x16, 0x15, 0x16, 0x19, 0x1f, 
++0x2b, 0x47, 0xbe, 0xab, 0xa2, 0x9e, 0x9d, 0x9e, 0xa2, 0xa9, 
++0xb4, 0xcc, 0x4f, 0x3a, 0x32, 0x2f, 0x2f, 0x32, 0x39, 0x41, 
++0x4f, 0x67, 0xf5, 0xf5, 0x67, 0x51, 0x46, 0x3e, 0x3b, 0x3b, 
++0x3f, 0x4d, 0xe2, 0xbe, 0xb0, 0xa9, 0xa4, 0xa1, 0xa1, 0xa5, 
++0xab, 0xba, 0x64, 0x33, 0x25, 0x1d, 0x19, 0x17, 0x18, 0x1b, 
++0x20, 0x2e, 0x72, 0xae, 0x9f, 0x98, 0x94, 0x91, 0x92, 0x96, 
++0x9c, 0xa9, 0xd4, 0x2f, 0x1e, 0x17, 0x11, 0xf, 0x10, 0x14, 
++0x1a, 0x26, 0x48, 0xb2, 0x9f, 0x98, 0x93, 0x91, 0x92, 0x95, 
++0x9b, 0xa7, 0xc1, 0x3a, 0x25, 0x1c, 0x18, 0x16, 0x17, 0x1a, 
++0x1f, 0x2b, 0x42, 0xc6, 0xae, 0xa6, 0xa0, 0x9f, 0xa0, 0xa5, 
++0xab, 0xb6, 0xcb, 0x5a, 0x40, 0x39, 0x36, 0x37, 0x3b, 0x43, 
++0x4e, 0x60, 0x7b, 0x7c, 0x60, 0x4e, 0x41, 0x3a, 0x34, 0x32, 
++0x33, 0x39, 0x45, 0xed, 0xbd, 0xae, 0xa6, 0xa0, 0x9e, 0x9e, 
++0xa0, 0xa8, 0xb4, 0xef, 0x34, 0x24, 0x1c, 0x18, 0x16, 0x16, 
++0x19, 0x1e, 0x2b, 0x54, 0xb1, 0x9f, 0x98, 0x93, 0x91, 0x91, 
++0x95, 0x9b, 0xa6, 0xc6, 0x33, 0x1f, 0x17, 0x12, 0xf, 0x10, 
++0x13, 0x1a, 0x24, 0x3e, 0xb8, 0xa2, 0x99, 0x94, 0x92, 0x92, 
++0x96, 0x9b, 0xa6, 0xbc, 0x40, 0x29, 0x1e, 0x1a, 0x18, 0x19, 
++0x1b, 0x20, 0x2b, 0x3f, 0xcf, 0xb3, 0xa9, 0xa5, 0xa3, 0xa4, 
++0xa8, 0xae, 0xb9, 0xcc, 0x67, 0x49, 0x40, 0x3f, 0x42, 0x4a, 
++0x59, 0x79, 0xe5, 0xe4, 0x7a, 0x54, 0x43, 0x39, 0x31, 0x2d, 
++0x2c, 0x2d, 0x32, 0x3e, 0x71, 0xbd, 0xad, 0xa4, 0x9e, 0x9c, 
++0x9c, 0x9e, 0xa4, 0xaf, 0xd7, 0x36, 0x24, 0x1c, 0x17, 0x15, 
++0x15, 0x17, 0x1d, 0x28, 0x47, 0xb5, 0xa1, 0x98, 0x93, 0x90, 
++0x90, 0x93, 0x99, 0xa4, 0xbd, 0x38, 0x21, 0x18, 0x13, 0x10, 
++0x10, 0x13, 0x19, 0x22, 0x39, 0xbe, 0xa5, 0x9b, 0x96, 0x93, 
++0x93, 0x96, 0x9b, 0xa5, 0xb9, 0x4a, 0x2c, 0x20, 0x1c, 0x1a, 
++0x1a, 0x1d, 0x22, 0x2c, 0x3d, 0xdc, 0xb8, 0xad, 0xa9, 0xa8, 
++0xa9, 0xac, 0xb2, 0xbd, 0xce, 0x78, 0x54, 0x4d, 0x4f, 0x5a, 
++0xff, 0xda, 0xcf, 0xcd, 0xd4, 0xf8, 0x4e, 0x3d, 0x32, 0x2c, 
++0x29, 0x28, 0x29, 0x2d, 0x38, 0x5c, 0xbd, 0xac, 0xa2, 0x9d, 
++0x9a, 0x9a, 0x9c, 0xa0, 0xac, 0xca, 0x39, 0x25, 0x1b, 0x16, 
++0x13, 0x13, 0x16, 0x1b, 0x25, 0x3e, 0xb9, 0xa2, 0x99, 0x93, 
++0x90, 0x90, 0x93, 0x98, 0xa1, 0xb8, 0x3d, 0x24, 0x19, 0x13, 
++0x10, 0x10, 0x13, 0x18, 0x21, 0x35, 0xc7, 0xa8, 0x9d, 0x97, 
++0x95, 0x95, 0x97, 0x9c, 0xa4, 0xb6, 0x57, 0x2f, 0x24, 0x1e, 
++0x1c, 0x1c, 0x1e, 0x24, 0x2d, 0x3d, 0xf1, 0xbe, 0xb2, 0xad, 
++0xac, 0xad, 0xb1, 0xb9, 0xc3, 0xd4, 0xfa, 0x64, 0x65, 0xf9, 
++0xd9, 0xca, 0xc2, 0xbf, 0xc0, 0xc9, 0xe7, 0x4c, 0x39, 0x2e, 
++0x28, 0x24, 0x23, 0x25, 0x29, 0x33, 0x4f, 0xbf, 0xab, 0xa0, 
++0x9b, 0x99, 0x98, 0x9a, 0x9e, 0xa9, 0xc0, 0x3c, 0x26, 0x1b, 
++0x16, 0x12, 0x12, 0x14, 0x19, 0x22, 0x38, 0xbe, 0xa4, 0x9a, 
++0x93, 0x90, 0x8f, 0x92, 0x97, 0x9f, 0xb3, 0x46, 0x26, 0x1b, 
++0x15, 0x11, 0x11, 0x13, 0x18, 0x1f, 0x31, 0xd4, 0xab, 0x9e, 
++0x99, 0x96, 0x96, 0x98, 0x9c, 0xa4, 0xb4, 0x6f, 0x34, 0x28, 
++0x20, 0x1e, 0x1e, 0x20, 0x26, 0x2e, 0x3d, 0x6d, 0xc5, 0xb9, 
++0xb3, 0xb2, 0xb4, 0xba, 0xc1, 0xcd, 0xe0, 0xfc, 0xfb, 0xe0, 
++0xce, 0xc3, 0xbb, 0xb7, 0xb6, 0xb9, 0xc0, 0xda, 0x4b, 0x36, 
++0x2b, 0x25, 0x20, 0x1f, 0x20, 0x26, 0x2e, 0x46, 0xc2, 0xab, 
++0x9f, 0x9a, 0x97, 0x96, 0x98, 0x9c, 0xa5, 0xba, 0x41, 0x27, 
++0x1b, 0x15, 0x12, 0x11, 0x13, 0x18, 0x1f, 0x32, 0xc8, 0xa6, 
++0x9a, 0x94, 0x90, 0x8f, 0x91, 0x97, 0x9e, 0xaf, 0x54, 0x29, 
++0x1c, 0x16, 0x12, 0x11, 0x14, 0x18, 0x1f, 0x2e, 0xf2, 0xae, 
++0xa0, 0x9b, 0x98, 0x97, 0x99, 0x9d, 0xa5, 0xb3, 0xe4, 0x3a, 
++0x2b, 0x25, 0x21, 0x21, 0x24, 0x29, 0x30, 0x3e, 0x62, 0xcd, 
++0xbf, 0xbb, 0xbb, 0xbe, 0xc6, 0xd1, 0xe7, 0x76, 0x75, 0xe7, 
++0xcf, 0xc1, 0xb9, 0xb2, 0xaf, 0xaf, 0xb2, 0xba, 0xcf, 0x4c, 
++0x34, 0x29, 0x22, 0x1e, 0x1d, 0x1e, 0x22, 0x2b, 0x3e, 0xc7, 
++0xab, 0x9f, 0x99, 0x96, 0x95, 0x96, 0x9a, 0xa2, 0xb5, 0x4a, 
++0x28, 0x1c, 0x15, 0x11, 0x10, 0x12, 0x17, 0x1e, 0x2e, 0xd5, 
++0xa9, 0x9b, 0x95, 0x90, 0x8f, 0x91, 0x96, 0x9d, 0xac, 0x78, 
++0x2c, 0x1e, 0x17, 0x13, 0x12, 0x14, 0x18, 0x1f, 0x2d, 0x5d, 
++0xb3, 0xa4, 0x9d, 0x9a, 0x99, 0x9b, 0x9e, 0xa6, 0xb2, 0xd6, 
++0x3f, 0x2f, 0x29, 0x26, 0x26, 0x28, 0x2d, 0x35, 0x42, 0x5e, 
++0xd8, 0xca, 0xc6, 0xc9, 0xcf, 0xe4, 0x69, 0x59, 0x58, 0x64, 
++0xdf, 0xc7, 0xba, 0xb1, 0xac, 0xaa, 0xaa, 0xad, 0xb4, 0xc7, 
++0x4f, 0x33, 0x27, 0x1f, 0x1c, 0x1b, 0x1c, 0x1f, 0x27, 0x39, 
++0xce, 0xac, 0x9f, 0x99, 0x95, 0x94, 0x95, 0x99, 0x9f, 0xaf, 
++0x59, 0x2a, 0x1c, 0x16, 0x11, 0x10, 0x11, 0x16, 0x1d, 0x2b };
++/*
++  * 8-bit raw data
++  *
++  * Source: DialTone.ulaw
++  *
+   * Copyright (C) 1999, Mark Spencer
+   *
+   * Distributed under the terms of the GNU General Public License
+
+Modified: trunk/codecs/Makefile
+===================================================================
+--- trunk/codecs/Makefile	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/codecs/Makefile	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,6 +1,78 @@
+ #
+ # Asterisk -- A telephony toolkit for Linux.
+ # 
++# Makefile for PBX frontends (dynamically loaded)
++#
++# Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++#
++# Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++#
++# This program is free software, distributed under the terms of
++# the GNU General Public License
++#
++
++#
++# Uncomment if you have g723.1 code (with the same API as the Annex-A code
++# and have placed it in the g723.1 directory and/or the Annex-B code in 
++# g723.1b)
++#
++#MODG723=codec_g723_1.so codec_g723_1b.so
++MODG723=$(shell [ -f g723.1/coder.c ] &amp;&amp; echo &quot;codec_g723_1.so&quot;)
++MODG723+=$(shell [ -f g723.1b/coder2.c ] &amp;&amp; echo &quot;codec_g723_1b.so&quot;)
++
++CFLAGS+=
++
++LIBG723=g723.1/libg723.a
++LIBG723B=g723.1b/libg723b.a
++LIBGSM=gsm/lib/libgsm.a
++LIBMP3=mp3/libmp3.a
++
++CODECS+=$(MODG723) codec_gsm.so #codec_mp3_d.so
++
++all: $(CODECS)
++
++clean:
++	rm -f *.so *.o
++	make -C g723.1 clean
++	make -C g723.1b clean
++	make -C gsm clean
++	make -C mp3 clean
++
++$(LIBG723):
++	make -C g723.1 all
++
++$(LIBGSM):
++	make -C gsm lib/libgsm.a
++
++$(LIBG723B):
++	make -C g723.1b all
++
++$(LIBMP3):
++	make -C mp3 all
++
++codec_g723_1.so : codec_g723_1.o $(LIBG723)
++	$(CC) -shared -Xlinker -x -o $@ $&lt; $(LIBG723)
++
++codec_g723_1b.o : codec_g723_1.c
++	$(CC) -c -o $@ $(CFLAGS) -DANNEX_B $&lt;
++
++codec_g723_1b.so : codec_g723_1b.o $(LIBG723B)
++	$(CC) -shared -Xlinker -x -o $@ $&lt; $(LIBG723B) -lm
++
++codec_gsm.so: codec_gsm.o $(LIBGSM)
++	$(CC) -shared -Xlinker -x -o $@ $&lt; $(LIBGSM)
++
++codec_mp3_d.so: codec_mp3_d.o $(LIBMP3)
++	$(CC) -shared -Xlinker -x -o $@ $&lt; $(LIBMP3)
++
++%.so : %.o
++	$(CC) -shared -Xlinker -x -o $@ $&lt;
++
++install: all
++	for x in $(CODECS); do $(INSTALL) -m 755 $$x $(MODULES_DIR) ; done
++#
++# Asterisk -- A telephony toolkit for Linux.
++# 
+ # Makefile for codec modules
+ #
+ # Copyright (C) 1999-2006, Digium, Inc.
+
+Modified: trunk/codecs/codec_g723_1.c
+===================================================================
+--- trunk/codecs/codec_g723_1.c	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/codecs/codec_g723_1.c	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,4 +1,362 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Translate between signed linear and G.723.1
++ *
++ * The G.723.1 code is not included in the Asterisk distribution because
++ * it is covered with patents, and in spite of statements to the contrary,
++ * the &quot;technology&quot; is extremely expensive to license.
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++
++#define TYPE_SILENCE	 0x2
++#define TYPE_HIGH	 0x0
++#define TYPE_LOW	 0x1
++#define TYPE_MASK	 0x3
++
++#include &lt;asterisk/translate.h&gt;
++#include &lt;asterisk/module.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;pthread.h&gt;
++#include &lt;fcntl.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;netinet/in.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stdio.h&gt;
++
++#ifdef ANNEX_B
++#include &quot;g723.1b/typedef2.h&quot;
++#include &quot;g723.1b/cst2.h&quot;
++#include &quot;g723.1b/coder2.h&quot;
++#include &quot;g723.1b/decod2.h&quot;
++#include &quot;g723.1b/deccng2.h&quot;
++#include &quot;g723.1b/codcng2.h&quot;
++#include &quot;g723.1b/vad2.h&quot;
++#else
++#include &quot;g723.1/typedef.h&quot;
++#include &quot;g723.1/cst_lbc.h&quot;
++#include &quot;g723.1/coder.h&quot;
++#include &quot;g723.1/decod.h&quot;
++#include &quot;g723.1/dec_cng.h&quot;
++#include &quot;g723.1/cod_cng.h&quot;
++#include &quot;g723.1/vad.h&quot;
++#endif
++
++/* Sample frame data */
++#include &quot;slin_g723_ex.h&quot;
++#include &quot;g723_slin_ex.h&quot;
++
++static pthread_mutex_t localuser_lock = PTHREAD_MUTEX_INITIALIZER;
++static int localusecnt=0;
++
++#ifdef ANNEX_B
++static char *tdesc = &quot;Annex B (floating point) G.723.1/PCM16 Codec Translator&quot;;
++#else
++static char *tdesc = &quot;Annex A (fixed point) G.723.1/PCM16 Codec Translator&quot;;
++#endif
++
++/* Globals */
++Flag UsePf = True;
++Flag UseHp = True;
++Flag UseVx = True;
++
++enum Crate WrkRate = Rate63;
++
++struct g723_encoder_pvt {
++	struct cod_state cod;
++	struct ast_frame f;
++	/* Space to build offset */
++	char offset[AST_FRIENDLY_OFFSET];
++	/* Buffer for our outgoing frame */
++	char outbuf[24];
++	/* Enough to store a full second */
++	short buf[8000];
++	int tail;
++};
++
++struct g723_decoder_pvt {
++	struct dec_state dec;
++	struct ast_frame f;
++	/* Space to build offset */
++	char offset[AST_FRIENDLY_OFFSET];
++	/* Enough to store a full second */
++	short buf[8000];
++	int tail;
++};
++
++static struct ast_translator_pvt *g723tolin_new()
++{
++	struct g723_decoder_pvt *tmp;
++	tmp = malloc(sizeof(struct g723_decoder_pvt));
++	if (tmp) {
++		Init_Decod(&amp;tmp-&gt;dec);
++	    Init_Dec_Cng(&amp;tmp-&gt;dec);
++		tmp-&gt;tail = 0;
++	}
++	return (struct ast_translator_pvt *)tmp;
++}
++
++static struct ast_frame *lintog723_sample()
++{
++	static struct ast_frame f;
++	f.frametype = AST_FRAME_VOICE;
++	f.subclass = AST_FORMAT_SLINEAR;
++	f.datalen = sizeof(slin_g723_ex);
++	/* Assume 8000 Hz */
++	f.timelen = sizeof(slin_g723_ex)/16;
++	f.mallocd = 0;
++	f.offset = 0;
++	f.src = __PRETTY_FUNCTION__;
++	f.data = slin_g723_ex;
++	return &f;
++}
++
++static struct ast_frame *g723tolin_sample()
++{
++	static struct ast_frame f;
++	f.frametype = AST_FRAME_VOICE;
++	f.subclass = AST_FORMAT_G723_1;
++	f.datalen = sizeof(g723_slin_ex);
++	/* All frames are 30 ms long */
++	f.timelen = 30;
++	f.mallocd = 0;
++	f.offset = 0;
++	f.src = __PRETTY_FUNCTION__;
++	f.data = g723_slin_ex;
++	return &f;
++}
++
++static struct ast_translator_pvt *lintog723_new()
++{
++	struct g723_encoder_pvt *tmp;
++	tmp = malloc(sizeof(struct g723_encoder_pvt));
++	if (tmp) {
++		Init_Coder(&amp;tmp-&gt;cod);
++	    /* Init Comfort Noise Functions */
++   		 if( UseVx ) {
++   	   		Init_Vad(&amp;tmp-&gt;cod);
++        	Init_Cod_Cng(&amp;tmp-&gt;cod);
++    	 }
++		tmp-&gt;tail = 0;
++	}
++	return (struct ast_translator_pvt *)tmp;
++}
++
++static struct ast_frame *g723tolin_frameout(struct ast_translator_pvt *pvt)
++{
++	struct g723_decoder_pvt *tmp = (struct g723_decoder_pvt *)pvt;
++	if (!tmp-&gt;tail)
++		return NULL;
++	/* Signed linear is no particular frame size, so just send whatever
++	   we have in the buffer in one lump sum */
++	tmp-&gt;f.frametype = AST_FRAME_VOICE;
++	tmp-&gt;f.subclass = AST_FORMAT_SLINEAR;
++	tmp-&gt;f.datalen = tmp-&gt;tail * 2;
++	/* Assume 8000 Hz */
++	tmp-&gt;f.timelen = tmp-&gt;tail / 8;
++	tmp-&gt;f.mallocd = 0;
++	tmp-&gt;f.offset = AST_FRIENDLY_OFFSET;
++	tmp-&gt;f.src = __PRETTY_FUNCTION__;
++	tmp-&gt;f.data = tmp-&gt;buf;
++	/* Reset tail pointer */
++	tmp-&gt;tail = 0;
++
++#if 0
++	/* Save a sample frame */
++	{ static int samplefr = 0;
++	if (samplefr == 80) {
++		int fd;
++		fd = open(&quot;g723.example&quot;, O_WRONLY | O_CREAT | O_TRUNC, 0644);
++		write(fd, tmp-&gt;f.data, tmp-&gt;f.datalen);
++		close(fd);
++	} 		
++	samplefr++;
++	}
++#endif
++	return &amp;tmp-&gt;f;	
++}
++
++static int g723tolin_framein(struct ast_translator_pvt *pvt, struct ast_frame *f)
++{
++	struct g723_decoder_pvt *tmp = (struct g723_decoder_pvt *)pvt;
++#ifdef  ANNEX_B
++	FLOAT tmpdata[Frame];
++	int x;
++#endif
++	/* Assuming there's space left, decode into the current buffer at
++	   the tail location */
++	if (tmp-&gt;tail + Frame &lt; sizeof(tmp-&gt;buf)/2) {	
++#ifdef ANNEX_B
++		Decod(&amp;tmp-&gt;dec, tmpdata, f-&gt;data, 0);
++		for (x=0;x&lt;Frame;x++)
++			(tmp-&gt;buf + tmp-&gt;tail)[x] = tmpdata[x]; 
++#else
++		Decod(&amp;tmp-&gt;dec, tmp-&gt;buf + tmp-&gt;tail, f-&gt;data, 0);
++#endif
++		tmp-&gt;tail+=Frame;
++	} else {
++		ast_log(LOG_WARNING, &quot;Out of buffer space\n&quot;);
++		return -1;
++	}
++	return 0;
++}
++
++static int lintog723_framein(struct ast_translator_pvt *pvt, struct ast_frame *f)
++{
++	/* Just add the frames to our stream */
++	/* XXX We should look at how old the rest of our stream is, and if it
++	   is too old, then we should overwrite it entirely, otherwise we can
++	   get artifacts of earlier talk that do not belong */
++	struct g723_encoder_pvt *tmp = (struct g723_encoder_pvt *)pvt;
++	if (tmp-&gt;tail + f-&gt;datalen/2 &lt; sizeof(tmp-&gt;buf) / 2) {
++		memcpy(&amp;tmp-&gt;buf[tmp-&gt;tail], f-&gt;data, f-&gt;datalen);
++		tmp-&gt;tail += f-&gt;datalen/2;
++	} else {
++		ast_log(LOG_WARNING, &quot;Out of buffer space\n&quot;);
++		return -1;
++	}
++	return 0;
++}
++
++static struct ast_frame *lintog723_frameout(struct ast_translator_pvt *pvt)
++{
++	struct g723_encoder_pvt *tmp = (struct g723_encoder_pvt *)pvt;
++#ifdef ANNEX_B
++	int x;
++	FLOAT tmpdata[Frame];
++#endif
++	/* We can't work on anything less than a frame in size */
++	if (tmp-&gt;tail &lt; Frame)
++		return NULL;
++	/* Encode a frame of data */
++#ifdef ANNEX_B
++	for (x=0;x&lt;Frame;x++)
++		tmpdata[x] = tmp-&gt;buf[x];
++	Coder(&amp;tmp-&gt;cod, tmpdata, tmp-&gt;outbuf);
++#else
++	Coder(&amp;tmp-&gt;cod, tmp-&gt;buf, tmp-&gt;outbuf);
++#endif
++	tmp-&gt;f.frametype = AST_FRAME_VOICE;
++	tmp-&gt;f.subclass = AST_FORMAT_G723_1;
++	/* Assume 8000 Hz */
++	tmp-&gt;f.timelen = 30;
++	tmp-&gt;f.mallocd = 0;
++	tmp-&gt;f.offset = AST_FRIENDLY_OFFSET;
++	tmp-&gt;f.src = __PRETTY_FUNCTION__;
++	tmp-&gt;f.data = tmp-&gt;outbuf;
++	switch(tmp-&gt;outbuf[0] &amp; TYPE_MASK) {
++	case TYPE_MASK:
++	case TYPE_SILENCE:
++		tmp-&gt;f.datalen = 4;
++		break;
++	case TYPE_HIGH:
++		tmp-&gt;f.datalen = 24;
++		break;
++	case TYPE_LOW:
++		tmp-&gt;f.datalen = 20;
++		break;
++	default:
++		ast_log(LOG_WARNING, &quot;Badly encoded frame (%d)\n&quot;, tmp-&gt;outbuf[0] &amp; TYPE_MASK);
++	}
++	tmp-&gt;tail -= Frame;
++	/* Move the data at the end of the buffer to the front */
++	if (tmp-&gt;tail)
++		memmove(tmp-&gt;buf, tmp-&gt;buf + Frame, tmp-&gt;tail * 2);
++#if 0
++	/* Save to a g723 sample output file... */
++	{ 
++		static int fd = -1;
++		int delay = htonl(30);
++		short size;
++		if (fd &lt; 0)
++			fd = open(&quot;trans.g723&quot;, O_WRONLY | O_CREAT | O_TRUNC, 0644);
++		if (fd &lt; 0)
++			ast_log(LOG_WARNING, &quot;Unable to create demo\n&quot;);
++		write(fd, &amp;delay, 4);
++		size = htons(tmp-&gt;f.datalen);
++		write(fd, &amp;size, 2);
++		write(fd, tmp-&gt;f.data, tmp-&gt;f.datalen);
++	}
++#endif
++	return &amp;tmp-&gt;f;	
++}
++
++static void g723_destroy(struct ast_translator_pvt *pvt)
++{
++	free(pvt);
++}
++
++static struct ast_translator g723tolin =
++#ifdef ANNEX_B
++	{ &quot;g723tolinb&quot;, 
++#else
++	{ &quot;g723tolin&quot;, 
++#endif
++	   AST_FORMAT_G723_1, AST_FORMAT_SLINEAR,
++	   g723tolin_new,
++	   g723tolin_framein,
++	   g723tolin_frameout,
++	   g723_destroy,
++	   g723tolin_sample
++	   };
++
++static struct ast_translator lintog723 =
++#ifdef ANNEX_B
++	{ &quot;lintog723b&quot;, 
++#else
++	{ &quot;lintog723&quot;, 
++#endif
++	   AST_FORMAT_SLINEAR, AST_FORMAT_G723_1,
++	   lintog723_new,
++	   lintog723_framein,
++	   lintog723_frameout,
++	   g723_destroy,
++	   lintog723_sample
++	   };
++
++int unload_module(void)
++{
++	int res;
++	pthread_mutex_lock(&amp;localuser_lock);
++	res = ast_unregister_translator(&amp;lintog723);
++	if (!res)
++		res = ast_unregister_translator(&amp;g723tolin);
++	if (localusecnt)
++		res = -1;
++	pthread_mutex_unlock(&amp;localuser_lock);
++	return res;
++}
++
++int load_module(void)
++{
++	int res;
++	res=ast_register_translator(&amp;g723tolin);
++	if (!res) 
++		res=ast_register_translator(&amp;lintog723);
++	else
++		ast_unregister_translator(&amp;g723tolin);
++	return res;
++}
++
++char *description(void)
++{
++	return tdesc;
++}
++
++int usecount(void)
++{
++	int res;
++	STANDARD_USECOUNT(res);
++	return res;
++}
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * The G.723.1 code is not included in the Asterisk distribution because
+
+Modified: trunk/codecs/g723_slin_ex.h
+===================================================================
+--- trunk/codecs/g723_slin_ex.h	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/codecs/g723_slin_ex.h	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,3 +1,18 @@
++/*
++  * 8-bit raw data
++  *
++  * Source: g723.example
++  *
++  * Copyright (C) 1999, Mark Spencer and Linux Support Services
++  *
++  * Distributed under the terms of the GNU General Public License
++  *
++  */
++
++static unsigned char g723_slin_ex[] = {
++0x4c, 0x34, 0xc2, 0xd9, 0x81, 0x80, 0xa8, 0x50, 0xd7, 0x8d, 
++0x8, 0x80, 0xf0, 0xb4, 0x40, 0x53, 0xe3, 0xe1, 0x63, 0x4e, 
++0x1a, 0x37, 0xd6, 0x0037 };
+ /*! \file
+   * \brief 8-bit raw data
+   *
+
+Modified: trunk/codecs/gsm/Makefile
+===================================================================
+--- trunk/codecs/gsm/Makefile	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/codecs/gsm/Makefile	2006-06-28 10:25:31 UTC (rev 421)
+@@ -7,6 +7,500 @@
+ SASR	= -DSASR
+ ######### Define SASR if &gt;&gt; is a signed arithmetic shift (-1 &gt;&gt; 1 == -1)
+ 
++MULHACK = -DUSE_FLOAT_MUL
++######### Define this if your host multiplies floats faster than integers,
++######### e.g. on a SPARCstation.
++
++FAST	= -DFAST
++######### Define together with USE_FLOAT_MUL to enable the GSM library's
++######### approximation option for incorrect, but good-enough results.
++
++# LTP_CUT	= -DLTP_CUT
++LTP_CUT	=
++######### Define to enable the GSM library's long-term correlation 
++######### approximation option---faster, but worse; works for
++######### both integer and floating point multiplications.
++######### This flag is still in the experimental stage.
++
++WAV49	= -DWAV49
++#WAV49	=
++######### Define to enable the GSM library's option to pack GSM frames 
++######### in the style used by the WAV #49 format.  If you want to write
++######### a tool that produces .WAV files which contain GSM-encoded data,
++######### define this, and read about the GSM_OPT_WAV49 option in the
++######### manual page on gsm_option(3).
++
++# Choose a compiler.  The code works both with ANSI and K&amp;R-C.
++# Use -DNeedFunctionPrototypes to compile with, -UNeedFunctionPrototypes to
++# compile without, function prototypes in the header files.
++#
++# You can use the -DSTUPID_COMPILER to circumvent some compilers'
++# static limits regarding the number of subexpressions in a statement.
++
++# CC		= cc
++# CCFLAGS 	= -c -DSTUPID_COMPILER
++
++# CC		= /usr/lang/acc
++# CCFLAGS 	= -c -O
++
++CC		= gcc -ansi -pedantic
++CCFLAGS 	+= -c -DNeedFunctionPrototypes=1 -finline-functions -funroll-loops
++
++LD 		= $(CC)
++
++# LD		= gcc
++# LDFLAGS 	=
++
++
++# If your compiler needs additional flags/libraries, regardless of
++# the source compiled, configure them here.
++
++# CCINC	= -I/usr/gnu/lib/gcc-2.1/gcc-lib/sparc-sun-sunos4.1.2/2.1/include
++######### Includes needed by $(CC)
++
++# LDINC	= -L/usr/gnu/lib/gcc-2.1/gcc-lib/sparc-sun-sunos4.1.2/2.1
++######### Library paths needed by $(LD)
++
++# LDLIB	= -lgcc
++######### Additional libraries needed by $(LD)
++
++
++# Where do you want to install libraries, binaries, a header file
++# and the manual pages?
++#
++# Leave INSTALL_ROOT empty (or just don't execute &quot;make install&quot;) to
++# not install gsm and toast outside of this directory.
++
++INSTALL_ROOT	=
++
++# Where do you want to install the gsm library, header file, and manpages?
++#
++# Leave GSM_INSTALL_ROOT empty to not install the GSM library outside of
++# this directory.
++
++GSM_INSTALL_ROOT = $(INSTALL_ROOT)
++GSM_INSTALL_LIB = $(GSM_INSTALL_ROOT)/lib
++GSM_INSTALL_INC = $(GSM_INSTALL_ROOT)/inc
++GSM_INSTALL_MAN = $(GSM_INSTALL_ROOT)/man/man3
++
++
++# Where do you want to install the toast binaries and their manpage?
++#
++# Leave TOAST_INSTALL_ROOT empty to not install the toast binaries outside
++# of this directory.
++
++TOAST_INSTALL_ROOT	  = $(INSTALL_ROOT)
++TOAST_INSTALL_BIN = $(TOAST_INSTALL_ROOT)/bin
++TOAST_INSTALL_MAN = $(TOAST_INSTALL_ROOT)/man/man1
++
++#  Other tools
++
++SHELL		= /bin/sh
++LN		= ln
++BASENAME 	= basename
++AR		= ar
++ARFLAGS		= cr
++RMFLAGS		= -f
++FIND		= find
++COMPRESS 	= compress
++COMPRESSFLAGS 	= 
++# RANLIB 	= true
++RANLIB	 	= ranlib
++
++#
++#    You shouldn't have to configure below this line if you're porting.
++# 
++
++
++# Local Directories
++
++ROOT	= .
++ADDTST	= $(ROOT)/add-test
++TST	= $(ROOT)/tst
++MAN	= $(ROOT)/man
++BIN	= $(ROOT)/bin
++SRC	= $(ROOT)/src
++LIB	= $(ROOT)/lib
++TLS	= $(ROOT)/tls
++INC	= $(ROOT)/inc
++
++# Flags
++
++# DEBUG	= -DNDEBUG
++######### Remove -DNDEBUG to enable assertions.
++
++CFLAGS	= $(CCFLAGS) $(SASR) $(DEBUG) $(MULHACK) $(FAST) $(LTP_CUT) \
++	$(WAV49) $(CCINC) -I$(INC)
++######### It's $(CC) $(CFLAGS)
++
++LFLAGS	= $(LDFLAGS) $(LDINC)
++######### It's $(LD) $(LFLAGS)
++
++
++# Targets
++
++LIBGSM	= $(LIB)/libgsm.a
++
++TOAST	= $(BIN)/toast
++UNTOAST	= $(BIN)/untoast
++TCAT	= $(BIN)/tcat
++
++# Headers
++
++GSM_HEADERS =	$(INC)/gsm.h
++
++HEADERS	=	$(INC)/proto.h		\
++		$(INC)/unproto.h	\
++		$(INC)/config.h		\
++		$(INC)/private.h	\
++		$(INC)/gsm.h		\
++		$(INC)/toast.h		\
++		$(TLS)/taste.h
++
++# Sources
++
++GSM_SOURCES =	$(SRC)/add.c		\
++		$(SRC)/code.c		\
++		$(SRC)/debug.c		\
++		$(SRC)/decode.c		\
++		$(SRC)/long_term.c	\
++		$(SRC)/lpc.c		\
++		$(SRC)/preprocess.c	\
++		$(SRC)/rpe.c		\
++		$(SRC)/gsm_destroy.c	\
++		$(SRC)/gsm_decode.c	\
++		$(SRC)/gsm_encode.c	\
++		$(SRC)/gsm_explode.c	\
++		$(SRC)/gsm_implode.c	\
++		$(SRC)/gsm_create.c	\
++		$(SRC)/gsm_print.c	\
++		$(SRC)/gsm_option.c	\
++		$(SRC)/short_term.c	\
++		$(SRC)/table.c
++
++TOAST_SOURCES = $(SRC)/toast.c 		\
++		$(SRC)/toast_lin.c	\
++		$(SRC)/toast_ulaw.c	\
++		$(SRC)/toast_alaw.c	\
++		$(SRC)/toast_audio.c
++
++SOURCES	=	$(GSM_SOURCES)		\
++		$(TOAST_SOURCES)	\
++		$(ADDTST)/add_test.c	\
++		$(TLS)/sour.c		\
++		$(TLS)/ginger.c		\
++		$(TLS)/sour1.dta	\
++		$(TLS)/sour2.dta	\
++		$(TLS)/bitter.c		\
++		$(TLS)/bitter.dta	\
++		$(TLS)/taste.c		\
++		$(TLS)/sweet.c		\
++		$(TST)/cod2lin.c	\
++		$(TST)/cod2txt.c	\
++		$(TST)/gsm2cod.c	\
++		$(TST)/lin2cod.c	\
++		$(TST)/lin2txt.c
++
++# Object files
++
++GSM_OBJECTS =	$(SRC)/add.o		\
++		$(SRC)/code.o		\
++		$(SRC)/debug.o		\
++		$(SRC)/decode.o		\
++		$(SRC)/long_term.o	\
++		$(SRC)/lpc.o		\
++		$(SRC)/preprocess.o	\
++		$(SRC)/rpe.o		\
++		$(SRC)/gsm_destroy.o	\
++		$(SRC)/gsm_decode.o	\
++		$(SRC)/gsm_encode.o	\
++		$(SRC)/gsm_explode.o	\
++		$(SRC)/gsm_implode.o	\
++		$(SRC)/gsm_create.o	\
++		$(SRC)/gsm_print.o	\
++		$(SRC)/gsm_option.o	\
++		$(SRC)/short_term.o	\
++		$(SRC)/table.o
++
++TOAST_OBJECTS =	$(SRC)/toast.o 		\
++		$(SRC)/toast_lin.o	\
++		$(SRC)/toast_ulaw.o	\
++		$(SRC)/toast_alaw.o	\
++		$(SRC)/toast_audio.o
++
++OBJECTS =	 $(GSM_OBJECTS) $(TOAST_OBJECTS)
++
++# Manuals
++
++GSM_MANUALS =	$(MAN)/gsm.3		\
++		$(MAN)/gsm_explode.3	\
++		$(MAN)/gsm_option.3	\
++		$(MAN)/gsm_print.3
++
++TOAST_MANUALS =	$(MAN)/toast.1
++
++MANUALS	= 	$(GSM_MANUALS) $(TOAST_MANUALS) $(MAN)/bitter.1
++
++# Other stuff in the distribution
++
++STUFF = 	ChangeLog			\
++		INSTALL			\
++		MACHINES		\
++		MANIFEST		\
++		Makefile		\
++		README			\
++		$(ADDTST)/add_test.dta	\
++		$(TLS)/bitter.dta	\
++		$(TST)/run
++
++
++# Install targets
++
++GSM_INSTALL_TARGETS =	\
++		$(GSM_INSTALL_LIB)/libgsm.a		\
++		$(GSM_INSTALL_INC)/gsm.h		\
++		$(GSM_INSTALL_MAN)/gsm.3		\
++		$(GSM_INSTALL_MAN)/gsm_explode.3	\
++		$(GSM_INSTALL_MAN)/gsm_option.3		\
++		$(GSM_INSTALL_MAN)/gsm_print.3
++
++TOAST_INSTALL_TARGETS =	\
++		$(TOAST_INSTALL_BIN)/toast		\
++		$(TOAST_INSTALL_BIN)/tcat		\
++		$(TOAST_INSTALL_BIN)/untoast		\
++		$(TOAST_INSTALL_MAN)/toast.1
++
++
++# Default rules
++
++.c.o:
++		$(CC) $(CFLAGS) $?
++		@-mv `$(BASENAME) $@` $@ &gt; /dev/null 2&gt;&amp;1
++
++# Target rules
++
++all:		$(LIBGSM) $(TOAST) $(TCAT) $(UNTOAST)
++		@-echo $(ROOT): Done.
++
++tst:		$(TST)/lin2cod $(TST)/cod2lin $(TOAST) $(TST)/test-result
++		@-echo tst: Done.
++
++addtst:		$(ADDTST)/add $(ADDTST)/add_test.dta
++		$(ADDTST)/add &lt; $(ADDTST)/add_test.dta &gt; /dev/null
++		@-echo addtst: Done.
++
++misc:		$(TLS)/sweet $(TLS)/bitter $(TLS)/sour $(TLS)/ginger 	\
++			$(TST)/lin2txt $(TST)/cod2txt $(TST)/gsm2cod
++		@-echo misc: Done.
++
++install:	toastinstall gsminstall
++		@-echo install: Done.
++
++
++# The basic API: libgsm
++
++$(LIBGSM):	$(LIB) $(GSM_OBJECTS)
++		-rm $(RMFLAGS) $(LIBGSM)
++		$(AR) $(ARFLAGS) $(LIBGSM) $(GSM_OBJECTS)
++		$(RANLIB) $(LIBGSM)
++
++
++# Toast, Untoast and Tcat -- the compress-like frontends to gsm.
++
++$(TOAST):	$(BIN) $(TOAST_OBJECTS) $(LIBGSM)
++		$(LD) $(LFLAGS) -o $(TOAST) $(TOAST_OBJECTS) $(LIBGSM) $(LDLIB)
++
++$(UNTOAST):	$(BIN) $(TOAST)
++		-rm $(RMFLAGS) $(UNTOAST)
++		$(LN) $(TOAST) $(UNTOAST)
++
++$(TCAT):	$(BIN) $(TOAST)
++		-rm $(RMFLAGS) $(TCAT)
++		$(LN) $(TOAST) $(TCAT)
++
++
++# The local bin and lib directories
++
++$(BIN):
++		if [ ! -d $(BIN) ] ; then mkdir $(BIN) ; fi
++
++$(LIB):
++		if [ ! -d $(LIB) ] ; then mkdir $(LIB) ; fi
++
++
++# Installation
++
++gsminstall:
++		-if [ x&quot;$(GSM_INSTALL_ROOT)&quot; != x ] ; then	\
++			make $(GSM_INSTALL_TARGETS) ;	\
++		fi
++
++toastinstall:
++		-if [ x&quot;$(TOAST_INSTALL_ROOT)&quot; != x ]; then	\
++			make $(TOAST_INSTALL_TARGETS);	\
++		fi
++
++gsmuninstall:
++		-if [ x&quot;$(GSM_INSTALL_ROOT)&quot; != x ] ; then	\
++			rm $(RMFLAGS) $(GSM_INSTALL_TARGETS) ;	\
++		fi
++
++toastuninstall:
++		-if [ x&quot;$(TOAST_INSTALL_ROOT)&quot; != x ] ; then 	\
++			rm $(RMFLAGS) $(TOAST_INSTALL_TARGETS);	\
++		fi
++
++$(TOAST_INSTALL_BIN)/toast:	$(TOAST)
++		-rm $@
++		cp $(TOAST) $@
++		chmod 755 $@
++
++$(TOAST_INSTALL_BIN)/untoast:	$(TOAST_INSTALL_BIN)/toast
++		-rm $@
++		ln $? $@
++
++$(TOAST_INSTALL_BIN)/tcat:	$(TOAST_INSTALL_BIN)/toast
++		-rm $@
++		ln $? $@
++
++$(TOAST_INSTALL_MAN)/toast.1:	$(MAN)/toast.1
++		-rm $@
++		cp $? $@
++		chmod 444 $@
++
++$(GSM_INSTALL_MAN)/gsm.3:	$(MAN)/gsm.3
++		-rm $@
++		cp $? $@
++		chmod 444 $@
++
++$(GSM_INSTALL_MAN)/gsm_option.3:	$(MAN)/gsm_option.3
++		-rm $@
++		cp $? $@
++		chmod 444 $@
++
++$(GSM_INSTALL_MAN)/gsm_explode.3:	$(MAN)/gsm_explode.3
++		-rm $@
++		cp $? $@
++		chmod 444 $@
++
++$(GSM_INSTALL_MAN)/gsm_print.3:	$(MAN)/gsm_print.3
++		-rm $@
++		cp $? $@
++		chmod 444 $@
++
++$(GSM_INSTALL_INC)/gsm.h:	$(INC)/gsm.h
++		-rm $@
++		cp $? $@
++		chmod 444 $@
++
++$(GSM_INSTALL_LIB)/libgsm.a:	$(LIBGSM)
++		-rm $@
++		cp $? $@
++		chmod 444 $@
++
++
++# Distribution
++
++dist:		gsm-1.0.tar.Z
++		@echo dist: Done.
++
++gsm-1.0.tar.Z:	$(STUFF) $(SOURCES) $(HEADERS) $(MANUALS)
++		(	cd $(ROOT)/..;				\
++			tar cvf - `cat $(ROOT)/gsm-1.0/MANIFEST	\
++				| sed '/^#/d'`			\
++		) | $(COMPRESS) $(COMPRESSFLAGS) &gt; $(ROOT)/gsm-1.0.tar.Z
++
++# Clean
++
++uninstall:	toastuninstall gsmuninstall
++		@-echo uninstall: Done.
++
++semi-clean:
++		-rm $(RMFLAGS)  */*.o			\
++			$(TST)/lin2cod $(TST)/lin2txt	\
++			$(TST)/cod2lin $(TST)/cod2txt	\
++			$(TST)/gsm2cod 			\
++			$(TST)/*.*.*
++		-$(FIND) . \( -name core -o -name foo \) \
++			-print | xargs rm $(RMFLAGS)
++
++clean:	semi-clean
++		-rm $(RMFLAGS) $(LIBGSM) $(ADDTST)/add		\
++			$(TOAST) $(TCAT) $(UNTOAST)	\
++			$(ROOT)/gsm-1.0.tar.Z
++
++
++# Two tools that helped me generate gsm_encode.c and gsm_decode.c,
++# but aren't generally needed to port this.
++
++$(TLS)/sweet:	$(TLS)/sweet.o $(TLS)/taste.o
++		$(LD) $(LFLAGS) -o $(TLS)/sweet \
++			$(TLS)/sweet.o $(TLS)/taste.o $(LDLIB)
++
++$(TLS)/bitter:	$(TLS)/bitter.o $(TLS)/taste.o
++		$(LD) $(LFLAGS) -o $(TLS)/bitter \
++			$(TLS)/bitter.o $(TLS)/taste.o $(LDLIB)
++
++# A version of the same family that Jeff Chilton used to implement
++# the WAV #49 GSM format.
++
++$(TLS)/ginger:	$(TLS)/ginger.o $(TLS)/taste.o
++		$(LD) $(LFLAGS) -o $(TLS)/ginger \
++			$(TLS)/ginger.o $(TLS)/taste.o $(LDLIB)
++
++$(TLS)/sour:	$(TLS)/sour.o $(TLS)/taste.o
++		$(LD) $(LFLAGS) -o $(TLS)/sour \
++			$(TLS)/sour.o $(TLS)/taste.o $(LDLIB)
++
++# Run $(ADDTST)/add &lt; $(ADDTST)/add_test.dta to make sure the
++# basic arithmetic functions work as intended.
++
++$(ADDTST)/add:	$(ADDTST)/add_test.o
++		$(LD) $(LFLAGS) -o $(ADDTST)/add $(ADDTST)/add_test.o $(LDLIB)
++
++
++# Various conversion programs between linear, text, .gsm and the code
++# format used by the tests we ran (.cod).  We paid for the test data,
++# so I guess we can't just provide them with this package.  Still,
++# if you happen to have them lying around, here's the code.
++# 
++# You can use gsm2cod | cod2txt independently to look at what's
++# coded inside the compressed frames, although this shouldn't be
++# hard to roll on your own using the gsm_print() function from
++# the API.
++
++
++$(TST)/test-result:	$(TST)/lin2cod $(TST)/cod2lin $(TOAST) $(TST)/run
++			( cd $(TST); ./run ) 
++
++$(TST)/lin2txt:		$(TST)/lin2txt.o $(LIBGSM)
++			$(LD) $(LFLAGS) -o $(TST)/lin2txt \
++				$(TST)/lin2txt.o $(LIBGSM) $(LDLIB)
++
++$(TST)/lin2cod:		$(TST)/lin2cod.o $(LIBGSM)
++			$(LD) $(LFLAGS) -o $(TST)/lin2cod \
++				$(TST)/lin2cod.o $(LIBGSM) $(LDLIB)
++
++$(TST)/gsm2cod:		$(TST)/gsm2cod.o $(LIBGSM)
++			$(LD) $(LFLAGS) -o $(TST)/gsm2cod \
++				$(TST)/gsm2cod.o $(LIBGSM) $(LDLIB)
++
++$(TST)/cod2txt:		$(TST)/cod2txt.o $(LIBGSM)
++			$(LD) $(LFLAGS) -o $(TST)/cod2txt \
++				$(TST)/cod2txt.o $(LIBGSM) $(LDLIB)
++
++$(TST)/cod2lin:		$(TST)/cod2lin.o $(LIBGSM)
++			$(LD) $(LFLAGS) -o $(TST)/cod2lin \
++				$(TST)/cod2lin.o $(LIBGSM) $(LDLIB)
++# Copyright 1992-1996 by Jutta Degener and Carsten Bormann, Technische
++# Universitaet Berlin.  See the accompanying file &quot;COPYRIGHT&quot; for
++# details.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
++
++# Machine- or installation dependent flags you should configure to port
++
++SASR	= -DSASR
++######### Define SASR if &gt;&gt; is a signed arithmetic shift (-1 &gt;&gt; 1 == -1)
++
+ #MULHACK = -DUSE_FLOAT_MUL
+ ######### Define this if your host multiplies floats faster than integers,
+ ######### e.g. on a SPARCstation.
+
+Modified: trunk/codecs/gsm_slin_ex.h
+===================================================================
+--- trunk/codecs/gsm_slin_ex.h	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/codecs/gsm_slin_ex.h	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,3 +1,19 @@
++/*
++  * 8-bit raw data
++  *
++  * Source: gsm.example
++  *
++  * Copyright (C) 1999, Mark Spencer and Linux Support Services
++  *
++  * Distributed under the terms of the GNU General Public License
++  *
++  */
++
++static unsigned char gsm_slin_ex[] = {
++0xda, 0xa6, 0xac, 0x2d, 0xa3, 0x50, 000, 0x49, 0x24, 0x92, 
++0x49, 0x24, 0x50, 0x40, 0x49, 0x24, 0x92, 0x37, 0x24, 0x52, 
++000, 0x49, 0x24, 0x92, 0x47, 0x24, 0x50, 0x80, 0x46, 0xe3, 
++0x6d, 0xb8, 0xdc };
+ /*! \file
+   * \brief 8-bit raw data
+   *
+
+Modified: trunk/configs/adtranvofr.conf.sample
+===================================================================
+--- trunk/configs/adtranvofr.conf.sample	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/configs/adtranvofr.conf.sample	2006-06-28 10:25:31 UTC (rev 421)
+@@ -2,6 +2,43 @@
+ ; Voice over Frame Relay (Adtran style)
+ ;
+ ; Configuration file
++;
++[interfaces]
++;
++; Lines for which we are the user termination.  They accept incoming
++; and outgoing calls.
++;
++;user=voice00
++;user=voice01
++;user=voice02
++;user=voice03
++;user=voice04
++;user=voice05
++;user=voice06
++;user=voice07
++context=default
++user=voice13
++user=voice14
++user=voice15
++; Calls on 16 and 17 come from the outside world, so they get
++; a little bit special treatment
++context=remote
++user=voice16
++user=voice17
++;
++; Next we have lines which we only accept calls on, and typically
++; do not send outgoing calls on (i.e. these are where we are the
++; network termination)
++;
++;network=voice08
++;network=voice09
++;network=voice10
++;network=voice11
++;network=voice12
++;
++; Voice over Frame Relay (Adtran style)
++;
++; Configuration file
+ 
+ [interfaces]
+ ;
+
+Modified: trunk/configs/extensions.conf.sample
+===================================================================
+--- trunk/configs/extensions.conf.sample	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/configs/extensions.conf.sample	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,4 +1,122 @@
+ ;
++; Static extension configuration files, used by
++; the pbx_config module.
++;
++; The &quot;General&quot; category is for certain variables.  All other categories
++; are interpreted as extension contexts
++;
++[general]
++;
++; If static is set to no, or omitted, then the pbx_config will rewrite
++; this file when extensions are modified.  Remember that all comments
++; made in the file will be lost when that happens.
++;
++static=yes
++
++; Remote things always ring all phones first.
++[remote]
++exten=s,1,Dial,AdtranVoFR/4200&amp;AdtranVoFR/4151&amp;AdtranVoFR/4300|15
++exten=s,2,Goto,default|s|2
++
++; Local stuff
++[local]
++exten=s,1,Goto,defaults|s|2
++; Special extension for local phone numbers, long distance, etc, going
++; out via the Frame Relay interface.  Patterns are prefixed with &quot;_&quot;, which
++; is ignored.
++exten=_9NXXXXXX,1,Dial,AdtranVoFR/BYEXTENSION
++exten=_91NXXNXXXXXX,1,Dial,AdtranVoFR/BYEXTENSION
++exten=_9911,1,Dial,AdtranVoFR/BYEXTENSION
++
++[default]
++exten=s,1,Wait,0
++exten=s,2,Answer
++exten=s,3,DigitTimeout,5
++exten=s,4,ResponseTimeout,10
++exten=s,5,BackGround,welcome
++exten=*,1,Directory,default
++exten=*,2,Goto,s|4
++exten=#,1,Playback,goodbye
++exten=#,2,Hangup
++exten=100,1,Goto,other|s|1
++exten=200,1,Intercom
++exten=400,1,MP3Player,song8.mp3
++exten=401,1,MP3Player,sample.mp3
++exten=402,1,MP3Player,sunscreen.mp3
++exten=403,1,MP3Player,<A HREF="http://trode.vergenet.net:8000">http://trode.vergenet.net:8000</A>
++exten=404,1,MP3Player,<A HREF="http://216.32.166.94:14900">http://216.32.166.94:14900</A>
++exten=405,1,Playback,sample
++;
++; Here's the template for a typical extension, carefully broken apart
++; for analysis.  The others are pretty much the same, but not as well
++; documented.
++;
++; Step 1:  Play back a &quot;Please hold while I try that extension&quot; message
++exten=4300,1,Playback,transfer
++; Step 2:  Dial the numbers where Ben is likely to be.  Try for no more
++;          than 15 seconds.
++exten=4300,2,Dial,AdtranVoFR/4300|15
++; Step 3:  If there is no answer, play back a message stating that Ben is
++;          unavailable.  Alternatively, we could have rung an operator first.
++exten=4300,3,Playback,vm/4300/unavail
++; Step 4:  Send them to voicemail.
++exten=4300,4,Voicemail,4300
++; Step 5:  If they return from voicemail, go back to the top
++exten=4300,5,Goto,s|4
++; Step 103: If the Dialing is busy, it will try here first.  We'll play a
++;           special &quot;I'm busy&quot; message...
++exten=4300,103,Playback,vm/4300/busy
++; Step 104: And then continue as if it had been busy in the first place.
++exten=4300,104,Goto,4
++; Exten. 4301: Provide a short-circuit so we can transfer striaght to 
++;              voicemail.
++exten=4301,1,Goto,4300|3
++; Exten. 4302: Provide a way to ring a given phone indefinitely
++exten=4302,1,Dial,AdtranVoFR/4300
++
++exten=4200,1,Playback,transfer
++exten=4200,2,Dial,AdtranVoFR/4200|15
++exten=4200,3,Playback,vm/4200/unavail
++exten=4200,4,Voicemail,4200
++exten=4200,5,Goto,s|4
++exten=4200,103,Playback,vm/4200/busy
++exten=4200,104,Goto,4
++exten=4201,1,Goto,4200|3
++exten=4202,1,Dial,AdtranVoFR/4200
++
++exten=4230,1,Dial,PhoneJack/ixj0
++
++exten=4110,1,Playback,transfer
++;exten=4110,2,Dial,AdtranVoFR/4110|15
++exten=4110,2,Wait,5
++exten=4110,3,Playback,vm/4110/unavail
++exten=4110,4,Voicemail,4110
++exten=4110,5,Goto,s|4
++exten=4110,103,Playback,vm/4110/busy
++exten=4110,104,Goto,4
++exten=4111,1,Goto,4110|3
++exten=4112,1,Dial,AdtranVoFR/4110
++exten=4113,1,Voicemail,s4110
++
++exten=8500,1,VoicemailMain
++exten=8500,2,Goto,s|4
++exten=762,1,Playback,somepeople
++exten=762,2,Wait,4
++exten=762,3,Goto,s|4
++
++; Timeout stuff...  We could send to an operator, or just ditch them.
++exten=t,1,Goto,#|1
++exten=i,1,BackGround,invalid
++
++[other]
++exten=s,1,Playback,digits/9
++exten=s,2,Playback,digits/8
++exten=s,3,Playback,digits/7
++exten=s,4,Goto,100|1
++exten=100,1,Playback,digits/6
++exten=100,2,Playback,digits/5
++exten=100,3,Goto,default|s|4
++;
+ ; Static extension configuration file, used by
+ ; the pbx_config module. This is where you configure all your 
+ ; inbound and outbound calls in Asterisk. 
+
+Modified: trunk/configs/modules.conf.sample
+===================================================================
+--- trunk/configs/modules.conf.sample	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/configs/modules.conf.sample	2006-06-28 10:25:31 UTC (rev 421)
+@@ -3,7 +3,21 @@
+ ;
+ ; Module Loader configuration file
+ ;
++[modules]
++autoload=yes
++;load=pbx_gtkconsole.so
++noload=pbx_gtkconsole.so
++noload=pbx_kdeconsole.so
++noload=app_intercom.so
++;load=chan_vofr.so
++;load=chan_h323.so 
+ 
++;
++; Asterisk configuration file
++;
++; Module Loader configuration file
++;
++
+ [modules]
+ autoload=yes
+ ;
+
+Modified: trunk/configs/voicemail.conf.sample
+===================================================================
+--- trunk/configs/voicemail.conf.sample	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/configs/voicemail.conf.sample	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,8 +1,22 @@
+ ;
+ ; Voicemail Configuration
+ ;
++[general]
++; Default format for writing Voicemail
++; format=g723sf|rawgsm|mp3|wav
++format=g723sf|wav
+ 
++[default]
++4200=2345,Mark <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">Spencer,markster at linux-support.net</A>
++4300=2345,Ben <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">Rigas,ben at american-computer.net</A>
++4310=<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">2345,Sales,sales at marko.net</A>
++4069=2345,Matt <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">Brooks,matt at marko.net</A>
++4110=1379,Rob <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">Flynn,rflynn at blueridge.net</A>
+ ;
++; Voicemail Configuration
++;
++
++;
+ ; NOTE: Asterisk has to edit this file to change a user's password.  This does
+ ; note currently work with the &quot;#include &lt;file&gt;&quot; directive for Asterisk
+ ; configuration files.  Do not use it with this configuration file.
+
+Modified: trunk/file.c
+===================================================================
+--- trunk/file.c	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/file.c	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,4 +1,494 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Generic File Format Support.
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++
++#include &lt;asterisk/frame.h&gt;
++#include &lt;asterisk/file.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;asterisk/channel.h&gt;
++#include &lt;asterisk/sched.h&gt;
++#include &lt;asterisk/options.h&gt;
++#include &lt;asterisk/translate.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;string.h&gt;
++#include &lt;pthread.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;fcntl.h&gt;
++#include &lt;dirent.h&gt;
++#include &lt;sys/stat.h&gt;
++#include &quot;asterisk.h&quot;
++
++struct ast_format {
++	/* Name of format */
++	char name[80];
++	/* Extensions (separated by | if more than one) 
++	   this format can read.  First is assumed for writing (e.g. .mp3) */
++	char exts[80];
++	/* Format of frames it uses/provides (one only) */
++	int format;
++	/* Open an input stream, and start playback */
++	struct ast_filestream * (*open)(int fd);
++	/* Open an output stream, of a given file descriptor and comment it appropriately if applicable */
++	struct ast_filestream * (*rewrite)(int fd, char *comment);
++	/* Apply a reading filestream to a channel */
++	int (*apply)(struct ast_channel *, struct ast_filestream *);
++	/* Write a frame to a channel */
++	int (*write)(struct ast_filestream *, struct ast_frame *);
++	/* Read the next frame from the filestream (if available) */
++	struct ast_frame * (*read)(struct ast_filestream *);
++	/* Close file, and destroy filestream structure */
++	void (*close)(struct ast_filestream *);
++	/* Retrieve file comment */
++	char * (*getcomment)(struct ast_filestream *);
++	/* Link */
++	struct ast_format *next;
++};
++
++struct ast_filestream {
++	/* Everybody reserves a block of AST_RESERVED_POINTERS pointers for us */
++	struct ast_format *fmt;
++	/* Transparently translate from another format -- just once */
++	struct ast_trans_pvt *trans;
++	struct ast_tranlator_pvt *tr;
++};
++
++static pthread_mutex_t formatlock = PTHREAD_MUTEX_INITIALIZER;
++
++static struct ast_format *formats = NULL;
++
++int ast_format_register(char *name, char *exts, int format,
++						struct ast_filestream * (*open)(int fd),
++						struct ast_filestream * (*rewrite)(int fd, char *comment),
++						int (*apply)(struct ast_channel *, struct ast_filestream *),
++						int (*write)(struct ast_filestream *, struct ast_frame *),
++						struct ast_frame * (*read)(struct ast_filestream *),
++						void (*close)(struct ast_filestream *),
++						char * (*getcomment)(struct ast_filestream *))
++{
++	struct ast_format *tmp;
++	if (pthread_mutex_lock(&amp;formatlock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock format list\n&quot;);
++		return -1;
++	}
++	tmp = formats;
++	while(tmp) {
++		if (!strcasecmp(name, tmp-&gt;name)) {
++			pthread_mutex_unlock(&amp;formatlock);
++			ast_log(LOG_WARNING, &quot;Tried to register '%s' format, already registered\n&quot;, name);
++			return -1;
++		}
++		tmp = tmp-&gt;next;
++	}
++	tmp = malloc(sizeof(struct ast_format));
++	if (!tmp) {
++		ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++		pthread_mutex_unlock(&amp;formatlock);
++		return -1;
++	}
++	strncpy(tmp-&gt;name, name, sizeof(tmp-&gt;name));
++	strncpy(tmp-&gt;exts, exts, sizeof(tmp-&gt;exts));
++	tmp-&gt;open = open;
++	tmp-&gt;rewrite = rewrite;
++	tmp-&gt;apply = apply;
++	tmp-&gt;read = read;
++	tmp-&gt;write = write;
++	tmp-&gt;close = close;
++	tmp-&gt;format = format;
++	tmp-&gt;getcomment = getcomment;
++	tmp-&gt;next = formats;
++	formats = tmp;
++	pthread_mutex_unlock(&amp;formatlock);
++	if (option_verbose &gt; 1)
++		ast_verbose( VERBOSE_PREFIX_2 &quot;Registered file format %s, extension(s) %s\n&quot;, name, exts);
++	return 0;
++}
++
++int ast_format_unregister(char *name)
++{
++	struct ast_format *tmp, *tmpl = NULL;
++	if (pthread_mutex_lock(&amp;formatlock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock format list\n&quot;);
++		return -1;
++	}
++	tmp = formats;
++	while(tmp) {
++		if (!strcasecmp(name, tmp-&gt;name)) {
++			if (tmpl) 
++				tmpl-&gt;next = tmp-&gt;next;
++			else
++				formats = tmp-&gt;next;
++			free(tmp);
++			pthread_mutex_unlock(&amp;formatlock);
++			if (option_verbose &gt; 1)
++				ast_verbose( VERBOSE_PREFIX_2 &quot;Unregistered format %s\n&quot;, name);
++			return 0;
++		}
++		tmp = tmp-&gt;next;
++	}
++	ast_log(LOG_WARNING, &quot;Tried to unregister format %s, already unregistered\n&quot;, name);
++	return -1;
++}
++
++int ast_stopstream(struct ast_channel *tmp)
++{
++	if (tmp-&gt;trans)
++		tmp = tmp-&gt;trans;
++	/* Stop a running stream if there is one */
++	if (!tmp-&gt;stream) 
++		return 0;
++	tmp-&gt;stream-&gt;fmt-&gt;close(tmp-&gt;stream);
++	if (tmp-&gt;master) {
++		ast_translator_destroy(tmp);
++	}
++	return 0;
++}
++
++int ast_closestream(struct ast_filestream *f)
++{
++	if (f-&gt;trans) {
++		ast_translator_free_path(f-&gt;trans);
++	}
++	/* Stop a running stream if there is one */
++	f-&gt;fmt-&gt;close(f);
++	return 0;
++}
++
++int ast_writestream(struct ast_filestream *fs, struct ast_frame *f)
++{
++	struct ast_frame_chain *fc, *f2;
++	int res = -1;
++	int count=0;
++	if (f-&gt;frametype != AST_FRAME_VOICE) {
++		ast_log(LOG_WARNING, &quot;Tried to write non-voice frame\n&quot;);
++		return -1;
++	}
++	if ((fs-&gt;fmt-&gt;format &amp; f-&gt;subclass) == f-&gt;subclass)
++		return fs-&gt;fmt-&gt;write(fs, f);
++	else {
++		/* XXX If they try to send us a type of frame that isn't the normal frame, and isn't
++		       the one we've setup a translator for, we do the &quot;wrong thing&quot; XXX */
++		if (!fs-&gt;trans) 
++			fs-&gt;trans = ast_translator_build_path(f-&gt;subclass, fs-&gt;fmt-&gt;format);
++		if (!fs-&gt;trans)
++			ast_log(LOG_WARNING, &quot;Unable to translate to format %s, source format %d\n&quot;, fs-&gt;fmt-&gt;name, f-&gt;subclass);
++		else {
++			/* Build a chain of translated frames */
++			fc = ast_translate(fs-&gt;trans, f);
++			f2 = fc;
++			while(f2) {
++				res = fs-&gt;fmt-&gt;write(fs, f2-&gt;fr);
++				if (res) {
++					ast_log(LOG_WARNING, &quot;Frame write failed\n&quot;);
++					break;
++				}
++				f2 = f2-&gt;next;
++				count++;
++				if (count &gt; 1) 
++					ast_log(LOG_DEBUG, &quot;Count is %d\n&quot;, count);
++			}
++			if (fc)
++				ast_frchain(fc);
++		}
++		return res;
++	}
++}
++
++static char *build_filename(char *filename, char *ext)
++{
++	char *fn;
++	fn = malloc(strlen(AST_SOUNDS) + strlen(filename) + strlen(ext) + 10);
++	if (fn) {
++		if (filename[0] == '/') 
++			sprintf(fn, &quot;%s.%s&quot;, filename, ext);
++		else
++			sprintf(fn, &quot;%s/%s.%s&quot;, AST_SOUNDS, filename, ext);
++	}
++	return fn;
++	
++}
++
++#define ACTION_EXISTS 1
++#define ACTION_DELETE 2
++#define ACTION_RENAME 3
++#define ACTION_OPEN   4
++
++static int ast_filehelper(char *filename, char *filename2, char *fmt, int action)
++{
++	struct stat st;
++	struct ast_format *f;
++	struct ast_filestream *s;
++	int res=0, ret = 0;
++	char *ext=NULL, *exts, *fn, *nfn;
++	struct ast_channel *trans = (struct ast_channel *)filename2;
++	
++	/* Start with negative response */
++	if (action == ACTION_EXISTS)
++		res = 0;
++	else
++		res = -1;
++	if (action == ACTION_OPEN)
++		ret = -1;
++	/* Check for a specific format */
++	if (pthread_mutex_lock(&amp;formatlock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock format list\n&quot;);
++		if (action == ACTION_EXISTS)
++			return 0;
++		else
++			return -1;
++	}
++	f = formats;
++	while(f) {
++		if (!fmt || !strcasecmp(f-&gt;name, fmt)) {
++			exts = strdup(f-&gt;exts);
++			/* Try each kind of extension */
++			ext = strtok(exts, &quot;|&quot;);
++			do {
++				fn = build_filename(filename, ext);
++				if (fn) {
++					res = stat(fn, &amp;st);
++					if (!res) {
++						switch(action) {
++						case ACTION_EXISTS:
++							ret |= f-&gt;format;
++							break;
++						case ACTION_DELETE:
++							res = unlink(fn);
++							if (res)
++								ast_log(LOG_WARNING, &quot;unlink(%s) failed: %s\n&quot;, fn, strerror(errno));
++							break;
++						case ACTION_RENAME:
++							nfn = build_filename(filename2, ext);
++							if (nfn) {
++								res = rename(fn, nfn);
++								if (res)
++									ast_log(LOG_WARNING, &quot;rename(%s,%s) failed: %s\n&quot;, fn, nfn, strerror(errno));
++								free(nfn);
++							} else
++								ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++							break;
++						case ACTION_OPEN:
++							if ((ret &lt; 0) &amp;&amp; ((trans-&gt;format &amp; f-&gt;format) /* == trans-&gt;format */)) {
++								ret = open(fn, O_RDONLY);
++								if (ret &gt;= 0) {
++									s = f-&gt;open(ret);
++									if (s) {
++										s-&gt;fmt = f;
++										s-&gt;trans = NULL;
++										trans-&gt;stream = s;
++										if (f-&gt;apply(trans, s)) {
++											f-&gt;close(s);
++											trans-&gt;stream = NULL;
++											ast_log(LOG_WARNING, &quot;Unable to apply stream to channel %s\n&quot;, trans-&gt;name);
++											close(ret);
++											ret = 0;
++										}
++									} else {
++										close(ret);
++										ast_log(LOG_WARNING, &quot;Unable to open fd on %s\n&quot;, filename);
++									}
++								} else
++									ast_log(LOG_WARNING, &quot;Couldn't open file %s\n&quot;, fn);
++							}
++							break;
++						default:
++							ast_log(LOG_WARNING, &quot;Unknown helper %d\n&quot;, action);
++						}
++						/* Conveniently this logic is the same for all */
++						if (res)
++							break;
++					}
++					free(fn);
++				}
++				ext = strtok(NULL, &quot;|&quot;);
++			} while(ext);
++			free(exts);
++		}
++		f = f-&gt;next;
++	}
++	pthread_mutex_unlock(&amp;formatlock);
++	if ((action == ACTION_EXISTS) || (action == ACTION_OPEN))
++		res = ret ? ret : -1;
++	return res;
++}
++
++int ast_fileexists(char *filename, char *fmt)
++{
++	return ast_filehelper(filename, NULL, fmt, ACTION_EXISTS);
++}
++
++int ast_filedelete(char *filename, char *fmt)
++{
++	return ast_filehelper(filename, NULL, fmt, ACTION_DELETE);
++}
++
++int ast_filerename(char *filename, char *filename2, char *fmt)
++{
++	return ast_filehelper(filename, filename2, fmt, ACTION_RENAME);
++}
++
++int ast_streamfile(struct ast_channel *chan, char *filename)
++{
++	/* This is a fairly complex routine.  Essentially we should do 
++	   the following:
++	   
++	   1) Find which file handlers produce our type of format.
++	   2) Look for a filename which it can handle.
++	   3) If we find one, then great.  
++	   *4) If not, see what files are there
++	   *5) See what we can actually support
++	   *6) Choose the one with the least costly translator path and
++	       set it up.
++		   
++		XXX * = unimplemented XXX
++	*/
++	int fd = -1;
++	struct ast_channel *trans;
++	int fmts;
++	ast_stopstream(chan);
++	fmts = ast_fileexists(filename, NULL);
++	if (fmts &lt; 1) {
++		ast_log(LOG_WARNING, &quot;File %s does not exist in any format\n&quot;, filename);
++		return -1;
++	}
++	if (fmts &amp; chan-&gt;format) {
++		/* No translation necessary -- we have a file in a format our channel can 
++		   handle */
++		trans = chan;
++	} else {
++		/* Find the best */
++		fmts = ast_translator_best_choice(chan-&gt;format, fmts);
++		if (fmts &lt; 1) {
++			ast_log(LOG_WARNING, &quot;Unable to find a translator method\n&quot;);
++			return -1;
++		}
++		trans = ast_translator_create(chan, fmts, AST_DIRECTION_OUT);
++		if (!trans) {
++			ast_log(LOG_WARNING, &quot;Unable to create translator\n&quot;);
++			return -1;
++		}
++	}
++ 	fd = ast_filehelper(filename, (char *)trans, NULL, ACTION_OPEN);
++	if (fd &gt;= 0) {
++#if 0
++		ast_verbose(VERBOSE_PREFIX_3 &quot;Playing '%s'\n&quot;, filename);
++#endif
++		return 0;
++	}
++	ast_log(LOG_WARNING, &quot;Unable to open %s (format %d): %s\n&quot;, filename, chan-&gt;format, strerror(errno));
++	if (chan != trans)
++		ast_translator_destroy(trans);	
++	return -1;
++}
++
++
++struct ast_filestream *ast_writefile(char *filename, char *type, char *comment, int flags, int check, mode_t mode)
++{
++	int fd;
++	struct ast_format *f;
++	struct ast_filestream *fs=NULL;
++	char *fn;
++	char *ext;
++	if (pthread_mutex_lock(&amp;formatlock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock format list\n&quot;);
++		return NULL;
++	}
++	f = formats;
++	while(f) {
++		if (!strcasecmp(f-&gt;name, type)) {
++			/* XXX Implement check XXX */
++			ext = strdup(f-&gt;exts);
++			ext = strtok(ext, &quot;|&quot;);
++			fn = build_filename(filename, ext);
++			fd = open(fn, flags | O_WRONLY | O_CREAT, mode);
++			if (fd &gt;= 0) {
++				errno = 0;
++				if ((fs = f-&gt;rewrite(fd, comment))) {
++					fs-&gt;trans = NULL;
++					fs-&gt;fmt = f;
++				} else {
++					ast_log(LOG_WARNING, &quot;Unable to rewrite %s\n&quot;, fn);
++					close(fd);
++					unlink(fn);
++				}
++			} else if (errno != EEXIST)
++				ast_log(LOG_WARNING, &quot;Unable to open file %s: %s\n&quot;, fn, strerror(errno));
++			free(fn);
++			free(ext);
++			break;
++		}
++		f = f-&gt;next;
++	}
++	pthread_mutex_unlock(&amp;formatlock);
++	if (!f) 
++		ast_log(LOG_WARNING, &quot;No such format '%s'\n&quot;, type);
++	return fs;
++}
++
++char ast_waitstream(struct ast_channel *c, char *breakon)
++{
++	int res;
++	struct ast_frame *fr;
++	if (c-&gt;trans)
++		c=c-&gt;trans;
++	while(c-&gt;stream) {
++		res = ast_sched_wait(c-&gt;sched);
++		if (res &lt; 0) {
++			/* Okay, stop :) */
++			return 0;
++		}
++		res = ast_waitfor(c, res);
++		if (res &lt; 0) {
++			ast_log(LOG_WARNING, &quot;Select failed (%s)\n&quot;, strerror(errno));
++			return res;
++		} else
++		if (res &gt; 0) {
++			fr = ast_read(c);
++			if (!fr) {
++#if 0
++				ast_log(LOG_DEBUG, &quot;Got hung up\n&quot;);
++#endif
++				return -1;
++			}
++			
++			switch(fr-&gt;frametype) {
++			case AST_FRAME_DTMF:
++				res = fr-&gt;subclass;
++				ast_frfree(fr);
++				if (strchr(breakon, res))
++					return res;
++				break;
++			case AST_FRAME_CONTROL:
++				switch(fr-&gt;subclass) {
++				case AST_CONTROL_HANGUP:
++					ast_frfree(fr);
++					return -1;
++				default:
++					ast_log(LOG_WARNING, &quot;Unexpected control subclass '%d'\n&quot;, fr-&gt;subclass);
++				}
++			default:
++				/* Ignore */
++				ast_frfree(fr);
++			}
++		} else
++			ast_sched_runq(c-&gt;sched);
++	
++		
++	}
++	return 0;
++}
++
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2006, Digium, Inc.
+
+Modified: trunk/formats/format_g723.c
+===================================================================
+--- trunk/formats/format_g723.c	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/formats/format_g723.c	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,4 +1,346 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Old-style G.723 frame/timestamp format.
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++ 
++#include &lt;asterisk/channel.h&gt;
++#include &lt;asterisk/file.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;asterisk/sched.h&gt;
++#include &lt;asterisk/module.h&gt;
++#include &lt;arpa/inet.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;string.h&gt;
++#include &lt;pthread.h&gt;
++#include &lt;sys/time.h&gt;
++#include &quot;../channels/adtranvofr.h&quot;
++
++
++#define G723_MAX_SIZE 1024
++
++struct ast_filestream {
++	/* First entry MUST be reserved for the channel type */
++	void *reserved[AST_RESERVED_POINTERS];
++	/* This is what a filestream means to us */
++	int fd; /* Descriptor */
++	u_int32_t lasttimeout;	/* Last amount of timeout */
++	struct ast_channel *owner;
++	struct ast_filestream *next;
++	struct ast_frame *fr;	/* Frame representation of buf */
++	struct timeval orig;	/* Original frame time */
++	char buf[G723_MAX_SIZE + AST_FRIENDLY_OFFSET];	/* Buffer for sending frames, etc */
++};
++
++
++static struct ast_filestream *glist = NULL;
++static pthread_mutex_t g723_lock = PTHREAD_MUTEX_INITIALIZER;
++static int glistcnt = 0;
++
++static char *name = &quot;g723sf&quot;;
++static char *desc = &quot;G.723.1 Simple Timestamp File Format&quot;;
++static char *exts = &quot;g723&quot;;
++
++static struct ast_filestream *g723_open(int fd)
++{
++	/* We don't have any header to read or anything really, but
++	   if we did, it would go here.  We also might want to check
++	   and be sure it's a valid file.  */
++	struct ast_filestream *tmp;
++	if ((tmp = malloc(sizeof(struct ast_filestream)))) {
++		if (pthread_mutex_lock(&amp;g723_lock)) {
++			ast_log(LOG_WARNING, &quot;Unable to lock g723 list\n&quot;);
++			free(tmp);
++			return NULL;
++		}
++		tmp-&gt;next = glist;
++		glist = tmp;
++		tmp-&gt;fd = fd;
++		tmp-&gt;owner = NULL;
++		tmp-&gt;fr = (struct ast_frame *)tmp-&gt;buf;
++		tmp-&gt;fr-&gt;data = tmp-&gt;buf + sizeof(struct ast_frame);
++		tmp-&gt;fr-&gt;frametype = AST_FRAME_VOICE;
++		tmp-&gt;fr-&gt;subclass = AST_FORMAT_G723_1;
++		/* datalen will vary for each frame */
++		tmp-&gt;fr-&gt;src = name;
++		tmp-&gt;fr-&gt;mallocd = 0;
++		tmp-&gt;lasttimeout = -1;
++		tmp-&gt;orig.tv_usec = 0;
++		tmp-&gt;orig.tv_sec = 0;
++		glistcnt++;
++		pthread_mutex_unlock(&amp;g723_lock);
++		ast_update_use_count();
++	}
++	return tmp;
++}
++
++static struct ast_filestream *g723_rewrite(int fd, char *comment)
++{
++	/* We don't have any header to read or anything really, but
++	   if we did, it would go here.  We also might want to check
++	   and be sure it's a valid file.  */
++	struct ast_filestream *tmp;
++	if ((tmp = malloc(sizeof(struct ast_filestream)))) {
++		if (pthread_mutex_lock(&amp;g723_lock)) {
++			ast_log(LOG_WARNING, &quot;Unable to lock g723 list\n&quot;);
++			free(tmp);
++			return NULL;
++		}
++		tmp-&gt;next = glist;
++		glist = tmp;
++		tmp-&gt;fd = fd;
++		tmp-&gt;owner = NULL;
++		tmp-&gt;fr = NULL;
++		tmp-&gt;lasttimeout = -1;
++		glistcnt++;
++		pthread_mutex_unlock(&amp;g723_lock);
++		ast_update_use_count();
++	} else
++		ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++	return tmp;
++}
++
++static struct ast_frame *g723_read(struct ast_filestream *s)
++{
++	return NULL;
++}
++
++static void g723_close(struct ast_filestream *s)
++{
++	struct ast_filestream *tmp, *tmpl = NULL;
++	if (pthread_mutex_lock(&amp;g723_lock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock g723 list\n&quot;);
++		return;
++	}
++	tmp = glist;
++	while(tmp) {
++		if (tmp == s) {
++			if (tmpl)
++				tmpl-&gt;next = tmp-&gt;next;
++			else
++				glist = tmp-&gt;next;
++			break;
++		}
++		tmpl = tmp;
++		tmp = tmp-&gt;next;
++	}
++	glistcnt--;
++	if (s-&gt;owner) {
++		s-&gt;owner-&gt;stream = NULL;
++		if (s-&gt;owner-&gt;streamid &gt; -1)
++			ast_sched_del(s-&gt;owner-&gt;sched, s-&gt;owner-&gt;streamid);
++		s-&gt;owner-&gt;streamid = -1;
++	}
++	pthread_mutex_unlock(&amp;g723_lock);
++	ast_update_use_count();
++	if (!tmp) 
++		ast_log(LOG_WARNING, &quot;Freeing a filestream we don't seem to own\n&quot;);
++	close(s-&gt;fd);
++	free(s);
++}
++
++static int ast_read_callback(void *data)
++{
++	u_int16_t size;
++	u_int32_t delay = -1;
++	int looper = 1;
++	int retval = 0;
++	int res;
++	struct ast_filestream *s = data;
++	/* Send a frame from the file to the appropriate channel */
++	while(looper) {
++		if (read(s-&gt;fd, &amp;size, 2) != 2) {
++			/* Out of data, or the file is no longer valid.  In any case
++			   go ahead and stop the stream */
++			s-&gt;owner-&gt;streamid = -1;
++			return 0;
++		}
++		/* Looks like we have a frame to read from here */
++		size = ntohs(size);
++		if (size &gt; G723_MAX_SIZE - sizeof(struct ast_frame)) {
++			ast_log(LOG_WARNING, &quot;Size %d is invalid\n&quot;, size);
++			/* The file is apparently no longer any good, as we
++			   shouldn't ever get frames even close to this 
++			   size.  */
++			s-&gt;owner-&gt;streamid = -1;
++			return 0;
++		}
++		/* Read the data into the buffer */
++		s-&gt;fr-&gt;offset = AST_FRIENDLY_OFFSET;
++		s-&gt;fr-&gt;datalen = size;
++		s-&gt;fr-&gt;data = s-&gt;buf + sizeof(struct ast_frame) + AST_FRIENDLY_OFFSET;
++		if ((res = read(s-&gt;fd, s-&gt;fr-&gt;data , size)) != size) {
++			ast_log(LOG_WARNING, &quot;Short read (%d of %d bytes) (%s)!\n&quot;, res, size, strerror(errno));
++			s-&gt;owner-&gt;streamid = -1;
++			return 0;
++		}
++		/* Read the delay for the next packet, and schedule again if necessary */
++		if (read(s-&gt;fd, &amp;delay, 4) == 4) 
++			delay = ntohl(delay);
++		else
++			delay = -1;
++		/* Average out frames &lt;= 40 ms */
++		if (delay &lt; 41)
++			s-&gt;fr-&gt;timelen = 30;
++		else
++			s-&gt;fr-&gt;timelen = delay;
++		/* Unless there is no delay, we're going to exit out as soon as we
++		   have processed the current frame. */
++		if (delay &gt; VOFR_FUDGE) {
++			looper = 0;
++			/* If there is a delay, lets schedule the next event */
++			if (delay != s-&gt;lasttimeout) {
++				/* We'll install the next timeout now. */
++				s-&gt;owner-&gt;streamid = ast_sched_add(s-&gt;owner-&gt;sched, 
++													  delay - VOFR_FUDGE, 
++													  ast_read_callback, s);
++				
++				s-&gt;lasttimeout = delay;
++			} else
++				/* Just come back again at the same time */
++				retval = -1;
++		}
++		/* Lastly, process the frame */
++		if (ast_write(s-&gt;owner, s-&gt;fr)) {
++			ast_log(LOG_WARNING, &quot;Failed to write frame\n&quot;);
++			s-&gt;owner-&gt;streamid = -1;
++			return 0;
++		}
++	}
++	return retval;
++}
++
++static int g723_apply(struct ast_channel *c, struct ast_filestream *s)
++{
++	u_int32_t delay;
++	/* Select our owner for this stream, and get the ball rolling. */
++	s-&gt;owner = c;
++	/* Read and ignore the first delay */
++	if (read(s-&gt;fd, &amp;delay, 4) != 4) {
++		ast_log(LOG_WARNING, &quot;Bad stream?\n&quot;);
++		return -1;
++	}
++	ast_read_callback(s);
++	return 0;
++}
++
++static int g723_write(struct ast_filestream *fs, struct ast_frame *f)
++{
++	struct timeval now;
++	u_int32_t delay;
++	u_int16_t size;
++	int res;
++	if (fs-&gt;fr) {
++		ast_log(LOG_WARNING, &quot;Asked to write on a read stream??\n&quot;);
++		return -1;
++	}
++	if (f-&gt;frametype != AST_FRAME_VOICE) {
++		ast_log(LOG_WARNING, &quot;Asked to write non-voice frame!\n&quot;);
++		return -1;
++	}
++	if (f-&gt;subclass != AST_FORMAT_G723_1) {
++		ast_log(LOG_WARNING, &quot;Asked to write non-g723 frame!\n&quot;);
++		return -1;
++	}
++	if (!(fs-&gt;orig.tv_usec || fs-&gt;orig.tv_sec)) {
++		/* First frame should have zeros for delay */
++		delay = 0;
++		if (gettimeofday(&amp;fs-&gt;orig, NULL)) {
++			ast_log(LOG_WARNING, &quot;gettimeofday() failed??  What is this?  Y2k?\n&quot;);
++			return -1;
++		}
++	} else {
++		if (gettimeofday(&amp;now, NULL)) {
++			ast_log(LOG_WARNING, &quot;gettimeofday() failed??  What is this?  Y2k?\n&quot;);
++			return -1;
++		}
++		delay = (now.tv_sec - fs-&gt;orig.tv_sec) * 1000 + (now.tv_usec - fs-&gt;orig.tv_usec) / 1000;
++		delay = htonl(delay);
++		fs-&gt;orig.tv_sec = now.tv_sec;
++		fs-&gt;orig.tv_usec = now.tv_usec;
++	}
++	if ((res = write(fs-&gt;fd, &amp;delay, 4)) != 4) {
++		ast_log(LOG_WARNING, &quot;Unable to write delay: res=%d (%s)\n&quot;, res, strerror(errno));
++		return -1;
++	}
++	size = htons(f-&gt;datalen);
++	if ((res =write(fs-&gt;fd, &amp;size, 2)) != 2) {
++		ast_log(LOG_WARNING, &quot;Unable to write size: res=%d (%s)\n&quot;, res, strerror(errno));
++		return -1;
++	}
++	if ((res = write(fs-&gt;fd, f-&gt;data, f-&gt;datalen)) != f-&gt;datalen) {
++		ast_log(LOG_WARNING, &quot;Unable to write frame: res=%d (%s)\n&quot;, res, strerror(errno));
++		return -1;
++	}	
++	return 0;
++}
++
++char *g723_getcomment(struct ast_filestream *s)
++{
++	return NULL;
++}
++
++int load_module()
++{
++	return ast_format_register(name, exts, AST_FORMAT_G723_1,
++								g723_open,
++								g723_rewrite,
++								g723_apply,
++								g723_write,
++								g723_read,
++								g723_close,
++								g723_getcomment);
++								
++								
++}
++
++int unload_module()
++{
++	struct ast_filestream *tmp, *tmpl;
++	if (pthread_mutex_lock(&amp;g723_lock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock g723 list\n&quot;);
++		return -1;
++	}
++	tmp = glist;
++	while(tmp) {
++		if (tmp-&gt;owner)
++			ast_softhangup(tmp-&gt;owner);
++		tmpl = tmp;
++		tmp = tmp-&gt;next;
++		free(tmpl);
++	}
++	pthread_mutex_unlock(&amp;g723_lock);
++	return ast_format_unregister(name);
++}	
++
++int usecount()
++{
++	int res;
++	if (pthread_mutex_lock(&amp;g723_lock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock g723 list\n&quot;);
++		return -1;
++	}
++	res = glistcnt;
++	pthread_mutex_unlock(&amp;g723_lock);
++	return res;
++}
++
++char *description()
++{
++	return desc;
++}
++
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2005, Digium, Inc.
+
+Modified: trunk/formats/format_wav.c
+===================================================================
+--- trunk/formats/format_wav.c	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/formats/format_wav.c	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,4 +1,359 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Microsoft WAV File Format using libaudiofile 
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++ 
++#include &lt;asterisk/channel.h&gt;
++#include &lt;asterisk/file.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;asterisk/sched.h&gt;
++#include &lt;asterisk/module.h&gt;
++#include &lt;arpa/inet.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;string.h&gt;
++#include &lt;pthread.h&gt;
++#include &lt;audiofile.h&gt;
++
++
++/* Read 320 samples at a time, max */ 
++#define WAV_MAX_SIZE 320
++
++/* Fudge in milliseconds */
++#define WAV_FUDGE 2
++
++struct ast_filestream {
++	/* First entry MUST be reserved for the channel type */
++	void *reserved[AST_RESERVED_POINTERS];
++	/* This is what a filestream means to us */
++	int fd; /* Descriptor */
++	/* Audio File */
++	AFfilesetup afs;
++	AFfilehandle af;
++	int lasttimeout;
++	struct ast_channel *owner;
++	struct ast_filestream *next;
++	struct ast_frame fr;				/* Frame information */
++	char waste[AST_FRIENDLY_OFFSET];	/* Buffer for sending frames, etc */
++	short samples[WAV_MAX_SIZE];
++};
++
++
++static struct ast_filestream *glist = NULL;
++static pthread_mutex_t wav_lock = PTHREAD_MUTEX_INITIALIZER;
++static int glistcnt = 0;
++
++static char *name = &quot;wav&quot;;
++static char *desc = &quot;Microsoft WAV format (PCM/16, 8000Hz mono)&quot;;
++static char *exts = &quot;wav&quot;;
++
++static struct ast_filestream *wav_open(int fd)
++{
++	/* We don't have any header to read or anything really, but
++	   if we did, it would go here.  We also might want to check
++	   and be sure it's a valid file.  */
++	struct ast_filestream *tmp;
++	int notok = 0;
++	int fmt, width;
++	double rate;
++	if ((tmp = malloc(sizeof(struct ast_filestream)))) {
++		tmp-&gt;afs = afNewFileSetup();
++		if (!tmp-&gt;afs) {
++			ast_log(LOG_WARNING, &quot;Unable to create file setup\n&quot;);
++			free(tmp);
++			return NULL;
++		}
++		afInitFileFormat(tmp-&gt;afs, AF_FILE_WAVE);
++		tmp-&gt;af = afOpenFD(fd, &quot;r&quot;, tmp-&gt;afs);
++		if (!tmp-&gt;af) {
++			afFreeFileSetup(tmp-&gt;afs);
++			ast_log(LOG_WARNING, &quot;Unable to open file descriptor\n&quot;);
++			free(tmp);
++			return NULL;
++		}
++#if 0
++		afGetFileFormat(tmp-&gt;af, &amp;version);
++		if (version != AF_FILE_WAVE) {
++			ast_log(LOG_WARNING, &quot;This is not a wave file (%d)\n&quot;, version);
++			notok++;
++		}
++#endif
++		/* Read the format and make sure it's exactly what we seek. */
++		if (afGetChannels(tmp-&gt;af, AF_DEFAULT_TRACK) != 1) {
++			ast_log(LOG_WARNING, &quot;Invalid number of channels %d.  Should be mono (1)\n&quot;, afGetChannels(tmp-&gt;af, AF_DEFAULT_TRACK));
++			notok++;
++		}
++		afGetSampleFormat(tmp-&gt;af, AF_DEFAULT_TRACK, &amp;fmt, &amp;width);
++		if (fmt != AF_SAMPFMT_TWOSCOMP) {
++			ast_log(LOG_WARNING, &quot;Input file is not signed\n&quot;);
++			notok++;
++		}
++		rate = afGetRate(tmp-&gt;af, AF_DEFAULT_TRACK);
++		if ((rate &lt; 7900) || (rate &gt; 8100)) {
++			ast_log(LOG_WARNING, &quot;Rate %f is not close enough to 8000 Hz\n&quot;, rate);
++			notok++;
++		}
++		if (width != 16) {
++			ast_log(LOG_WARNING, &quot;Input file is not 16-bit\n&quot;);
++			notok++;
++		}
++		if (notok) {
++			afCloseFile(tmp-&gt;af);
++			afFreeFileSetup(tmp-&gt;afs);
++			free(tmp);
++			return NULL;
++		}
++		if (pthread_mutex_lock(&amp;wav_lock)) {
++			afCloseFile(tmp-&gt;af);
++			afFreeFileSetup(tmp-&gt;afs);
++			ast_log(LOG_WARNING, &quot;Unable to lock wav list\n&quot;);
++			free(tmp);
++			return NULL;
++		}
++		tmp-&gt;next = glist;
++		glist = tmp;
++		tmp-&gt;fd = fd;
++		tmp-&gt;owner = NULL;
++		tmp-&gt;fr.data = tmp-&gt;samples;
++		tmp-&gt;fr.frametype = AST_FRAME_VOICE;
++		tmp-&gt;fr.subclass = AST_FORMAT_SLINEAR;
++		/* datalen will vary for each frame */
++		tmp-&gt;fr.src = name;
++		tmp-&gt;fr.mallocd = 0;
++		tmp-&gt;lasttimeout = -1;
++		glistcnt++;
++		pthread_mutex_unlock(&amp;wav_lock);
++		ast_update_use_count();
++	}
++	return tmp;
++}
++
++static struct ast_filestream *wav_rewrite(int fd, char *comment)
++{
++	/* We don't have any header to read or anything really, but
++	   if we did, it would go here.  We also might want to check
++	   and be sure it's a valid file.  */
++	struct ast_filestream *tmp;
++	if ((tmp = malloc(sizeof(struct ast_filestream)))) {
++		tmp-&gt;afs = afNewFileSetup();
++		if (!tmp-&gt;afs) {
++			ast_log(LOG_WARNING, &quot;Unable to create file setup\n&quot;);
++			free(tmp);
++			return NULL;
++		}
++		/* WAV format */
++		afInitFileFormat(tmp-&gt;afs, AF_FILE_WAVE);
++		/* Mono */
++		afInitChannels(tmp-&gt;afs, AF_DEFAULT_TRACK, 1);
++		/* Signed linear, 16-bit */
++		afInitSampleFormat(tmp-&gt;afs, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
++		/* 8000 Hz */
++		afInitRate(tmp-&gt;afs, AF_DEFAULT_TRACK, (double)8000.0);
++		tmp-&gt;af = afOpenFD(fd, &quot;w&quot;, tmp-&gt;afs);
++		if (!tmp-&gt;af) {
++			afFreeFileSetup(tmp-&gt;afs);
++			ast_log(LOG_WARNING, &quot;Unable to open file descriptor\n&quot;);
++			free(tmp);
++			return NULL;
++		}
++		if (pthread_mutex_lock(&amp;wav_lock)) {
++			ast_log(LOG_WARNING, &quot;Unable to lock wav list\n&quot;);
++			free(tmp);
++			return NULL;
++		}
++		tmp-&gt;next = glist;
++		glist = tmp;
++		tmp-&gt;fd = fd;
++		tmp-&gt;owner = NULL;
++		tmp-&gt;lasttimeout = -1;
++		glistcnt++;
++		pthread_mutex_unlock(&amp;wav_lock);
++		ast_update_use_count();
++	} else
++		ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++	return tmp;
++}
++
++static struct ast_frame *wav_read(struct ast_filestream *s)
++{
++	return NULL;
++}
++
++static void wav_close(struct ast_filestream *s)
++{
++	struct ast_filestream *tmp, *tmpl = NULL;
++	if (pthread_mutex_lock(&amp;wav_lock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock wav list\n&quot;);
++		return;
++	}
++	tmp = glist;
++	while(tmp) {
++		if (tmp == s) {
++			if (tmpl)
++				tmpl-&gt;next = tmp-&gt;next;
++			else
++				glist = tmp-&gt;next;
++			break;
++		}
++		tmpl = tmp;
++		tmp = tmp-&gt;next;
++	}
++	glistcnt--;
++	if (s-&gt;owner) {
++		s-&gt;owner-&gt;stream = NULL;
++		if (s-&gt;owner-&gt;streamid &gt; -1)
++			ast_sched_del(s-&gt;owner-&gt;sched, s-&gt;owner-&gt;streamid);
++		s-&gt;owner-&gt;streamid = -1;
++	}
++	pthread_mutex_unlock(&amp;wav_lock);
++	ast_update_use_count();
++	if (!tmp) 
++		ast_log(LOG_WARNING, &quot;Freeing a filestream we don't seem to own\n&quot;);
++	afCloseFile(tmp-&gt;af);
++	afFreeFileSetup(tmp-&gt;afs);
++	close(s-&gt;fd);
++	free(s);
++}
++
++static int ast_read_callback(void *data)
++{
++	u_int32_t delay = -1;
++	int retval = 0;
++	int res;
++	struct ast_filestream *s = data;
++	/* Send a frame from the file to the appropriate channel */
++
++	if ((res = afReadFrames(s-&gt;af, AF_DEFAULT_TRACK, s-&gt;samples, sizeof(s-&gt;samples)/2)) &lt; 1) {
++		if (res)
++			ast_log(LOG_WARNING, &quot;Short read (%d) (%s)!\n&quot;, res, strerror(errno));
++		s-&gt;owner-&gt;streamid = -1;
++		return 0;
++	}
++	/* Per 8 samples, one milisecond */
++	delay = res / 8;
++	s-&gt;fr.frametype = AST_FRAME_VOICE;
++	s-&gt;fr.subclass = AST_FORMAT_SLINEAR;
++	s-&gt;fr.offset = AST_FRIENDLY_OFFSET;
++	s-&gt;fr.datalen = res * 2;
++	s-&gt;fr.data = s-&gt;samples;
++	s-&gt;fr.mallocd = 0;
++	s-&gt;fr.timelen = delay;
++	/* Unless there is no delay, we're going to exit out as soon as we
++	   have processed the current frame. */
++	/* If there is a delay, lets schedule the next event */
++	if (delay != s-&gt;lasttimeout) {
++		/* We'll install the next timeout now. */
++		s-&gt;owner-&gt;streamid = ast_sched_add(s-&gt;owner-&gt;sched, 
++											  delay, 
++											  ast_read_callback, s);
++		
++		s-&gt;lasttimeout = delay;
++	} else {
++		/* Just come back again at the same time */
++		retval = -1;
++	}
++	/* Lastly, process the frame */
++	if (ast_write(s-&gt;owner, &amp;s-&gt;fr)) {
++		ast_log(LOG_WARNING, &quot;Failed to write frame\n&quot;);
++		s-&gt;owner-&gt;streamid = -1;
++		return 0;
++	}
++	
++	return retval;
++}
++
++static int wav_apply(struct ast_channel *c, struct ast_filestream *s)
++{
++	/* Select our owner for this stream, and get the ball rolling. */
++	s-&gt;owner = c;
++	ast_read_callback(s);
++	return 0;
++}
++
++static int wav_write(struct ast_filestream *fs, struct ast_frame *f)
++{
++	int res;
++	if (f-&gt;frametype != AST_FRAME_VOICE) {
++		ast_log(LOG_WARNING, &quot;Asked to write non-voice frame!\n&quot;);
++		return -1;
++	}
++	if (f-&gt;subclass != AST_FORMAT_SLINEAR) {
++		ast_log(LOG_WARNING, &quot;Asked to write non-signed linear frame (%d)!\n&quot;, f-&gt;subclass);
++		return -1;
++	}
++	if ((res = afWriteFrames(fs-&gt;af, AF_DEFAULT_TRACK, f-&gt;data, f-&gt;datalen/2)) != f-&gt;datalen/2) {
++		ast_log(LOG_WARNING, &quot;Unable to write frame: res=%d (%s)\n&quot;, res, strerror(errno));
++		return -1;
++	}	
++	return 0;
++}
++
++char *wav_getcomment(struct ast_filestream *s)
++{
++	return NULL;
++}
++
++int load_module()
++{
++	return ast_format_register(name, exts, AST_FORMAT_SLINEAR,
++								wav_open,
++								wav_rewrite,
++								wav_apply,
++								wav_write,
++								wav_read,
++								wav_close,
++								wav_getcomment);								
++								
++								
++}
++
++int unload_module()
++{
++	struct ast_filestream *tmp, *tmpl;
++	if (pthread_mutex_lock(&amp;wav_lock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock wav list\n&quot;);
++		return -1;
++	}
++	tmp = glist;
++	while(tmp) {
++		if (tmp-&gt;owner)
++			ast_softhangup(tmp-&gt;owner);
++		tmpl = tmp;
++		tmp = tmp-&gt;next;
++		free(tmpl);
++	}
++	pthread_mutex_unlock(&amp;wav_lock);
++	return ast_format_unregister(name);
++}	
++
++int usecount()
++{
++	int res;
++	if (pthread_mutex_lock(&amp;wav_lock)) {
++		ast_log(LOG_WARNING, &quot;Unable to lock wav list\n&quot;);
++		return -1;
++	}
++	res = glistcnt;
++	pthread_mutex_unlock(&amp;wav_lock);
++	return res;
++}
++
++char *description()
++{
++	return desc;
++}
++
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2005, Digium, Inc.
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/pbx.c	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,4 +1,862 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Core PBX routines.
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++
++#include &lt;pthread.h&gt;
++#include &lt;asterisk/pbx.h&gt;
++#include &lt;asterisk/channel.h&gt;
++#include &lt;asterisk/options.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;asterisk/file.h&gt;
++#include &lt;string.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;setjmp.h&gt;
++#include &lt;ctype.h&gt;
++
++
++/*
++ * I M P O R T A N T :
++ *
++ *		The speed of extension handling will likely be among the most important
++ * aspects of this PBX.  The switching scheme as it exists right now isn't
++ * terribly bad (it's O(N+M), where N is the # of extensions and M is the avg #
++ * of priorities, but a constant search time here would be great ;-) 
++ *
++ */
++
++
++struct ast_context;
++
++struct ast_pbx {
++	int dtimeout;					/* Timeout between digits (seconds) */
++	int rtimeout;					/* Timeout for response (seconds) */
++};
++
++/* An extension */
++struct ast_exten {
++	char exten[AST_MAX_EXTENSION];
++	int priority;
++	/* An extension */
++	struct ast_context *parent;
++	/* Application to execute */
++	char app[AST_MAX_EXTENSION];
++	/* Data to use */
++	void *data;
++	/* Data destructor */
++	void (*datad)(void *);
++	/* Next highest priority with our extension */
++	struct ast_exten *peer;
++	/* Extension with a greater ID */
++	struct ast_exten *next;
++};
++
++/* An extension context */
++struct ast_context {
++	/* Name of the context */
++	char name[AST_MAX_EXTENSION];
++	/* A lock to prevent multiple threads from clobbering the context */
++	pthread_mutex_t lock;
++	/* The root of the list of extensions */
++	struct ast_exten *root;
++	/* Link them together */
++	struct ast_context *next;
++};
++
++
++/* An application */
++struct ast_app {
++	/* Name of the application */
++	char name[AST_MAX_APP];
++	int (*execute)(struct ast_channel *chan, void *data);
++	struct ast_app *next;
++};
++
++static int pbx_builtin_answer(struct ast_channel *, void *);
++static int pbx_builtin_goto(struct ast_channel *, void *);
++static int pbx_builtin_hangup(struct ast_channel *, void *);
++static int pbx_builtin_background(struct ast_channel *, void *);
++static int pbx_builtin_dtimeout(struct ast_channel *, void *);
++static int pbx_builtin_rtimeout(struct ast_channel *, void *);
++static int pbx_builtin_wait(struct ast_channel *, void *);
++
++static struct pbx_builtin {
++	char name[AST_MAX_APP];
++	int (*execute)(struct ast_channel *chan, void *data);
++} builtins[] = 
++{
++	/* These applications are built into the PBX core and do not
++	   need separate modules */
++	{ &quot;Answer&quot;, pbx_builtin_answer },
++	{ &quot;Goto&quot;, pbx_builtin_goto },
++	{ &quot;Hangup&quot;, pbx_builtin_hangup },
++	{ &quot;DigitTimeout&quot;, pbx_builtin_dtimeout },
++	{ &quot;ResponseTimeout&quot;, pbx_builtin_rtimeout },
++	{ &quot;BackGround&quot;, pbx_builtin_background },
++	{ &quot;Wait&quot;, pbx_builtin_wait },
++};
++
++/* Lock for the application list */
++static pthread_mutex_t applock = PTHREAD_MUTEX_INITIALIZER;
++static struct ast_context *contexts = NULL;
++/* Lock for the ast_context list */
++static pthread_mutex_t conlock = PTHREAD_MUTEX_INITIALIZER;
++static struct ast_app *apps = NULL;
++
++static int pbx_exec(struct ast_channel *c, /* Channel */
++					int (*execute)(struct ast_channel *chan, void *data), 
++					void *data,				/* Data for execution */
++					int newstack)			/* Force stack increment */
++{
++	/* This function is special.  It saves the stack so that no matter
++	   how many times it is called, it returns to the same place */
++	int res;
++	int stack = c-&gt;stack;
++	if (newstack &amp;&amp; stack &gt; AST_CHANNEL_MAX_STACK - 2) {
++		/* Don't allow us to go over the max number of stacks we
++		   permit saving. */
++		ast_log(LOG_WARNING, &quot;Stack overflow, cannot create another stack\n&quot;);
++		return -1;
++	}
++	if (newstack &amp;&amp; (res = setjmp(c-&gt;jmp[++c-&gt;stack]))) {
++		/* Okay, here's where it gets weird.  If newstack is non-zero, 
++		   then we increase the stack increment, but setjmp is not going
++		   to return until longjmp is called -- when the application
++		   exec'd is finished running. */
++		if (res == 1)
++			res = 0;
++		if (c-&gt;stack != stack + 1) 
++			ast_log(LOG_WARNING, &quot;Stack returned to an unexpected place!\n&quot;);
++		else if (c-&gt;app[c-&gt;stack])
++			ast_log(LOG_WARNING, &quot;Application may have forgotten to free its memory\n&quot;);
++		c-&gt;stack = stack;
++		return res;
++	} else {
++		res = execute(c, data);
++		/* Any application that returns, we longjmp back, just in case. */
++		if (c-&gt;stack != stack + 1)
++			ast_log(LOG_WARNING, &quot;Stack is not at expected value\n&quot;);
++		longjmp(c-&gt;jmp[stack+1], res);
++		/* Never returns */
++	}
++}
++
++
++#define HELPER_EXISTS 0
++#define HELPER_SPAWN 1
++#define HELPER_EXEC 2
++
++static struct ast_app *pbx_findapp(char *app) 
++{
++	struct ast_app *tmp;
++	if (pthread_mutex_lock(&amp;applock)) {
++		ast_log(LOG_WARNING, &quot;Unable to obtain application lock\n&quot;);
++		return NULL;
++	}
++	tmp = apps;
++	while(tmp) {
++		if (!strcasecmp(tmp-&gt;name, app))
++			break;
++		tmp = tmp-&gt;next;
++	}
++	pthread_mutex_unlock(&amp;applock);
++	return tmp;
++}
++
++static void pbx_destroy(struct ast_pbx *p)
++{
++	free(p);
++}
++
++int extension_match(char *pattern, char *data)
++{
++	int match;
++	/* If they're the same return */
++	if (!strcasecmp(pattern, data))
++		return 1;
++	/* All patterns begin with _ */
++	if (pattern[0] != '_') 
++		return 0;
++	/* Obviously must be the same length */
++	if (strlen(pattern) != strlen(data) + 1)
++		return 0;
++	/* Start optimistic */
++	match=1;
++	pattern++;
++	while(match &amp;&amp; *data &amp;&amp; *pattern) {
++		switch(toupper(*pattern)) {
++		case 'N':
++			if ((*data &lt; '2') || (*data &gt; '9'))
++				match=0;
++			break;
++		case 'X':
++			if ((*data &lt; '0') || (*data &gt; '9'))
++				match = 0;
++			break;
++		default:
++			if (*data != *pattern)
++				match =0;
++		}
++		data++;
++		pattern++;
++	}
++	return match;
++}
++
++static int pbx_extension_helper(struct ast_channel *c, char *context, char *exten, int priority, int action) 
++{
++	struct ast_context *tmp;
++	struct ast_exten *e;
++	struct ast_app *app;
++	int newstack = 0;
++	if (pthread_mutex_lock(&amp;conlock)) {
++		ast_log(LOG_WARNING, &quot;Unable to obtain lock\n&quot;);
++		if (action == HELPER_EXISTS)
++			return 0;
++		else
++			return -1;
++	}
++	tmp = contexts;
++	while(tmp) {
++		if (!strcasecmp(tmp-&gt;name, context)) {
++			/* By locking tmp, not only can the state of its entries not
++			   change, but it cannot be destroyed either. */
++			pthread_mutex_lock(&amp;tmp-&gt;lock);
++			/* But we can relieve the conlock, as tmp will not change */
++			pthread_mutex_unlock(&amp;conlock);
++			e = tmp-&gt;root;
++			while(e) {
++				if (extension_match(e-&gt;exten, exten)) {
++					while(e) {
++						if (e-&gt;priority == priority) {
++							pthread_mutex_unlock(&amp;tmp-&gt;lock);
++							/* We have a winner! Maybe there are some races
++							   in here though. XXX */
++							switch(action) {
++							case HELPER_EXISTS:
++								return -1;
++							case HELPER_SPAWN:
++								newstack++;
++								/* Fall through */
++							case HELPER_EXEC:
++								app = pbx_findapp(e-&gt;app);
++								if (app) {
++									strncpy(c-&gt;context, context, sizeof(c-&gt;context));
++									strncpy(c-&gt;exten, exten, sizeof(c-&gt;exten));
++									c-&gt;priority = priority;
++									if (option_debug)
++										ast_log(LOG_DEBUG, &quot;Launching '%s'\n&quot;, app-&gt;name);
++									else if (option_verbose &gt; 2)
++										ast_verbose( VERBOSE_PREFIX_3 &quot;Executing %s(\&quot;%s\&quot;, \&quot;%s\&quot;) %s\n&quot;, 
++												app-&gt;name, c-&gt;name, (e-&gt;data ? (char *)e-&gt;data : NULL), (newstack ? &quot;in new stack&quot; : &quot;in same stack&quot;));
++									return pbx_exec(c, app-&gt;execute, e-&gt;data, newstack);
++								} else {
++									ast_log(LOG_WARNING, &quot;No application '%s' for extension (%s, %s, %d)\n&quot;, e-&gt;app, context, exten, priority);
++									return -1;
++								}
++							default:
++								ast_log(LOG_WARNING, &quot;Huh (%d)?\n&quot;, action);
++							}
++						}
++						e = e-&gt;peer;
++					}
++					pthread_mutex_unlock(&amp;tmp-&gt;lock);
++					if (action != HELPER_EXISTS) {
++						ast_log(LOG_WARNING, &quot;No such priority '%d' in '%s' in '%s'\n&quot;, priority, exten, context);
++						return -1;
++					} else
++						return 0;
++				}
++				e = e-&gt;next;
++			}
++			pthread_mutex_unlock(&amp;tmp-&gt;lock);
++			if (action != HELPER_EXISTS) {
++				ast_log(LOG_WARNING, &quot;No such extension '%s' in '%s'\n&quot;, exten, context);
++				return -1;
++			} else
++				return 0;
++		}
++		tmp = tmp-&gt;next;
++	}
++	pthread_mutex_unlock(&amp;conlock);
++	if (action != HELPER_EXISTS) {
++		ast_log(LOG_WARNING, &quot;No such context '%s'\n&quot;, context);
++		return -1;
++	} else
++		return 0;
++}
++int ast_pbx_longest_extension(char *context) 
++{
++	struct ast_context *tmp;
++	struct ast_exten *e;
++	int len = 0;
++	if (pthread_mutex_lock(&amp;conlock)) {
++		ast_log(LOG_WARNING, &quot;Unable to obtain lock\n&quot;);
++		return -1;
++	}
++	tmp = contexts;
++	while(tmp) {
++		if (!strcasecmp(tmp-&gt;name, context)) {
++			/* By locking tmp, not only can the state of its entries not
++			   change, but it cannot be destroyed either. */
++			pthread_mutex_lock(&amp;tmp-&gt;lock);
++			/* But we can relieve the conlock, as tmp will not change */
++			pthread_mutex_unlock(&amp;conlock);
++			e = tmp-&gt;root;
++			while(e) {
++				if (strlen(e-&gt;exten) &gt; len)
++					len = strlen(e-&gt;exten);
++				e = e-&gt;next;
++			}
++			pthread_mutex_unlock(&amp;tmp-&gt;lock);
++			return len;
++		}
++		tmp = tmp-&gt;next;
++	}
++	ast_log(LOG_WARNING, &quot;No such context '%s'\n&quot;, context);
++	return -1;
++}
++
++int ast_exists_extension(struct ast_channel *c, char *context, char *exten, int priority) 
++{
++	return pbx_extension_helper(c, context, exten, priority, HELPER_EXISTS);
++}
++
++int ast_spawn_extension(struct ast_channel *c, char *context, char *exten, int priority) 
++{
++	return pbx_extension_helper(c, context, exten, priority, HELPER_SPAWN);
++}
++
++static void *pbx_thread(void *data)
++{
++	/* Oh joyeous kernel, we're a new thread, with nothing to do but
++	   answer this channel and get it going.  The setjmp stuff is fairly
++	   confusing, but necessary to get smooth transitions between
++	   the execution of different applications (without the use of
++	   additional threads) */
++	struct ast_channel *c = data;
++	int firstpass = 1;
++	char digit;
++	char exten[256];
++	int pos;
++	int waittime;
++	if (option_debug)
++		ast_log(LOG_DEBUG, &quot;PBX_THREAD(%s)\n&quot;, c-&gt;name);
++	else if (option_verbose &gt; 1)
++		ast_verbose( VERBOSE_PREFIX_2 &quot;Accepting call on '%s'\n&quot;, c-&gt;name);
++		
++	
++	/* Start by trying whatever the channel is set to */
++	if (!ast_exists_extension(c, c-&gt;context, c-&gt;exten, c-&gt;priority)) {
++		strncpy(c-&gt;context, &quot;default&quot;, sizeof(c-&gt;context));
++		strncpy(c-&gt;exten, &quot;s&quot;, sizeof(c-&gt;exten));
++		c-&gt;priority = 1;
++	}
++	for(;;) {
++		memset(exten, 0, sizeof(exten));
++		pos = 0;
++		digit = 0;
++		while(ast_exists_extension(c, c-&gt;context, c-&gt;exten, c-&gt;priority)) {
++			if (ast_spawn_extension(c, c-&gt;context, c-&gt;exten, c-&gt;priority)) {
++				/* Something bad happened, or a hangup has been requested. */
++				if (option_debug)
++					ast_log(LOG_DEBUG, &quot;Spawn extension (%s,%s,%d) exited non-zero on '%s'\n&quot;, c-&gt;context, c-&gt;exten, c-&gt;priority, c-&gt;name);
++				else if (option_verbose &gt; 1)
++					ast_verbose( VERBOSE_PREFIX_2 &quot;Spawn extension (%s, %s, %d) exited non-zero on '%s'\n&quot;, c-&gt;context, c-&gt;exten, c-&gt;priority, c-&gt;name);
++				goto out;
++			}
++			/* If we're playing something in the background, wait for it to finish or for a digit */
++			if (c-&gt;stream) {
++				digit = ast_waitstream(c, AST_DIGIT_ANY);
++				ast_stopstream(c);
++				/* Hang up if something goes wrong */
++				if (digit &lt; 0)
++					goto out;
++				else if (digit) {
++					ast_stopstream(c);
++					exten[pos++] = digit;
++					break;
++				}
++			}
++			firstpass = 0;
++			c-&gt;priority++;
++		}
++		/* Done, wait for an extension */
++		if (digit)
++			waittime = c-&gt;pbx-&gt;dtimeout;
++		else
++			waittime = c-&gt;pbx-&gt;rtimeout;
++		while(!ast_exists_extension(c, c-&gt;context, exten, 1) &amp;&amp; (
++		       strlen(exten) &lt; ast_pbx_longest_extension(c-&gt;context))) {
++			/* As long as we're willing to wait, and as long as it's not defined, 
++			   keep reading digits until we can't possibly get a right answer anymore.  */
++			digit = ast_waitfordigit(c, waittime * 1000);
++			if (!digit)
++				/* No entry */
++				break;
++			if (digit &lt; 0)
++				/* Error, maybe a  hangup */
++				goto out;
++			exten[pos++] = digit;
++			waittime = c-&gt;pbx-&gt;dtimeout;
++		}
++		if (ast_exists_extension(c, c-&gt;context, exten, 1)) {
++			/* Prepare the next cycle */
++			strncpy(c-&gt;exten, exten, sizeof(c-&gt;exten));
++			c-&gt;priority = 1;
++		} else {
++			/* No such extension */
++			if (strlen(exten)) {
++				/* An invalid extension */
++				if (ast_exists_extension(c, c-&gt;context, &quot;i&quot;, 1)) {
++					if (option_verbose &gt; 2)
++						ast_verbose( VERBOSE_PREFIX_3 &quot;Invalid extension '%s' in context '%s' on %s\n&quot;, exten, c-&gt;context, c-&gt;name);
++					strncpy(c-&gt;exten, &quot;i&quot;, sizeof(c-&gt;exten));
++					c-&gt;priority = 1;
++				} else {
++					ast_log(LOG_WARNING, &quot;Invalid extension, but no rule 'i' in context '%s'\n&quot;, c-&gt;context);
++					goto out;
++				}
++			} else {
++				/* A simple timeout */
++				if (ast_exists_extension(c, c-&gt;context, &quot;t&quot;, 1)) {
++					if (option_verbose &gt; 2)
++						ast_verbose( VERBOSE_PREFIX_3 &quot;Timeout on %s\n&quot;, c-&gt;name);
++					strncpy(c-&gt;exten, &quot;t&quot;, sizeof(c-&gt;exten));
++					c-&gt;priority = 1;
++				} else {
++					ast_log(LOG_WARNING, &quot;Timeout, but no rule 't' in context '%s'\n&quot;, c-&gt;context);
++					goto out;
++				}
++			}	
++		}
++	}
++	if (firstpass) 
++		ast_log(LOG_WARNING, &quot;Don't know what to do with '%s'\n&quot;, c-&gt;name);
++out:
++	pbx_destroy(c-&gt;pbx);
++	c-&gt;pbx = NULL;
++	ast_hangup(c);
++	pthread_exit(NULL);
++	
++}
++
++int ast_pbx_start(struct ast_channel *c)
++{
++	pthread_t t;
++	if (!c) {
++		ast_log(LOG_WARNING, &quot;Asked to start thread on NULL channel?\n&quot;);
++		return -1;
++	}
++	if (c-&gt;pbx)
++		ast_log(LOG_WARNING, &quot;%s already has PBX structure??\n&quot;);
++	c-&gt;pbx = malloc(sizeof(struct ast_pbx));
++	if (!c-&gt;pbx) {
++		ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++		return -1;
++	}
++	memset(c-&gt;pbx, 0, sizeof(struct ast_pbx));
++	/* Start a new thread, and get something handling this channel. */
++	if (pthread_create(&amp;t, NULL, pbx_thread, c)) {
++		ast_log(LOG_WARNING, &quot;Failed to create new channel thread\n&quot;);
++		return -1;
++	}
++	return 0;
++}
++#if 0
++int ast_remove_extension(struct ast_context *con, char *extension, int priority)
++{
++	/* XXX Implement me XXX */
++	return -1;
++}
++#endif
++int ast_register_application(char *app, int (*execute)(struct ast_channel *, void *))
++{
++	struct ast_app *tmp;
++	if (pthread_mutex_lock(&amp;applock)) {
++		ast_log(LOG_ERROR, &quot;Unable to lock application list\n&quot;);
++		return -1;
++	}
++	tmp = apps;
++	while(tmp) {
++		if (!strcasecmp(app, tmp-&gt;name)) {
++			ast_log(LOG_WARNING, &quot;Already have an application '%s'\n&quot;, app);
++			pthread_mutex_unlock(&amp;applock);
++			return -1;
++		}
++		tmp = tmp-&gt;next;
++	}
++	tmp = malloc(sizeof(struct ast_app));
++	if (tmp) {
++		strncpy(tmp-&gt;name, app, sizeof(tmp-&gt;name));
++		tmp-&gt;execute = execute;
++		tmp-&gt;next = apps;
++		apps = tmp;
++	} else {
++		ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++		pthread_mutex_unlock(&amp;applock);
++		return -1;
++	}
++	if (option_verbose &gt; 1)
++		ast_verbose( VERBOSE_PREFIX_2 &quot;Registered application '%s'\n&quot;, tmp-&gt;name);
++	pthread_mutex_unlock(&amp;applock);
++	return 0;
++}
++
++int ast_unregister_application(char *app) {
++	struct ast_app *tmp, *tmpl = NULL;
++	if (pthread_mutex_lock(&amp;applock)) {
++		ast_log(LOG_ERROR, &quot;Unable to lock application list\n&quot;);
++		return -1;
++	}
++	tmp = apps;
++	while(tmp) {
++		if (!strcasecmp(app, tmp-&gt;name)) {
++			if (tmpl)
++				tmpl-&gt;next = tmp-&gt;next;
++			else
++				apps = tmp-&gt;next;
++			if (option_verbose &gt; 1)
++				ast_verbose( VERBOSE_PREFIX_2 &quot;Unregistered application '%s'\n&quot;, tmp-&gt;name);
++			pthread_mutex_unlock(&amp;applock);
++			return 0;
++		}
++		tmpl = tmp;
++		tmp = tmp-&gt;next;
++	}
++	pthread_mutex_unlock(&amp;applock);
++	return -1;
++}
++
++struct ast_context *ast_context_create(char *name)
++{
++	struct ast_context *tmp;
++	
++	pthread_mutex_lock(&amp;conlock);
++	tmp = contexts;
++	while(tmp) {
++		if (!strcasecmp(tmp-&gt;name, name)) {
++			pthread_mutex_unlock(&amp;conlock);
++			ast_log(LOG_WARNING, &quot;Tried to register context '%s', already in use\n&quot;, name);
++			return NULL;
++		}
++		tmp = tmp-&gt;next;
++	}
++	tmp = malloc(sizeof(struct ast_context));
++	if (tmp) {
++		pthread_mutex_init(&amp;tmp-&gt;lock, NULL);
++		strncpy(tmp-&gt;name, name, sizeof(tmp-&gt;name));
++		tmp-&gt;root = NULL;
++		tmp-&gt;next = contexts;
++		contexts = tmp;
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Registered context '%s'\n&quot;, tmp-&gt;name);
++		else if (option_verbose &gt; 2)
++			ast_verbose( VERBOSE_PREFIX_3 &quot;Registered extension context '%s'\n&quot;, tmp-&gt;name);
++	} else
++		ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++	
++	pthread_mutex_unlock(&amp;conlock);
++	return tmp;
++}
++
++int ast_add_extension2(struct ast_context *con,
++					  int replace, char *extension, int priority,
++					  char *application, void *data, void (*datad)(void *))
++{
++
++#define LOG { 	if (option_debug) \
++		ast_log(LOG_DEBUG, &quot;Added extension '%s' priority %d to %s\n&quot;, tmp-&gt;exten, tmp-&gt;priority, con-&gt;name); \
++	else if (option_verbose &gt; 2) \
++		ast_verbose( VERBOSE_PREFIX_3 &quot;Added extension '%s' priority %d to %s\n&quot;, tmp-&gt;exten, tmp-&gt;priority, con-&gt;name); \
++		}
++
++	/*
++	 * This is a fairly complex routine.  Different extensions are kept
++	 * in order by the extension number.  Then, extensions of different
++	 * priorities (same extension) are kept in a list, according to the
++	 * peer pointer.
++	 */
++	struct ast_exten *tmp, *e, *el = NULL, *ep = NULL;
++	int res;
++	/* Be optimistic:  Build the extension structure first */
++	tmp = malloc(sizeof(struct ast_exten));
++	if (tmp) {
++		strncpy(tmp-&gt;exten, extension, sizeof(tmp-&gt;exten));
++		tmp-&gt;priority = priority;
++		strncpy(tmp-&gt;app, application, sizeof(tmp-&gt;app));
++		tmp-&gt;data = data;
++		tmp-&gt;datad = datad;
++		tmp-&gt;peer = NULL;
++		tmp-&gt;next =  NULL;
++	} else {
++		ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++		return -1;
++	}
++	if (pthread_mutex_lock(&amp;con-&gt;lock)) {
++		free(tmp);
++		/* And properly destroy the data */
++		datad(data);
++		ast_log(LOG_WARNING, &quot;Failed to lock context '%s'\n&quot;, con-&gt;name);
++		return -1;
++	}
++	e = con-&gt;root;
++	while(e) {
++		res= strcasecmp(e-&gt;exten, extension);
++		if (res == 0) {
++			/* We have an exact match, now we find where we are
++			   and be sure there's no duplicates */
++			while(e) {
++				if (e-&gt;priority == tmp-&gt;priority) {
++					/* Can't have something exactly the same.  Is this a
++					   replacement?  If so, replace, otherwise, bonk. */
++					if (replace) {
++						if (ep) {
++							/* We're in the peer list, insert ourselves */
++							ep-&gt;peer = tmp;
++							tmp-&gt;peer = e-&gt;peer;
++						} else if (el) {
++							/* We're the first extension. Take over e's functions */
++							el-&gt;next = tmp;
++							tmp-&gt;next = e-&gt;next;
++							tmp-&gt;peer = e-&gt;peer;
++						} else {
++							/* We're the very first extension.  */
++							con-&gt;root = tmp;
++							tmp-&gt;next = e-&gt;next;
++							tmp-&gt;peer = e-&gt;peer;
++						}
++						/* Destroy the old one */
++						e-&gt;datad(e-&gt;data);
++						free(e);
++						pthread_mutex_unlock(&amp;con-&gt;lock);
++						/* And immediately return success. */
++						LOG;
++						return 0;
++					} else {
++						ast_log(LOG_WARNING, &quot;Unable to register extension '%s', priority %d in '%s', already in use\n&quot;, tmp-&gt;exten, tmp-&gt;priority, con-&gt;name);
++						tmp-&gt;datad(tmp-&gt;data);
++						free(tmp);
++						pthread_mutex_unlock(&amp;con-&gt;lock);
++						return -1;
++					}
++				} else if (e-&gt;priority &gt; tmp-&gt;priority) {
++					/* Slip ourselves in just before e */
++					if (ep) {
++						/* Easy enough, we're just in the peer list */
++						ep-&gt;peer = tmp;
++						tmp-&gt;peer = e;
++					} else if (el) {
++						/* We're the first extension in this peer list */
++						el-&gt;next = tmp;
++						tmp-&gt;next = e-&gt;next;
++						e-&gt;next = NULL;
++						tmp-&gt;peer = e;
++					} else {
++						/* We're the very first extension altogether */
++						tmp-&gt;next = con-&gt;root;
++						/* Con-&gt;root must always exist or we couldn't get here */
++						tmp-&gt;peer = con-&gt;root-&gt;peer;
++						con-&gt;root = tmp;
++					}
++					pthread_mutex_unlock(&amp;con-&gt;lock);
++					/* And immediately return success. */
++					LOG;
++					return 0;
++				}
++				ep = e;
++				e = e-&gt;peer;
++			}
++			/* If we make it here, then it's time for us to go at the very end.
++			   ep *must* be defined or we couldn't have gotten here. */
++			ep-&gt;peer = tmp;
++			pthread_mutex_unlock(&amp;con-&gt;lock);
++			/* And immediately return success. */
++			LOG;
++			return 0;
++				
++		} else if (res &gt; 0) {
++			/* Insert ourselves just before 'e'.  We're the first extension of
++			   this kind */
++			tmp-&gt;next = e;
++			if (el) {
++				/* We're in the list somewhere */
++				el-&gt;next = tmp;
++			} else {
++				/* We're at the top of the list */
++				con-&gt;root = tmp;
++			}
++			pthread_mutex_unlock(&amp;con-&gt;lock);
++			/* And immediately return success. */
++			LOG;
++			return 0;
++		}			
++			
++		el = e;
++		e = e-&gt;next;
++	}
++	/* If we fall all the way through to here, then we need to be on the end. */
++	if (el)
++		el-&gt;next = tmp;
++	else
++		con-&gt;root = tmp;
++	pthread_mutex_unlock(&amp;con-&gt;lock);
++	LOG;
++	return 0;	
++}
++
++void ast_context_destroy(struct ast_context *con)
++{
++	struct ast_context *tmp, *tmpl=NULL;
++	pthread_mutex_lock(&amp;conlock);
++	tmp = contexts;
++	while(tmp) {
++		if (tmp == con) {
++			/* Okay, let's lock the structure to be sure nobody else
++			   is searching through it. */
++			if (pthread_mutex_lock(&amp;tmp-&gt;lock)) {
++				ast_log(LOG_WARNING, &quot;Unable to lock context lock\n&quot;);
++				return;
++			}
++			if (tmpl)
++				tmpl-&gt;next = tmp-&gt;next;
++			else
++				contexts = tmp-&gt;next;
++			/* Okay, now we're safe to let it go -- in a sense, we were
++			   ready to let it go as soon as we locked it. */
++			pthread_mutex_unlock(&amp;tmp-&gt;lock);
++			free(tmp);
++			pthread_mutex_unlock(&amp;conlock);
++			return;
++		}
++		tmpl = tmp;
++		tmp = tmp-&gt;next;
++	}
++	pthread_mutex_unlock(&amp;conlock);
++}
++
++int pbx_builtin_answer(struct ast_channel *chan, void *data)
++{
++	if (chan-&gt;state != AST_STATE_RING) {
++		ast_log(LOG_WARNING, &quot;Ignoring answer request since line is not ringing\n&quot;);
++		return 0;
++	} else
++		return ast_answer(chan);
++}
++
++int pbx_builtin_hangup(struct ast_channel *chan, void *data)
++{
++	/* Just return non-zero and it will hang up */
++	return -1;
++}
++
++int pbx_builtin_wait(struct ast_channel *chan, void *data)
++{
++	/* Wait for &quot;n&quot; seconds */
++	if (data &amp;&amp; atoi((char *)data))
++		sleep(atoi((char *)data));
++	return 0;
++}
++
++int pbx_builtin_background(struct ast_channel *chan, void *data)
++{
++	int res;
++	/* Stop anything playing */
++	ast_stopstream(chan);
++	/* Stream a file */
++	res = ast_streamfile(chan, (char *)data);
++	return res;
++}
++
++int pbx_builtin_rtimeout(struct ast_channel *chan, void *data)
++{
++	/* Set the timeout for how long to wait between digits */
++	chan-&gt;pbx-&gt;rtimeout = atoi((char *)data);
++	if (option_verbose &gt; 2)
++		ast_verbose( VERBOSE_PREFIX_3 &quot;Set Response Timeout to %d\n&quot;, chan-&gt;pbx-&gt;rtimeout);
++	return 0;
++}
++
++int pbx_builtin_dtimeout(struct ast_channel *chan, void *data)
++{
++	/* Set the timeout for how long to wait between digits */
++	chan-&gt;pbx-&gt;dtimeout = atoi((char *)data);
++	if (option_verbose &gt; 2)
++		ast_verbose( VERBOSE_PREFIX_3 &quot;Set Digit Timeout to %d\n&quot;, chan-&gt;pbx-&gt;dtimeout);
++	return 0;
++}
++
++int pbx_builtin_goto(struct ast_channel *chan, void *data)
++{
++	char *s;
++	char *exten, *pri, *context;
++	if (!data) {
++		ast_log(LOG_WARNING, &quot;Goto requires an argument (optional context|optional extension|priority)\n&quot;);
++		return -1;
++	}
++	s = strdup((void *) data);
++	context = strtok(s, &quot;|&quot;);
++	exten = strtok(NULL, &quot;|&quot;);
++	if (!exten) {
++		/* Only a priority in this one */
++		pri = context;
++		exten = NULL;
++		context = NULL;
++	} else {
++		pri = strtok(NULL, &quot;|&quot;);
++		if (!pri) {
++			/* Only an extension and priority in this one */
++			pri = exten;
++			exten = context;
++			context = NULL;
++		}
++	}
++	if (atoi(pri) &lt; 0) {
++		ast_log(LOG_WARNING, &quot;Priority '%s' must be a number &gt; 0\n&quot;, pri);
++		free(s);
++		return -1;
++	}
++	/* At this point we have a priority and maybe an extension and a context */
++	chan-&gt;priority = atoi(pri) - 1;
++	if (exten)
++		strncpy(chan-&gt;exten, exten, sizeof(chan-&gt;exten));
++	if (context)
++		strncpy(chan-&gt;context, context, sizeof(chan-&gt;context));
++	if (option_verbose &gt; 2)
++		ast_verbose( VERBOSE_PREFIX_3 &quot;Goto (%s,%s,%d)\n&quot;, chan-&gt;context,chan-&gt;exten, chan-&gt;priority+1);
++	return 0;
++}
++
++int load_pbx(void)
++{
++	int x;
++	/* Initialize the PBX */
++	if (option_verbose) {
++		ast_verbose( &quot;Asterisk PBX Core Initializing\n&quot;);
++		ast_verbose( &quot;Registering builtin applications:\n&quot;);
++	}
++	for (x=0;x&lt;sizeof(builtins) / sizeof(struct pbx_builtin); x++) {
++		if (option_verbose)
++			ast_verbose( VERBOSE_PREFIX_1 &quot;[%s]\n&quot;, builtins[x].name);
++		if (ast_register_application(builtins[x].name, builtins[x].execute)) {
++			ast_log(LOG_ERROR, &quot;Unable to register builtin application '%s'\n&quot;, builtins[x].name);
++			return -1;
++		}
++	}
++	return 0;
++}
++
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2006, Digium, Inc.
+
+Modified: trunk/translate.c
+===================================================================
+--- trunk/translate.c	2006-06-28 08:25:38 UTC (rev 420)
++++ trunk/translate.c	2006-06-28 10:25:31 UTC (rev 421)
+@@ -1,4 +1,604 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Translate via the use of pseudo channels
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++
++#include &lt;asterisk/channel.h&gt;
++#include &lt;asterisk/channel_pvt.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;asterisk/translate.h&gt;
++#include &lt;asterisk/options.h&gt;
++#include &lt;sys/socket.h&gt;
++#include &lt;sys/time.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;pthread.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stdio.h&gt;
++
++static char *type = &quot;Trans&quot;;
++
++static pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
++static struct ast_translator *list = NULL;
++
++struct ast_translator_dir {
++	struct ast_translator *step;	/* Next step translator */
++	int cost;						/* Complete cost to destination */
++};
++
++static struct ast_translator_dir tr_matrix[MAX_FORMAT][MAX_FORMAT];
++
++struct ast_trans_pvt {
++	struct ast_translator *step;
++	struct ast_translator_pvt *state;
++	struct ast_trans_pvt *next;
++};
++
++
++static int powerof(int d)
++{
++	int x;
++	for (x = 0; x &lt; 32; x++)
++		if ((1 &lt;&lt; x) &amp; d)
++			return x;
++	ast_log(LOG_WARNING, &quot;Powerof %d: No power??\n&quot;, d);
++	return -1;
++}
++
++struct translator_pvt {
++	/* Sockets for communication */
++	int comm[2];
++	struct ast_trans_pvt *system;
++	struct ast_trans_pvt *rsystem;
++};
++
++static int translator_hangup(struct ast_channel *chan)
++{
++	ast_log(LOG_WARNING, &quot;Explicit hangup on '%s' not recommended!  Call translator_destroy() instead.\n&quot;, chan-&gt;name);
++	chan-&gt;master-&gt;trans = NULL;
++	ast_hangup(chan-&gt;master);
++	chan-&gt;master = NULL;
++	return 0;
++}
++
++static int translator_send_digit(struct ast_channel *chan, char digit)
++{
++	/* Pass digits right along */
++	if (chan-&gt;master-&gt;pvt-&gt;send_digit)
++		return chan-&gt;master-&gt;pvt-&gt;send_digit(chan-&gt;master, digit);
++	return -1;
++}
++
++static int translator_call(struct ast_channel *chan, char *addr, int timeout)
++{
++	if (chan-&gt;master-&gt;pvt-&gt;call)
++		return chan-&gt;master-&gt;pvt-&gt;call(chan-&gt;master, addr, timeout);
++	return -1;
++}
++
++static int translator_answer(struct ast_channel *chan)
++{
++	if (chan-&gt;master-&gt;pvt-&gt;answer)
++		return chan-&gt;master-&gt;pvt-&gt;answer(chan-&gt;master);
++	return -1;
++}
++
++void ast_translator_free_path(struct ast_trans_pvt *p)
++{
++	struct ast_trans_pvt *pl;
++	while(p) {
++		pl = p;
++		p = p-&gt;next;
++		if (pl-&gt;state &amp;&amp; pl-&gt;step-&gt;destroy)
++			pl-&gt;step-&gt;destroy(pl-&gt;state);
++		free(pl);
++	}
++}
++
++static void ast_translator_free(struct translator_pvt *pvt)
++{
++	ast_translator_free_path(pvt-&gt;system);
++	ast_translator_free_path(pvt-&gt;rsystem);
++	if (pvt-&gt;comm[0] &gt; -1)
++		close(pvt-&gt;comm[0]);
++	if (pvt-&gt;comm[1] &gt; -1)
++		close(pvt-&gt;comm[1]);
++	free(pvt);
++}
++
++struct ast_trans_pvt *ast_translator_build_path(int source, int dest)
++{
++	struct ast_trans_pvt *tmpr = NULL, *tmp = NULL;
++	/* One of the hardest parts:  Build a set of translators based upon
++	   the given source and destination formats */
++	source = powerof(source);
++	dest = powerof(dest);
++	while(source != dest) {
++		if (tr_matrix[source][dest].step) {
++			if (tmp) {
++				tmp-&gt;next = malloc(sizeof(struct ast_trans_pvt));
++				tmp = tmp-&gt;next;
++			} else
++				tmp = malloc(sizeof(struct ast_trans_pvt));
++
++				
++			if (tmp) {
++				tmp-&gt;next = NULL;
++				tmp-&gt;step = tr_matrix[source][dest].step;
++				tmp-&gt;state = tmp-&gt;step-&gt;new();
++				if (!tmp-&gt;state) {
++					free(tmp);
++					tmp = NULL;
++				}
++				/* Set the root, if it doesn't exist yet... */
++				if (!tmpr)
++					tmpr = tmp;
++				/* Keep going if this isn't the final destination */
++				source = tmp-&gt;step-&gt;dstfmt;
++			} else {
++				/* XXX This could leak XXX */
++				ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++				return NULL;
++			}
++		}
++	}
++	return tmpr;
++}
++
++static struct ast_frame *fd_read(int fd)
++{
++	/* XXX Wrong: Not thread safe! XXX */
++	char buf[4096];
++	int res;
++	struct ast_frame *f = (struct ast_frame *)buf;
++	/* Read a frame directly from there.  They're always in the
++	   right format. */
++	
++	if (read(fd, buf, sizeof(struct ast_frame)) 
++						== sizeof(struct ast_frame)) {
++		/* read the frame header */
++		f-&gt;mallocd = 0;
++		f-&gt;data = buf + sizeof(struct ast_frame) + AST_FRIENDLY_OFFSET;
++		f-&gt;offset = AST_FRIENDLY_OFFSET;
++		if (f-&gt;datalen &gt; sizeof(buf) - sizeof(struct ast_frame) - AST_FRIENDLY_OFFSET) {
++			/* Really bad read */
++			ast_log(LOG_WARNING, &quot;Strange read (%d bytes)\n&quot;, f-&gt;datalen);
++			return NULL;
++		}
++		if (f-&gt;datalen) {
++			if ((res = read(fd, f-&gt;data, f-&gt;datalen)) != f-&gt;datalen) {
++				/* Bad read */
++				ast_log(LOG_WARNING, &quot;How very strange, expected %d, got %d\n&quot;, f-&gt;datalen, res);
++				return NULL;
++			}
++		}
++		return ast_frisolate(f);
++	} else if (option_debug)
++		ast_log(LOG_DEBUG, &quot;NULL or invalid header\n&quot;);
++	/* Null if there was an error */
++	return NULL;
++}
++
++static struct ast_frame *translator_read(struct ast_channel *chan)
++{
++	return fd_read(chan-&gt;fd);
++}
++
++static int fd_write(int fd, struct ast_frame *frame)
++{
++	/* Write the frame exactly */
++	if (write(fd, frame, sizeof(struct ast_frame)) != sizeof(struct ast_frame)) {
++		ast_log(LOG_WARNING, &quot;Write error\n&quot;);
++		return -1;
++	}
++	if (write(fd, frame-&gt;data, frame-&gt;datalen) != frame-&gt;datalen) {
++		ast_log(LOG_WARNING, &quot;Write error\n&quot;);
++		return -1;
++	}
++	return 0;
++}
++
++static int translator_write(struct ast_channel *chan, struct ast_frame *frame)
++{
++	return fd_write(chan-&gt;fd, frame);
++}
++
++struct ast_frame_chain *ast_translate(struct ast_trans_pvt *path, struct ast_frame *f)
++{
++	struct ast_trans_pvt *p;
++	struct ast_frame *out;
++	struct ast_frame_chain *outc = NULL, *prev = NULL, *cur;
++	p = path;
++	/* Feed the first frame into the first translator */
++	p-&gt;step-&gt;framein(p-&gt;state, f);
++	while(p) {
++		/* Read all the frames from the current translator */
++		while((out = p-&gt;step-&gt;frameout(p-&gt;state)))  {
++			if (p-&gt;next) {
++				/* Feed to next layer */
++				p-&gt;next-&gt;step-&gt;framein(p-&gt;next-&gt;state, out);
++			} else {
++				/* Last layer -- actually do something */
++				cur = malloc(sizeof(struct ast_frame_chain));
++				if (!cur) {
++					/* XXX Leak majorly on a problem XXX */
++					ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++					return NULL;
++				}
++				if (prev) 
++					prev-&gt;next = cur;
++				else
++					outc = cur;
++				cur-&gt;fr = ast_frisolate(out);
++				cur-&gt;next = NULL;
++				if (prev)
++					prev = prev-&gt;next;
++				else
++					prev = outc;
++			}
++		}
++		p = p-&gt;next;
++	}
++	return outc;
++}
++
++/* XXX There's an experimentally derived fudge factor XXX */
++#define FUDGE 4
++
++static void translator_apply(struct ast_trans_pvt *path, struct ast_frame *f, int fd, struct ast_channel *c)
++{
++	struct ast_trans_pvt *p;
++	struct ast_frame *out;
++	p = path;
++	/* Feed the first frame into the first translator */
++	p-&gt;step-&gt;framein(p-&gt;state, f);
++	while(p) {
++		/* Read all the frames from the current translator */
++		while((out = p-&gt;step-&gt;frameout(p-&gt;state)))  {
++			if (p-&gt;next) {
++				/* Feed to next layer */
++				p-&gt;next-&gt;step-&gt;framein(p-&gt;next-&gt;state, out);
++			} else {
++				if (c)
++					ast_write(c, out);
++				else
++					fd_write(fd, out);
++			}
++		}
++		p = p-&gt;next;
++	}
++}
++
++static void *translator_thread(void *data)
++{
++	struct ast_channel *real = data;
++	struct ast_frame *f;
++	int ms = -1;
++	struct translator_pvt *pvt = NULL;
++	int fd = -1;
++	int fds[2];
++	int res;
++	/* Read from the real, translate, write as necessary to the fake */
++	for(;;) {
++		if (!real-&gt;trans) {
++			ast_log(LOG_WARNING, &quot;No translator anymore\n&quot;);
++			break;
++		}
++		pvt = real-&gt;trans-&gt;pvt-&gt;pvt;
++		fd = pvt-&gt;comm[1];
++		fds[0] = fd;
++		fds[1] = real-&gt;fd;
++		CHECK_BLOCKING(real);
++		res = ast_waitfor_n_fd(fds, 2, &amp;ms);
++		real-&gt;blocking = 0;
++		if (res &gt;= 0) {
++			if (res == real-&gt;fd) {
++				f = ast_read(real);
++				if (!f) {
++					if (option_debug)
++						ast_log(LOG_DEBUG, &quot;Empty frame\n&quot;);
++					break;
++				}
++				if (f-&gt;frametype ==  AST_FRAME_VOICE) {
++					if (pvt-&gt;system)
++						translator_apply(pvt-&gt;system, f, fd, NULL);
++				} else {
++					/* If it's not voice, just pass it along */
++					fd_write(fd, f);
++				}
++				ast_frfree(f);
++			} else {
++				f = fd_read(res);
++				if (!f) {
++					if (option_debug)
++						ast_log(LOG_DEBUG, &quot;Empty (hangup) frame\n&quot;);
++					break;
++				}
++				if (f-&gt;frametype == AST_FRAME_VOICE) {
++					if (pvt-&gt;rsystem)
++						translator_apply(pvt-&gt;rsystem, f, -1, real);
++				} else {
++					ast_write(real, f);
++				}
++				ast_frfree(f);
++			}
++		} else {
++			ast_log(LOG_DEBUG, &quot;Waitfor returned non-zero\n&quot;);
++			break;
++		}
++	}
++	if (pvt)
++		pvt-&gt;comm[1] = -1;
++	if (fd &gt; -1) {
++		/* Write a bogus frame */
++		write(fd, data, 1);
++		close(fd);
++	}
++	return NULL;
++}
++
++struct ast_channel *ast_translator_create(struct ast_channel *real, int format, int direction)
++{
++	struct ast_channel *tmp;
++	struct translator_pvt *pvt;
++	pthread_t t;
++	if (real-&gt;trans) {
++		ast_log(LOG_WARNING, &quot;Translator already exists on '%s'\n&quot;, real-&gt;name);
++		return NULL;
++	}
++	if (!(pvt = malloc(sizeof(struct translator_pvt)))) {
++		ast_log(LOG_WARNING, &quot;Unable to allocate private translator on '%s'\n&quot;, real-&gt;name);
++		return NULL;
++	}
++	pvt-&gt;comm[0] = -1;
++	pvt-&gt;comm[1] = -1;
++	if (socketpair(AF_UNIX, SOCK_DGRAM, 0, pvt-&gt;comm)) {
++		ast_log(LOG_WARNING, &quot;Unable to create UNIX domain socket on '%s'\n&quot;, real-&gt;name);
++		ast_translator_free(pvt);
++	}
++	/* In to the system */
++	if (direction &amp; AST_DIRECTION_IN)
++		pvt-&gt;system = ast_translator_build_path(real-&gt;format, format);
++	else
++		pvt-&gt;system = NULL;
++	/* Out from the system */
++	if (direction &amp; AST_DIRECTION_OUT)
++		pvt-&gt;rsystem = ast_translator_build_path(format, real-&gt;format);
++	else
++		pvt-&gt;rsystem = NULL;
++	if (!pvt-&gt;system &amp;&amp; !pvt-&gt;rsystem) {
++		ast_log(LOG_WARNING, &quot;Unable to build a translation path for %s (%d to %d)\n&quot;, real-&gt;name, real-&gt;format, format);
++		ast_translator_free(pvt);
++		return NULL;
++	}
++	if (!pvt-&gt;system &amp;&amp; (direction &amp; AST_DIRECTION_IN)) {
++		ast_log(LOG_WARNING, &quot;Translation path for '%s' is one-way (reverse)\n&quot;, real-&gt;name);
++		ast_translator_free(pvt);
++		return NULL;
++	}
++	if (!pvt-&gt;rsystem &amp;&amp; (direction &amp; AST_DIRECTION_OUT)) {
++		ast_log(LOG_WARNING, &quot;Translation path for '%s' is one-way (forward)\n&quot;, real-&gt;name);
++		ast_translator_free(pvt);
++		return NULL;
++	}
++	if ((tmp = ast_channel_alloc())) {
++		snprintf(tmp-&gt;name, sizeof(tmp-&gt;name), &quot;%s/Translate:%d&quot;, real-&gt;name, format);
++		tmp-&gt;type = type;
++		tmp-&gt;fd = pvt-&gt;comm[0];
++		tmp-&gt;format = format;
++		tmp-&gt;state = real-&gt;state;
++		tmp-&gt;rings = 0;
++		tmp-&gt;pvt-&gt;pvt = pvt;
++		tmp-&gt;master = real;
++		tmp-&gt;pvt-&gt;send_digit = translator_send_digit;
++		tmp-&gt;pvt-&gt;call = translator_call;
++		tmp-&gt;pvt-&gt;hangup = translator_hangup;
++		tmp-&gt;pvt-&gt;answer = translator_answer;
++		tmp-&gt;pvt-&gt;read = translator_read;
++		tmp-&gt;pvt-&gt;write = translator_write;
++		real-&gt;trans = tmp;
++		if (option_verbose &gt; 2)
++			ast_verbose(VERBOSE_PREFIX_3 &quot;Created translator %s\n&quot;, tmp-&gt;name);
++		if (pthread_create(&amp;t, NULL, translator_thread, real) &lt; 0) {
++			ast_translator_destroy(tmp);
++			tmp = NULL;
++			ast_log(LOG_WARNING, &quot;Failed to start thread\n&quot;);
++		}
++	} else {
++		ast_translator_free(pvt);
++		ast_log(LOG_WARNING, &quot;Unable to allocate channel\n&quot;);
++	}
++	return tmp;
++} 
++
++static void rebuild_matrix()
++{
++	struct ast_translator *t;
++	int changed;
++	int x,y,z;
++	if (option_debug)
++		ast_log(LOG_DEBUG, &quot;Reseting translation matrix\n&quot;);
++	/* Use the list of translators to build a translation matrix */
++	bzero(tr_matrix, sizeof(tr_matrix));
++	t = list;
++	while(t) {
++		if (!tr_matrix[t-&gt;srcfmt][t-&gt;dstfmt].step ||
++		     tr_matrix[t-&gt;srcfmt][t-&gt;dstfmt].cost &gt; t-&gt;cost) {
++			tr_matrix[t-&gt;srcfmt][t-&gt;dstfmt].step = t;
++			tr_matrix[t-&gt;srcfmt][t-&gt;dstfmt].cost = t-&gt;cost;
++		}
++		t = t-&gt;next;
++	}
++	do {
++		changed = 0;
++		/* Don't you just love O(N^3) operations? */
++		for (x=0; x&lt; MAX_FORMAT; x++)				/* For each source format */
++			for (y=0; y &lt; MAX_FORMAT; y++) 			/* And each destination format */
++				if (x != y)							/* Except ourselves, of course */
++					for (z=0; z &lt; MAX_FORMAT; z++) 	/* And each format it might convert to */
++						if ((x!=z) &amp;&amp; (y!=z)) 		/* Don't ever convert back to us */
++							if (tr_matrix[x][y].step &amp;&amp; /* We can convert from x to y */
++								tr_matrix[y][z].step &amp;&amp; /* And from y to z and... */
++								(!tr_matrix[x][z].step || 	/* Either there isn't an x-&gt;z conversion */
++								(tr_matrix[x][y].cost + 
++								 tr_matrix[y][z].cost &lt;	/* Or we're cheaper than the existing */
++								 tr_matrix[x][z].cost)  /* solution */
++							     )) {
++								 			/* We can get from x to z via y with a cost that
++											   is the sum of the transition from x to y and
++											   from y to z */
++								 
++								 	tr_matrix[x][z].step = tr_matrix[x][y].step;
++									tr_matrix[x][z].cost = tr_matrix[x][y].cost + 
++														   tr_matrix[y][z].cost;
++									if (option_debug)
++										ast_log(LOG_DEBUG, &quot;Discovered %d cost path from %d to %d, via %d\n&quot;, tr_matrix[x][z].cost, x, z, y);
++									changed++;
++								 }
++		
++	} while (changed);
++}
++
++static void calc_cost(struct ast_translator *t)
++{
++	int sofar=0;
++	struct ast_translator_pvt *pvt;
++	struct ast_frame *f, *out;
++	struct timeval start, finish;
++	int cost;
++	/* If they don't make samples, give them a terrible score */
++	if (!t-&gt;sample) {
++		ast_log(LOG_WARNING, &quot;Translator '%s' does not produce sample frames.\n&quot;, t-&gt;name);
++		t-&gt;cost = 99999;
++		return;
++	}
++	pvt = t-&gt;new();
++	if (!pvt) {
++		ast_log(LOG_WARNING, &quot;Translator '%s' appears to be broken and will probably fail.\n&quot;, t-&gt;name);
++		t-&gt;cost = 99999;
++		return;
++	}
++	gettimeofday(&amp;start, NULL);
++	/* Call the encoder until we've processed one second of time */
++	while(sofar &lt; 1000) {
++		f = t-&gt;sample();
++		if (!f) {
++			ast_log(LOG_WARNING, &quot;Translator '%s' failed to produce a sample frame.\n&quot;, t-&gt;name);
++			t-&gt;destroy(pvt);
++			t-&gt;cost = 99999;
++			return;
++		}
++		t-&gt;framein(pvt, f);
++		ast_frfree(f);
++		while((out = t-&gt;frameout(pvt))) {
++			sofar += out-&gt;timelen;
++			ast_frfree(out);
++		}
++	}
++	gettimeofday(&amp;finish, NULL);
++	t-&gt;destroy(pvt);
++	cost = (finish.tv_sec - start.tv_sec) * 1000 + (finish.tv_usec - start.tv_usec) / 1000;
++	t-&gt;cost = cost;
++}
++
++int ast_register_translator(struct ast_translator *t)
++{
++	t-&gt;srcfmt = powerof(t-&gt;srcfmt);
++	t-&gt;dstfmt = powerof(t-&gt;dstfmt);
++	if ((t-&gt;srcfmt &gt;= MAX_FORMAT) || (t-&gt;dstfmt &gt;= MAX_FORMAT)) {
++		ast_log(LOG_WARNING, &quot;Format %d is larger than MAX_FORMAT\n&quot;, t-&gt;srcfmt);
++		return -1;
++	}
++	calc_cost(t);
++	if (option_verbose &gt; 1)
++		ast_verbose(VERBOSE_PREFIX_2 &quot;Registered translator '%s' from format %d to %d, cost %d\n&quot;, t-&gt;name, t-&gt;srcfmt, t-&gt;dstfmt, t-&gt;cost);
++	pthread_mutex_lock(&amp;list_lock);
++	t-&gt;next = list;
++	list = t;
++	rebuild_matrix();
++	pthread_mutex_unlock(&amp;list_lock);
++	return 0;
++}
++
++int ast_unregister_translator(struct ast_translator *t)
++{
++	struct ast_translator *u, *ul = NULL;
++	pthread_mutex_lock(&amp;list_lock);
++	u = list;
++	while(u) {
++		if (u == t) {
++			if (ul)
++				ul-&gt;next = u-&gt;next;
++			else
++				list = u-&gt;next;
++			break;
++		}
++		u = u-&gt;next;
++	}
++	rebuild_matrix();
++	pthread_mutex_unlock(&amp;list_lock);
++	return (u ? 0 : -1);
++}
++
++void ast_translator_destroy(struct ast_channel *trans)
++{
++	char dummy;
++	int ms = 1000;
++	if (!trans-&gt;master) {
++		ast_log(LOG_WARNING, &quot;Translator is not part of a real channel?\n&quot;);
++		return;
++	}
++	if (trans-&gt;master-&gt;trans != trans) {
++		ast_log(LOG_WARNING, &quot;Translator is not the right one!?!?\n&quot;);
++		return;
++	}
++	trans-&gt;master-&gt;trans = NULL;
++	/* Write an invalid frame to kill off the main thread, which will
++	   in turn acknowledge by writing an invalid frame back to us, unless
++	   they're already closed.  */
++	if (trans-&gt;fd &gt; -1) {
++		if (write(trans-&gt;fd, trans, 1) == 1) {
++			/* Wait for a respnose, but no more than 1 second */
++			if (ast_waitfor_n_fd(&amp;trans-&gt;fd, 1, &amp;ms) == trans-&gt;fd)
++				read(trans-&gt;fd, &amp;dummy, 1);
++		}
++	}
++	if (option_verbose &gt; 2)
++		ast_verbose(VERBOSE_PREFIX_3 &quot;Destroyed translator %s\n&quot;, trans-&gt;name);
++	close(trans-&gt;fd);
++	ast_channel_free(trans);
++}
++
++int ast_translator_best_choice(int dst, int srcs)
++{
++	/* Calculate our best source format, given costs, and a desired destination */
++	int x;
++	int best=-1;
++	int besttime=999999999;
++	dst = powerof(dst);
++	pthread_mutex_lock(&amp;list_lock);
++	for (x=0;x&lt;MAX_FORMAT;x++) {
++		if (tr_matrix[x][dst].step &amp;&amp;	/* There's a step */
++		    (tr_matrix[x][dst].cost &lt; besttime) &amp;&amp; /* We're better than what exists now */
++			(srcs &amp; (1 &lt;&lt; x)))			/* x is a valid source format */
++			{
++				best = 1 &lt;&lt; x;
++				besttime = tr_matrix[x][dst].cost;
++			}
++				
++	}
++	pthread_mutex_unlock(&amp;list_lock);
++	return best;
++}
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2006, Digium, Inc.
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000415.html">[solid-pbx-svn] r420 - in trunk: . apps channels include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000417.html">[solid-pbx-svn] r422 - in trunk: . configs formats pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#416">[ date ]</a>
+              <a href="thread.html#416">[ thread ]</a>
+              <a href="subject.html#416">[ subject ]</a>
+              <a href="author.html#416">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,354 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r22 - in trunk: . apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r22%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605010318.k413ICQP017011%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000018.html">
+   <LINK REL="Next"  HREF="000020.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r22 - in trunk: . apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r22%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605010318.k413ICQP017011%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r22 - in trunk: . apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  1 05:18:12 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000018.html">[solid-pbx-svn] r21 - trunk/pbx
+</A></li>
+        <LI>Next message: <A HREF="000020.html">[solid-pbx-svn] r23 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#19">[ date ]</a>
+              <a href="thread.html#19">[ thread ]</a>
+              <a href="subject.html#19">[ subject ]</a>
+              <a href="author.html#19">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-01 05:18:07 +0200 (Mon, 01 May 2006)
+New Revision: 22
+
+Modified:
+   trunk/apps/app_chanspy.c
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r23853
+
+------------------------------------------------------------------------
+r23852 | russell | 2006-05-01 05:02:06 +0200 (Mon, 01 May 2006) | 2 lines
+
+remove an extra newline, none of the other synopsis fields for apps have one
+
+------------------------------------------------------------------------
+r23853 | russell | 2006-05-01 05:14:21 +0200 (Mon, 01 May 2006) | 2 lines
+
+convert the applications list to the list macros
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_chanspy.c
+===================================================================
+--- trunk/apps/app_chanspy.c	2006-05-01 02:19:27 UTC (rev 21)
++++ trunk/apps/app_chanspy.c	2006-05-01 03:18:07 UTC (rev 22)
+@@ -56,7 +56,7 @@
+ #define ALL_DONE(u, ret) LOCAL_USER_REMOVE(u); return ret;
+ #define get_volfactor(x) x ? ((x &gt; 0) ? (1 &lt;&lt; x) : ((1 &lt;&lt; abs(x)) * -1)) : 0
+ 
+-static const char *synopsis = &quot;Listen to the audio of an active channel\n&quot;;
++static const char *synopsis = &quot;Listen to the audio of an active channel&quot;;
+ static const char *app = &quot;ChanSpy&quot;;
+ static const char *desc = 
+ &quot;  ChanSpy([chanprefix][|options]): This application is used to listen to the\n&quot;
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-01 02:19:27 UTC (rev 21)
++++ trunk/pbx.c	2006-05-01 03:18:07 UTC (rev 22)
+@@ -174,7 +174,7 @@
+ 	int (*execute)(struct ast_channel *chan, void *data);
+ 	const char *synopsis;			/*!&lt; Synopsis text for 'show applications' */
+ 	const char *description;		/*!&lt; Description (help text) for 'show application &lt;name&gt;' */
+-	struct ast_app *next;			/*!&lt; Next app in list */
++	AST_LIST_ENTRY(ast_app) list;		/*!&lt; Next app in list */
+ 	struct module *module;			/*!&lt; Module this app belongs to */
+ 	char name[0];				/*!&lt; Name of the application */
+ };
+@@ -464,9 +464,9 @@
+ 
+ static struct ast_context *contexts = NULL;
+ AST_MUTEX_DEFINE_STATIC(conlock); 		/*!&lt; Lock for the ast_context list */
+-static struct ast_app *apps = NULL;
+-AST_MUTEX_DEFINE_STATIC(applock); 		/*!&lt; Lock for the application list */
+ 
++AST_LIST_HEAD_STATIC(apps, ast_app);
++
+ struct ast_switch *switches = NULL;
+ AST_MUTEX_DEFINE_STATIC(switchlock);		/*!&lt; Lock for switches */
+ 
+@@ -531,15 +531,13 @@
+ {
+ 	struct ast_app *tmp;
+ 
+-	if (ast_mutex_lock(&amp;applock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to obtain application lock\n&quot;);
+-		return NULL;
+-	}
+-	for (tmp = apps; tmp; tmp = tmp-&gt;next) {
++	AST_LIST_LOCK(&amp;apps);
++	AST_LIST_TRAVERSE(&amp;apps, tmp, list) {
+ 		if (!strcasecmp(tmp-&gt;name, app))
+ 			break;
+ 	}
+-	ast_mutex_unlock(&amp;applock);
++	AST_LIST_UNLOCK(&amp;apps);	
++	
+ 	return tmp;
+ }
+ 
+@@ -2652,25 +2650,23 @@
+ /*! \brief Dynamically register a new dial plan application */
+ int ast_register_application(const char *app, int (*execute)(struct ast_channel *, void *), const char *synopsis, const char *description)
+ {
+-	struct ast_app *tmp, *prev, *cur;
++	struct ast_app *tmp, *prev = NULL;
+ 	char tmps[80];
+ 	int length;
+-	length = sizeof(struct ast_app);
+-	length += strlen(app) + 1;
+-	if (ast_mutex_lock(&amp;applock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock application list\n&quot;);
+-		return -1;
+-	}
+-	for (tmp = apps; tmp; tmp = tmp-&gt;next) {
++
++	AST_LIST_LOCK(&amp;apps);
++	AST_LIST_TRAVERSE(&amp;apps, tmp, list) {
+ 		if (!strcasecmp(app, tmp-&gt;name)) {
+ 			ast_log(LOG_WARNING, &quot;Already have an application '%s'\n&quot;, app);
+-			ast_mutex_unlock(&amp;applock);
++			AST_LIST_UNLOCK(&amp;apps);
+ 			return -1;
+ 		}
+ 	}
+ 	
++	length = sizeof(*tmp) + strlen(app) + 1;
++	
+ 	if (!(tmp = ast_calloc(1, length))) {
+-		ast_mutex_unlock(&amp;applock);
++		AST_LIST_UNLOCK(&amp;apps);
+ 		return -1;
+ 	}
+ 
+@@ -2678,24 +2674,23 @@
+ 	tmp-&gt;execute = execute;
+ 	tmp-&gt;synopsis = synopsis;
+ 	tmp-&gt;description = description;
++
+ 	/* Store in alphabetical order */
+-	prev = NULL;
+-	for (cur = apps; cur; cur = cur-&gt;next) {
+-		if (strcasecmp(tmp-&gt;name, cur-&gt;name) &lt; 0)
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;apps, prev, list) {
++		if (strcasecmp(tmp-&gt;name, prev-&gt;name) &lt; 0) {
++			AST_LIST_INSERT_BEFORE_CURRENT(&amp;apps, tmp, list);	
+ 			break;
+-		prev = cur;
++		}
+ 	}
+-	if (prev) {
+-		tmp-&gt;next = prev-&gt;next;
+-		prev-&gt;next = tmp;
+-	} else {
+-		tmp-&gt;next = apps;
+-		apps = tmp;
+-	}
+-	
++	AST_LIST_TRAVERSE_SAFE_END
++	if (!prev)
++		AST_LIST_INSERT_TAIL(&amp;apps, tmp, list);
++
+ 	if (option_verbose &gt; 1)
+ 		ast_verbose( VERBOSE_PREFIX_2 &quot;Registered application '%s'\n&quot;, term_color(tmps, tmp-&gt;name, COLOR_BRCYAN, 0, sizeof(tmps)));
+-	ast_mutex_unlock(&amp;applock);
++
++	AST_LIST_UNLOCK(&amp;apps);
++
+ 	return 0;
+ }
+ 
+@@ -2811,20 +2806,14 @@
+ 	int which = 0;
+ 	int wordlen = strlen(word);
+ 
+-	/* try to lock applications list ... */
+-	if (ast_mutex_lock(&amp;applock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock application list\n&quot;);
+-		return NULL;
+-	}
+-
+ 	/* return the n-th [partial] matching entry */
+-	for (a = apps; a &amp;&amp; !ret; a = a-&gt;next) {
++	AST_LIST_LOCK(&amp;apps);
++	AST_LIST_TRAVERSE(&amp;apps, a, list) {
+ 		if (!strncasecmp(word, a-&gt;name, wordlen) &amp;&amp; ++which &gt; state)
+ 			ret = strdup(a-&gt;name);
+ 	}
++	AST_LIST_UNLOCK(&amp;apps);
+ 
+-	ast_mutex_unlock(&amp;applock);
+-
+ 	return ret; 
+ }
+ 
+@@ -2833,16 +2822,12 @@
+ 	struct ast_app *a;
+ 	int app, no_registered_app = 1;
+ 
+-	if (argc &lt; 3) return RESULT_SHOWUSAGE;
++	if (argc &lt; 3)
++		return RESULT_SHOWUSAGE;
+ 
+-	/* try to lock applications list ... */
+-	if (ast_mutex_lock(&amp;applock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock application list\n&quot;);
+-		return -1;
+-	}
+-
+ 	/* ... go through all applications ... */
+-	for (a = apps; a; a = a-&gt;next) {
++	AST_LIST_LOCK(&amp;apps);
++	AST_LIST_TRAVERSE(&amp;apps, a, list) {
+ 		/* ... compare this application name with all arguments given
+ 		 * to 'show application' command ... */
+ 		for (app = 2; app &lt; argc; app++) {
+@@ -2891,9 +2876,8 @@
+ 			}
+ 		}
+ 	}
++	AST_LIST_UNLOCK(&amp;apps);
+ 
+-	ast_mutex_unlock(&amp;applock);
+-
+ 	/* we found at least one app? no? */
+ 	if (no_registered_app) {
+ 		ast_cli(fd, &quot;Your application(s) is (are) not registered\n&quot;);
+@@ -2968,16 +2952,11 @@
+ 	int total_match = 0; 	/* Number of matches in like clause */
+ 	int total_apps = 0; 	/* Number of apps registered */
+ 	
+-	/* try to lock applications list ... */
+-	if (ast_mutex_lock(&amp;applock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock application list\n&quot;);
+-		return -1;
+-	}
++	AST_LIST_LOCK(&amp;apps);
+ 
+-	/* ... have we got at least one application (first)? no? */
+-	if (!apps) {
++	if (AST_LIST_EMPTY(&amp;apps)) {
+ 		ast_cli(fd, &quot;There are no registered applications\n&quot;);
+-		ast_mutex_unlock(&amp;applock);
++		AST_LIST_UNLOCK(&amp;apps);
+ 		return -1;
+ 	}
+ 
+@@ -2995,10 +2974,8 @@
+ 		ast_cli(fd, &quot;    -= Matching Asterisk Applications =-\n&quot;);
+ 	}
+ 
+-	/* ... go through all applications ... */
+-	for (a = apps; a; a = a-&gt;next) {
+-		/* ... show informations about applications ... */
+-		int printapp=0;
++	AST_LIST_TRAVERSE(&amp;apps, a, list) {
++		int printapp = 0;
+ 		total_apps++;
+ 		if (like) {
+ 			if (strcasestr(a-&gt;name, argv[3])) {
+@@ -3031,10 +3008,9 @@
+ 	} else {
+ 		ast_cli(fd, &quot;    -= %d Applications Matching =-\n&quot;,total_match);
+ 	}
+-	
+-	/* ... unlock and return */
+-	ast_mutex_unlock(&amp;applock);
+ 
++	AST_LIST_UNLOCK(&amp;apps);
++
+ 	return RESULT_SUCCESS;
+ }
+ 
+@@ -3392,26 +3368,22 @@
+ 
+ int ast_unregister_application(const char *app) 
+ {
+-	struct ast_app *tmp, *tmpl = NULL;
+-	if (ast_mutex_lock(&amp;applock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock application list\n&quot;);
+-		return -1;
+-	}
+-	for (tmp = apps; tmp; tmpl = tmp, tmp = tmp-&gt;next) {
++	struct ast_app *tmp;
++
++	AST_LIST_LOCK(&amp;apps);
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;apps, tmp, list) {
+ 		if (!strcasecmp(app, tmp-&gt;name)) {
+-			if (tmpl)
+-				tmpl-&gt;next = tmp-&gt;next;
+-			else
+-				apps = tmp-&gt;next;
++			AST_LIST_REMOVE_CURRENT(&amp;apps, list);
+ 			if (option_verbose &gt; 1)
+ 				ast_verbose( VERBOSE_PREFIX_2 &quot;Unregistered application '%s'\n&quot;, tmp-&gt;name);
+ 			free(tmp);
+-			ast_mutex_unlock(&amp;applock);
+-			return 0;
++			break;
+ 		}
+ 	}
+-	ast_mutex_unlock(&amp;applock);
+-	return -1;
++	AST_LIST_TRAVERSE_SAFE_END
++	AST_LIST_UNLOCK(&amp;apps);
++	
++	return tmp ? 0 : -1;
+ }
+ 
+ struct ast_context *ast_context_create(struct ast_context **extcontexts, const char *name, const char *registrar)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000018.html">[solid-pbx-svn] r21 - trunk/pbx
+</A></li>
+	<LI>Next message: <A HREF="000020.html">[solid-pbx-svn] r23 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#19">[ date ]</a>
+              <a href="thread.html#19">[ thread ]</a>
+              <a href="subject.html#19">[ subject ]</a>
+              <a href="author.html#19">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

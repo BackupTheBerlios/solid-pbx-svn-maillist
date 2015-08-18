@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r237 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r237%20-%20trunk/channels&In-Reply-To=%3C200606180154.k5I1srRc026432%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000231.html">
+   <LINK REL="Next"  HREF="000233.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r237 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r237%20-%20trunk/channels&In-Reply-To=%3C200606180154.k5I1srRc026432%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r237 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 03:54:53 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000231.html">[solid-pbx-svn] r236 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000233.html">[solid-pbx-svn] r238 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#232">[ date ]</a>
+              <a href="thread.html#232">[ thread ]</a>
+              <a href="subject.html#232">[ subject ]</a>
+              <a href="author.html#232">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 03:54:42 +0200 (Sun, 18 Jun 2006)
+New Revision: 237
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r31903
+
+------------------------------------------------------------------------
+r31895 | rizzo | 2006-06-04 02:09:13 +0200 (Sun, 04 Jun 2006) | 3 lines
+
+add a bit of comment on what build_route does,
+plus minor code simplification.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-18 01:39:33 UTC (rev 236)
++++ trunk/channels/chan_sip.c	2006-06-18 01:54:42 UTC (rev 237)
+@@ -6622,7 +6622,11 @@
+ 	
+ 	p-&gt;route_persistant = backwards;
+ 	
+-	/* We build up head, then assign it to p-&gt;route when we're done */
++	/* Build a tailq, then assign it to p-&gt;route when done.
++	 * If backwards, we add entries from the head so they end up
++	 * in reverse order. However, we do need to maintain a correct
++	 * tail pointer because the contact is always at the end.
++	 */
+ 	head = NULL;
+ 	tail = head;
+ 	/* 1st we pass through all the hops in any Record-Route headers */
+@@ -6631,12 +6635,7 @@
+ 		rr = __get_header(req, &quot;Record-Route&quot;, &amp;start);
+ 		if (*rr == '\0')
+ 			break;
+-		for (;;) {
+-			/* Each route entry */
+-			/* Find &lt; */
+-			rr = strchr(rr, '&lt;');
+-			if (!rr) 
+-				break; /* No more hops */
++		for (; (rr = strchr(rr, '&lt;')) ; rr += len) { /* Each route entry */
+ 			++rr;
+ 			len = strcspn(rr, &quot;&gt;&quot;) + 1;
+ 			/* Make a struct route */
+@@ -6650,7 +6649,8 @@
+ 					thishop-&gt;next = head;
+ 					head = thishop;
+ 					/* If this was the first then it'll be the tail */
+-					if (!tail) tail = thishop;
++					if (!tail)
++						tail = thishop;
+ 				} else {
+ 					thishop-&gt;next = NULL;
+ 					/* Link in at the end */
+@@ -6661,7 +6661,6 @@
+ 					tail = thishop;
+ 				}
+ 			}
+-			rr += len;
+ 		}
+ 	}
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000231.html">[solid-pbx-svn] r236 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000233.html">[solid-pbx-svn] r238 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#232">[ date ]</a>
+              <a href="thread.html#232">[ thread ]</a>
+              <a href="subject.html#232">[ subject ]</a>
+              <a href="author.html#232">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,2820 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r290 - in trunk: . apps build_tools cdr channels codecs doc formats funcs include include/asterisk pbx pbx/ael res stdtime utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r290%20-%20in%20trunk%3A%20.%20apps%20build_tools%20cdr%20channels%20codecs%20doc%20formats%20funcs%20include%20include/asterisk%20pbx%20pbx/ael%20res%20stdtime%20utils&In-Reply-To=%3C200606231706.k5NH6j4C016594%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000284.html">
+   <LINK REL="Next"  HREF="000286.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r290 - in trunk: . apps build_tools cdr channels codecs doc formats funcs include include/asterisk pbx pbx/ael res stdtime utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r290%20-%20in%20trunk%3A%20.%20apps%20build_tools%20cdr%20channels%20codecs%20doc%20formats%20funcs%20include%20include/asterisk%20pbx%20pbx/ael%20res%20stdtime%20utils&In-Reply-To=%3C200606231706.k5NH6j4C016594%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r290 - in trunk: . apps build_tools cdr channels codecs doc formats funcs include include/asterisk pbx pbx/ael res stdtime utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri Jun 23 19:06:45 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000284.html">[solid-pbx-svn] r289 - in trunk: . channels include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000286.html">[solid-pbx-svn] r291 - in trunk: . include include/asterisk utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#285">[ date ]</a>
+              <a href="thread.html#285">[ thread ]</a>
+              <a href="subject.html#285">[ subject ]</a>
+              <a href="author.html#285">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-23 19:05:10 +0200 (Fri, 23 Jun 2006)
+New Revision: 290
+
+Modified:
+   trunk/Makefile
+   trunk/abstract_jb.c
+   trunk/acl.c
+   trunk/app.c
+   trunk/apps/app_adsiprog.c
+   trunk/apps/app_alarmreceiver.c
+   trunk/apps/app_chanisavail.c
+   trunk/apps/app_dial.c
+   trunk/apps/app_externalivr.c
+   trunk/apps/app_festival.c
+   trunk/apps/app_flash.c
+   trunk/apps/app_followme.c
+   trunk/apps/app_hasnewvoicemail.c
+   trunk/apps/app_ices.c
+   trunk/apps/app_meetme.c
+   trunk/apps/app_mp3.c
+   trunk/apps/app_nbscat.c
+   trunk/apps/app_playback.c
+   trunk/apps/app_queue.c
+   trunk/apps/app_sms.c
+   trunk/apps/app_test.c
+   trunk/apps/app_voicemail.c
+   trunk/apps/app_zapbarge.c
+   trunk/apps/app_zapras.c
+   trunk/apps/app_zapscan.c
+   trunk/ast_expr2.c
+   trunk/ast_expr2.fl
+   trunk/ast_expr2.y
+   trunk/ast_expr2f.c
+   trunk/asterisk.c
+   trunk/autoservice.c
+   trunk/build_tools/cflags.xml
+   trunk/callerid.c
+   trunk/cdr.c
+   trunk/cdr/cdr_csv.c
+   trunk/cdr/cdr_custom.c
+   trunk/cdr/cdr_odbc.c
+   trunk/cdr/cdr_radius.c
+   trunk/cdr/cdr_tds.c
+   trunk/channel.c
+   trunk/channels/chan_agent.c
+   trunk/channels/chan_alsa.c
+   trunk/channels/chan_features.c
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_jingle.c
+   trunk/channels/chan_local.c
+   trunk/channels/chan_mgcp.c
+   trunk/channels/chan_misdn.c
+   trunk/channels/chan_nbs.c
+   trunk/channels/chan_oss.c
+   trunk/channels/chan_phone.c
+   trunk/channels/chan_sip.c
+   trunk/channels/chan_skinny.c
+   trunk/channels/chan_zap.c
+   trunk/channels/iax2-parser.c
+   trunk/channels/iax2-provision.c
+   trunk/channels/misdn_config.c
+   trunk/cli.c
+   trunk/codecs/codec_a_mu.c
+   trunk/codecs/codec_adpcm.c
+   trunk/codecs/codec_alaw.c
+   trunk/codecs/codec_g723_1.c
+   trunk/codecs/codec_g726.c
+   trunk/codecs/codec_gsm.c
+   trunk/codecs/codec_ilbc.c
+   trunk/codecs/codec_lpc10.c
+   trunk/codecs/codec_speex.c
+   trunk/codecs/codec_ulaw.c
+   trunk/config.c
+   trunk/configure.ac
+   trunk/cryptostub.c
+   trunk/db.c
+   trunk/dns.c
+   trunk/dnsmgr.c
+   trunk/doc/smdi.txt
+   trunk/dsp.c
+   trunk/enum.c
+   trunk/file.c
+   trunk/fixedjitterbuf.c
+   trunk/formats/format_g729.c
+   trunk/formats/format_gsm.c
+   trunk/formats/format_ilbc.c
+   trunk/formats/format_ogg_vorbis.c
+   trunk/formats/format_sln.c
+   trunk/formats/format_wav.c
+   trunk/formats/format_wav_gsm.c
+   trunk/funcs/func_channel.c
+   trunk/funcs/func_global.c
+   trunk/http.c
+   trunk/image.c
+   trunk/include/asterisk.h
+   trunk/include/asterisk/callerid.h
+   trunk/include/autoconfig.h.in
+   trunk/logger.c
+   trunk/manager.c
+   trunk/netsock.c
+   trunk/pbx.c
+   trunk/pbx/ael/ael.flex
+   trunk/pbx/ael/ael.tab.c
+   trunk/pbx/ael/ael.y
+   trunk/pbx/ael/ael_lex.c
+   trunk/pbx/dundi-parser.c
+   trunk/pbx/pbx_ael.c
+   trunk/pbx/pbx_config.c
+   trunk/pbx/pbx_dundi.c
+   trunk/pbx/pbx_gtkconsole.c
+   trunk/pbx/pbx_spool.c
+   trunk/privacy.c
+   trunk/res/res_adsi.c
+   trunk/res/res_agi.c
+   trunk/res/res_crypto.c
+   trunk/res/res_features.c
+   trunk/res/res_indications.c
+   trunk/res/res_jabber.c
+   trunk/res/res_musiconhold.c
+   trunk/res/res_osp.c
+   trunk/res/res_smdi.c
+   trunk/rtp.c
+   trunk/say.c
+   trunk/sched.c
+   trunk/srv.c
+   trunk/stdtime/localtime.c
+   trunk/strcompat.c
+   trunk/tdd.c
+   trunk/term.c
+   trunk/translate.c
+   trunk/udptl.c
+   trunk/utils.c
+   trunk/utils/ael_main.c
+   trunk/utils/astman.c
+   trunk/utils/smsq.c
+Log:
+Update to Asterisk SVN trunk r32853
+
+------------------------------------------------------------------------
+r32845 | russell | 2006-06-07 20:28:29 +0200 (Wed, 07 Jun 2006) | 2 lines
+
+remove the WITH_SMDI define
+
+------------------------------------------------------------------------
+r32846 | kpfleming | 2006-06-07 20:54:56 +0200 (Wed, 07 Jun 2006) | 2 lines
+
+simplify autoconfig include mechanism (make tholo happy he can use lint again :-)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/Makefile	2006-06-23 17:05:10 UTC (rev 290)
+@@ -127,9 +127,9 @@
+   include makeopts
+ endif
+ 
+-TOPDIR_CFLAGS=-include include/autoconfig.h -Iinclude
+-MOD_SUBDIR_CFLAGS=-include ../include/autoconfig.h -I../include -I..
+-OTHER_SUBDIR_CFLAGS=-include ../include/autoconfig.h -I../include -I..
++TOPDIR_CFLAGS=-Iinclude
++MOD_SUBDIR_CFLAGS=-I../include -I..
++OTHER_SUBDIR_CFLAGS=-I../include -I..
+ 
+ ifeq ($(findstring dont-optimize,$(MAKECMDGOALS)),)
+   ifeq ($(findstring DONT_OPTIMIZE,$(MENUSELECT_CFLAGS)),)
+
+Modified: trunk/abstract_jb.c
+===================================================================
+--- trunk/abstract_jb.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/abstract_jb.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -26,14 +26,14 @@
+  * \author Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;limits.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+-ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
+-
+ #include &quot;asterisk/frame.h&quot;
+ #include &quot;asterisk/channel.h&quot;
+ #include &quot;asterisk/logger.h&quot;
+
+Modified: trunk/acl.c
+===================================================================
+--- trunk/acl.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/acl.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/app.c
+===================================================================
+--- trunk/app.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/app.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/apps/app_adsiprog.c
+===================================================================
+--- trunk/apps/app_adsiprog.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_adsiprog.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \ingroup applications
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;stdlib.h&gt;
+
+Modified: trunk/apps/app_alarmreceiver.c
+===================================================================
+--- trunk/apps/app_alarmreceiver.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_alarmreceiver.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -22,13 +22,17 @@
+  * 
+  * *** WARNING *** WARNING *** WARNING *** WARNING *** WARNING *** WARNING *** WARNING *** WARNING *** 
+  *
+- * Use at your own risk. Please consult the GNU GPL license document included with Asterisk details. *
++ * Use at your own risk. Please consult the GNU GPL license document included with Asterisk.         *
+  *
+  * *** WARNING *** WARNING *** WARNING *** WARNING *** WARNING *** WARNING *** WARNING *** WARNING ***
+  *
+  * \ingroup applications
+  */ 
+  
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;string.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/apps/app_chanisavail.c
+===================================================================
+--- trunk/apps/app_chanisavail.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_chanisavail.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,6 +27,10 @@
+  * \ingroup applications
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/apps/app_dial.c
+===================================================================
+--- trunk/apps/app_dial.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_dial.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \ingroup applications
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;errno.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/apps/app_externalivr.c
+===================================================================
+--- trunk/apps/app_externalivr.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_externalivr.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -52,7 +52,6 @@
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/options.h&quot;
+ 
+-
+ static const char *app = &quot;ExternalIVR&quot;;
+ 
+ static const char *synopsis = &quot;Interfaces with an external IVR application&quot;;
+
+Modified: trunk/apps/app_festival.c
+===================================================================
+--- trunk/apps/app_festival.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_festival.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \ingroup applications
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/apps/app_flash.c
+===================================================================
+--- trunk/apps/app_flash.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_flash.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -29,6 +29,10 @@
+ 	&lt;depend&gt;zaptel&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/apps/app_followme.c
+===================================================================
+--- trunk/apps/app_followme.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_followme.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -26,17 +26,16 @@
+  * \ingroup applications
+  */
+ 
++#include &quot;asterisk.h&quot;
+ 
++ASTERISK_FILE_VERSION(__FILE__, &quot;$revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;unistd.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;signal.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+-ASTERISK_FILE_VERSION(__FILE__, &quot;$revision$&quot;)
+-
+ #include &quot;asterisk/lock.h&quot;
+ #include &quot;asterisk/file.h&quot;
+ #include &quot;asterisk/logger.h&quot;
+
+Modified: trunk/apps/app_hasnewvoicemail.c
+===================================================================
+--- trunk/apps/app_hasnewvoicemail.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_hasnewvoicemail.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -32,6 +32,10 @@
+  * \ingroup applications
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/apps/app_ices.c
+===================================================================
+--- trunk/apps/app_ices.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_ices.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \ingroup applications
+  */
+  
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;string.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;signal.h&gt;
+
+Modified: trunk/apps/app_meetme.c
+===================================================================
+--- trunk/apps/app_meetme.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_meetme.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -29,6 +29,10 @@
+ 	&lt;depend&gt;zaptel&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/apps/app_mp3.c
+===================================================================
+--- trunk/apps/app_mp3.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_mp3.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \ingroup applications
+  */
+  
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;string.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;signal.h&gt;
+
+Modified: trunk/apps/app_nbscat.c
+===================================================================
+--- trunk/apps/app_nbscat.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_nbscat.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \ingroup applications
+  */
+  
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;string.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;signal.h&gt;
+
+Modified: trunk/apps/app_playback.c
+===================================================================
+--- trunk/apps/app_playback.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_playback.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -43,7 +43,6 @@
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/options.h&quot;
+ #include &quot;asterisk/app.h&quot;
+-
+ #include &quot;asterisk/cli.h&quot;
+ #include &quot;asterisk/localtime.h&quot;
+ #include &quot;asterisk/say.h&quot;
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_queue.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -56,6 +56,10 @@
+  * \ingroup applications
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;errno.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/apps/app_sms.c
+===================================================================
+--- trunk/apps/app_sms.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_sms.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -22,6 +22,10 @@
+  * \author Adrian Kennard
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/apps/app_test.c
+===================================================================
+--- trunk/apps/app_test.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_test.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,6 +27,10 @@
+  * \ingroup applications
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_voicemail.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -41,6 +41,10 @@
+  *				 Bartosz Supczinski &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">Bartosz.Supczinski at dir.pl</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;errno.h&gt;
+ #include &lt;unistd.h&gt;
+@@ -75,10 +79,8 @@
+ #include &quot;asterisk/cli.h&quot;
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/stringfields.h&quot;
+-#ifdef WITH_SMDI
+ #include &quot;asterisk/smdi.h&quot;
+ #define SMDI_MWI_WAIT_TIMEOUT 1000 /* 1 second */
+-#endif
+ #ifdef USE_ODBC_STORAGE
+ #include &quot;asterisk/res_odbc.h&quot;
+ #endif
+@@ -408,9 +410,7 @@
+ static char serveremail[80];
+ static char mailcmd[160];	/* Configurable mail cmd */
+ static char externnotify[160]; 
+-#ifdef WITH_SMDI
+ static struct ast_smdi_interface *smdi_iface = NULL;
+-#endif
+ static char vmfmts[80];
+ static int vmminmessage;
+ static int vmmaxmessage;
+@@ -2348,16 +2348,13 @@
+ 	char arguments[255];
+ 	char ext_context[256] = &quot;&quot;;
+ 	int newvoicemails = 0, oldvoicemails = 0;
+-#ifdef WITH_SMDI
+ 	struct ast_smdi_mwi_message *mwi_msg;
+-#endif
+ 
+ 	if (!ast_strlen_zero(context))
+ 		snprintf(ext_context, sizeof(ext_context), &quot;%s@%s&quot;, extension, context);
+ 	else
+ 		ast_copy_string(ext_context, extension, sizeof(ext_context));
+ 
+-#ifdef WITH_SMDI
+ 	if (!strcasecmp(externnotify, &quot;smdi&quot;)) {
+ 		if (ast_app_has_voicemail(ext_context, NULL)) 
+ 			ast_smdi_mwi_set(smdi_iface, extension);
+@@ -2376,9 +2373,6 @@
+ 			ast_log(LOG_DEBUG, &quot;Successfully executed SMDI MWI change for %s on %s\n&quot;, extension, smdi_iface-&gt;name);
+ 		}
+ 	} else if (!ast_strlen_zero(externnotify)) {
+-#else
+-	if (!ast_strlen_zero(externnotify)) {
+-#endif
+ 		if (inboxcount(ext_context, &amp;newvoicemails, &amp;oldvoicemails)) {
+ 			ast_log(LOG_ERROR, &quot;Problem in calculating number of voicemail messages available for extension %s\n&quot;, extension);
+ 		} else {
+@@ -6136,9 +6130,7 @@
+ 	char *cat;
+ 	struct ast_variable *var;
+ 	char *notifystr = NULL;
+-#ifdef WITH_SMDI
+ 	char *smdistr = NULL;
+-#endif
+ 	char *astattach;
+ 	char *astsearch;
+ 	char *astsaycid;
+@@ -6245,7 +6237,6 @@
+ 		if ((notifystr = ast_variable_retrieve(cfg, &quot;general&quot;, &quot;externnotify&quot;))) {
+ 			ast_copy_string(externnotify, notifystr, sizeof(externnotify));
+ 			ast_log(LOG_DEBUG, &quot;found externnotify: %s\n&quot;, externnotify);
+-#ifdef WITH_SMDI
+ 			if (!strcasecmp(externnotify, &quot;smdi&quot;)) {
+ 				ast_log(LOG_DEBUG, &quot;Using SMDI for external voicemail notification\n&quot;);
+ 				if ((smdistr = ast_variable_retrieve(cfg, &quot;general&quot;, &quot;smdiport&quot;))) {
+@@ -6262,7 +6253,6 @@
+ 					ast_log(LOG_DEBUG, &quot;Using SMDI port %s\n&quot;, smdi_iface-&gt;name);
+ 				}
+ 			}
+-#endif
+ 		} else {
+ 			externnotify[0] = '\0';
+ 		}
+
+Modified: trunk/apps/app_zapbarge.c
+===================================================================
+--- trunk/apps/app_zapbarge.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_zapbarge.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -35,6 +35,10 @@
+ 	&lt;depend&gt;zaptel&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/apps/app_zapras.c
+===================================================================
+--- trunk/apps/app_zapras.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_zapras.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -29,6 +29,10 @@
+ 	&lt;depend&gt;zaptel&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/ioctl.h&gt;
+ #include &lt;sys/wait.h&gt;
+ #ifdef __linux__
+
+Modified: trunk/apps/app_zapscan.c
+===================================================================
+--- trunk/apps/app_zapscan.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/apps/app_zapscan.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -34,6 +34,10 @@
+ 	&lt;depend&gt;zaptel&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/ast_expr2.c
+===================================================================
+--- trunk/ast_expr2.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/ast_expr2.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -129,6 +129,10 @@
+  * $FreeBSD: src/bin/expr/expr.y,v 1.16 2000/07/22 10:59:36 se Exp $
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+
+Modified: trunk/ast_expr2.fl
+===================================================================
+--- trunk/ast_expr2.fl	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/ast_expr2.fl	2006-06-23 17:05:10 UTC (rev 290)
+@@ -22,6 +22,10 @@
+  * \brief Dialplan Expression Lexical Scanner
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+
+Modified: trunk/ast_expr2.y
+===================================================================
+--- trunk/ast_expr2.y	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/ast_expr2.y	2006-06-23 17:05:10 UTC (rev 290)
+@@ -12,6 +12,10 @@
+  * $FreeBSD: src/bin/expr/expr.y,v 1.16 2000/07/22 10:59:36 se Exp $
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+
+Modified: trunk/ast_expr2f.c
+===================================================================
+--- trunk/ast_expr2f.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/ast_expr2f.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -1354,6 +1354,10 @@
+  * \brief Dialplan Expression Lexical Scanner
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+
+Modified: trunk/asterisk.c
+===================================================================
+--- trunk/asterisk.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/asterisk.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -57,6 +57,10 @@
+   
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;sys/time.h&gt;
+@@ -122,7 +126,6 @@
+ #include &quot;asterisk/version.h&quot;
+ #include &quot;asterisk/linkedlists.h&quot;
+ #include &quot;asterisk/devicestate.h&quot;
+-#include &quot;asterisk/compat.h&quot;
+ 
+ #include &quot;asterisk/doxyref.h&quot;		/* Doxygen documentation */
+ 
+
+Modified: trunk/autoservice.c
+===================================================================
+--- trunk/autoservice.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/autoservice.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/build_tools/cflags.xml
+===================================================================
+--- trunk/build_tools/cflags.xml	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/build_tools/cflags.xml	2006-06-23 17:05:10 UTC (rev 290)
+@@ -21,7 +21,4 @@
+ 		&lt;/member&gt;
+ 		&lt;member name=&quot;TRACE_FRAMES&quot; displayname=&quot;Trace Frame Allocations&quot;&gt;
+ 		&lt;/member&gt;
+-		&lt;member name=&quot;WITH_SMDI&quot; displayname=&quot;Include SMDI Support&quot;&gt;
+-			&lt;defaultenabled&gt;yes&lt;/defaultenabled&gt;
+-		&lt;/member&gt;
+ 	&lt;/category&gt;
+
+Modified: trunk/callerid.c
+===================================================================
+--- trunk/callerid.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/callerid.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;time.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/cdr/cdr_csv.c
+===================================================================
+--- trunk/cdr/cdr_csv.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/cdr/cdr_csv.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -28,6 +28,10 @@
+  * \ingroup cdr_drivers
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/cdr/cdr_custom.c
+===================================================================
+--- trunk/cdr/cdr_custom.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/cdr/cdr_custom.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -30,6 +30,10 @@
+  * \ingroup cdr_drivers
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/cdr/cdr_odbc.c
+===================================================================
+--- trunk/cdr/cdr_odbc.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/cdr/cdr_odbc.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -32,6 +32,10 @@
+ 	&lt;depend&gt;unixodbc&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/cdr/cdr_radius.c
+===================================================================
+--- trunk/cdr/cdr_radius.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/cdr/cdr_radius.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -29,6 +29,10 @@
+ 	&lt;depend&gt;radiusclient&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Rev$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+@@ -38,10 +42,6 @@
+ #include &lt;sys/types.h&gt;
+ #include &lt;radiusclient-ng.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+-ASTERISK_FILE_VERSION(__FILE__, &quot;$Rev$&quot;)
+-
+ #include &quot;asterisk/channel.h&quot;
+ #include &quot;asterisk/cdr.h&quot;
+ #include &quot;asterisk/module.h&quot;
+
+Modified: trunk/cdr/cdr_tds.c
+===================================================================
+--- trunk/cdr/cdr_tds.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/cdr/cdr_tds.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -59,6 +59,10 @@
+ 	&lt;depend&gt;freetds&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/cdr.c
+===================================================================
+--- trunk/cdr.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/cdr.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -53,7 +53,6 @@
+ #include &quot;asterisk/sched.h&quot;
+ #include &quot;asterisk/config.h&quot;
+ #include &quot;asterisk/cli.h&quot;
+-// XXX #include &quot;asterisk/module.h&quot;
+ #include &quot;asterisk/stringfields.h&quot;
+ 
+ /*! Default AMA flag for billing records (CDR's) */
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channel.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+@@ -30,10 +34,8 @@
+ #include &lt;signal.h&gt;
+ #include &lt;errno.h&gt;
+ #include &lt;unistd.h&gt;
+-#include &lt;math.h&gt;			/* For PI */
++#include &lt;math.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+ #ifdef HAVE_ZAPTEL
+ #include &lt;sys/ioctl.h&gt;
+ #ifdef __linux__
+
+Modified: trunk/channels/chan_agent.c
+===================================================================
+--- trunk/channels/chan_agent.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_agent.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -31,6 +31,10 @@
+  * \ingroup channel_drivers
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;errno.h&gt;
+
+Modified: trunk/channels/chan_alsa.c
+===================================================================
+--- trunk/channels/chan_alsa.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_alsa.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -31,6 +31,10 @@
+ 	&lt;depend&gt;asound&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;fcntl.h&gt;
+ #include &lt;errno.h&gt;
+
+Modified: trunk/channels/chan_features.c
+===================================================================
+--- trunk/channels/chan_features.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_features.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,6 +27,10 @@
+  * \ingroup channel_drivers
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_iax2.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -28,6 +28,10 @@
+  * \ingroup channel_drivers
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;sys/types.h&gt;
+@@ -50,8 +54,6 @@
+ #include &lt;sys/stat.h&gt;
+ #include &lt;regex.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+ #ifdef HAVE_ZAPTEL
+ #include &lt;sys/ioctl.h&gt;
+ #ifdef __linux__
+
+Modified: trunk/channels/chan_jingle.c
+===================================================================
+--- trunk/channels/chan_jingle.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_jingle.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -29,7 +29,10 @@
+ 	&lt;depend&gt;iksemel&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
+ 
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+@@ -44,9 +47,6 @@
+ #include &lt;sys/signal.h&gt;
+ #include &lt;iksemel.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+-ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
+ #include &quot;asterisk/lock.h&quot;
+ #include &quot;asterisk/channel.h&quot;
+ #include &quot;asterisk/config.h&quot;
+
+Modified: trunk/channels/chan_local.c
+===================================================================
+--- trunk/channels/chan_local.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_local.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \ingroup channel_drivers
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/channels/chan_mgcp.c
+===================================================================
+--- trunk/channels/chan_mgcp.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_mgcp.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -70,6 +70,10 @@
+    -- fixed reload_config() / do_monitor to stay responsive during reloads
+ */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/channels/chan_misdn.c
+===================================================================
+--- trunk/channels/chan_misdn.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_misdn.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -26,6 +26,10 @@
+  * \ingroup channel_drivers
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;pthread.h&gt;
+ #include &lt;string.h&gt;
+@@ -39,29 +43,29 @@
+ #include &lt;sys/ioctl.h&gt;
+ #include &lt;sys/file.h&gt;
+ 
+-#include &lt;asterisk/channel.h&gt;
+-#include &lt;asterisk/config.h&gt;
+-#include &lt;asterisk/logger.h&gt;
+-#include &lt;asterisk/module.h&gt;
+-#include &lt;asterisk/pbx.h&gt;
+-#include &lt;asterisk/options.h&gt;
+-#include &lt;asterisk/io.h&gt;
+-#include &lt;asterisk/frame.h&gt;
+-#include &lt;asterisk/translate.h&gt;
+-#include &lt;asterisk/cli.h&gt;
+-#include &lt;asterisk/musiconhold.h&gt;
+-#include &lt;asterisk/dsp.h&gt;
+-#include &lt;asterisk/translate.h&gt;
+-#include &lt;asterisk/config.h&gt;
+-#include &lt;asterisk/file.h&gt;
+-#include &lt;asterisk/callerid.h&gt;
+-#include &lt;asterisk/indications.h&gt;
+-#include &lt;asterisk/app.h&gt;
+-#include &lt;asterisk/features.h&gt;
+-#include &lt;asterisk/stringfields.h&gt;
++#include &quot;asterisk/channel.h&quot;
++#include &quot;asterisk/config.h&quot;
++#include &quot;asterisk/logger.h&quot;
++#include &quot;asterisk/module.h&quot;
++#include &quot;asterisk/pbx.h&quot;
++#include &quot;asterisk/options.h&quot;
++#include &quot;asterisk/io.h&quot;
++#include &quot;asterisk/frame.h&quot;
++#include &quot;asterisk/translate.h&quot;
++#include &quot;asterisk/cli.h&quot;
++#include &quot;asterisk/musiconhold.h&quot;
++#include &quot;asterisk/dsp.h&quot;
++#include &quot;asterisk/translate.h&quot;
++#include &quot;asterisk/config.h&quot;
++#include &quot;asterisk/file.h&quot;
++#include &quot;asterisk/callerid.h&quot;
++#include &quot;asterisk/indications.h&quot;
++#include &quot;asterisk/app.h&quot;
++#include &quot;asterisk/features.h&quot;
++#include &quot;asterisk/stringfields.h&quot;
+ 
+-#include &lt;chan_misdn_config.h&gt;
+-#include &lt;isdn_lib.h&gt;
++#include &quot;chan_misdn_config.h&quot;
++#include &quot;isdn_lib.h&quot;
+ 
+ ast_mutex_t release_lock_mutex;
+ 
+
+Modified: trunk/channels/chan_nbs.c
+===================================================================
+--- trunk/channels/chan_nbs.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_nbs.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -29,6 +29,10 @@
+ 	&lt;depend&gt;nbs&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;sys/socket.h&gt;
+
+Modified: trunk/channels/chan_oss.c
+===================================================================
+--- trunk/channels/chan_oss.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_oss.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -36,9 +36,13 @@
+ 	&lt;depend&gt;ossaudio&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+-#include &lt;ctype.h&gt;	/* for isalnum */
+-#include &lt;math.h&gt;	/* exp and log */
++#include &lt;ctype.h&gt;
++#include &lt;math.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;unistd.h&gt;
+ #include &lt;sys/ioctl.h&gt;
+@@ -47,7 +51,6 @@
+ #include &lt;stdlib.h&gt;
+ #include &lt;errno.h&gt;
+ 
+-
+ #ifdef __linux
+ #include &lt;linux/soundcard.h&gt;
+ #elif defined(__FreeBSD__)
+
+Modified: trunk/channels/chan_phone.c
+===================================================================
+--- trunk/channels/chan_phone.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_phone.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -29,6 +29,10 @@
+ 	&lt;depend&gt;ixjuser&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;ctype.h&gt;
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_sip.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -84,6 +84,10 @@
+  */
+ 
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;ctype.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/channels/chan_skinny.c
+===================================================================
+--- trunk/channels/chan_skinny.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_skinny.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  */
+ 
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/chan_zap.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -34,13 +34,17 @@
+  *
+  * \ingroup channel_drivers
+  *
+- * \todo Decprecate the &quot;musiconhold&quot; configuration option post 1.4
++ * \todo Deprecate the &quot;musiconhold&quot; configuration option post 1.4
+  */
+ 
+ /*** MODULEINFO
+ 	&lt;depend&gt;zaptel&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #ifdef __NetBSD__
+@@ -65,8 +69,6 @@
+ #include &lt;tonezone.h&gt;
+ #include &lt;ctype.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+ #ifdef HAVE_LIBPRI
+ #include &lt;libpri.h&gt;
+ #ifndef PRI_KEYPAD_FACILITY_TX
+@@ -104,11 +106,9 @@
+ #include &quot;asterisk/transcap.h&quot;
+ #include &quot;asterisk/stringfields.h&quot;
+ #include &quot;asterisk/abstract_jb.h&quot;
+-#ifdef WITH_SMDI
+ #include &quot;asterisk/smdi.h&quot;
+ #include &quot;asterisk/astobj.h&quot;
+ #define SMDI_MD_WAIT_TIMEOUT 1500 /* 1.5 seconds */
+-#endif
+ 
+ /*! Global jitterbuffer configuration - by default, jb is disabled */
+ static struct ast_jb_conf default_jbconf =
+@@ -286,10 +286,8 @@
+ static int amaflags = 0;
+ 
+ static int adsi = 0;
+-#ifdef WITH_SMDI
+ static int use_smdi = 0;
+ static char smdi_port[SMDI_MAX_FILENAME_LEN] = &quot;/dev/ttyS0&quot;;
+-#endif
+ static int numbufs = 4;
+ 
+ static int cur_prewink = -1;
+@@ -611,10 +609,8 @@
+ 	unsigned int resetting:1;
+ 	unsigned int setup_ack:1;
+ #endif
+-#ifdef WITH_SMDI
+ 	unsigned int use_smdi:1;		/* Whether to use SMDI on this channel */
+ 	struct ast_smdi_interface *smdi_iface;	/* The serial port to listen for SMDI data on */
+-#endif
+ 
+ 	struct zt_distRings drings;
+ 
+@@ -2147,10 +2143,8 @@
+ 		p-&gt;prev-&gt;next = p-&gt;next;
+ 	if (p-&gt;next)
+ 		p-&gt;next-&gt;prev = p-&gt;prev;
+-#ifdef WITH_SMDI
+ 	if (p-&gt;use_smdi)
+ 		ASTOBJ_UNREF(p-&gt;smdi_iface, ast_smdi_interface_destroy);
+-#endif
+ 	ast_mutex_destroy(&amp;p-&gt;lock);
+ 	free(p);
+ 	*pvt = NULL;
+@@ -5272,9 +5266,7 @@
+ 	int counter1;
+ 	int counter;
+ 	int samples = 0;
+-#ifdef WITH_SMDI
+ 	struct ast_smdi_md_message *smdi_msg = NULL;
+-#endif
+ 	int flags;
+ 	int i;
+ 	int timeout;
+@@ -5930,7 +5922,6 @@
+ 			}
+ 		}
+ #endif
+-#ifdef WITH_SMDI
+ 		/* check for SMDI messages */
+ 		if (p-&gt;use_smdi &amp;&amp; p-&gt;smdi_iface) {
+ 			smdi_msg = ast_smdi_md_message_wait(p-&gt;smdi_iface, SMDI_MD_WAIT_TIMEOUT);
+@@ -5956,9 +5947,6 @@
+ 		 * and we're set to use a polarity reversal to trigger the start of caller id,
+ 		 * grab the caller id and wait for ringing to start... */
+ 		} else if (p-&gt;use_callerid &amp;&amp; (chan-&gt;_state == AST_STATE_PRERING &amp;&amp; p-&gt;cid_start == CID_START_POLARITY)) {
+-#else
+-		if (p-&gt;use_callerid &amp;&amp; (chan-&gt;_state == AST_STATE_PRERING &amp;&amp; p-&gt;cid_start == CID_START_POLARITY)) {
+-#endif
+ 			/* If set to use DTMF CID signalling, listen for DTMF */
+ 			if (p-&gt;cid_signalling == CID_SIG_DTMF) {
+ 				int i = 0;
+@@ -6377,10 +6365,8 @@
+ 			ast_shrink_phone_number(number);
+ 
+ 		ast_set_callerid(chan, number, name, number);
+-#ifdef WITH_SMDI
+ 		if (smdi_msg)
+ 			ASTOBJ_UNREF(smdi_msg, ast_smdi_md_message_destroy);
+-#endif
+ 		if (cs)
+ 			callerid_free(cs);
+ 		ast_setstate(chan, AST_STATE_RING);
+@@ -7257,9 +7243,7 @@
+ 		tmp-&gt;callwaitingcallerid = callwaitingcallerid;
+ 		tmp-&gt;threewaycalling = threewaycalling;
+ 		tmp-&gt;adsi = adsi;
+-#ifdef WITH_SMDI
+ 		tmp-&gt;use_smdi = use_smdi;
+-#endif
+ 		tmp-&gt;permhidecallerid = hidecallerid;
+ 		tmp-&gt;callreturn = callreturn;
+ 		tmp-&gt;echocancel = echocancel;
+@@ -7292,7 +7276,6 @@
+ 			}
+ 		}
+ 
+-#ifdef WITH_SMDI
+ 		if (tmp-&gt;cid_signalling == CID_SIG_SMDI) {
+ 			if (!tmp-&gt;use_smdi) {
+ 				ast_log(LOG_WARNING, &quot;SMDI callerid requires SMDI to be enabled, enabling...\n&quot;);
+@@ -7306,7 +7289,6 @@
+ 				tmp-&gt;use_smdi = 0;
+ 			}
+ 		}
+-#endif
+ 
+ 		ast_copy_string(tmp-&gt;accountcode, accountcode, sizeof(tmp-&gt;accountcode));
+ 		tmp-&gt;amaflags = amaflags;
+@@ -10449,10 +10431,8 @@
+ 				cid_signalling = CID_SIG_V23;
+ 			else if (!strcasecmp(v-&gt;value, &quot;dtmf&quot;))
+ 				cid_signalling = CID_SIG_DTMF;
+-#ifdef WITH_SMDI
+ 			else if (!strcasecmp(v-&gt;value, &quot;smdi&quot;))
+ 				cid_signalling = CID_SIG_SMDI;
+-#endif
+ 			else if (!strcasecmp(v-&gt;value, &quot;v23_jp&quot;))
+ 				cid_signalling = CID_SIG_V23_JP;
+ 			else if (ast_true(v-&gt;value))
+@@ -10477,12 +10457,10 @@
+ 			ast_copy_string(mailbox, v-&gt;value, sizeof(mailbox));
+ 		} else if (!strcasecmp(v-&gt;name, &quot;adsi&quot;)) {
+ 			adsi = ast_true(v-&gt;value);
+-#ifdef WITH_SMDI
+ 		} else if (!strcasecmp(v-&gt;name, &quot;usesmdi&quot;)) {
+ 			use_smdi = ast_true(v-&gt;value);
+ 		} else if (!strcasecmp(v-&gt;name, &quot;smdiport&quot;)) {
+ 			ast_copy_string(smdi_port, v-&gt;value, sizeof(smdi_port));
+-#endif
+ 		} else if (!strcasecmp(v-&gt;name, &quot;transfer&quot;)) {
+ 			transfer = ast_true(v-&gt;value);
+ 		} else if (!strcasecmp(v-&gt;name, &quot;canpark&quot;)) {
+
+Modified: trunk/channels/iax2-parser.c
+===================================================================
+--- trunk/channels/iax2-parser.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/iax2-parser.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;sys/socket.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/channels/iax2-provision.c
+===================================================================
+--- trunk/channels/iax2-provision.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/iax2-provision.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/channels/misdn_config.c
+===================================================================
+--- trunk/channels/misdn_config.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/channels/misdn_config.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -26,6 +26,10 @@
+  * \ingroup channel_drivers
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+@@ -33,13 +37,13 @@
+ 
+ #include &quot;chan_misdn_config.h&quot;
+ 
+-#include &lt;asterisk/config.h&gt;
+-#include &lt;asterisk/channel.h&gt;
+-#include &lt;asterisk/logger.h&gt;
+-#include &lt;asterisk/lock.h&gt;
+-#include &lt;asterisk/pbx.h&gt;
+-#include &lt;asterisk/strings.h&gt;
+-#include &lt;asterisk/utils.h&gt;
++#include &quot;asterisk/config.h&quot;
++#include &quot;asterisk/channel.h&quot;
++#include &quot;asterisk/logger.h&quot;
++#include &quot;asterisk/lock.h&quot;
++#include &quot;asterisk/pbx.h&quot;
++#include &quot;asterisk/strings.h&quot;
++#include &quot;asterisk/utils.h&quot;
+ 
+ #define AST_LOAD_CFG ast_config_load
+ #define AST_DESTROY_CFG ast_config_destroy
+
+Modified: trunk/cli.c
+===================================================================
+--- trunk/cli.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/cli.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;sys/signal.h&gt;
+@@ -47,9 +51,7 @@
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/app.h&quot;
+ #include &quot;asterisk/lock.h&quot;
+-/* For rl_filename_completion */
+ #include &quot;editline/readline/readline.h&quot;
+-/* For module directory */
+ 
+ extern unsigned long global_fin, global_fout;
+ 	
+
+Modified: trunk/codecs/codec_a_mu.c
+===================================================================
+--- trunk/codecs/codec_a_mu.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/codecs/codec_a_mu.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \ingroup codecs
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;fcntl.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/codecs/codec_adpcm.c
+===================================================================
+--- trunk/codecs/codec_adpcm.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/codecs/codec_adpcm.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,7 +27,10 @@
+  * \ingroup codecs
+  */
+ 
++#include &quot;asterisk.h&quot;
+ 
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;fcntl.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/codecs/codec_alaw.c
+===================================================================
+--- trunk/codecs/codec_alaw.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/codecs/codec_alaw.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \ingroup codecs
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;fcntl.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/codecs/codec_g723_1.c
+===================================================================
+--- trunk/codecs/codec_g723_1.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/codecs/codec_g723_1.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -31,12 +31,10 @@
+ 	&lt;defaultenabled&gt;no&lt;/defaultenabled&gt;
+  ***/
+ 
+-#define TYPE_HIGH	 0x0
+-#define TYPE_LOW	 0x1
+-#define TYPE_SILENCE	 0x2
+-#define TYPE_DONTSEND	 0x3
+-#define TYPE_MASK	 0x3
++#include &quot;asterisk.h&quot;
+ 
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;fcntl.h&gt;
+ #include &lt;stdlib.h&gt;
+@@ -78,6 +76,12 @@
+ #include &quot;slin_g723_ex.h&quot;
+ #include &quot;g723_slin_ex.h&quot;
+ 
++#define TYPE_HIGH	 0x0
++#define TYPE_LOW	 0x1
++#define TYPE_SILENCE	 0x2
++#define TYPE_DONTSEND	 0x3
++#define TYPE_MASK	 0x3
++
+ /* g723_1 has 240 samples per buffer.
+  * We want a buffer which is a multiple...
+  */
+
+Modified: trunk/codecs/codec_g726.c
+===================================================================
+--- trunk/codecs/codec_g726.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/codecs/codec_g726.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -26,6 +26,10 @@
+  * \ingroup codecs
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;fcntl.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/codecs/codec_gsm.c
+===================================================================
+--- trunk/codecs/codec_gsm.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/codecs/codec_gsm.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -30,6 +30,10 @@
+ 	&lt;depend&gt;libgsm&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;fcntl.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/codecs/codec_ilbc.c
+===================================================================
+--- trunk/codecs/codec_ilbc.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/codecs/codec_ilbc.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \ingroup codecs
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;fcntl.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/codecs/codec_lpc10.c
+===================================================================
+--- trunk/codecs/codec_lpc10.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/codecs/codec_lpc10.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,6 +27,10 @@
+  * \ingroup codecs
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;fcntl.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/codecs/codec_speex.c
+===================================================================
+--- trunk/codecs/codec_speex.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/codecs/codec_speex.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -31,6 +31,10 @@
+ 	&lt;depend&gt;libspeex&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;fcntl.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;unistd.h&gt;
+@@ -45,6 +49,19 @@
+ #include &lt;speex/speex_preprocess.h&gt;
+ #endif
+ 
++#include &quot;asterisk/lock.h&quot;
++#include &quot;asterisk/translate.h&quot;
++#include &quot;asterisk/module.h&quot;
++#include &quot;asterisk/config.h&quot;
++#include &quot;asterisk/options.h&quot;
++#include &quot;asterisk/logger.h&quot;
++#include &quot;asterisk/channel.h&quot;
++#include &quot;asterisk/utils.h&quot;
++
++/* Sample frame data */
++#include &quot;slin_speex_ex.h&quot;
++#include &quot;speex_slin_ex.h&quot;
++
+ /* codec variables */
+ static int quality = 3;
+ static int complexity = 2;
+
+Modified: trunk/codecs/codec_ulaw.c
+===================================================================
+--- trunk/codecs/codec_ulaw.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/codecs/codec_ulaw.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \ingroup codecs
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;fcntl.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/config.c
+===================================================================
+--- trunk/config.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/config.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -26,6 +26,10 @@
+  * See doc/realtime.txt and doc/extconfig.txt
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;unistd.h&gt;
+ #include &lt;stdlib.h&gt;
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/configure.ac	2006-06-23 17:05:10 UTC (rev 290)
+@@ -128,6 +128,9 @@
+ AC_GNU_SOURCE
+ 
+ AH_TOP(
++#ifndef ASTERISK_AUTOCONFIG_H
++#define ASTERISK_AUTOCONFIG_H
++
+ #ifndef MENUSELECT
+ #include &quot;asterisk/buildopts.h&quot;
+ #endif
+@@ -137,6 +140,10 @@
+ #endif
+ )
+ 
++AH_BOTTOM(
++#endif
++)
++
+ # cross-compile checks
+ if test x&quot;${build}&quot; != x&quot;${host}&quot;; 
+ then
+
+Modified: trunk/cryptostub.c
+===================================================================
+--- trunk/cryptostub.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/cryptostub.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,11 +23,13 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;stdlib.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+ #include &quot;asterisk/crypto.h&quot;
+ #include &quot;asterisk/logger.h&quot;
+ 
+
+Modified: trunk/db.c
+===================================================================
+--- trunk/db.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/db.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,7 +27,10 @@
+  * licensing even further) we elect to use DB1 which is BSD licensed 
+  */
+ 
++#include &quot;asterisk.h&quot;
+ 
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/dns.c
+===================================================================
+--- trunk/dns.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/dns.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -29,6 +29,10 @@
+  *
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;sys/socket.h&gt;
+ #include &lt;netinet/in.h&gt;
+
+Modified: trunk/dnsmgr.c
+===================================================================
+--- trunk/dnsmgr.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/dnsmgr.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Kevin P. Fleming &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">kpfleming at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;sys/socket.h&gt;
+
+Modified: trunk/doc/smdi.txt
+===================================================================
+--- trunk/doc/smdi.txt	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/doc/smdi.txt	2006-06-23 17:05:10 UTC (rev 290)
+@@ -1,16 +1,6 @@
+ Asterisk SMDI (Simple Message Desk Interface) integration
+ ---------------------------------------------------------
+ 
+-Support for using Asterisk as an SMDI message desk was developed by Matthew A.
+-Nicholson &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">mnicholson at digium.com</A>&gt;.  To enable SMDI support in asterisk edit the
+-Makefile file and uncomment the line regarding SMDI so it reads like
+-this:
+-
+-#
+-# Asterisk SMDI integration
+-#
+-WITH_SMDI = 1
+-
+ SMDI integration is configured in smdi.conf, zaptel.conf, and voicemail.conf.
+ Various characteristics of the SMDI interfaces to be used (serial ports) are
+ defined in smdi.conf.  SMDI integration for callerid and MWI are defined in
+
+Modified: trunk/dsp.c
+===================================================================
+--- trunk/dsp.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/dsp.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -40,6 +40,10 @@
+         detriment.
+ */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/enum.c
+===================================================================
+--- trunk/enum.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/enum.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -40,6 +40,10 @@
+  * - See <A HREF="http://bugs.digium.com/view.php?id=6739">http://bugs.digium.com/view.php?id=6739</A>
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;sys/socket.h&gt;
+ #include &lt;netinet/in.h&gt;
+
+Modified: trunk/file.c
+===================================================================
+--- trunk/file.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/file.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;errno.h&gt;
+ #include &lt;unistd.h&gt;
+@@ -52,7 +56,7 @@
+ #include &quot;asterisk/pbx.h&quot;
+ #include &quot;asterisk/linkedlists.h&quot;
+ #define	MOD_LOADER
+-#include &quot;asterisk/module.h&quot;	/* ast_update_use_count() */
++#include &quot;asterisk/module.h&quot;
+ 
+ /*
+  * The following variable controls the layout of localized sound files.
+
+Modified: trunk/fixedjitterbuf.c
+===================================================================
+--- trunk/fixedjitterbuf.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/fixedjitterbuf.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -24,15 +24,16 @@
+  * \author Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision $&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;assert.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;unistd.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision $&quot;)
+-
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;fixedjitterbuf.h&quot;
+ 
+
+Modified: trunk/formats/format_g729.c
+===================================================================
+--- trunk/formats/format_g729.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/formats/format_g729.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -26,6 +26,10 @@
+  * \ingroup formats
+  */
+  
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;arpa/inet.h&gt;
+
+Modified: trunk/formats/format_gsm.c
+===================================================================
+--- trunk/formats/format_gsm.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/formats/format_gsm.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \ingroup formats
+  */
+  
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;arpa/inet.h&gt;
+
+Modified: trunk/formats/format_ilbc.c
+===================================================================
+--- trunk/formats/format_ilbc.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/formats/format_ilbc.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \ingroup formats
+  */
+  
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;arpa/inet.h&gt;
+
+Modified: trunk/formats/format_ogg_vorbis.c
+===================================================================
+--- trunk/formats/format_ogg_vorbis.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/formats/format_ogg_vorbis.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -26,6 +26,10 @@
+ 	&lt;depend&gt;ogg&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;arpa/inet.h&gt;
+
+Modified: trunk/formats/format_sln.c
+===================================================================
+--- trunk/formats/format_sln.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/formats/format_sln.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -22,6 +22,10 @@
+  * \ingroup formats
+  */
+  
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;arpa/inet.h&gt;
+
+Modified: trunk/formats/format_wav.c
+===================================================================
+--- trunk/formats/format_wav.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/formats/format_wav.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -24,6 +24,10 @@
+  * \ingroup formats
+  */
+  
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;arpa/inet.h&gt;
+
+Modified: trunk/formats/format_wav_gsm.c
+===================================================================
+--- trunk/formats/format_wav_gsm.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/formats/format_wav_gsm.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,6 +27,10 @@
+  * \ingroup formats
+  */
+  
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;arpa/inet.h&gt;
+
+Modified: trunk/funcs/func_channel.c
+===================================================================
+--- trunk/funcs/func_channel.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/funcs/func_channel.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -38,6 +38,7 @@
+ #include &quot;asterisk/app.h&quot;
+ #include &quot;asterisk/indications.h&quot;
+ #include &quot;asterisk/stringfields.h&quot;
++
+ #define locked_copy_string(chan, dest, source, len) \
+ 	do { \
+ 		ast_channel_lock(chan); \
+
+Modified: trunk/funcs/func_global.c
+===================================================================
+--- trunk/funcs/func_global.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/funcs/func_global.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,16 +23,16 @@
+  * \author Tilghman Lesher &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">func_global__200605 at the-tilghman.com</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;sys/types.h&gt;
+ #include &lt;sys/stat.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+-ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
+-
+ #include &quot;asterisk/module.h&quot;
+ #include &quot;asterisk/channel.h&quot;
+ #include &quot;asterisk/pbx.h&quot;
+
+Modified: trunk/http.c
+===================================================================
+--- trunk/http.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/http.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,6 +27,10 @@
+  * \ref AstHTTP - AMI over the http protocol
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/image.c
+===================================================================
+--- trunk/image.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/image.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/include/asterisk/callerid.h
+===================================================================
+--- trunk/include/asterisk/callerid.h	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/include/asterisk/callerid.h	2006-06-23 17:05:10 UTC (rev 290)
+@@ -54,9 +54,7 @@
+ #define CID_SIG_V23	2
+ #define CID_SIG_DTMF	3
+ #define CID_SIG_V23_JP	4
+-#ifdef WITH_SMDI
+ #define CID_SIG_SMDI	5
+-#endif
+ 
+ #define CID_START_RING	1
+ #define CID_START_POLARITY 2
+
+Modified: trunk/include/asterisk.h
+===================================================================
+--- trunk/include/asterisk.h	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/include/asterisk.h	2006-06-23 17:05:10 UTC (rev 290)
+@@ -18,6 +18,8 @@
+ #ifndef _ASTERISK_H
+ #define _ASTERISK_H
+ 
++#include &quot;autoconfig.h&quot;
++
+ #include &quot;asterisk/compat.h&quot;
+ 
+ #define DEFAULT_LANGUAGE &quot;en&quot;
+
+Modified: trunk/include/autoconfig.h.in
+===================================================================
+--- trunk/include/autoconfig.h.in	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/include/autoconfig.h.in	2006-06-23 17:05:10 UTC (rev 290)
+@@ -1,5 +1,8 @@
+ /* include/autoconfig.h.in.  Generated from configure.ac by autoheader.  */
+ 
++#ifndef ASTERISK_AUTOCONFIG_H
++#define ASTERISK_AUTOCONFIG_H
++
+ #ifndef MENUSELECT
+ #include &quot;asterisk/buildopts.h&quot;
+ #endif
+@@ -566,3 +569,6 @@
+ /* Define to empty if the keyword `volatile' does not work. Warning: valid
+    code using `volatile' can become incorrect without. Disable with care. */
+ #undef volatile
++
++#endif
++
+
+Modified: trunk/logger.c
+===================================================================
+--- trunk/logger.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/logger.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;signal.h&gt;
+ #include &lt;stdarg.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/manager.c
+===================================================================
+--- trunk/manager.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/manager.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -32,6 +32,10 @@
+ /*! @{ 
+  Doxygen group */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/netsock.c
+===================================================================
+--- trunk/netsock.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/netsock.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/pbx/ael/ael.flex
+===================================================================
+--- trunk/pbx/ael/ael.flex	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/pbx/ael/ael.flex	2006-06-23 17:05:10 UTC (rev 290)
+@@ -56,11 +56,14 @@
+ %option bison-locations
+ 
+ %{
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;sys/stat.h&gt;
+ #include &lt;unistd.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+ #include &quot;asterisk/logger.h&quot;
+ #include &quot;ael/ael.tab.h&quot;
+ #include &quot;asterisk/ael_structs.h&quot;
+
+Modified: trunk/pbx/ael/ael.tab.c
+===================================================================
+--- trunk/pbx/ael/ael.tab.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/pbx/ael/ael.tab.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -174,9 +174,14 @@
+  * \brief Bison Grammar description of AEL2.
+  *
+  */
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
++
+ #include &quot;asterisk/logger.h&quot;
+ #include &quot;asterisk/ael_structs.h&quot;
+ 
+
+Modified: trunk/pbx/ael/ael.y
+===================================================================
+--- trunk/pbx/ael/ael.y	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/pbx/ael/ael.y	2006-06-23 17:05:10 UTC (rev 290)
+@@ -21,9 +21,15 @@
+  * \brief Bison Grammar description of AEL2.
+  *
+  */
++
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
++
+ #include &quot;asterisk/logger.h&quot;
+ #include &quot;asterisk/ael_structs.h&quot;
+ 
+
+Modified: trunk/pbx/ael/ael_lex.c
+===================================================================
+--- trunk/pbx/ael/ael_lex.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/pbx/ael/ael_lex.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -672,11 +672,14 @@
+  * bison-locations is probably not needed.
+  */
+ #line 59 &quot;ael.flex&quot;
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;sys/stat.h&gt;
+ #include &lt;unistd.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+ #include &quot;asterisk/logger.h&quot;
+ #include &quot;ael/ael.tab.h&quot;
+ #include &quot;asterisk/ael_structs.h&quot;
+
+Modified: trunk/pbx/dundi-parser.c
+===================================================================
+--- trunk/pbx/dundi-parser.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/pbx/dundi-parser.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -22,6 +22,10 @@
+  *
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;sys/socket.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/pbx/pbx_ael.c
+===================================================================
+--- trunk/pbx/pbx_ael.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/pbx/pbx_ael.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -22,6 +22,10 @@
+  * 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/pbx/pbx_config.c
+===================================================================
+--- trunk/pbx/pbx_config.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/pbx/pbx_config.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/pbx/pbx_dundi.c
+===================================================================
+--- trunk/pbx/pbx_dundi.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/pbx/pbx_dundi.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -26,6 +26,10 @@
+ 	&lt;depend&gt;zlib&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/pbx/pbx_gtkconsole.c
+===================================================================
+--- trunk/pbx/pbx_gtkconsole.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/pbx/pbx_gtkconsole.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,6 +27,10 @@
+ 	&lt;defaultenabled&gt;no&lt;/defaultenabled&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;fcntl.h&gt;
+
+Modified: trunk/pbx/pbx_spool.c
+===================================================================
+--- trunk/pbx/pbx_spool.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/pbx/pbx_spool.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -22,6 +22,10 @@
+  * 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/stat.h&gt;
+ #include &lt;errno.h&gt;
+ #include &lt;time.h&gt;
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/pbx.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/privacy.c
+===================================================================
+--- trunk/privacy.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/privacy.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/res/res_adsi.c
+===================================================================
+--- trunk/res/res_adsi.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/res/res_adsi.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,6 +25,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;time.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/res/res_agi.c
+===================================================================
+--- trunk/res/res_agi.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/res/res_agi.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;netdb.h&gt;
+ #include &lt;sys/socket.h&gt;
+
+Modified: trunk/res/res_crypto.c
+===================================================================
+--- trunk/res/res_crypto.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/res/res_crypto.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,6 +27,10 @@
+ 	&lt;depend&gt;ssl&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;openssl/ssl.h&gt;
+ #include &lt;openssl/err.h&gt;
+
+Modified: trunk/res/res_features.c
+===================================================================
+--- trunk/res/res_features.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/res/res_features.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;pthread.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;errno.h&gt;
+
+Modified: trunk/res/res_indications.c
+===================================================================
+--- trunk/res/res_indications.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/res/res_indications.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -24,6 +24,10 @@
+  * Load the country specific dialtones into the asterisk PBX.
+  */
+  
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;unistd.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;ctype.h&gt;
+
+Modified: trunk/res/res_jabber.c
+===================================================================
+--- trunk/res/res_jabber.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/res/res_jabber.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -25,13 +25,14 @@
+ 	&lt;depend&gt;iksemel&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;iksemel.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+-ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
+ #include &quot;asterisk/channel.h&quot;
+ #include &quot;asterisk/jabber.h&quot;
+ #include &quot;asterisk/file.h&quot;
+
+Modified: trunk/res/res_musiconhold.c
+===================================================================
+--- trunk/res/res_musiconhold.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/res/res_musiconhold.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -29,6 +29,10 @@
+ 	&lt;conflict&gt;win32&lt;/conflict&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;errno.h&gt;
+ #include &lt;unistd.h&gt;
+
+Modified: trunk/res/res_osp.c
+===================================================================
+--- trunk/res/res_osp.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/res/res_osp.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -30,6 +30,10 @@
+ 	&lt;depend&gt;ssl&lt;/depend&gt;
+  ***/
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;osp/osp.h&gt;
+ #include &lt;osp/osputils.h&gt;
+
+Modified: trunk/res/res_smdi.c
+===================================================================
+--- trunk/res/res_smdi.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/res/res_smdi.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -22,6 +22,10 @@
+  * \author Matthew A. Nicholson &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">mnicholson at digium.com</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;errno.h&gt;
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/rtp.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -26,6 +26,10 @@
+  * \note RTP is defined in RFC 3550.
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/say.c
+===================================================================
+--- trunk/say.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/say.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,6 +27,10 @@
+  *  						
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;stdlib.h&gt;
+
+Modified: trunk/sched.c
+===================================================================
+--- trunk/sched.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/sched.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt;
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #ifdef DEBUG_SCHEDULER
+ #define DEBUG(a) do { \
+ 	if (option_debug) \
+
+Modified: trunk/srv.c
+===================================================================
+--- trunk/srv.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/srv.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -29,6 +29,10 @@
+  * \note Funding provided by nic.at
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;netinet/in.h&gt;
+ #include &lt;arpa/nameser.h&gt;
+
+Modified: trunk/stdtime/localtime.c
+===================================================================
+--- trunk/stdtime/localtime.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/stdtime/localtime.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -43,6 +43,9 @@
+ #define TZ_STRLEN_MAX	255
+ /* #define DEBUG */
+ 
++#include &quot;asterisk.h&quot;
++ 
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
+ 
+ /*LINTLIBRARY*/
+ 
+
+Modified: trunk/strcompat.c
+===================================================================
+--- trunk/strcompat.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/strcompat.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -19,13 +19,11 @@
+  * \brief Compatibility functions for strsep and strtoq missing on Solaris 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+-#include &quot;asterisk/compat.h&quot;
+-
+ #ifndef HAVE_STRSEP
+ char *strsep(char **str, const char *delims)
+ {
+
+Modified: trunk/tdd.c
+===================================================================
+--- trunk/tdd.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/tdd.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -27,6 +27,10 @@
+  * \note Includes code and algorithms from the Zapata library.
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;time.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/term.c
+===================================================================
+--- trunk/term.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/term.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/translate.c
+===================================================================
+--- trunk/translate.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/translate.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,11 @@
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+ 
++#define MOD_LOADER	/* not really a module */
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;sys/socket.h&gt;
+ #include &lt;sys/time.h&gt;
+
+Modified: trunk/udptl.c
+===================================================================
+--- trunk/udptl.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/udptl.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -14,6 +14,10 @@
+  * This version is disclaimed to DIGIUM for inclusion in the Asterisk project.
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+
+Modified: trunk/utils/ael_main.c
+===================================================================
+--- trunk/utils/ael_main.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/utils/ael_main.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -1,3 +1,5 @@
++#include &quot;autoconfig.h&quot;
++
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;stdlib.h&gt;
+
+Modified: trunk/utils/astman.c
+===================================================================
+--- trunk/utils/astman.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/utils/astman.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -22,6 +22,8 @@
+  *
+  */
+  
++#include &quot;autoconfig.h&quot;
++
+ #include &lt;newt.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;sys/time.h&gt;
+
+Modified: trunk/utils/smsq.c
+===================================================================
+--- trunk/utils/smsq.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/utils/smsq.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -17,6 +17,8 @@
+  * at the top of the source tree.
+  */
+ 
++#include &quot;autoconfig.h&quot;
++
+ #include &lt;stdio.h&gt;
+ #include &lt;popt.h&gt;
+ #include &lt;sys/types.h&gt;
+@@ -28,6 +30,7 @@
+ #include &lt;stdlib.h&gt;
+ #include &lt;unistd.h&gt;
+ #include &lt;time.h&gt;
++
+ #include &lt;asterisk/compat.h&gt;
+ #ifdef SOLARIS
+ #define     POPT_ARGFLAG_SHOW_DEFAULT 0x00800000
+
+Modified: trunk/utils.c
+===================================================================
+--- trunk/utils.c	2006-06-18 22:41:08 UTC (rev 289)
++++ trunk/utils.c	2006-06-23 17:05:10 UTC (rev 290)
+@@ -23,6 +23,10 @@
+  * Please consult the CODING GUIDELINES for more information.
+  */
+ 
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
+ #include &lt;ctype.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;unistd.h&gt;
+@@ -46,7 +50,6 @@
+ #include &quot;asterisk/md5.h&quot;
+ #include &quot;asterisk/sha1.h&quot;
+ #include &quot;asterisk/options.h&quot;
+-#include &quot;asterisk/compat.h&quot;
+ 
+ #define AST_API_MODULE		/* ensure that inlinable API functions will be built in this module if required */
+ #include &quot;asterisk/strings.h&quot;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000284.html">[solid-pbx-svn] r289 - in trunk: . channels include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000286.html">[solid-pbx-svn] r291 - in trunk: . include include/asterisk utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#285">[ date ]</a>
+              <a href="thread.html#285">[ thread ]</a>
+              <a href="subject.html#285">[ subject ]</a>
+              <a href="author.html#285">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r376 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r376%20-%20trunk/channels&In-Reply-To=%3C200606280139.k5S1dWga017033%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000370.html">
+   <LINK REL="Next"  HREF="000372.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r376 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r376%20-%20trunk/channels&In-Reply-To=%3C200606280139.k5S1dWga017033%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r376 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:39:32 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000370.html">[solid-pbx-svn] r375 - in trunk: . channels configs db1-ast
+</A></li>
+        <LI>Next message: <A HREF="000372.html">[solid-pbx-svn] r377 - in trunk: . doc include/asterisk pbx pbx/ael pbx/ael/ael-test res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#371">[ date ]</a>
+              <a href="thread.html#371">[ thread ]</a>
+              <a href="subject.html#371">[ subject ]</a>
+              <a href="author.html#371">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:39:28 +0200 (Wed, 28 Jun 2006)
+New Revision: 376
+
+Modified:
+   trunk/channels/chan_jingle.c
+Log:
+Update to Asterisk SVN trunk r34663
+
+------------------------------------------------------------------------
+r34662 | russell | 2006-06-18 23:05:40 +0200 (Sun, 18 Jun 2006) | 10 lines
+
+Blocked revisions 34655 via svnmerge
+
+.......
+r34655 | russell | 2006-06-18 17:03:58 -0400 (Sun, 18 Jun 2006) | 3 lines
+
+don't set state to BUSY if the channel is already in the UP state
+(issue #7376, backported from trunk)
+
+.......
+
+------------------------------------------------------------------------
+r34663 | russell | 2006-06-18 23:24:35 +0200 (Sun, 18 Jun 2006) | 4 lines
+
+bail if ast_calloc fails, this was done before but i accidently removed it when
+moving these allocations so duplicate error messages were not produced
+(issue #7345)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_jingle.c
+===================================================================
+--- trunk/channels/chan_jingle.c	2006-06-28 01:38:49 UTC (rev 375)
++++ trunk/channels/chan_jingle.c	2006-06-28 01:39:28 UTC (rev 376)
+@@ -536,6 +536,8 @@
+ 	}
+ 	ours1 = ast_calloc(1, sizeof(*ours1));
+ 	ours2 = ast_calloc(1, sizeof(*ours2));
++	if (!ours1 || !ours2)
++		goto safeout;
+ 	iks_insert_node(iq, jingle);
+ 	iks_insert_node(jingle, candidate);
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000370.html">[solid-pbx-svn] r375 - in trunk: . channels configs db1-ast
+</A></li>
+	<LI>Next message: <A HREF="000372.html">[solid-pbx-svn] r377 - in trunk: . doc include/asterisk pbx pbx/ael pbx/ael/ael-test res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#371">[ date ]</a>
+              <a href="thread.html#371">[ thread ]</a>
+              <a href="subject.html#371">[ subject ]</a>
+              <a href="author.html#371">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

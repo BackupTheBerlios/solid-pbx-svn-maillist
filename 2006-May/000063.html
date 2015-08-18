@@ -1,0 +1,200 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r66 - in trunk: . apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r66%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605052318.k45NIv2G014438%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000062.html">
+   <LINK REL="Next"  HREF="000064.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r66 - in trunk: . apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r66%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605052318.k45NIv2G014438%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r66 - in trunk: . apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat May  6 01:18:57 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000062.html">[solid-pbx-svn] r65 - in trunk: . apps channels codecs configs
+</A></li>
+        <LI>Next message: <A HREF="000064.html">[solid-pbx-svn] r67 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#63">[ date ]</a>
+              <a href="thread.html#63">[ thread ]</a>
+              <a href="subject.html#63">[ subject ]</a>
+              <a href="author.html#63">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-06 01:18:47 +0200 (Sat, 06 May 2006)
+New Revision: 66
+
+Modified:
+   trunk/Makefile
+   trunk/apps/app_voicemail.c
+   trunk/channel.c
+Log:
+Update to Asterisk SVN trunk r25122
+
+------------------------------------------------------------------------
+r25094 | bweschke | 2006-05-06 00:18:07 +0200 (Sat, 06 May 2006) | 3 lines
+
+ Make the &quot;Avoided Initial Deadlock for '....', X retries!&quot; a LOG_DEBUG msg instead of LOG_WARNING as this only has relevance to developers trying to resolve a possible problem. #6949
+
+
+------------------------------------------------------------------------
+r25095 | russell | 2006-05-06 00:49:55 +0200 (Sat, 06 May 2006) | 3 lines
+
+add support for installing other init scripts, other than just the redhat
+version.  (issue #7093, initial patch by froguz, extended by north)
+
+------------------------------------------------------------------------
+r25096 | russell | 2006-05-06 00:57:11 +0200 (Sat, 06 May 2006) | 3 lines
+
+modify the handling of the new temporary greeting reminder feature so that
+it works for any language
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-05 22:25:18 UTC (rev 65)
++++ trunk/Makefile	2006-05-05 23:18:47 UTC (rev 66)
+@@ -884,12 +884,30 @@
+ 	$(MAKE) -C mpg123-0.59r $(MPG123TARG)
+ 
+ config:
+-	if [ -d /etc/rc.d/init.d ]; then \
+-		$(INSTALL) -m 755 contrib/init.d/rc.redhat.asterisk /etc/rc.d/init.d/asterisk; \
+-		/sbin/chkconfig --add asterisk; \
+-	elif [ -d /etc/init.d ]; then \
+-		$(INSTALL) -m 755 init.asterisk /etc/init.d/asterisk; \
+-	fi 
++	@if [ &quot;${OSARCH}&quot; = &quot;Linux&quot; ]; then \
++		if [ -f /etc/redhat-release -o -f /etc/fedora-release ]; then \
++			$(INSTALL) -m 755 contrib/init.d/rc.redhat.asterisk /etc/rc.d/init.d/asterisk; \
++			/sbin/chkconfig --add asterisk; \
++		elif [ -f /etc/debian_version ]; then \
++			$(INSTALL) -m 755 contrib/init.d/rc.debian.asterisk /etc/init.d/asterisk; \
++			/usr/sbin/update-rc.d asterisk start 10 2 3 4 5 . stop 91 2 3 4 5 .; \
++		elif [ -f /etc/gentoo-release ]; then \
++			$(INSTALL) -m 755 contrib/init.d/rc.gentoo.asterisk /etc/init.d/asterisk; \
++			/sbin/rc-update add asterisk default; \
++		elif [ -f /etc/mandrake-release ]; then \
++			$(INSTALL) -m 755 contrib/init.d/rc.mandrake.asterisk /etc/rc.d/init.d/asterisk; \
++			/sbin/chkconfig --add asterisk; \
++		elif [ -f /etc/SuSE-release -o -f /etc/novell-release ]; then \
++			$(INSTALL) -m 755 contrib/init.d/rc.suse.asterisk /etc/init.d/asterisk; \
++			/sbin/chkconfig --add asterisk; \
++		elif [ -f /etc/slackware-version ]; then \
++			echo &quot;Slackware is not currently supported, although an init script does exist for it.&quot; \
++		else \
++			echo &quot;We could not install init scripts for your distribution.&quot;; \
++		fi \
++	else \
++		echo &quot;We could not install init scripts for your operating system.&quot;; \
++	fi
+ 
+ dont-optimize: _all
+ 
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-05 22:25:18 UTC (rev 65)
++++ trunk/apps/app_voicemail.c	2006-05-05 23:18:47 UTC (rev 66)
+@@ -4060,18 +4060,10 @@
+ }
+ 	
+ /* Default English syntax */
+-static int vm_intro_en(struct ast_channel *chan, struct ast_vm_user *vmu, struct vm_state *vms)
+- {
++static int vm_intro_en(struct ast_channel *chan, struct vm_state *vms)
++{
+ 	int res;
+-	char prefile[256]=&quot;&quot;;
+ 
+-	/* Notify the user that the temp greeting is set and give them the option to remove it */
+-	snprintf(prefile, sizeof(prefile), &quot;%s%s/%s/temp&quot;, VM_SPOOL_DIR, vmu-&gt;context, vms-&gt;username);
+-	if (ast_test_flag(vmu, VM_TEMPGREETWARN)) {
+-		if (ast_fileexists(prefile, NULL, NULL) &gt; 0)
+-			res = ast_play_and_wait(chan, &quot;vm-tempgreetactive&quot;);
+-	}
+-
+ 	/* Introduce messages they have */
+ 	res = ast_play_and_wait(chan, &quot;vm-youhave&quot;);
+ 	if (!res) {
+@@ -4629,6 +4621,15 @@
+ 
+ static int vm_intro(struct ast_channel *chan, struct ast_vm_user *vmu, struct vm_state *vms)
+ {
++	char prefile[256];
++	
++	/* Notify the user that the temp greeting is set and give them the option to remove it */
++	snprintf(prefile, sizeof(prefile), &quot;%s%s/%s/temp&quot;, VM_SPOOL_DIR, vmu-&gt;context, vms-&gt;username);
++	if (ast_test_flag(vmu, VM_TEMPGREETWARN)) {
++		if (ast_fileexists(prefile, NULL, NULL) &gt; 0)
++			ast_play_and_wait(chan, &quot;vm-tempgreetactive&quot;);
++	}
++
+ 	/* Play voicemail intro - syntax is different for different languages */
+ 	if (!strcasecmp(chan-&gt;language, &quot;de&quot;)) {	/* GERMAN syntax */
+ 		return vm_intro_de(chan, vms);
+@@ -4653,7 +4654,7 @@
+ 	} else if (!strcasecmp(chan-&gt;language, &quot;ru&quot;)) {   /* RUSSIAN syntax */
+ 		return vm_intro_ru(chan, vms);
+ 	} else {					/* Default to ENGLISH */
+-		return vm_intro_en(chan, vmu, vms);
++		return vm_intro_en(chan, vms);
+ 	}
+ }
+ 
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-05-05 22:25:18 UTC (rev 65)
++++ trunk/channel.c	2006-05-05 23:18:47 UTC (rev 66)
+@@ -834,7 +834,7 @@
+  	 * c is surely not null, but we don't have the lock so cannot
+ 	 * access c-&gt;name
+ 	 */
+-	ast_log(LOG_WARNING, &quot;Failure, could not lock '%p' after %d retries!\n&quot;,
++	ast_log(LOG_DEBUG, &quot;Failure, could not lock '%p' after %d retries!\n&quot;,
+ 		c, retries);
+ 
+ 	return NULL;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000062.html">[solid-pbx-svn] r65 - in trunk: . apps channels codecs configs
+</A></li>
+	<LI>Next message: <A HREF="000064.html">[solid-pbx-svn] r67 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#63">[ date ]</a>
+              <a href="thread.html#63">[ thread ]</a>
+              <a href="subject.html#63">[ subject ]</a>
+              <a href="author.html#63">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

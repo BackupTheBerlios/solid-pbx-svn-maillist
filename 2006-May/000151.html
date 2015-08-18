@@ -1,0 +1,179 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r156 - in trunk: . channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r156%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200605161329.k4GDTN2R012375%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000150.html">
+   <LINK REL="Next"  HREF="000152.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r156 - in trunk: . channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r156%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200605161329.k4GDTN2R012375%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r156 - in trunk: . channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May 16 15:29:23 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000150.html">[solid-pbx-svn] r155 - in trunk: . funcs
+</A></li>
+        <LI>Next message: <A HREF="000152.html">[solid-pbx-svn] r157 - in trunk/channels: . misdn
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#151">[ date ]</a>
+              <a href="thread.html#151">[ thread ]</a>
+              <a href="subject.html#151">[ subject ]</a>
+              <a href="author.html#151">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-16 15:29:16 +0200 (Tue, 16 May 2006)
+New Revision: 156
+
+Modified:
+   trunk/channels/chan_sip.c
+   trunk/rtp.c
+Log:
+Update to Asterisk SVN trunk r27339
+
+------------------------------------------------------------------------
+r27305 | oej | 2006-05-16 14:42:59 +0200 (Tue, 16 May 2006) | 3 lines
+
+- Format fixes
+- Adding if(option_debug) in front of complicated debug messages...
+
+------------------------------------------------------------------------
+r27306 | oej | 2006-05-16 14:44:04 +0200 (Tue, 16 May 2006) | 2 lines
+
+One sipfrag attachment is enough...
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-16 03:30:26 UTC (rev 155)
++++ trunk/channels/chan_sip.c	2006-05-16 13:29:16 UTC (rev 156)
+@@ -5609,12 +5609,6 @@
+ 	add_header_contentLength(&amp;req, strlen(tmp));
+ 	add_line(&amp;req, tmp);
+ 
+-
+-	snprintf(tmp, sizeof(tmp), &quot;SIP/2.0 %s\r\n&quot;, message);
+-	add_header_contentLength(&amp;req, strlen(tmp));
+-	add_line(&amp;req, tmp);
+-
+-	
+ 	if (!p-&gt;initreq.headers)
+ 		initialize_initreq(p, &amp;req);
+ 
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-05-16 03:30:26 UTC (rev 155)
++++ trunk/rtp.c	2006-05-16 13:29:16 UTC (rev 156)
+@@ -174,21 +174,21 @@
+ #define STUN_BINDREQ	0x0001
+ #define STUN_BINDRESP	0x0101
+ #define STUN_BINDERR	0x0111
+-#define STUN_SECREQ		0x0002
++#define STUN_SECREQ	0x0002
+ #define STUN_SECRESP	0x0102
+-#define STUN_SECERR		0x0112
++#define STUN_SECERR	0x0112
+ 
+-#define STUN_MAPPED_ADDRESS		0x0001
++#define STUN_MAPPED_ADDRESS	0x0001
+ #define STUN_RESPONSE_ADDRESS	0x0002
+-#define STUN_CHANGE_REQUEST		0x0003
+-#define STUN_SOURCE_ADDRESS		0x0004
++#define STUN_CHANGE_REQUEST	0x0003
++#define STUN_SOURCE_ADDRESS	0x0004
+ #define STUN_CHANGED_ADDRESS	0x0005
+-#define STUN_USERNAME			0x0006
+-#define STUN_PASSWORD			0x0007
++#define STUN_USERNAME		0x0006
++#define STUN_PASSWORD		0x0007
+ #define STUN_MESSAGE_INTEGRITY	0x0008
+-#define STUN_ERROR_CODE			0x0009
++#define STUN_ERROR_CODE		0x0009
+ #define STUN_UNKNOWN_ATTRIBUTES	0x000a
+-#define STUN_REFLECTED_FROM		0x000b
++#define STUN_REFLECTED_FROM	0x000b
+ 
+ static const char *stun_msg2str(int msg)
+ {
+@@ -338,29 +338,34 @@
+ 	int resplen, respleft;
+ 	
+ 	if (len &lt; sizeof(struct stun_header)) {
+-		ast_log(LOG_DEBUG, &quot;Runt STUN packet (only %d, wanting at least %d)\n&quot;, len, sizeof(struct stun_header));
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Runt STUN packet (only %d, wanting at least %d)\n&quot;, len, sizeof(struct stun_header));
+ 		return -1;
+ 	}
+ 	if (stundebug)
+ 		ast_verbose(&quot;STUN Packet, msg %s (%04x), length: %d\n&quot;, stun_msg2str(ntohs(hdr-&gt;msgtype)), ntohs(hdr-&gt;msgtype), ntohs(hdr-&gt;msglen));
+ 	if (ntohs(hdr-&gt;msglen) &gt; len - sizeof(struct stun_header)) {
+-		ast_log(LOG_DEBUG, &quot;Scrambled STUN packet length (got %d, expecting %d)\n&quot;, ntohs(hdr-&gt;msglen), len - sizeof(struct stun_header));
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Scrambled STUN packet length (got %d, expecting %d)\n&quot;, ntohs(hdr-&gt;msglen), len - sizeof(struct stun_header));
+ 	} else
+ 		len = ntohs(hdr-&gt;msglen);
+ 	data += sizeof(struct stun_header);
+ 	memset(&amp;st, 0, sizeof(st));
+ 	while(len) {
+ 		if (len &lt; sizeof(struct stun_attr)) {
+-			ast_log(LOG_DEBUG, &quot;Runt Attribute (got %d, expecting %d)\n&quot;, len, sizeof(struct stun_attr));
++			if (option_debug)
++				ast_log(LOG_DEBUG, &quot;Runt Attribute (got %d, expecting %d)\n&quot;, len, sizeof(struct stun_attr));
+ 			break;
+ 		}
+ 		attr = (struct stun_attr *)data;
+ 		if (ntohs(attr-&gt;len) &gt; len) {
+-			ast_log(LOG_DEBUG, &quot;Inconsistant Attribute (length %d exceeds remaining msg len %d)\n&quot;, ntohs(attr-&gt;len), len);
++			if (option_debug)
++				ast_log(LOG_DEBUG, &quot;Inconsistant Attribute (length %d exceeds remaining msg len %d)\n&quot;, ntohs(attr-&gt;len), len);
+ 			break;
+ 		}
+ 		if (stun_process_attr(&amp;st, attr)) {
+-			ast_log(LOG_DEBUG, &quot;Failed to handle attribute %s (%04x)\n&quot;, stun_attr2str(ntohs(attr-&gt;attr)), ntohs(attr-&gt;attr));
++			if (option_debug)
++				ast_log(LOG_DEBUG, &quot;Failed to handle attribute %s (%04x)\n&quot;, stun_attr2str(ntohs(attr-&gt;attr)), ntohs(attr-&gt;attr));
+ 			break;
+ 		}
+ 		/* Clear attribute in case previous entry was a string */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000150.html">[solid-pbx-svn] r155 - in trunk: . funcs
+</A></li>
+	<LI>Next message: <A HREF="000152.html">[solid-pbx-svn] r157 - in trunk/channels: . misdn
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#151">[ date ]</a>
+              <a href="thread.html#151">[ thread ]</a>
+              <a href="subject.html#151">[ subject ]</a>
+              <a href="author.html#151">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

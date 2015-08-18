@@ -1,0 +1,576 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r71 - in trunk: configs funcs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r71%20-%20in%20trunk%3A%20configs%20funcs&In-Reply-To=%3C200605061418.k46EIhAV017122%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000067.html">
+   <LINK REL="Next"  HREF="000069.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r71 - in trunk: configs funcs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r71%20-%20in%20trunk%3A%20configs%20funcs&In-Reply-To=%3C200605061418.k46EIhAV017122%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r71 - in trunk: configs funcs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat May  6 16:18:43 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000067.html">[solid-pbx-svn] r70 - trunk/sounds
+</A></li>
+        <LI>Next message: <A HREF="000069.html">[solid-pbx-svn] r72 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#68">[ date ]</a>
+              <a href="thread.html#68">[ thread ]</a>
+              <a href="subject.html#68">[ subject ]</a>
+              <a href="author.html#68">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-06 16:18:27 +0200 (Sat, 06 May 2006)
+New Revision: 71
+
+Modified:
+   trunk/configs/func_odbc.conf.sample
+   trunk/funcs/func_odbc.c
+Log:
+Update to Asterisk SVN trunk r25259
+
+------------------------------------------------------------------------
+r25234 | bweschke | 2006-05-06 15:36:29 +0200 (Sat, 06 May 2006) | 3 lines
+
+ Fix output delimiters and add prefix parameter to func_odbc #7025 (Corydon76)
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/configs/func_odbc.conf.sample
+===================================================================
+--- trunk/configs/func_odbc.conf.sample	2006-05-06 13:38:38 UTC (rev 70)
++++ trunk/configs/func_odbc.conf.sample	2006-05-06 14:18:27 UTC (rev 71)
+@@ -34,4 +34,5 @@
+ dsn=mysql1
+ read=SELECT location FROM presence WHERE id='${SQL_ESC(${ARG1})}'
+ write=UPDATE presence SET location='${SQL_ESC(${VAL1})}' WHERE id='${SQL_ESC(${ARG1})}'
++;prefix=OFFICE		; Changes this function from ODBC_PRESENCE to OFFICE_PRESENCE
+ 
+
+Modified: trunk/funcs/func_odbc.c
+===================================================================
+--- trunk/funcs/func_odbc.c	2006-05-06 13:38:38 UTC (rev 70)
++++ trunk/funcs/func_odbc.c	2006-05-06 14:18:27 UTC (rev 71)
+@@ -47,23 +47,21 @@
+ #include &quot;asterisk/module.h&quot;
+ #include &quot;asterisk/config.h&quot;
+ #include &quot;asterisk/res_odbc.h&quot;
++#include &quot;asterisk/app.h&quot;
+ 
+ static char *tdesc = &quot;ODBC lookups&quot;;
+ 
+ static char *config = &quot;func_odbc.conf&quot;;
+ 
+ struct acf_odbc_query {
+-	char name[30];
++	AST_LIST_ENTRY(acf_odbc_query) list;
+ 	char dsn[30];
+ 	char sql_read[2048];
+ 	char sql_write[2048];
+ 	struct ast_custom_function *acf;
+-	unsigned int deleteme:1;
+-	struct acf_odbc_query *next;
+ };
+ 
+-static struct acf_odbc_query *queries = NULL;
+-AST_MUTEX_DEFINE_STATIC(query_lock);
++AST_LIST_HEAD_STATIC(queries, acf_odbc_query);
+ 
+ #ifdef NEEDTRACE
+ static void acf_odbc_error(SQLHSTMT stmt, int res)
+@@ -95,16 +93,16 @@
+ 	char *tracefile = &quot;/tmp/odbc.trace&quot;;
+ #endif
+ 
+-	ast_mutex_lock(&amp;query_lock);
+-	for (query=queries; query; query = query-&gt;next) {
+-		if (!strcasecmp(query-&gt;name, cmd + 5)) {
++	AST_LIST_LOCK(&amp;queries);
++	AST_LIST_TRAVERSE(&amp;queries, query, list) {
++		if (!strcmp(query-&gt;acf-&gt;name, cmd)) {
+ 			break;
+ 		}
+ 	}
+ 
+ 	if (!query) {
+ 		ast_log(LOG_ERROR, &quot;No such function '%s'\n&quot;, cmd);
+-		ast_mutex_unlock(&amp;query_lock);
++		AST_LIST_UNLOCK(&amp;queries);
+ 		return -1;
+ 	}
+ 
+@@ -112,7 +110,7 @@
+ 
+ 	if (!obj) {
+ 		ast_log(LOG_ERROR, &quot;No such DSN registered (or out of connections): %s (check res_odbc.conf)\n&quot;, query-&gt;dsn);
+-		ast_mutex_unlock(&amp;query_lock);
++		AST_LIST_UNLOCK(&amp;queries);
+ 		return -1;
+ 	}
+ 
+@@ -121,7 +119,7 @@
+ 
+ 	if (!s || !t) {
+ 		ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
+-		ast_mutex_unlock(&amp;query_lock);
++		AST_LIST_UNLOCK(&amp;queries);
+ 		return -1;
+ 	}
+ 
+@@ -171,7 +169,7 @@
+ 	pbx_builtin_setvar_helper(chan, &quot;VALUE&quot;, pbx_builtin_getvar_helper(ast, &quot;VALUE&quot;));
+ 
+ 	ast_channel_free(ast);
+-	ast_mutex_unlock(&amp;query_lock);
++	AST_LIST_UNLOCK(&amp;queries);
+ 
+ retry_write:
+ #ifdef NEEDTRACE
+@@ -242,7 +240,7 @@
+ 	struct odbc_obj *obj;
+ 	struct acf_odbc_query *query;
+ 	char *arg, sql[2048] = &quot;&quot;, varname[15];
+-	int count=0, res, x;
++	int count=0, res, x, buflen = 0;
+ 	SQLHSTMT stmt;
+ 	SQLSMALLINT colcount=0;
+ 	SQLINTEGER indicator;
+@@ -251,16 +249,16 @@
+ 	char *tracefile = &quot;/tmp/odbc.trace&quot;;
+ #endif
+ 
+-	ast_mutex_lock(&amp;query_lock);
+-	for (query=queries; query; query = query-&gt;next) {
+-		if (!strcasecmp(query-&gt;name, cmd + 5)) {
++	AST_LIST_LOCK(&amp;queries);
++	AST_LIST_TRAVERSE(&amp;queries, query, list) {
++		if (!strcmp(query-&gt;acf-&gt;name, cmd)) {
+ 			break;
+ 		}
+ 	}
+ 
+ 	if (!query) {
+ 		ast_log(LOG_ERROR, &quot;No such function '%s'\n&quot;, cmd);
+-		ast_mutex_unlock(&amp;query_lock);
++		AST_LIST_UNLOCK(&amp;queries);
+ 		return -1;
+ 	}
+ 
+@@ -268,7 +266,7 @@
+ 
+ 	if (!obj) {
+ 		ast_log(LOG_ERROR, &quot;No such DSN registered (or out of connections): %s (check res_odbc.conf)\n&quot;, query-&gt;dsn);
+-		ast_mutex_unlock(&amp;query_lock);
++		AST_LIST_UNLOCK(&amp;queries);
+ 		return -1;
+ 	}
+ 
+@@ -292,7 +290,7 @@
+ 		pbx_builtin_setvar_helper(chan, varname, NULL);
+ 	}
+ 
+-	ast_mutex_unlock(&amp;query_lock);
++	AST_LIST_UNLOCK(&amp;queries);
+ 
+ 	res = SQLAllocHandle (SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+ 	if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+@@ -336,7 +334,7 @@
+ 	}
+ 
+ 	for (x = 0; x &lt; colcount; x++) {
+-		int buflen, coldatalen;
++		int i;
+ 		char coldata[256];
+ 
+ 		buflen = strlen(buf);
+@@ -352,12 +350,24 @@
+ 			return -1;
+ 		}
+ 
+-		strncat(buf + buflen, coldata, len - buflen);
+-		coldatalen = strlen(coldata);
+-		strncat(buf + buflen + coldatalen, &quot;,&quot;, len - buflen - coldatalen);
++		/* Copy data, encoding '\' and ',' for the argument parser */
++		for (i = 0; i &lt; sizeof(coldata); i++) {
++			if (coldata[i] == '\\' || coldata[i] == ',') {
++				buf[buflen++] = '\\';
++			}
++			buf[buflen++] = coldata[i];
++
++			if (buflen &gt;= len - 2)
++				break;
++
++			if (coldata[i] == '\0')
++				break;
++		}
++
++		buf[buflen - 1] = ',';
+ 	}
+ 	/* Trim trailing comma */
+-	buf[strlen(buf) - 1] = '\0';
++	buf[buflen - 1] = '\0';
+ 
+ acf_out:
+ 	SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+@@ -400,12 +410,10 @@
+ 		return -1;
+ 	}
+ 
+-	*query = calloc(1, sizeof(struct acf_odbc_query));
++	*query = ast_calloc(1, sizeof(struct acf_odbc_query));
+ 	if (! (*query))
+ 		return -1;
+ 
+-	ast_copy_string((*query)-&gt;name, catg, sizeof((*query)-&gt;name));
+-
+ 	if ((tmp = ast_variable_retrieve(cfg, catg, &quot;dsn&quot;))) {
+ 		ast_copy_string((*query)-&gt;dsn, tmp, sizeof((*query)-&gt;dsn));
+ 	} else {
+@@ -420,54 +428,80 @@
+ 		ast_copy_string((*query)-&gt;sql_write, tmp, sizeof((*query)-&gt;sql_write));
+ 	}
+ 
+-	(*query)-&gt;acf = calloc(1, sizeof(struct ast_custom_function));
+-	if ((*query)-&gt;acf) {
++	(*query)-&gt;acf = ast_calloc(1, sizeof(struct ast_custom_function));
++	if (! (*query)-&gt;acf) {
++		free(*query);
++		return -1;
++	}
++
++	if ((tmp = ast_variable_retrieve(cfg, catg, &quot;prefix&quot;)) &amp;&amp; !ast_strlen_zero(tmp)) {
++		asprintf((char **)&amp;((*query)-&gt;acf-&gt;name), &quot;%s_%s&quot;, tmp, catg);
++	} else {
+ 		asprintf((char **)&amp;((*query)-&gt;acf-&gt;name), &quot;ODBC_%s&quot;, catg);
+-		asprintf((char **)&amp;((*query)-&gt;acf-&gt;syntax), &quot;ODBC_%s(&lt;arg1&gt;[...[,&lt;argN&gt;]])&quot;, catg);
+-		(*query)-&gt;acf-&gt;synopsis = &quot;Runs the referenced query with the specified arguments&quot;;
+-		if (!ast_strlen_zero((*query)-&gt;sql_read) &amp;&amp; !ast_strlen_zero((*query)-&gt;sql_write)) {
+-			asprintf((char **)&amp;((*query)-&gt;acf-&gt;desc),
+-						&quot;Runs the following query, as defined in func_odbc.conf, performing\n&quot;
+-					   	&quot;substitution of the arguments into the query as specified by ${ARG1},\n&quot;
+-						&quot;${ARG2}, ... ${ARGn}.  When setting the function, the values are provided\n&quot;
+-						&quot;either in whole as ${VALUE} or parsed as ${VAL1}, ${VAL2}, ... ${VALn}.\n&quot;
+-						&quot;\nRead:\n%s\n\nWrite:\n%s\n&quot;,
+-						(*query)-&gt;sql_read,
+-						(*query)-&gt;sql_write);
+-		} else if (!ast_strlen_zero((*query)-&gt;sql_read)) {
+-			asprintf((char **)&amp;((*query)-&gt;acf-&gt;desc),
+-						&quot;Runs the following query, as defined in func_odbc.conf, performing\n&quot;
+-					   	&quot;substitution of the arguments into the query as specified by ${ARG1},\n&quot;
+-						&quot;${ARG2}, ... ${ARGn}.  This function may only be read, not set.\n\nSQL:\n%s\n&quot;,
+-						(*query)-&gt;sql_read);
+-		} else if (!ast_strlen_zero((*query)-&gt;sql_write)) {
+-			asprintf((char **)&amp;((*query)-&gt;acf-&gt;desc),
+-						&quot;Runs the following query, as defined in func_odbc.conf, performing\n&quot;
+-					   	&quot;substitution of the arguments into the query as specified by ${ARG1},\n&quot;
+-						&quot;${ARG2}, ... ${ARGn}.  The values are provided either in whole as\n&quot;
+-						&quot;${VALUE} or parsed as ${VAL1}, ${VAL2}, ... ${VALn}.\n&quot;
+-						&quot;This function may only be set.\nSQL:\n%s\n&quot;,
+-						(*query)-&gt;sql_write);
+-		}
++	}
+ 
+-		if (ast_strlen_zero((*query)-&gt;sql_read)) {
+-			(*query)-&gt;acf-&gt;read = NULL;
+-		} else {
+-			(*query)-&gt;acf-&gt;read = acf_odbc_read;
+-		}
++	if (!((*query)-&gt;acf-&gt;name)) {
++		free((*query)-&gt;acf);
++		free(*query);
++		return -1;
++	}
+ 
+-		if (ast_strlen_zero((*query)-&gt;sql_write)) {
+-			(*query)-&gt;acf-&gt;write = NULL;
+-		} else {
+-			(*query)-&gt;acf-&gt;write = acf_odbc_write;
+-		}
++	asprintf((char **)&amp;((*query)-&gt;acf-&gt;syntax), &quot;%s(&lt;arg1&gt;[...[,&lt;argN&gt;]])&quot;, (*query)-&gt;acf-&gt;name);
+ 
+-		if (! (*query)-&gt;acf-&gt;name || ! (*query)-&gt;acf-&gt;syntax || ! (*query)-&gt;acf-&gt;desc) {
+-			return -1;
+-		}
+-	} else {
++	if (!((*query)-&gt;acf-&gt;syntax)) {
++		free((char *)(*query)-&gt;acf-&gt;name);
++		free((*query)-&gt;acf);
++		free(*query);
+ 		return -1;
+ 	}
++
++	(*query)-&gt;acf-&gt;synopsis = &quot;Runs the referenced query with the specified arguments&quot;;
++	if (!ast_strlen_zero((*query)-&gt;sql_read) &amp;&amp; !ast_strlen_zero((*query)-&gt;sql_write)) {
++		asprintf((char **)&amp;((*query)-&gt;acf-&gt;desc),
++					&quot;Runs the following query, as defined in func_odbc.conf, performing\n&quot;
++				   	&quot;substitution of the arguments into the query as specified by ${ARG1},\n&quot;
++					&quot;${ARG2}, ... ${ARGn}.  When setting the function, the values are provided\n&quot;
++					&quot;either in whole as ${VALUE} or parsed as ${VAL1}, ${VAL2}, ... ${VALn}.\n&quot;
++					&quot;\nRead:\n%s\n\nWrite:\n%s\n&quot;,
++					(*query)-&gt;sql_read,
++					(*query)-&gt;sql_write);
++	} else if (!ast_strlen_zero((*query)-&gt;sql_read)) {
++		asprintf((char **)&amp;((*query)-&gt;acf-&gt;desc),
++					&quot;Runs the following query, as defined in func_odbc.conf, performing\n&quot;
++				   	&quot;substitution of the arguments into the query as specified by ${ARG1},\n&quot;
++					&quot;${ARG2}, ... ${ARGn}.  This function may only be read, not set.\n\nSQL:\n%s\n&quot;,
++					(*query)-&gt;sql_read);
++	} else if (!ast_strlen_zero((*query)-&gt;sql_write)) {
++		asprintf((char **)&amp;((*query)-&gt;acf-&gt;desc),
++					&quot;Runs the following query, as defined in func_odbc.conf, performing\n&quot;
++				   	&quot;substitution of the arguments into the query as specified by ${ARG1},\n&quot;
++					&quot;${ARG2}, ... ${ARGn}.  The values are provided either in whole as\n&quot;
++					&quot;${VALUE} or parsed as ${VAL1}, ${VAL2}, ... ${VALn}.\n&quot;
++					&quot;This function may only be set.\nSQL:\n%s\n&quot;,
++					(*query)-&gt;sql_write);
++	}
++
++	/* Could be out of memory, or could be we have neither sql_read nor sql_write */
++	if (! ((*query)-&gt;acf-&gt;desc)) {
++		free((char *)(*query)-&gt;acf-&gt;syntax);
++		free((char *)(*query)-&gt;acf-&gt;name);
++		free((*query)-&gt;acf);
++		free(*query);
++		return -1;
++	}
++
++	if (ast_strlen_zero((*query)-&gt;sql_read)) {
++		(*query)-&gt;acf-&gt;read = NULL;
++	} else {
++		(*query)-&gt;acf-&gt;read = acf_odbc_read;
++	}
++
++	if (ast_strlen_zero((*query)-&gt;sql_write)) {
++		(*query)-&gt;acf-&gt;write = NULL;
++	} else {
++		(*query)-&gt;acf-&gt;write = acf_odbc_write;
++	}
++
+ 	return 0;
+ }
+ 
+@@ -494,64 +528,54 @@
+ 	struct ast_config *cfg;
+ 	char *catg;
+ 
+-	ast_mutex_lock(&amp;query_lock);
++	AST_LIST_LOCK(&amp;queries);
+ 
+ 	cfg = ast_config_load(config);
+ 	if (!cfg) {
+ 		ast_log(LOG_WARNING, &quot;Unable to load config for func_odbc: %s\n&quot;, config);
+-		goto out;
++		AST_LIST_UNLOCK(&amp;queries);
++		return -1;
+ 	}
+ 
+ 	for (catg = ast_category_browse(cfg, NULL);
+ 	     catg;
+ 	     catg = ast_category_browse(cfg, catg)) {
+-		struct acf_odbc_query *query=NULL;
++		struct acf_odbc_query *query = NULL;
+ 
+ 		if (init_acf_query(cfg, catg, &amp;query)) {
+ 			ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
+ 			free_acf_query(query);
+ 		} else {
+-			query-&gt;next = queries;
+-			queries = query;
++			AST_LIST_INSERT_HEAD(&amp;queries, query, list);
+ 			ast_custom_function_register(query-&gt;acf);
+ 		}
+ 	}
+ 
+ 	ast_config_destroy(cfg);
+ 	ast_custom_function_register(&amp;escape_function);
+-out:
+-	ast_mutex_unlock(&amp;query_lock);
++
++	AST_LIST_UNLOCK(&amp;queries);
+ 	return res;
+ }
+ 
+ static int odbc_unload_module(void)
+ {
+-	struct acf_odbc_query *query, *lastquery = NULL;
++	struct acf_odbc_query *query;
+ 
+-	ast_mutex_lock(&amp;query_lock);
+-	for (query = queries; query; query = query-&gt;next) {
+-		if (lastquery)
+-			free_acf_query(lastquery);
+-		if (ast_custom_function_unregister(query-&gt;acf)) {
+-			ast_log(LOG_ERROR, &quot;Cannot unregister function '%s'?\n&quot;, query-&gt;acf-&gt;name);
+-			/* Keep state valid */
+-			queries = query;
+-			ast_mutex_unlock(&amp;query_lock);
+-			return -1;
+-		} else {
+-			/* If anything is waiting on this lock, this will let it pass (avoids a race) */
+-			ast_mutex_unlock(&amp;query_lock);
+-			ast_mutex_lock(&amp;query_lock);
+-			lastquery = query;
+-		}
++	AST_LIST_LOCK(&amp;queries);
++	while (!AST_LIST_EMPTY(&amp;queries)) {
++		query = AST_LIST_REMOVE_HEAD(&amp;queries, list);
++		ast_custom_function_unregister(query-&gt;acf);
++		free_acf_query(query);
+ 	}
+-	if (lastquery)
+-		free(lastquery);
+-	queries = NULL;
+ 
+ 	ast_custom_function_unregister(&amp;escape_function);
+ 
+-	ast_mutex_unlock(&amp;query_lock);
++	/* Allow any threads waiting for this lock to pass (avoids a race) */
++	AST_LIST_UNLOCK(&amp;queries);
++	AST_LIST_LOCK(&amp;queries);
++
++	AST_LIST_UNLOCK(&amp;queries);
+ 	return 0;
+ }
+ 
+@@ -559,13 +583,15 @@
+ {
+ 	int res = 0;
+ 	struct ast_config *cfg;
+-	struct acf_odbc_query *q, *prevq = NULL, *qdel = NULL;
++	struct acf_odbc_query *oldquery;
+ 	char *catg;
+ 
+-	ast_mutex_lock(&amp;query_lock);
++	AST_LIST_LOCK(&amp;queries);
+ 
+-	for (q = queries; q; q = q-&gt;next) {
+-		q-&gt;deleteme = 1;
++	while (!AST_LIST_EMPTY(&amp;queries)) {
++		oldquery = AST_LIST_REMOVE_HEAD(&amp;queries, list);
++		ast_custom_function_unregister(oldquery-&gt;acf);
++		free_acf_query(oldquery);
+ 	}
+ 
+ 	cfg = ast_config_load(config);
+@@ -579,74 +605,17 @@
+ 	     catg = ast_category_browse(cfg, catg)) {
+ 		struct acf_odbc_query *query = NULL;
+ 
+-		/* We do this piecemeal, so that we stay in a consistent state, if there's ever an error */
+-		for (q = queries, prevq=NULL; q; prevq=q, q = q-&gt;next) {
+-			if (!strcasecmp(catg, q-&gt;name)) {
+-				break;
+-			}
+-		}
+-
+ 		if (init_acf_query(cfg, catg, &amp;query)) {
+-			ast_log(LOG_ERROR, &quot;Cannot initialize query ODBC_%s\n&quot;, catg);
+-			free_acf_query(query);
++			ast_log(LOG_ERROR, &quot;Cannot initialize query %s\n&quot;, catg);
+ 		} else {
+-			if (q) {
+-				/* Replacement */
+-				if (ast_custom_function_unregister(q-&gt;acf)) {
+-					ast_log(LOG_ERROR, &quot;Cannot reload query %s\n&quot;, query-&gt;acf-&gt;name);
+-					free_acf_query(query);
+-				} else {
+-					ast_custom_function_register(query-&gt;acf);
+-					/* Add it to the list */
+-					if (prevq)
+-						prevq-&gt;next = query;
+-					else
+-						queries = query;
+-					query-&gt;next = q-&gt;next;
+-					/* Get rid of the old record */
+-					free_acf_query(q);
+-				}
+-			} else {
+-				/* New */
+-				query-&gt;next = queries;
+-				queries = query;
+-				ast_custom_function_register(query-&gt;acf);
+-			}
++			AST_LIST_INSERT_HEAD(&amp;queries, query, list);
++			ast_custom_function_register(query-&gt;acf);
+ 		}
+ 	}
+ 
+-	/* Any remaining sets will now be destroyed */
+-	for (q = queries; q; q = q-&gt;next) {
+-		if (qdel) {
+-			free_acf_query(qdel);
+-			qdel = NULL;
+-		}
+-
+-		if (q-&gt;deleteme) {
+-			if (ast_custom_function_unregister(q-&gt;acf)) {
+-				ast_log(LOG_ERROR, &quot;Cannot unregister function?  Refusing to make 'ODBC_%s' go away.\n&quot;, q-&gt;name);
+-			} else {
+-				/* If anything is waiting on the lock to execute, this will dispose of it (without a race) */
+-				ast_mutex_unlock(&amp;query_lock);
+-				ast_mutex_lock(&amp;query_lock);
+-
+-				if (prevq) {
+-					prevq-&gt;next = q-&gt;next;
+-				} else {
+-					queries = q-&gt;next;
+-				}
+-				qdel = q;
+-			}
+-		} else {
+-			prevq = q;
+-		}
+-	}
+-	if (qdel)
+-		free_acf_query(qdel);
+-
+ 	ast_config_destroy(cfg);
+ reload_out:
+-	ast_mutex_unlock(&amp;query_lock);
++	AST_LIST_UNLOCK(&amp;queries);
+ 	return res;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000067.html">[solid-pbx-svn] r70 - trunk/sounds
+</A></li>
+	<LI>Next message: <A HREF="000069.html">[solid-pbx-svn] r72 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#68">[ date ]</a>
+              <a href="thread.html#68">[ thread ]</a>
+              <a href="subject.html#68">[ subject ]</a>
+              <a href="author.html#68">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

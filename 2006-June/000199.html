@@ -1,0 +1,273 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r204 - in trunk: . apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r204%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605312325.k4VNPvRL023110%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000198.html">
+   <LINK REL="Next"  HREF="000200.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r204 - in trunk: . apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r204%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605312325.k4VNPvRL023110%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r204 - in trunk: . apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu Jun  1 01:25:57 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000198.html">[solid-pbx-svn] r203 - in trunk: . include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000200.html">[solid-pbx-svn] r205 - in trunk: . cdr res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#199">[ date ]</a>
+              <a href="thread.html#199">[ thread ]</a>
+              <a href="subject.html#199">[ subject ]</a>
+              <a href="author.html#199">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-01 01:25:48 +0200 (Thu, 01 Jun 2006)
+New Revision: 204
+
+Modified:
+   trunk/apps/app_meetme.c
+   trunk/rtp.c
+Log:
+Update to Asterisk SVN trunk r31193
+
+------------------------------------------------------------------------
+r31162 | kpfleming | 2006-06-01 00:28:03 +0200 (Thu, 01 Jun 2006) | 10 lines
+
+Merged revisions 31161 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r31161 | kpfleming | 2006-05-31 17:26:38 -0500 (Wed, 31 May 2006) | 2 lines
+
+silence a warning message that is not a warning
+
+.......
+
+------------------------------------------------------------------------
+r31163 | file | 2006-06-01 00:54:58 +0200 (Thu, 01 Jun 2006) | 2 lines
+
+Fix up meetme some more (thanks TonyM!!!)
+
+------------------------------------------------------------------------
+r31193 | file | 2006-06-01 01:10:56 +0200 (Thu, 01 Jun 2006) | 2 lines
+
+Documentation changes for Qwell
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_meetme.c
+===================================================================
+--- trunk/apps/app_meetme.c	2006-05-31 22:01:54 UTC (rev 203)
++++ trunk/apps/app_meetme.c	2006-05-31 23:25:48 UTC (rev 204)
+@@ -151,7 +151,7 @@
+ 	/*! If set, user will be asked to record name on entry of conference 
+ 	 *  without review */
+ 	CONFFLAG_STARTMUTED = (1 &lt;&lt; 24)
+-	/*! If set, the user will be initially muted by admin */
++	/*! If set, the user will be initially self-muted */
+ };
+ 
+ AST_APP_OPTIONS(meetme_opts, {
+@@ -212,7 +212,7 @@
+ &quot;      'i' -- announce user join/leave with review\n&quot;
+ &quot;      'I' -- announce user join/leave without review\n&quot;
+ &quot;      'l' -- set listen only mode (Listen only, no talking)\n&quot;
+-&quot;      'm' -- set initially muted by admin\n&quot;
++&quot;      'm' -- set initially muted\n&quot;
+ &quot;      'M' -- enable music on hold when the conference has a single caller\n&quot;
+ &quot;      'o' -- set talker optimization - treats talkers who aren't speaking as\n&quot;
+ &quot;             being muted, meaning (a) No encode is done on transmission and\n&quot;
+@@ -250,10 +250,10 @@
+ &quot;      'K' -- Kick all users out of conference\n&quot;
+ &quot;      'l' -- Unlock conference\n&quot;
+ &quot;      'L' -- Lock conference\n&quot;
+-&quot;      'm' -- Unmute conference\n&quot;
+-&quot;      'M' -- Mute conference\n&quot;
+-&quot;      'n' -- Unmute entire conference (except admin)\n&quot;
+-&quot;      'N' -- Mute entire conference (except admin)\n&quot;
++&quot;      'm' -- Unmute one user\n&quot;
++&quot;      'M' -- Mute one user\n&quot;
++&quot;      'n' -- Unmute all users in the conference\n&quot;
++&quot;      'N' -- Mute all non-admin users in the conference\n&quot;
+ &quot;      'r' -- Reset one user's volume settings\n&quot;
+ &quot;      'R' -- Reset all users volume settings\n&quot;
+ &quot;      's' -- Lower entire conference speaking volume\n&quot;
+@@ -702,8 +702,8 @@
+ 					S_OR(user-&gt;chan-&gt;cid.cid_name, &quot;&lt;no name&gt;&quot;),
+ 					user-&gt;chan-&gt;name,
+ 					user-&gt;userflags &amp; CONFFLAG_ADMIN ? &quot;(Admin)&quot; : &quot;&quot;,
+-					user-&gt;adminflags &amp; ADMINFLAG_SELFMUTED ? &quot;(Listen only)&quot; : &quot;&quot;,
+-					user-&gt;adminflags &amp; ADMINFLAG_MUTED ? &quot;(Admin Muted)&quot; : &quot;&quot;,
++					user-&gt;userflags &amp; CONFFLAG_MONITOR ? &quot;(Listen only)&quot; : &quot;&quot;,
++					user-&gt;adminflags &amp; ADMINFLAG_MUTED ? &quot;(Admin Muted)&quot; : user-&gt;adminflags &amp; ADMINFLAG_SELFMUTED ? &quot;(Muted)&quot; : &quot;&quot;,
+ 					istalking(user-&gt;talking), hr, min, sec);
+ 			else 
+ 				ast_cli(fd, &quot;%d!%s!%s!%s!%s!%s!%s!%d!%02d:%02d:%02d\n&quot;,
+@@ -712,8 +712,8 @@
+ 					S_OR(user-&gt;chan-&gt;cid.cid_name, &quot;&quot;),
+ 					user-&gt;chan-&gt;name,
+ 					user-&gt;userflags  &amp; CONFFLAG_ADMIN   ? &quot;1&quot; : &quot;&quot;,
+-					user-&gt;adminflags &amp; ADMINFLAG_SELFMUTED ? &quot;1&quot; : &quot;&quot;,
+-					user-&gt;adminflags &amp; ADMINFLAG_MUTED  ? &quot;1&quot; : &quot;&quot;,
++					user-&gt;userflags  &amp; CONFFLAG_MONITOR ? &quot;1&quot; : &quot;&quot;,
++					user-&gt;adminflags &amp; (ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED)  ? &quot;1&quot; : &quot;&quot;,
+ 					user-&gt;talking, hr, min, sec);
+ 			
+ 		}
+@@ -964,11 +964,7 @@
+ 
+ 	user-&gt;chan = chan;
+ 	user-&gt;userflags = confflags;
+-	user-&gt;adminflags = 0;
+-	if (confflags &amp; CONFFLAG_STARTMUTED)
+-		user-&gt;adminflags |= ADMINFLAG_MUTED;
+-	if (confflags &amp; CONFFLAG_MONITOR)
+-		user-&gt;adminflags |= ADMINFLAG_SELFMUTED;
++	user-&gt;adminflags = (confflags &amp; CONFFLAG_STARTMUTED) ? ADMINFLAG_SELFMUTED : 0;
+ 	user-&gt;talking = -1;
+ 	conf-&gt;users++;
+ 	/* Update table */
+@@ -1380,7 +1376,7 @@
+ 					user-&gt;zapchannel = !retryzap;
+ 					goto zapretry;
+ 				}
+-				if ((user-&gt;adminflags &amp; ADMINFLAG_SELFMUTED) || (user-&gt;adminflags &amp; ADMINFLAG_MUTED))
++				if ((confflags &amp; CONFFLAG_MONITOR) || (user-&gt;adminflags &amp; (ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED)))
+ 					f = ast_read_noaudio(c);
+ 				else
+ 					f = ast_read(c);
+@@ -1484,14 +1480,17 @@
+ 								menu_active = 0;
+ 
+ 								/* for admin, change both admin and use flags */
+-								if (user-&gt;adminflags &amp; (ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED)) {
++								if (user-&gt;adminflags &amp; (ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED))
+ 									user-&gt;adminflags &amp;= ~(ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED);
+-									if (!ast_streamfile(chan, &quot;conf-unmuted&quot;, chan-&gt;language))
+-										ast_waitstream(chan, &quot;&quot;);
+-								} else {
++								else
+ 									user-&gt;adminflags |= (ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED);
++
++								if ((confflags &amp; CONFFLAG_MONITOR) || (user-&gt;adminflags &amp; (ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED))) {
+ 									if (!ast_streamfile(chan, &quot;conf-muted&quot;, chan-&gt;language))
+ 										ast_waitstream(chan, &quot;&quot;);
++								} else {
++									if (!ast_streamfile(chan, &quot;conf-unmuted&quot;, chan-&gt;language))
++										ast_waitstream(chan, &quot;&quot;);
+ 								}
+ 								break;
+ 							case '2': /* Un/Lock the Conference */
+@@ -1559,19 +1558,13 @@
+ 								user-&gt;adminflags ^= ADMINFLAG_SELFMUTED;
+ 
+ 								/* they can't override the admin mute state */
+-								if (user-&gt;adminflags &amp; (ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED)) {
+-									ztc.confmode = ZT_CONF_CONF | ZT_CONF_LISTENER;
++								if ((confflags &amp; CONFFLAG_MONITOR) || (user-&gt;adminflags &amp; (ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED))) {
+ 									if (!ast_streamfile(chan, &quot;conf-muted&quot;, chan-&gt;language))
+ 										ast_waitstream(chan, &quot;&quot;);
+ 								} else {
+-									ztc.confmode = ZT_CONF_CONF | ZT_CONF_TALKER | ZT_CONF_LISTENER;
+ 									if (!ast_streamfile(chan, &quot;conf-unmuted&quot;, chan-&gt;language))
+ 										ast_waitstream(chan, &quot;&quot;);
+ 								}
+-								if (ioctl(fd, ZT_SETCONF, &amp;ztc)) {
+-									ast_log(LOG_WARNING, &quot;Error setting conference - Un/Mute\n&quot;);
+-									ret = -1;
+-								}
+ 								break;
+ 							case '4':
+ 								tweak_listen_volume(user, VOL_DOWN);
+@@ -1624,8 +1617,8 @@
+ 					fr.data = buf;
+ 					fr.offset = AST_FRIENDLY_OFFSET;
+ 					if (!user-&gt;listen.actual &amp;&amp; 
+-						((user-&gt;adminflags &amp; ADMINFLAG_SELFMUTED) || 
+-						 (user-&gt;adminflags &amp; ADMINFLAG_MUTED) ||
++						((confflags &amp; CONFFLAG_MONITOR) || 
++						 (user-&gt;adminflags &amp; (ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED)) ||
+ 						 (!user-&gt;talking &amp;&amp; (confflags &amp; CONFFLAG_OPTIMIZETALKER))
+ 						 )) {
+ 						int index;
+@@ -2307,13 +2300,13 @@
+ 				break;					
+ 			case 109: /* m: Unmute */ 
+ 				if (user) {
+-					user-&gt;adminflags &amp;= ~ADMINFLAG_MUTED;
++					user-&gt;adminflags &amp;= ~(ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED);
+ 				} else
+ 					ast_log(LOG_NOTICE, &quot;Specified User not found!\n&quot;);
+ 				break;
+ 			case 110: /* n: Unmute all users */
+ 				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list)
+-					user-&gt;adminflags &amp;= ~ADMINFLAG_MUTED;
++					user-&gt;adminflags &amp;= ~(ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED);
+ 				break;
+ 			case 107: /* k: Kick user */ 
+ 				if (user)
+@@ -2434,7 +2427,7 @@
+ 	if (mute)
+ 		user-&gt;adminflags |= ADMINFLAG_MUTED;	/* request user muting */
+ 	else
+-		user-&gt;adminflags &amp;= ~ADMINFLAG_MUTED;	/* request user unmuting */
++		user-&gt;adminflags &amp;= ~(ADMINFLAG_MUTED | ADMINFLAG_SELFMUTED);	/* request user unmuting */
+ 
+ 	AST_LIST_UNLOCK(&amp;confs);
+ 
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-05-31 22:01:54 UTC (rev 203)
++++ trunk/rtp.c	2006-05-31 23:25:48 UTC (rev 204)
+@@ -762,7 +762,8 @@
+ 	ssrc = ntohl(rtpheader[2]);
+ 	
+ 	if (!mark &amp;&amp; rtp-&gt;rxssrc &amp;&amp; rtp-&gt;rxssrc != ssrc) {
+-		ast_log(LOG_WARNING, &quot;Forcing Marker bit, because SSRC has changed\n&quot;);
++		if (option_verbose &gt; 1)
++			ast_verbose(VERBOSE_PREFIX_2 &quot;Forcing Marker bit, because SSRC has changed\n&quot;);
+ 		mark = 1;
+ 	}
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000198.html">[solid-pbx-svn] r203 - in trunk: . include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000200.html">[solid-pbx-svn] r205 - in trunk: . cdr res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#199">[ date ]</a>
+              <a href="thread.html#199">[ thread ]</a>
+              <a href="subject.html#199">[ subject ]</a>
+              <a href="author.html#199">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

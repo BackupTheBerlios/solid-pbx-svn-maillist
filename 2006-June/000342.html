@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r347 - in trunk: . channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r347%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200606280104.k5S141jj009037%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000341.html">
+   <LINK REL="Next"  HREF="000343.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r347 - in trunk: . channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r347%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200606280104.k5S141jj009037%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r347 - in trunk: . channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:04:01 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000341.html">[solid-pbx-svn] r346 - in trunk: . configs
+</A></li>
+        <LI>Next message: <A HREF="000343.html">[solid-pbx-svn] r348 - in trunk: . include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#342">[ date ]</a>
+              <a href="thread.html#342">[ thread ]</a>
+              <a href="subject.html#342">[ subject ]</a>
+              <a href="author.html#342">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:03:57 +0200 (Wed, 28 Jun 2006)
+New Revision: 347
+
+Modified:
+   trunk/channels/chan_agent.c
+   trunk/translate.c
+Log:
+Update to Asterisk SVN trunk r33933
+
+------------------------------------------------------------------------
+r33933 | kpfleming | 2006-06-13 22:59:15 +0200 (Tue, 13 Jun 2006) | 2 lines
+
+use a compiler builtin (which uses processor instructions) for this operation
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_agent.c
+===================================================================
+--- trunk/channels/chan_agent.c	2006-06-28 01:03:22 UTC (rev 346)
++++ trunk/channels/chan_agent.c	2006-06-28 01:03:57 UTC (rev 347)
+@@ -1338,12 +1338,13 @@
+ 	return chan;
+ }
+ 
+-static int powerof(unsigned int v)
++static force_inline int powerof(unsigned int d)
+ {
+-	int x;
+-	for (x=0;x&lt;32;x++) {
+-		if (v &amp; (1 &lt;&lt; x)) return x;
+-	}
++	int x = ffs(d);
++
++	if (x)
++		return x - 1;
++
+ 	return 0;
+ }
+ 
+
+Modified: trunk/translate.c
+===================================================================
+--- trunk/translate.c	2006-06-28 01:03:22 UTC (rev 346)
++++ trunk/translate.c	2006-06-28 01:03:57 UTC (rev 347)
+@@ -79,13 +79,15 @@
+  */
+ 
+ /*! \brief returns the index of the lowest bit set */
+-static int powerof(int d)
++static force_inline int powerof(unsigned int d)
+ {
+-	int x;
+-	for (x = 0; x &lt; MAX_FORMAT; x++)
+-		if ((1 &lt;&lt; x) &amp; d)
+-			return x;
+-	ast_log(LOG_WARNING, &quot;Powerof %d: No power??\n&quot;, d);
++	int x = ffs(d);
++
++	if (x)
++		return x - 1;
++
++	ast_log(LOG_WARNING, &quot;No bits set? %d\n&quot;, d);
++
+ 	return -1;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000341.html">[solid-pbx-svn] r346 - in trunk: . configs
+</A></li>
+	<LI>Next message: <A HREF="000343.html">[solid-pbx-svn] r348 - in trunk: . include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#342">[ date ]</a>
+              <a href="thread.html#342">[ thread ]</a>
+              <a href="subject.html#342">[ subject ]</a>
+              <a href="author.html#342">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

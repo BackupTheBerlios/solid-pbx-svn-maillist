@@ -1,0 +1,696 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r88 - in trunk: . apps include/asterisk res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r88%20-%20in%20trunk%3A%20.%20apps%20include/asterisk%20res&In-Reply-To=%3C200605081218.k48CIaU7010851%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000084.html">
+   <LINK REL="Next"  HREF="000086.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r88 - in trunk: . apps include/asterisk res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r88%20-%20in%20trunk%3A%20.%20apps%20include/asterisk%20res&In-Reply-To=%3C200605081218.k48CIaU7010851%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r88 - in trunk: . apps include/asterisk res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  8 14:18:36 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000084.html">[solid-pbx-svn] r87 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000086.html">[solid-pbx-svn] r89 - in trunk: . apps include/asterisk pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#85">[ date ]</a>
+              <a href="thread.html#85">[ thread ]</a>
+              <a href="subject.html#85">[ subject ]</a>
+              <a href="author.html#85">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-08 14:18:30 +0200 (Mon, 08 May 2006)
+New Revision: 88
+
+Modified:
+   trunk/apps/app_meetme.c
+   trunk/apps/app_mixmonitor.c
+   trunk/include/asterisk/pbx.h
+   trunk/pbx.c
+   trunk/res/res_features.c
+Log:
+Update to Asterisk SVN trunk r25486
+
+------------------------------------------------------------------------
+r25443 | russell | 2006-05-08 13:20:19 +0200 (Mon, 08 May 2006) | 4 lines
+
+ - convert the lists of switches to use the linked list macros
+ - remove some checks of the result of ast_mutex_lock, since it is not necessary
+   (this would be a good project to add to the janitor projects list).
+
+------------------------------------------------------------------------
+r25444 | file | 2006-05-08 13:22:00 +0200 (Mon, 08 May 2006) | 2 lines
+
+Incorrect log statement when playing transfer sounds (issue #7008 reported and fixed by nathan)
+
+------------------------------------------------------------------------
+r25446 | russell | 2006-05-08 13:26:01 +0200 (Mon, 08 May 2006) | 2 lines
+
+remove a check of the result from ast_mutex_lock
+
+------------------------------------------------------------------------
+r25447 | mogorman | 2006-05-08 13:26:06 +0200 (Mon, 08 May 2006) | 3 lines
+
+added managerevent meetmemute with status on or off.
+patch provided by bug 6811, with modifications for api.
+
+------------------------------------------------------------------------
+r25450 | russell | 2006-05-08 13:30:32 +0200 (Mon, 08 May 2006) | 2 lines
+
+use ast_channel_(un)lock
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_meetme.c
+===================================================================
+--- trunk/apps/app_meetme.c	2006-05-08 11:18:35 UTC (rev 87)
++++ trunk/apps/app_meetme.c	2006-05-08 12:18:30 UTC (rev 88)
+@@ -2289,6 +2289,11 @@
+ 			case 77: /* M: Mute */ 
+ 				if (user) {
+ 					user-&gt;adminflags |= ADMINFLAG_MUTED;
++					manager_event(EVENT_FLAG_CALL, &quot;MeetmeMute&quot;,
++						&quot;Status: on&quot;
++						&quot;Meetme: %s\r\n&quot;
++						&quot;Usernum: %d\r\n&quot;,
++						cnf-&gt;confno, user-&gt;user_no);
+ 				} else {
+ 					ast_log(LOG_NOTICE, &quot;Specified User not found!\n&quot;);
+ 				}
+@@ -2308,6 +2313,11 @@
+ 			case 109: /* m: Unmute */ 
+ 				if (user &amp;&amp; (user-&gt;adminflags &amp; ADMINFLAG_MUTED)) {
+ 					user-&gt;adminflags ^= ADMINFLAG_MUTED;
++					manager_event(EVENT_FLAG_CALL, &quot;MeetmeMute&quot;,
++						&quot;Status: off&quot;
++						&quot;Meetme: %s\r\n&quot;
++						&quot;Usernum: %d\r\n&quot;,
++						cnf-&gt;confno, user-&gt;user_no);
+ 				} else {
+ 					ast_log(LOG_NOTICE, &quot;Specified User not found or he muted himself!\n&quot;);
+ 				}
+
+Modified: trunk/apps/app_mixmonitor.c
+===================================================================
+--- trunk/apps/app_mixmonitor.c	2006-05-08 11:18:35 UTC (rev 87)
++++ trunk/apps/app_mixmonitor.c	2006-05-08 12:18:30 UTC (rev 88)
+@@ -133,9 +133,9 @@
+ 	if (!chan)
+ 		return;
+ 
+-	ast_mutex_lock(&amp;chan-&gt;lock);
++	ast_channel_lock(chan);
+ 	ast_channel_spy_remove(chan, spy);
+-	ast_mutex_unlock(&amp;chan-&gt;lock);
++	ast_channel_unlock(chan);
+ }
+ 
+ static int startmon(struct ast_channel *chan, struct ast_channel_spy *spy) 
+@@ -146,9 +146,9 @@
+ 	if (!chan)
+ 		return -1;
+ 
+-	ast_mutex_lock(&amp;chan-&gt;lock);
++	ast_channel_lock(chan);
+ 	res = ast_channel_spy_add(chan, spy);
+-	ast_mutex_unlock(&amp;chan-&gt;lock);
++	ast_channel_unlock(chan);
+ 		
+ 	if (!res &amp;&amp; ast_test_flag(chan, AST_FLAG_NBRIDGE) &amp;&amp; (peer = ast_bridged_channel(chan)))
+ 		ast_softhangup(peer, AST_SOFTHANGUP_UNBRIDGE);	
+@@ -410,13 +410,9 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!ast_mutex_lock(&amp;chan-&gt;lock)) {
+-		ast_channel_spy_stop_by_type(chan, mixmonitor_spy_type);
+-		ast_mutex_unlock(&amp;chan-&gt;lock);
+-	} else {
+-		ast_log(LOG_WARNING, &quot;Could not lock %s to stop MixMonitor on it\n&quot;, 
+-				chan-&gt;name);
+-	}
++	ast_channel_lock(chan);
++	ast_channel_spy_stop_by_type(chan, mixmonitor_spy_type);
++	ast_channel_unlock(chan);
+ 
+ 	LOCAL_USER_REMOVE(u);
+ 
+@@ -440,7 +436,7 @@
+ 	else if (!strcasecmp(argv[1], &quot;stop&quot;))
+ 		ast_channel_spy_stop_by_type(chan, mixmonitor_spy_type);
+ 
+-	ast_mutex_unlock(&amp;chan-&gt;lock);
++	ast_channel_unlock(chan);
+ 
+ 	return RESULT_SUCCESS;
+ }
+
+Modified: trunk/include/asterisk/pbx.h
+===================================================================
+--- trunk/include/asterisk/pbx.h	2006-05-08 11:18:35 UTC (rev 87)
++++ trunk/include/asterisk/pbx.h	2006-05-08 12:18:30 UTC (rev 88)
+@@ -25,6 +25,7 @@
+ 
+ #include &quot;asterisk/sched.h&quot;
+ #include &quot;asterisk/channel.h&quot;
++#include &quot;asterisk/linkedlists.h&quot;
+ 
+ #if defined(__cplusplus) || defined(c_plusplus)
+ extern &quot;C&quot; {
+@@ -80,7 +81,7 @@
+ 
+ /*!&lt; Data structure associated with an Asterisk switch */
+ struct ast_switch {
+-	struct ast_switch *next;	
++	AST_LIST_ENTRY(ast_switch) list;
+ 	const char *name;			/*!&lt; Name of the switch */
+ 	const char *description;		/*!&lt; Description of the switch */
+ 	
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-08 11:18:35 UTC (rev 87)
++++ trunk/pbx.c	2006-05-08 12:18:30 UTC (rev 88)
+@@ -144,7 +144,7 @@
+ 	const char *registrar;			/*!&lt; Registrar */
+ 	char *data;				/*!&lt; Data load */
+ 	int eval;
+-	struct ast_sw *next;			/*!&lt; Link them together */
++	AST_LIST_ENTRY(ast_sw) list;
+ 	char *tmpdata;
+ 	char stuff[0];
+ };
+@@ -164,7 +164,7 @@
+ 	struct ast_include *includes;		/*!&lt; Include other contexts */
+ 	struct ast_ignorepat *ignorepats;	/*!&lt; Patterns for which to continue playing dialtone */
+ 	const char *registrar;			/*!&lt; Registrar */
+-	struct ast_sw *alts;			/*!&lt; Alternative switches */
++	AST_LIST_HEAD_NOLOCK(, ast_sw) alts;	/*!&lt; Alternative switches */
+ 	char name[0];				/*!&lt; Name of the context */
+ };
+ 
+@@ -466,8 +466,7 @@
+ 
+ static AST_LIST_HEAD_STATIC(apps, ast_app);
+ 
+-struct ast_switch *switches = NULL;
+-AST_MUTEX_DEFINE_STATIC(switchlock);		/*!&lt; Lock for switches */
++static AST_LIST_HEAD_STATIC(switches, ast_switch);
+ 
+ static int stateid = 1;
+ /* WARNING:
+@@ -544,15 +543,13 @@
+ {
+ 	struct ast_switch *asw;
+ 
+-	if (ast_mutex_lock(&amp;switchlock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to obtain application lock\n&quot;);
+-		return NULL;
+-	}
+-	for (asw = switches; asw; asw = asw-&gt;next) {
++	AST_LIST_LOCK(&amp;switches);
++	AST_LIST_TRAVERSE(&amp;switches, asw, list) {
+ 		if (!strcasecmp(asw-&gt;name, sw))
+ 			break;
+ 	}
+-	ast_mutex_unlock(&amp;switchlock);
++	AST_LIST_UNLOCK(&amp;switches);
++
+ 	return asw;
+ }
+ 
+@@ -797,7 +794,7 @@
+ 				return NULL;
+ 			}
+ 			/* Check alternative switches */
+-			for (sw = tmp-&gt;alts; sw; sw = sw-&gt;next) {
++			AST_LIST_TRAVERSE(&amp;tmp-&gt;alts, sw, list) {
+ 				if ((asw = pbx_findswitch(sw-&gt;name))) {
+ 					/* Substitute variables now */
+ 					if (sw-&gt;eval) 
+@@ -1466,13 +1463,8 @@
+ 	char atmp[80];
+ 	char atmp2[EXT_DATA_SIZE+100];
+ 
+-	if (ast_mutex_lock(&amp;conlock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to obtain lock\n&quot;);
+-		if ((action == HELPER_EXISTS) || (action == HELPER_CANMATCH) || (action == HELPER_MATCHMORE))
+-			return 0;
+-		else
+-			return -1;
+-	}
++	ast_mutex_lock(&amp;conlock);
++
+ 	e = pbx_find_extension(c, con, context, exten, priority, label, callerid, action, incstack, &amp;stacklen, &amp;status, &amp;sw, &amp;data, &amp;foundcontext);
+ 	if (e) {
+ 		switch(action) {
+@@ -1599,12 +1591,10 @@
+ 	char *incstack[AST_PBX_MAX_STACK];
+ 	int stacklen = 0;
+ 
+-	if (ast_mutex_lock(&amp;conlock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to obtain lock\n&quot;);
+-		return NULL;
+-	}
++	ast_mutex_lock(&amp;conlock);
+ 	e = pbx_find_extension(c, NULL, context, exten, PRIORITY_HINT, NULL, &quot;&quot;, HELPER_EXISTS, incstack, &amp;stacklen, &amp;status, &amp;sw, &amp;data, &amp;foundcontext);
+-	ast_mutex_unlock(&amp;conlock);	
++	ast_mutex_unlock(&amp;conlock);
++
+ 	return e;
+ }
+ 
+@@ -2357,16 +2347,14 @@
+ static struct ast_context *find_context_locked(const char *context)
+ {
+ 	struct ast_context *c = NULL;
+-	if (ast_lock_contexts()) {
+-		errno = EBUSY;
+-		return NULL;
+-	}
++
++	ast_lock_contexts();
+ 	while ( (c = ast_walk_contexts(c)) ) {
+ 		if (!strcmp(ast_get_context_name(c), context))
+ 			return c;
+ 	}
+ 	ast_unlock_contexts();
+-	errno = ENOENT;
++
+ 	return NULL;
+ }
+ 
+@@ -2453,27 +2441,26 @@
+  */
+ int ast_context_remove_switch2(struct ast_context *con, const char *sw, const char *data, const char *registrar)
+ {
+-	struct ast_sw *i, *pi = NULL;
++	struct ast_sw *i;
+ 	int ret = -1;
+ 
+-	if (ast_mutex_lock(&amp;con-&gt;lock))
+-		return -1;
++	ast_mutex_lock(&amp;con-&gt;lock);
+ 
+-	/* walk switchs */
+-	for (i = con-&gt;alts; i; pi = i, i = i-&gt;next) {
++	/* walk switches */
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;con-&gt;alts, i, list) {
+ 		if (!strcmp(i-&gt;name, sw) &amp;&amp; !strcmp(i-&gt;data, data) &amp;&amp; 
+ 			(!registrar || !strcmp(i-&gt;registrar, registrar))) {
+ 			/* found, remove from list */
+-			if (pi)
+-				pi-&gt;next = i-&gt;next;
+-			else
+-				con-&gt;alts = i-&gt;next;
++			AST_LIST_REMOVE_CURRENT(&amp;con-&gt;alts, list);
+ 			free(i); /* free switch and return */
+ 			ret = 0;
+ 			break;
+ 		}
+ 	}
++	AST_LIST_TRAVERSE_SAFE_END
++
+ 	ast_mutex_unlock(&amp;con-&gt;lock);
++
+ 	return ret;
+ }
+ 
+@@ -2508,8 +2495,7 @@
+ {
+ 	struct ast_exten *exten, *prev_exten = NULL;
+ 
+-	if (ast_mutex_lock(&amp;con-&gt;lock))
+-		return -1;
++	ast_mutex_lock(&amp;con-&gt;lock);
+ 
+ 	/* go through all extensions in context and search the right one ... */
+ 	exten = con-&gt;root;
+@@ -2662,47 +2648,27 @@
+  */
+ int ast_register_switch(struct ast_switch *sw)
+ {
+-	struct ast_switch *tmp, *prev=NULL;
+-	if (ast_mutex_lock(&amp;switchlock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock switch lock\n&quot;);
+-		return -1;
++	struct ast_switch *tmp;
++
++	AST_LIST_LOCK(&amp;switches);
++	AST_LIST_TRAVERSE(&amp;switches, tmp, list) {
++		if (!strcasecmp(tmp-&gt;name, sw-&gt;name)) {
++			AST_LIST_UNLOCK(&amp;switches);
++			ast_log(LOG_WARNING, &quot;Switch '%s' already found\n&quot;, sw-&gt;name);
++			return -1;
++		}
+ 	}
+-	for (tmp = switches; tmp; prev = tmp, tmp = tmp-&gt;next) {
+-		if (!strcasecmp(tmp-&gt;name, sw-&gt;name))
+-			break;
+-	}
+-	if (tmp) {	
+-		ast_mutex_unlock(&amp;switchlock);
+-		ast_log(LOG_WARNING, &quot;Switch '%s' already found\n&quot;, sw-&gt;name);
+-		return -1;
+-	}
+-	sw-&gt;next = NULL;
+-	if (prev) 
+-		prev-&gt;next = sw;
+-	else
+-		switches = sw;
+-	ast_mutex_unlock(&amp;switchlock);
++	AST_LIST_INSERT_TAIL(&amp;switches, sw, list);
++	AST_LIST_UNLOCK(&amp;switches);
++	
+ 	return 0;
+ }
+ 
+ void ast_unregister_switch(struct ast_switch *sw)
+ {
+-	struct ast_switch *tmp, *prev=NULL;
+-	if (ast_mutex_lock(&amp;switchlock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock switch lock\n&quot;);
+-		return;
+-	}
+-	for (tmp = switches; tmp; prev = tmp, tmp = tmp-&gt;next) {
+-		if (tmp == sw) {
+-			if (prev)
+-				prev-&gt;next = tmp-&gt;next;
+-			else
+-				switches = tmp-&gt;next;
+-			tmp-&gt;next = NULL;
+-			break;			
+-		}
+-	}
+-	ast_mutex_unlock(&amp;switchlock);
++	AST_LIST_LOCK(&amp;switches);
++	AST_LIST_REMOVE(&amp;switches, sw, list);
++	AST_LIST_UNLOCK(&amp;switches);
+ }
+ 
+ /*
+@@ -2863,10 +2829,7 @@
+ 	}
+ 	/* ... we have hints ... */
+ 	ast_cli(fd, &quot;\n    -= Registered Asterisk Dial Plan Hints =-\n&quot;);
+-	if (AST_LIST_LOCK(&amp;hints)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock hints\n&quot;);
+-		return -1;
+-	}
++	AST_LIST_LOCK(&amp;hints);
+ 	AST_LIST_TRAVERSE(&amp;hints, hint, list) {
+ 		watchers = 0;
+ 		for (watcher = hint-&gt;callbacks; watcher; watcher = watcher-&gt;next)
+@@ -2888,19 +2851,21 @@
+ static int handle_show_switches(int fd, int argc, char *argv[])
+ {
+ 	struct ast_switch *sw;
+-	if (!switches) {
++
++	AST_LIST_LOCK(&amp;switches);
++	
++	if (AST_LIST_EMPTY(&amp;switches)) {
++		AST_LIST_UNLOCK(&amp;switches);
+ 		ast_cli(fd, &quot;There are no registered alternative switches\n&quot;);
+ 		return RESULT_SUCCESS;
+ 	}
+-	/* ... we have applications ... */
++
+ 	ast_cli(fd, &quot;\n    -= Registered Asterisk Alternative Switches =-\n&quot;);
+-	if (ast_mutex_lock(&amp;switchlock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock switches\n&quot;);
+-		return -1;
+-	}
+-	for (sw = switches; sw; sw = sw-&gt;next)
++	AST_LIST_TRAVERSE(&amp;switches, sw, list)
+ 		ast_cli(fd, &quot;%s: %s\n&quot;, sw-&gt;name, sw-&gt;description);
+-	ast_mutex_unlock(&amp;switchlock);
++
++	AST_LIST_UNLOCK(&amp;switches);
++
+ 	return RESULT_SUCCESS;
+ }
+ 
+@@ -2998,11 +2963,7 @@
+ 	if (pos != 2)
+ 		return NULL;
+ 
+-	/* try to lock contexts list ... */
+-	if (ast_lock_contexts()) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock context list\n&quot;);
+-		return NULL;
+-	}
++	ast_lock_contexts();
+ 
+ 	wordlen = strlen(word);
+ 
+@@ -3014,8 +2975,8 @@
+ 		}
+ 	}
+ 
+-	/* ... unlock and return */
+ 	ast_unlock_contexts();
++
+ 	return ret;
+ }
+ 
+@@ -3032,11 +2993,7 @@
+ 	struct ast_context *c = NULL;
+ 	int res = 0, old_total_exten = dpc-&gt;total_exten;
+ 
+-	/* try to lock contexts */
+-	if (ast_lock_contexts()) {
+-		ast_log(LOG_WARNING, &quot;Failed to lock contexts list\n&quot;);
+-		return -1;
+-	}
++	ast_lock_contexts();
+ 
+ 	/* walk all contexts ... */
+ 	while ( (c = ast_walk_contexts(c)) ) {
+@@ -3045,8 +3002,8 @@
+ 			!strcmp(ast_get_context_name(c), context)) {
+ 			dpc-&gt;context_existence = 1;
+ 
+-			/* try to lock context before walking in ... */
+-			if (!ast_lock_context(c)) {
++			ast_lock_context(c);
++			/* XXX re-indent this block */
+ 				struct ast_exten *e;
+ 				struct ast_include *i;
+ 				struct ast_ignorepat *ip;
+@@ -3201,7 +3158,6 @@
+ 
+ 				/* if we print something in context, make an empty line */
+ 				if (context_info_printed) ast_cli(fd, &quot;\r\n&quot;);
+-			}
+ 		}
+ 	}
+ 	ast_unlock_contexts();
+@@ -3800,12 +3756,7 @@
+ 	new_include-&gt;next      = NULL;
+ 	new_include-&gt;registrar = registrar;
+ 
+-	/* ... try to lock this context ... */
+-	if (ast_mutex_lock(&amp;con-&gt;lock)) {
+-		free(new_include);
+-		errno = EBUSY;
+-		return -1;
+-	}
++	ast_mutex_lock(&amp;con-&gt;lock);
+ 
+ 	/* ... go to last include and check if context is already included too... */
+ 	for (i = con-&gt;includes; i; i = i-&gt;next) {
+@@ -3858,7 +3809,7 @@
+ 	const char *data, int eval, const char *registrar)
+ {
+ 	struct ast_sw *new_sw;
+-	struct ast_sw *i, *il = NULL; /* sw, sw_last */
++	struct ast_sw *i;
+ 	int length;
+ 	char *p;
+ 	
+@@ -3892,35 +3843,28 @@
+ 	}
+ 	if (eval) 
+ 		new_sw-&gt;tmpdata = p;
+-	new_sw-&gt;next      = NULL;
+ 	new_sw-&gt;eval	  = eval;
+ 	new_sw-&gt;registrar = registrar;
+ 
+ 	/* ... try to lock this context ... */
+-	if (ast_mutex_lock(&amp;con-&gt;lock)) {
+-		free(new_sw);
+-		errno = EBUSY;
+-		return -1;
+-	}
++	ast_mutex_lock(&amp;con-&gt;lock);
+ 
+ 	/* ... go to last sw and check if context is already swd too... */
+-	for (i = con-&gt;alts; i; i = i-&gt;next) {
++	AST_LIST_TRAVERSE(&amp;con-&gt;alts, i, list) {
+ 		if (!strcasecmp(i-&gt;name, new_sw-&gt;name) &amp;&amp; !strcasecmp(i-&gt;data, new_sw-&gt;data)) {
+ 			free(new_sw);
+ 			ast_mutex_unlock(&amp;con-&gt;lock);
+ 			errno = EEXIST;
+ 			return -1;
+ 		}
+-		il = i;
+ 	}
+ 
+ 	/* ... sw new context into context list, unlock, return */
+-	if (il)
+-		il-&gt;next = new_sw;
+-	else
+-		con-&gt;alts = new_sw;
++	AST_LIST_INSERT_TAIL(&amp;con-&gt;alts, new_sw, list);
++	
+ 	if (option_verbose &gt; 2)
+-		ast_verbose(VERBOSE_PREFIX_3 &quot;Including switch '%s/%s' in context '%s'\n&quot;, new_sw-&gt;name, new_sw-&gt;data, ast_get_context_name(con)); 
++		ast_verbose(VERBOSE_PREFIX_3 &quot;Including switch '%s/%s' in context '%s'\n&quot;, new_sw-&gt;name, new_sw-&gt;data, ast_get_context_name(con));
++
+ 	ast_mutex_unlock(&amp;con-&gt;lock);
+ 
+ 	return 0;
+@@ -3946,10 +3890,7 @@
+ {
+ 	struct ast_ignorepat *ip, *ipl = NULL;
+ 
+-	if (ast_mutex_lock(&amp;con-&gt;lock)) {
+-		errno = EBUSY;
+-		return -1;
+-	}
++	ast_mutex_lock(&amp;con-&gt;lock);
+ 
+ 	for (ip = con-&gt;ignorepats; ip; ip = ip-&gt;next) {
+ 		if (!strcmp(ip-&gt;pattern, ignorepat) &amp;&amp;
+@@ -4252,14 +4193,7 @@
+ 	tmp-&gt;datad = datad;
+ 	tmp-&gt;registrar = registrar;
+ 	
+-	if (ast_mutex_lock(&amp;con-&gt;lock)) {
+-		free(tmp);
+-		/* And properly destroy the data */
+-		datad(data);
+-		ast_log(LOG_WARNING, &quot;Failed to lock context '%s'\n&quot;, con-&gt;name);
+-		errno = EBUSY;
+-		return -1;
+-	}
++	ast_mutex_lock(&amp;con-&gt;lock);
+ 	for (e = con-&gt;root; e; e = e-&gt;next) {
+ 		/* Make sure patterns are always last! */
+ 		if ((e-&gt;exten[0] != '_') &amp;&amp; (extension[0] == '_'))
+@@ -4819,7 +4753,7 @@
+ {
+ 	struct ast_context *tmp, *tmpl=NULL;
+ 	struct ast_include *tmpi, *tmpil= NULL;
+-	struct ast_sw *sw, *swl= NULL;
++	struct ast_sw *sw;
+ 	struct ast_exten *e, *el, *en;
+ 	struct ast_ignorepat *ipi, *ipl = NULL;
+ 
+@@ -4830,10 +4764,7 @@
+ 		    (!registrar || !strcasecmp(registrar, tmp-&gt;registrar))) {
+ 			/* Okay, let's lock the structure to be sure nobody else
+ 			   is searching through it. */
+-			if (ast_mutex_lock(&amp;tmp-&gt;lock)) {
+-				ast_log(LOG_WARNING, &quot;Unable to lock context lock\n&quot;);
+-				break;
+-			}
++			ast_mutex_lock(&amp;tmp-&gt;lock);
+ 			if (tmpl)
+ 				tmpl-&gt;next = tmp-&gt;next;
+ 			else
+@@ -4853,13 +4784,8 @@
+ 				ipi = ipi-&gt;next;
+ 				free(ipl);
+ 			}
+-			for (sw = tmp-&gt;alts; sw; ) {
+-				/* Free switches */
+-				swl = sw;
+-				sw = sw-&gt;next;
+-				free(swl);
+-				swl = sw;
+-			}
++			while ((sw = AST_LIST_REMOVE_HEAD(&amp;tmp-&gt;alts, list)))
++				free(sw);
+ 			for (e = tmp-&gt;root; e;) {
+ 				for (en = e-&gt;peer; en;) {
+ 					el = en;
+@@ -5734,9 +5660,9 @@
+ 	struct ast_sw *sw)
+ {
+ 	if (!sw)
+-		return con ? con-&gt;alts : NULL;
++		return con ? AST_LIST_FIRST(&amp;con-&gt;alts) : NULL;
+ 	else
+-		return sw-&gt;next;
++		return AST_LIST_NEXT(sw, list);
+ }
+ 
+ struct ast_exten *ast_walk_extension_priorities(struct ast_exten *exten,
+
+Modified: trunk/res/res_features.c
+===================================================================
+--- trunk/res/res_features.c	2006-05-08 11:18:35 UTC (rev 87)
++++ trunk/res/res_features.c	2006-05-08 12:18:30 UTC (rev 88)
+@@ -704,7 +704,7 @@
+ 	if (newchan-&gt;_softhangup || newchan-&gt;_state != AST_STATE_UP || !transferer-&gt;_softhangup) {
+ 		ast_hangup(newchan);
+ 		if (ast_stream_and_wait(transferer, xfersound, transferer-&gt;language, &quot;&quot;))
+-			ast_log(LOG_WARNING, &quot;Failed to play courtesy tone!\n&quot;);
++			ast_log(LOG_WARNING, &quot;Failed to play transfer sound!\n&quot;);
+ 		finishup(transferee);
+ 		transferer-&gt;_softhangup = 0;
+ 		return FEATURE_RETURN_SUCCESS;
+@@ -757,7 +757,7 @@
+ 	tobj-&gt;bconfig = *config;
+ 
+ 	if (ast_stream_and_wait(newchan, xfersound, newchan-&gt;language, &quot;&quot;))
+-		ast_log(LOG_WARNING, &quot;Failed to play courtesy tone!\n&quot;);
++		ast_log(LOG_WARNING, &quot;Failed to play transfer sound!\n&quot;);
+ 	ast_bridge_call_thread_launch(tobj);
+ 	return -1;	/* XXX meaning the channel is bridged ? */
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000084.html">[solid-pbx-svn] r87 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000086.html">[solid-pbx-svn] r89 - in trunk: . apps include/asterisk pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#85">[ date ]</a>
+              <a href="thread.html#85">[ thread ]</a>
+              <a href="subject.html#85">[ subject ]</a>
+              <a href="author.html#85">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

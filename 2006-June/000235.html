@@ -1,0 +1,856 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r240 - in trunk: . include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r240%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200606180202.k5I226BU028150%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000234.html">
+   <LINK REL="Next"  HREF="000236.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r240 - in trunk: . include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r240%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200606180202.k5I226BU028150%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r240 - in trunk: . include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 04:02:06 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000234.html">[solid-pbx-svn] r239 - trunk/res
+</A></li>
+        <LI>Next message: <A HREF="000236.html">[solid-pbx-svn] r241 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#235">[ date ]</a>
+              <a href="thread.html#235">[ thread ]</a>
+              <a href="subject.html#235">[ subject ]</a>
+              <a href="author.html#235">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 04:01:52 +0200 (Sun, 18 Jun 2006)
+New Revision: 240
+
+Modified:
+   trunk/include/asterisk/channel.h
+   trunk/include/asterisk/translate.h
+   trunk/translate.c
+Log:
+Update to Asterisk SVN trunk r31983
+
+------------------------------------------------------------------------
+r31977 | oej | 2006-06-04 10:15:41 +0200 (Sun, 04 Jun 2006) | 2 lines
+
+Doxygen formatting fixes
+
+------------------------------------------------------------------------
+r31979 | oej | 2006-06-04 10:57:34 +0200 (Sun, 04 Jun 2006) | 2 lines
+
+Doxygen improvements
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/include/asterisk/channel.h
+===================================================================
+--- trunk/include/asterisk/channel.h	2006-06-18 01:58:35 UTC (rev 239)
++++ trunk/include/asterisk/channel.h	2006-06-18 02:01:52 UTC (rev 240)
+@@ -78,6 +78,7 @@
+ 	\par Reference
+ 	\arg channel.c - generic functions
+  	\arg channel.h - declarations of functions, flags and structures
++	\arg translate.h - Transcoding support functions
+ 	\arg \ref channel_drivers - Implemented channel drivers
+ 	\arg \ref Def_Frame Asterisk Multimedia Frames
+ 
+@@ -99,13 +100,12 @@
+ extern &quot;C&quot; {
+ #endif
+ 
+-/*! Max length of an extension */
+-#define AST_MAX_EXTENSION	80
++#define AST_MAX_EXTENSION	80	/*!&lt; Max length of an extension */
++#define AST_MAX_CONTEXT		80	/*!&lt; Max length of a context */
++#define AST_CHANNEL_NAME	80	/*!&lt; Max length of an ast_channel name */
++#define MAX_LANGUAGE		20	/*!&lt; Max length of the language setting */
++#define MAX_MUSICCLASS		20	/*!&lt; Max length of the music class setting */
+ 
+-#define AST_MAX_CONTEXT		80
+-
+-#define AST_CHANNEL_NAME	80
+-
+ #include &quot;asterisk/compat.h&quot;
+ #include &quot;asterisk/frame.h&quot;
+ #include &quot;asterisk/sched.h&quot;
+@@ -117,19 +117,16 @@
+ #include &quot;asterisk/linkedlists.h&quot;
+ #include &quot;asterisk/stringfields.h&quot;
+ 
+-#define MAX_LANGUAGE		20
+ 
+-#define MAX_MUSICCLASS		20
+-
+ #define AST_MAX_FDS		8
+ /*
+  * We have AST_MAX_FDS file descriptors in a channel.
+  * Some of them have a fixed use:
+  */
+-#define AST_ALERT_FD	(AST_MAX_FDS-1)		/* used for alertpipe */
+-#define AST_TIMING_FD	(AST_MAX_FDS-2)		/* used for timingfd */
+-#define AST_AGENT_FD	(AST_MAX_FDS-3) /* used by agents for pass thru */
+-#define AST_GENERATOR_FD	(AST_MAX_FDS-4) /* used by generator */
++#define AST_ALERT_FD	(AST_MAX_FDS-1)		/*!&lt; used for alertpipe */
++#define AST_TIMING_FD	(AST_MAX_FDS-2)		/*!&lt; used for timingfd */
++#define AST_AGENT_FD	(AST_MAX_FDS-3)		/*!&lt; used by agents for pass through */
++#define AST_GENERATOR_FD	(AST_MAX_FDS-4)	/*!&lt; used by generator */
+ 
+ enum ast_bridge_result {
+ 	AST_BRIDGE_COMPLETE = 0,
+@@ -146,43 +143,40 @@
+ 	int (*generate)(struct ast_channel *chan, void *data, int len, int samples);
+ };
+ 
+-/*! Structure for a data store type */
++/*! \brief Structure for a data store type */
+ struct ast_datastore_info {
+-	const char *type;		/*! Type of data store */
+-	void (*destroy)(void *data);	/*! Destroy function */
++	const char *type;		/*!&lt; Type of data store */
++	void (*destroy)(void *data);	/*!&lt; Destroy function */
+ };
+ 
+-/*! Structure for a channel data store */
++/*! \brief Structure for a channel data store */
+ struct ast_datastore {
+-	/*! Unique data store identifier */
+-	char *uid;
+-	/*! Contained data */
+-	void *data;
+-	/*! Data store type information */
+-	const struct ast_datastore_info *info;
+-	/*! Used for easy linking */
+-	AST_LIST_ENTRY(ast_datastore) entry;
++	char *uid;		/*!&lt; Unique data store identifier */
++	void *data;		/*!&lt; Contained data */
++	const struct ast_datastore_info *info;	/*!&lt; Data store type information */
++	AST_LIST_ENTRY(ast_datastore) entry; /*!&lt; Used for easy linking */
+ };
+ 
+-/*! Structure for all kinds of caller ID identifications.
+- * All string fields here are malloc'ed, so they need to be
++/*! \brief Structure for all kinds of caller ID identifications.
++ * \note All string fields here are malloc'ed, so they need to be
+  * freed when the structure is deleted.
+  * Also, NULL and &quot;&quot; must be considered equivalent.
+  */
+ struct ast_callerid {
+-	char *cid_dnid;		/*! Malloc'd Dialed Number Identifier */
+-	char *cid_num;		/*! Malloc'd Caller Number */
+-	char *cid_name;		/*! Malloc'd Caller Name */
+-	char *cid_ani;		/*! Malloc'd ANI */
+-	char *cid_rdnis;	/*! Malloc'd RDNIS */
+-	int cid_pres;		/*! Callerid presentation/screening */
+-	int cid_ani2;		/*! Callerid ANI 2 (Info digits) */
+-	int cid_ton;		/*! Callerid Type of Number */
+-	int cid_tns;		/*! Callerid Transit Network Select */
++	char *cid_dnid;		/*!&lt; Malloc'd Dialed Number Identifier */
++	char *cid_num;		/*!&lt; Malloc'd Caller Number */
++	char *cid_name;		/*!&lt; Malloc'd Caller Name */
++	char *cid_ani;		/*!&lt; Malloc'd ANI */
++	char *cid_rdnis;	/*!&lt; Malloc'd RDNIS */
++	int cid_pres;		/*!&lt; Callerid presentation/screening */
++	int cid_ani2;		/*!&lt; Callerid ANI 2 (Info digits) */
++	int cid_ton;		/*!&lt; Callerid Type of Number */
++	int cid_tns;		/*!&lt; Callerid Transit Network Select */
+ };
+ 
+-/*! Structure to describe a channel &quot;technology&quot;, ie a channel driver 
+-	See
++/*! \brief 
++	Structure to describe a channel &quot;technology&quot;, ie a channel driver 
++	See for examples:
+ 	\arg chan_iax2.c - The Inter-Asterisk exchange protocol
+ 	\arg chan_sip.c - The SIP channel driver
+ 	\arg chan_zap.c - PSTN connectivity (TDM, PRI, T1/E1, FXO, FXS)
+@@ -192,216 +186,175 @@
+ 	this driver supports and where different callbacks are 
+ 	implemented.
+ */
+-	
+-
+ struct ast_channel_tech {
+ 	const char * const type;
+ 	const char * const description;
+ 
+-	/*! Bitmap of formats this channel can handle */
+-	int capabilities;
++	int capabilities;		/*!&lt; Bitmap of formats this channel can handle */
+ 
+-	/*! Technology Properties */
+-	int properties;
++	int properties;			/*!&lt; Technology Properties */
+ 
+-	/*! Requester - to set up call data structures (pvt's) */
++	/*! \brief Requester - to set up call data structures (pvt's) */
+ 	struct ast_channel *(* const requester)(const char *type, int format, void *data, int *cause);
+ 
+-	/*! Devicestate call back */
+-	int (* const devicestate)(void *data);
++	int (* const devicestate)(void *data);	/*!&lt; Devicestate call back */
+ 
+-	/*! Send a literal DTMF digit */
+-	int (* const send_digit)(struct ast_channel *chan, char digit);
++	int (* const send_digit)(struct ast_channel *chan, char digit);	/*!&lt; Send a literal DTMF digit */
+ 
+-	/*! Start sending a literal DTMF digit */
++	/*! \brief Start sending a literal DTMF digit */
+ 	int (* const send_digit_begin)(struct ast_channel *chan, char digit);
+ 
+-	/*! Stop sending the last literal DTMF digit */
++	/*! \brief Stop sending the last literal DTMF digit */
+ 	int (* const send_digit_end)(struct ast_channel *chan);
+ 
+-	/*! Call a given phone number (address, etc), but don't
++	/*! \brief Call a given phone number (address, etc), but don't
+ 	   take longer than timeout seconds to do so.  */
+ 	int (* const call)(struct ast_channel *chan, char *addr, int timeout);
+ 
+-	/*! Hangup (and possibly destroy) the channel */
++	/*! \brief Hangup (and possibly destroy) the channel */
+ 	int (* const hangup)(struct ast_channel *chan);
+ 
+-	/*! Answer the channel */
++	/*! \brief Answer the channel */
+ 	int (* const answer)(struct ast_channel *chan);
+ 
+-	/*! Read a frame, in standard format (see frame.h) */
++	/*! \brief Read a frame, in standard format (see frame.h) */
+ 	struct ast_frame * (* const read)(struct ast_channel *chan);
+ 
+-	/*! Write a frame, in standard format (see frame.h) */
++	/*! \brief Write a frame, in standard format (see frame.h) */
+ 	int (* const write)(struct ast_channel *chan, struct ast_frame *frame);
+ 
+-	/*! Display or transmit text */
++	/*! \brief Display or transmit text */
+ 	int (* const send_text)(struct ast_channel *chan, const char *text);
+ 
+-	/*! Display or send an image */
++	/*! \brief Display or send an image */
+ 	int (* const send_image)(struct ast_channel *chan, struct ast_frame *frame);
+ 
+-	/*! Send HTML data */
++	/*! \brief Send HTML data */
+ 	int (* const send_html)(struct ast_channel *chan, int subclass, const char *data, int len);
+ 
+-	/*! Handle an exception, reading a frame */
++	/*! \brief Handle an exception, reading a frame */
+ 	struct ast_frame * (* const exception)(struct ast_channel *chan);
+ 
+-	/*! Bridge two channels of the same type together */
++	/*! \brief Bridge two channels of the same type together */
+ 	enum ast_bridge_result (* const bridge)(struct ast_channel *c0, struct ast_channel *c1, int flags,
+ 						struct ast_frame **fo, struct ast_channel **rc, int timeoutms);
+ 
+-	/*! Indicate a particular condition (e.g. AST_CONTROL_BUSY or AST_CONTROL_RINGING or AST_CONTROL_CONGESTION */
++	/*! \brief Indicate a particular condition (e.g. AST_CONTROL_BUSY or AST_CONTROL_RINGING or AST_CONTROL_CONGESTION */
+ 	int (* const indicate)(struct ast_channel *c, int condition, const void *data, size_t datalen);
+ 
+-	/*! Fix up a channel:  If a channel is consumed, this is called.  Basically update any -&gt;owner links */
++	/*! \brief Fix up a channel:  If a channel is consumed, this is called.  Basically update any -&gt;owner links */
+ 	int (* const fixup)(struct ast_channel *oldchan, struct ast_channel *newchan);
+ 
+-	/*! Set a given option */
++	/*! \brief Set a given option */
+ 	int (* const setoption)(struct ast_channel *chan, int option, void *data, int datalen);
+ 
+-	/*! Query a given option */
++	/*! \brief Query a given option */
+ 	int (* const queryoption)(struct ast_channel *chan, int option, void *data, int *datalen);
+ 
+-	/*! Blind transfer other side (see app_transfer.c and ast_transfer() */
++	/*! \brief Blind transfer other side (see app_transfer.c and ast_transfer() */
+ 	int (* const transfer)(struct ast_channel *chan, const char *newdest);
+ 
+-	/*! Write a frame, in standard format */
++	/*! \brief Write a frame, in standard format */
+ 	int (* const write_video)(struct ast_channel *chan, struct ast_frame *frame);
+ 
+-	/*! Find bridged channel */
++	/*! \brief Find bridged channel */
+ 	struct ast_channel *(* const bridged_channel)(struct ast_channel *chan, struct ast_channel *bridge);
+ 
+-	/*! Provide additional items for CHANNEL() dialplan function */
++	/*! \brief Provide additional read items for CHANNEL() dialplan function */
+ 	int (* func_channel_read)(struct ast_channel *chan, char *function, char *data, char *buf, size_t len);
++
++	/*! \brief Provide additional write items for CHANNEL() dialplan function */
+ 	int (* func_channel_write)(struct ast_channel *chan, char *function, char *data, const char *value);
+ };
+ 
+ struct ast_channel_spy_list;
+ 
+-/*! Main Channel structure associated with a channel. 
++#define	DEBUGCHAN_FLAG  0x80000000
++#define	FRAMECOUNT_INC(x)	( ((x) &amp; DEBUGCHAN_FLAG) | ((x++) &amp; ~DEBUGCHAN_FLAG) )
++
++
++/*! \brief Main Channel structure associated with a channel. 
+  * This is the side of it mostly used by the pbx and call management.
+  *
+  * \note XXX It is important to remember to increment .cleancount each time
+  *       this structure is changed. XXX
+  */
+ struct ast_channel {
+-	/*! Technology (point to channel driver) */
++	/*! \brief Technology (point to channel driver) */
+ 	const struct ast_channel_tech *tech;
+ 
+-	/*! Private data used by the technology driver */
++	/*! \brief Private data used by the technology driver */
+ 	void *tech_pvt;
+ 
+ 	AST_DECLARE_STRING_FIELDS(
+-		AST_STRING_FIELD(name);			/*! ASCII unique channel name */
+-		AST_STRING_FIELD(language);		/*! Language requested for voice prompts */
+-		AST_STRING_FIELD(musicclass);		/*! Default music class */
+-		AST_STRING_FIELD(accountcode);		/*! Account code for billing */
+-		AST_STRING_FIELD(call_forward);		/*! Where to forward to if asked to dial on this interface */
+-		AST_STRING_FIELD(uniqueid);		/*! Unique Channel Identifier */
++		AST_STRING_FIELD(name);			/*!&lt; ASCII unique channel name */
++		AST_STRING_FIELD(language);		/*!&lt; Language requested for voice prompts */
++		AST_STRING_FIELD(musicclass);		/*!&lt; Default music class */
++		AST_STRING_FIELD(accountcode);		/*!&lt; Account code for billing */
++		AST_STRING_FIELD(call_forward);		/*!&lt; Where to forward to if asked to dial on this interface */
++		AST_STRING_FIELD(uniqueid);		/*!&lt; Unique Channel Identifier */
+ 	);
+ 	
+-	/*! File descriptor for channel -- Drivers will poll on these file descriptors, so at least one must be non -1.  */
++	/*! \brief File descriptor for channel -- Drivers will poll on these file descriptors, so at least one must be non -1.  */
+ 	int fds[AST_MAX_FDS];			
+ 
+-	/*! Music State*/
+-	void *music_state;
+-	/*! Current generator data if there is any */
+-	void *generatordata;
+-	/*! Current active data generator */
+-	struct ast_generator *generator;
++	void *music_state;				/*!&lt; Music State*/
++	void *generatordata;				/*!&lt; Current generator data if there is any */
++	struct ast_generator *generator;		/*!&lt; Current active data generator */
+ 
+-	/*! Who are we bridged to, if we're bridged. Who is proxying for us,
++	/*! \brief Who are we bridged to, if we're bridged. Who is proxying for us,
+ 	  if we are proxied (i.e. chan_agent).
+ 	  Do not access directly, use ast_bridged_channel(chan) */
+ 	struct ast_channel *_bridge;
+-	/*! Channel that will masquerade as us */
+-	struct ast_channel *masq;		
+-	/*! Who we are masquerading as */
+-	struct ast_channel *masqr;		
+-	/*! Call Detail Record Flags */
+-	int cdrflags;										   
+-	/*! Whether or not we have been hung up...  Do not set this value
++	struct ast_channel *masq;			/*!&lt; Channel that will masquerade as us */
++	struct ast_channel *masqr;			/*!&lt; Who we are masquerading as */
++	int cdrflags;					/*!&lt; Call Detail Record Flags */
++
++	/*! \brief Whether or not we have been hung up...  Do not set this value
+ 	    directly, use ast_softhangup */
+ 	int _softhangup;
+-	/*! Non-zero, set to actual time when channel is to be hung up */
+-	time_t	whentohangup;
+-	/*! If anyone is blocking, this is them */
+-	pthread_t blocker;			
+-	/*! Lock, can be used to lock a channel for some operations */
+-	ast_mutex_t lock;			
+-	/*! Procedure causing blocking */
+-	const char *blockproc;			
++	time_t	whentohangup;				/*!&lt; Non-zero, set to actual time when channel is to be hung up */
++	pthread_t blocker;				/*!&lt; If anyone is blocking, this is them */
++	ast_mutex_t lock;				/*!&lt; Lock, can be used to lock a channel for some operations */
++	const char *blockproc;				/*!&lt; Procedure causing blocking */
+ 
+-	const char *appl;				/*! Current application */
+-	const char *data;				/*! Data passed to current application */
++	const char *appl;				/*!&lt; Current application */
++	const char *data;				/*!&lt; Data passed to current application */
++	int fdno;					/*!&lt; Which fd had an event detected on */
++	struct sched_context *sched;			/*!&lt; Schedule context */
++	int streamid;					/*!&lt; For streaming playback, the schedule ID */
++	struct ast_filestream *stream;			/*!&lt; Stream itself. */
++	int vstreamid;					/*!&lt; For streaming video playback, the schedule ID */
++	struct ast_filestream *vstream;			/*!&lt; Video Stream itself. */
++	int oldwriteformat;				/*!&lt; Original writer format */
+ 	
+-	/*! Which fd had an event detected on */
+-	int fdno;				
+-	/*! Schedule context */
+-	struct sched_context *sched;		
+-	/*! For streaming playback, the schedule ID */
+-	int streamid;				
+-	/*! Stream itself. */
+-	struct ast_filestream *stream;		
+-	/*! For streaming video playback, the schedule ID */
+-	int vstreamid;				
+-	/*! Video Stream itself. */
+-	struct ast_filestream *vstream;		
+-	/*! Original writer format */
+-	int oldwriteformat;			
+-	
+-	/*! Timing fd */
+-	int timingfd;
++	int timingfd;					/*!&lt; Timing fd */
+ 	int (*timingfunc)(void *data);
+ 	void *timingdata;
+ 
+-	/*! State of line -- Don't write directly, use ast_setstate */
+-	int _state;				
+-	/*! Number of rings so far */
+-	int rings;				
++	int _state;					/*!&lt; State of line -- Don't write directly, use ast_setstate */
++	int rings;					/*!&lt; Number of rings so far */
++	struct ast_callerid cid;			/*!&lt; Caller ID, name, presentation etc */
++	char dtmfq[AST_MAX_EXTENSION];			/*!&lt; Any/all queued DTMF characters */
++	struct ast_frame dtmff;				/*!&lt; DTMF frame */
+ 
+-	/*! Kinds of data this channel can natively handle */
+-	int nativeformats;			
+-	/*! Requested read format */
+-	int readformat;				
+-	/*! Requested write format */
+-	int writeformat;			
++	char context[AST_MAX_CONTEXT];			/*!&lt; Dialplan: Current extension context */
++	char exten[AST_MAX_EXTENSION];			/*!&lt; Dialplan: Current extension number */
++	int priority;					/*!&lt; Dialplan: Current extension priority */
++	char macrocontext[AST_MAX_CONTEXT];		/*!&lt; Macro: Current non-macro context. See app_macro.c */
++	char macroexten[AST_MAX_EXTENSION];		/*!&lt; Macro: Current non-macro extension. See app_macro.c */
++	int macropriority;				/*!&lt; Macro: Current non-macro priority. See app_macro.c */
+ 
+-	struct ast_callerid cid;
+-		
+-	/*! Current extension context */
+-	char context[AST_MAX_CONTEXT];
+-	/*! Current non-macro context */
+-	char macrocontext[AST_MAX_CONTEXT];	
+-	/*! Current non-macro extension */
+-	char macroexten[AST_MAX_EXTENSION];
+-	/*! Current non-macro priority */
+-	int macropriority;
+-	/*! Current extension number */
+-	char exten[AST_MAX_EXTENSION];		
+-	/* Current extension priority */
+-	int priority;						
+-	/*! Any/all queued DTMF characters */
+-	char dtmfq[AST_MAX_EXTENSION];		
+-	/*! DTMF frame */
+-	struct ast_frame dtmff;			
++	struct ast_pbx *pbx;				/*!&lt; PBX private structure for this channel */
++	int amaflags;					/*!&lt; Set BEFORE PBX is started to determine AMA flags */
++	struct ast_cdr *cdr;				/*!&lt; Call Detail Record */
++	int adsicpe;					/*!&lt; Whether or not ADSI is detected on CPE */
+ 
+-	/*! PBX private structure */
+-	struct ast_pbx *pbx;
+-	/*! Set BEFORE PBX is started to determine AMA flags */
+-	int amaflags;			
+-	/*! Call Detail Record */
+-	struct ast_cdr *cdr;			
+-	/*! Whether or not ADSI is detected on CPE */
+-	int adsicpe;
++	struct tone_zone *zone;				/*!&lt; Tone zone as set in indications.conf or
++								in the CHANNEL dialplan function */
+ 
+-	/*! Tone zone as set in indications.conf */
+-	struct tone_zone *zone;
++	struct ast_channel_monitor *monitor;		/*!&lt; Channel monitoring */
+ 
+-	/* Channel monitoring */
+-	struct ast_channel_monitor *monitor;
+-
+ 	/*! Track the read/written samples for monitor use */
+ 	unsigned long insmpl;
+ 	unsigned long outsmpl;
+@@ -411,56 +364,37 @@
+ 	 */
+ 	unsigned int fin;
+ 	unsigned int fout;
+-#define	DEBUGCHAN_FLAG  0x80000000
+-#define	FRAMECOUNT_INC(x)	( ((x) &amp; DEBUGCHAN_FLAG) | ((x++) &amp; ~DEBUGCHAN_FLAG) )
+-
+-	/* Why is the channel hanged up */
+-	int hangupcause;
+-	
+-	/* A linked list for variables */
+-	struct varshead varshead;
+-
+-	unsigned int callgroup;
+-	unsigned int pickupgroup;
+-
+-	/*! channel flags of AST_FLAG_ type */
+-	unsigned int flags;
+-	
+-	/*! ISDN Transfer Capbility - AST_FLAG_DIGITAL is not enough */
+-	unsigned short transfercapability;
+-
++	int hangupcause;				/*!&lt; Why is the channel hanged up. See causes.h */
++	struct varshead varshead;			/*!&lt; A linked list for channel variables */
++	unsigned int callgroup;				/*!&lt; Call group for call pickups */
++	unsigned int pickupgroup;			/*!&lt; Pickup group - which calls groups can be picked up? */
++	unsigned int flags;				/*!&lt; channel flags of AST_FLAG_ type */
++	unsigned short transfercapability;		/*!&lt; ISDN Transfer Capbility - AST_FLAG_DIGITAL is not enough */
+ 	struct ast_frame *readq;
+ 	int alertpipe[2];
+-	/*! Write translation path */
+-	struct ast_trans_pvt *writetrans;
+-	/*! Read translation path */
+-	struct ast_trans_pvt *readtrans;
+-	/*! Raw read format */
+-	int rawreadformat;
+-	/*! Raw write format */
+-	int rawwriteformat;
+ 
+-	/*! Chan Spy stuff */
+-	struct ast_channel_spy_list *spies;
++	int nativeformats;				/*!&lt; Kinds of data this channel can natively handle */
++	int readformat;					/*!&lt; Requested read format */
++	int writeformat;				/*!&lt; Requested write format */
++	struct ast_trans_pvt *writetrans;		/*!&lt; Write translation path */
++	struct ast_trans_pvt *readtrans;		/*!&lt; Read translation path */
++	int rawreadformat;				/*!&lt; Raw read format */
++	int rawwriteformat;				/*!&lt; Raw write format */
+ 
+-	/*! Data stores on the channel */
+-	AST_LIST_HEAD_NOLOCK(datastores, ast_datastore) datastores;
++	struct ast_channel_spy_list *spies;		/*!&lt; Chan Spy stuff */
++	AST_LIST_ENTRY(ast_channel) chan_list;		/*!&lt; For easy linking */
++	struct ast_jb jb;				/*!&lt; The jitterbuffer state  */
+ 
+-	/*! For easy linking */
+-	AST_LIST_ENTRY(ast_channel) chan_list;
+-
+-	/*! The jitterbuffer state  */
+-	struct ast_jb jb;
++	/*! \brief Data stores on the channel */
++	AST_LIST_HEAD_NOLOCK(datastores, ast_datastore) datastores;
+ };
+ 
+-/* \defgroup chanprop Channel tech properties:
++/*! \defgroup chanprop Channel tech properties:
+ 	\brief Channels have this property if they can accept input with jitter; i.e. most VoIP channels */
+-/* @{ */
++/*! @{ */
+ #define AST_CHAN_TP_WANTSJITTER	(1 &lt;&lt; 0)	
+ 
+-/* \defgroup chanprop Channel tech properties:
+-	\brief Channels have this property if they can create jitter; i.e. most VoIP channels */
+-/* @{ */
++/*! \brief Channels have this property if they can create jitter; i.e. most VoIP channels */
+ #define AST_CHAN_TP_CREATESJITTER (1 &lt;&lt; 1)
+ 
+ /* This flag has been deprecated by the transfercapbilty data member in struct ast_channel */
+@@ -656,7 +590,7 @@
+ 
+ /*! \brief Requests a channel 
+  * \param type type of channel to request
+- * \param format requested channel format
++ * \param format requested channel format (codec)
+  * \param data data to pass to the channel requester
+  * \param status status
+  * Request a channel of a given type, with data as optional information used 
+@@ -1225,8 +1159,8 @@
+ 
+ /* Misc. functions below */
+ 
+-/* if fd is a valid descriptor, set *pfd with the descriptor
+- * Return 1 (not -1!) if added, 0 otherwise (so we can add the
++/*! \brief if fd is a valid descriptor, set *pfd with the descriptor
++ * \return Return 1 (not -1!) if added, 0 otherwise (so we can add the
+  * return value to the index into the array)
+  */
+ static inline int ast_add_fd(struct pollfd *pfd, int fd)
+@@ -1236,7 +1170,7 @@
+ 	return fd &gt;= 0;
+ }
+ 
+-/* Helper function for migrating select to poll */
++/*! \brief Helper function for migrating select to poll */
+ static inline int ast_fdisset(struct pollfd *pfds, int fd, int max, int *start)
+ {
+ 	int x;
+
+Modified: trunk/include/asterisk/translate.h
+===================================================================
+--- trunk/include/asterisk/translate.h	2006-06-18 01:58:35 UTC (rev 239)
++++ trunk/include/asterisk/translate.h	2006-06-18 02:01:52 UTC (rev 240)
+@@ -38,14 +38,15 @@
+ 
+ struct ast_trans_pvt;	/* declared below */
+ 
+-/*!
++/*! \brief
+  * Descriptor of a translator. Name, callbacks, and various options
+  * related to run-time operation (size of buffers, auxiliary
+  * descriptors, etc).
++ *
+  * A coded registers itself by filling the relevant fields
+  * of a structure and passing it as an argument to
+  * ast_register_translator(). The structure should not be
+- * modified after a successful register(), and its address
++ * modified after a successful registration, and its address
+  * must be used as an argument to ast_unregister_translator().
+  *
+  * As a minimum, a translator should supply name, srcfmt and dstfmt,
+@@ -64,49 +65,52 @@
+  * Generic plc is only available for dstfmt = SLINEAR
+  */
+ struct ast_translator {
+-	const char name[80];		/*! Name of translator */
+-	int srcfmt;			/*! Source format (note: bit position,
++	const char name[80];		/*!&lt; Name of translator */
++	int srcfmt;			/*!&lt; Source format (note: bit position,
+ 					  converted to index during registration) */
+-	int dstfmt;			/*! Destination format (note: bit position,
++	int dstfmt;			/*!&lt; Destination format (note: bit position,
+ 					  converted to index during registration) */
+ 
+-	/*! initialize private data associated with the translator */
+-	void *(*newpvt)(struct ast_trans_pvt *);
++	void *(*newpvt)(struct ast_trans_pvt *); /*!&lt; initialize private data 
++					associated with the translator */
+ 
+-	/*! Input frame callback. Store (and possibly convert) input frame. */
+ 	int (*framein)(struct ast_trans_pvt *pvt, struct ast_frame *in);
++					/*!&lt; Input frame callback. Store 
++					     (and possibly convert) input frame. */
+ 
+-	/*! Output frame callback. Generate a frame with outbuf content. */
+ 	struct ast_frame * (*frameout)(struct ast_trans_pvt *pvt);
++					/*!&lt; Output frame callback. Generate a frame 
++					    with outbuf content. */
+ 
+-	/*! cleanup private data, if needed (often unnecessary). */
+ 	void (*destroy)(struct ast_trans_pvt *pvt);
++					/*!&lt; cleanup private data, if needed 
++						(often unnecessary). */
+ 
+-	struct ast_frame * (*sample)(void);	/*! Generate an example frame */
++	struct ast_frame * (*sample)(void);	/*!&lt; Generate an example frame */
+ 
+-	/*! size of outbuf, in samples. Leave it 0 if you want the framein
++	/*! \brief size of outbuf, in samples. Leave it 0 if you want the framein
+ 	 * callback deal with the frame. Set it appropriately if you
+ 	 * want the code to checks if the incoming frame fits the
+ 	 * outbuf (this is e.g. required for plc).
+ 	 */
+-	int buffer_samples;	/* size of outbuf, in samples */
++	int buffer_samples;	/*&lt; size of outbuf, in samples */
+ 
+-	/*! size of outbuf, in bytes. Mandatory. The wrapper code will also
++	/*! \brief size of outbuf, in bytes. Mandatory. The wrapper code will also
+ 	 * allocate an AST_FRIENDLY_OFFSET space before.
+ 	 */
+ 	int buf_size;
+ 
+-	int desc_size;		/*! size of private descriptor in pvt-&gt;pvt, if any */
+-	int plc_samples;	/* set to the plc block size if used, 0 otherwise */
+-	int useplc;		/* current status of plc, changed at runtime */
++	int desc_size;		/*!&lt; size of private descriptor in pvt-&gt;pvt, if any */
++	int plc_samples;	/*!&lt; set to the plc block size if used, 0 otherwise */
++	int useplc;		/*!&lt; current status of plc, changed at runtime */
+ 
+-	void *module;		/* opaque reference to the parent module */
++	void *module;		/*!&lt; opaque reference to the parent module */
+ 
+-	int cost;		/*! Cost in milliseconds for encoding/decoding 1 second of sound */
+-	AST_LIST_ENTRY(ast_translator) list;	/*! link field */
++	int cost;		/*!&lt; Cost in milliseconds for encoding/decoding 1 second of sound */
++	AST_LIST_ENTRY(ast_translator) list;	/*!&lt; link field */
+ };
+ 
+-/*
++/*! \brief
+  * Default structure for translators, with the basic fields and buffers,
+  * all allocated as part of the same chunk of memory. The buffer is
+  * preceded by AST_FRIENDLY_OFFSET bytes in front of the user portion.
+@@ -126,18 +130,18 @@
+  */
+ struct ast_trans_pvt {
+ 	struct ast_translator *t;
+-	struct ast_frame f;	/* used in frameout */
+-	int samples;		/* samples available in outbuf */
+-	int datalen;		/* actual space used in outbuf */
+-	void *pvt;		/* more private data, if any */
+-	char *outbuf;		/* the useful portion of the buffer */
+-	plc_state_t *plc;	/* optional plc pointer */
+-	struct ast_trans_pvt *next;	/* next in translator chain */
++	struct ast_frame f;	/*!&lt; used in frameout */
++	int samples;		/*!&lt; samples available in outbuf */
++	int datalen;		/*!&lt; actual space used in outbuf */
++	void *pvt;		/*!&lt; more private data, if any */
++	char *outbuf;		/*!&lt; the useful portion of the buffer */
++	plc_state_t *plc;	/*!&lt; optional plc pointer */
++	struct ast_trans_pvt *next;	/*!&lt; next in translator chain */
+ 	struct timeval nextin;
+ 	struct timeval nextout;
+ };
+ 
+-/* generic frameout function */
++/*! \brief generic frameout function */
+ struct ast_frame *ast_trans_frameout(struct ast_trans_pvt *pvt,
+         int datalen, int samples);
+ 
+@@ -145,17 +149,17 @@
+ 
+ /*!
+  * \brief Register a translator
++ * This registers a codec translator with asterisk
+  * \param t populated ast_translator structure
+  * \param module handle to the module that owns this translator
+- * This registers a codec translator with asterisk
+  * \return 0 on success, -1 on failure
+  */
+ int ast_register_translator(struct ast_translator *t, void *module);
+ 
+ /*!
+  * \brief Unregister a translator
++ * Unregisters the given tranlator
+  * \param t translator to unregister
+- * Unregisters the given tranlator
+  * \return 0 on success, -1 on failure
+  */
+ int ast_unregister_translator(struct ast_translator *t);
+@@ -164,34 +168,35 @@
+  * \brief Chooses the best translation path
+  *
+  * Given a list of sources, and a designed destination format, which should
+- * I choose? Returns 0 on success, -1 if no path could be found.  Modifies
+- * dests and srcs in place 
++ * I choose? 
++ * \return Returns 0 on success, -1 if no path could be found.  
++ * \note Modifies dests and srcs in place 
+  */
+ int ast_translator_best_choice(int *dsts, int *srcs);
+ 
+ /*! 
+  * \brief Builds a translator path
++ * Build a path (possibly NULL) from source to dest 
+  * \param dest destination format
+  * \param source source format
+- * Build a path (possibly NULL) from source to dest 
+  * \return ast_trans_pvt on success, NULL on failure
+  * */
+ struct ast_trans_pvt *ast_translator_build_path(int dest, int source);
+ 
+ /*!
+  * \brief Frees a translator path
++ * Frees the given translator path structure
+  * \param tr translator path to get rid of
+- * Frees the given translator path structure
+  */
+ void ast_translator_free_path(struct ast_trans_pvt *tr);
+ 
+ /*!
+  * \brief translates one or more frames
++ * Apply an input frame into the translator and receive zero or one output frames.  Consume
++ * determines whether the original frame should be freed
+  * \param tr translator structure to use for translation
+  * \param f frame to translate
+  * \param consume Whether or not to free the original frame
+- * Apply an input frame into the translator and receive zero or one output frames.  Consume
+- * determines whether the original frame should be freed
+  * \return an ast_frame of the new translation format on success, NULL on failure
+  */
+ struct ast_frame *ast_translate(struct ast_trans_pvt *tr, struct ast_frame *f, int consume);
+
+Modified: trunk/translate.c
+===================================================================
+--- trunk/translate.c	2006-06-18 01:58:35 UTC (rev 239)
++++ trunk/translate.c	2006-06-18 02:01:52 UTC (rev 240)
+@@ -67,13 +67,13 @@
+  */
+ static struct translator_path tr_matrix[MAX_FORMAT][MAX_FORMAT];
+ 
+-/*
++/*! \todo
+  * TODO: sample frames for each supported input format.
+  * We build this on the fly, by taking an SLIN frame and using
+  * the existing converter to play with it.
+  */
+ 
+-/* returns the index of the lowest bit set */
++/*! \brief returns the index of the lowest bit set */
+ static int powerof(int d)
+ {
+ 	int x;
+@@ -146,9 +146,7 @@
+ 	ast_update_use_count();
+ }
+ 
+-/*
+- * framein wrapper, deals with plc and bound checks.
+- */
++/*! \brief framein wrapper, deals with plc and bound checks.  */
+ static int framein(struct ast_trans_pvt *pvt, struct ast_frame *f)
+ {
+ 	int16_t *dst = (int16_t *)pvt-&gt;outbuf;
+@@ -200,8 +198,7 @@
+         return ret;
+ }
+ 
+-/*
+- * generic frameout routine.
++/*! \brief generic frameout routine.
+  * If samples and datalen are 0, take whatever is in pvt
+  * and reset them, otherwise take the values in the caller and
+  * leave alone the pvt values.
+@@ -251,7 +248,7 @@
+ 	}
+ }
+ 
+-/*! Build a chain of translators based upon the given source and dest formats */
++/*! \brief Build a chain of translators based upon the given source and dest formats */
+ struct ast_trans_pvt *ast_translator_build_path(int dest, int source)
+ {
+ 	struct ast_trans_pvt *head = NULL, *tail = NULL;
+@@ -545,6 +542,7 @@
+ static struct ast_cli_entry show_trans =
+ { { &quot;show&quot;, &quot;translation&quot;, NULL }, show_translation, &quot;Display translation matrix&quot;, show_trans_usage };
+ 
++/*! \brief register codec translator */
+ int ast_register_translator(struct ast_translator *t, void *module)
+ {
+ 	static int added_cli = 0;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000234.html">[solid-pbx-svn] r239 - trunk/res
+</A></li>
+	<LI>Next message: <A HREF="000236.html">[solid-pbx-svn] r241 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#235">[ date ]</a>
+              <a href="thread.html#235">[ thread ]</a>
+              <a href="subject.html#235">[ subject ]</a>
+              <a href="author.html#235">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

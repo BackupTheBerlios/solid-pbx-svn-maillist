@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r53 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r53%20-%20trunk/apps&In-Reply-To=%3C200605041718.k44HIQSX018687%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000049.html">
+   <LINK REL="Next"  HREF="000051.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r53 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r53%20-%20trunk/apps&In-Reply-To=%3C200605041718.k44HIQSX018687%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r53 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May  4 19:18:26 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000049.html">[solid-pbx-svn] r52 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000051.html">[solid-pbx-svn] r54 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#50">[ date ]</a>
+              <a href="thread.html#50">[ thread ]</a>
+              <a href="subject.html#50">[ subject ]</a>
+              <a href="author.html#50">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-04 19:18:20 +0200 (Thu, 04 May 2006)
+New Revision: 53
+
+Modified:
+   trunk/apps/app_queue.c
+Log:
+Update to Asterisk SVN trunk r24742
+
+------------------------------------------------------------------------
+r24707 | tilghman | 2006-05-04 18:38:32 +0200 (Thu, 04 May 2006) | 10 lines
+
+Merged revisions 24706 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r24706 | tilghman | 2006-05-04 11:27:20 -0500 (Thu, 04 May 2006) | 2 lines
+
+Bug 7023 - reload should not unpause members
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-05-04 12:18:38 UTC (rev 52)
++++ trunk/apps/app_queue.c	2006-05-04 17:18:20 UTC (rev 53)
+@@ -306,7 +306,8 @@
+ 	int status;			/*!&lt; Status of queue member */
+ 	int paused;			/*!&lt; Are we paused (not accepting calls)? */
+ 	time_t lastcall;		/*!&lt; When last successful call was hungup */
+-	int dead;			/*!&lt; Used to detect members deleted in realtime */
++	unsigned int dead:1;			/*!&lt; Used to detect members deleted in realtime */
++	unsigned int delme:1;		/*!&lt; Flag to delete entry on reload */
+ 	struct member *next;		/*!&lt; Next member */
+ };
+ 
+@@ -3334,7 +3335,7 @@
+ 	struct ast_config *cfg;
+ 	char *cat, *tmp;
+ 	struct ast_variable *var;
+-	struct member *prev, *cur;
++	struct member *prev, *cur, *newm;
+ 	int new;
+ 	char *general_val = NULL;
+ 	char interface[80];
+@@ -3383,12 +3384,10 @@
+ 				/* Re-initialize the queue, and clear statistics */
+ 				init_queue(q);
+ 				clear_queue(q);
+-				free_members(q, 0);
+-				prev = q-&gt;members;
+-				if (prev) {
+-					/* find the end of any dynamic members */
+-					while(prev-&gt;next)
+-						prev = prev-&gt;next;
++				for (cur = q-&gt;members; cur; cur = cur-&gt;next) {
++					if (!cur-&gt;dynamic) {
++						cur-&gt;delme = 1;
++					}
+ 				}
+ 				for (var = ast_variable_browse(cfg, cat); var; var = var-&gt;next) {
+ 					if (!strcasecmp(var-&gt;name, &quot;member&quot;)) {
+@@ -3403,18 +3402,52 @@
+ 							}
+ 						} else
+ 							penalty = 0;
+-						cur = create_queue_member(interface, penalty, 0);
++
++						/* Find the old position in the list */
++						for (prev = NULL, cur = q-&gt;members; cur; prev = cur, cur = cur-&gt;next) {
++							if (!strcmp(cur-&gt;interface, interface)) {
++								break;
++							}
++						}
++
++						newm = create_queue_member(interface, penalty, cur ? cur-&gt;paused : 0);
++
+ 						if (cur) {
+-							if (prev)
+-								prev-&gt;next = cur;
+-							else
+-								q-&gt;members = cur;
+-							prev = cur;
++							/* Delete it now */
++							newm-&gt;next = cur-&gt;next;
++							if (prev) {
++								prev-&gt;next = newm;
++							} else {
++								q-&gt;members = newm;
++							}
++							free(cur);
++						} else {
++							newm-&gt;next = q-&gt;members;
++							q-&gt;members = newm;
+ 						}
+ 					} else {
+ 						queue_set_param(q, var-&gt;name, var-&gt;value, var-&gt;lineno, 1);
+ 					}
+ 				}
++
++				/* Free remaining members marked as delme */
++				for (prev = NULL, newm = NULL, cur = q-&gt;members; cur; prev = cur, cur = cur-&gt;next) {
++					if (newm) {
++						free(newm);
++						newm = NULL;
++					}
++
++					if (cur-&gt;delme) {
++						if (prev) {
++							prev-&gt;next = cur-&gt;next;
++							newm = cur;
++						} else {
++							q-&gt;members = cur-&gt;next;
++							newm = cur;
++						}
++					}
++				}
++
+ 				if (new) {
+ 					AST_LIST_INSERT_HEAD(&amp;queues, q, list);
+ 				} else
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000049.html">[solid-pbx-svn] r52 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000051.html">[solid-pbx-svn] r54 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#50">[ date ]</a>
+              <a href="thread.html#50">[ thread ]</a>
+              <a href="subject.html#50">[ subject ]</a>
+              <a href="author.html#50">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,227 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r280 - in trunk: include/asterisk res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r280%20-%20in%20trunk%3A%20include/asterisk%20res&In-Reply-To=%3C200606182226.k5IMQLdj018749%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000274.html">
+   <LINK REL="Next"  HREF="000276.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r280 - in trunk: include/asterisk res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r280%20-%20in%20trunk%3A%20include/asterisk%20res&In-Reply-To=%3C200606182226.k5IMQLdj018749%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r280 - in trunk: include/asterisk res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon Jun 19 00:26:21 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000274.html">[solid-pbx-svn] r279 - trunk/res
+</A></li>
+        <LI>Next message: <A HREF="000276.html">[solid-pbx-svn] r281 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#275">[ date ]</a>
+              <a href="thread.html#275">[ thread ]</a>
+              <a href="subject.html#275">[ subject ]</a>
+              <a href="author.html#275">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-19 00:26:18 +0200 (Mon, 19 Jun 2006)
+New Revision: 280
+
+Modified:
+   trunk/include/asterisk/jabber.h
+   trunk/res/res_jabber.c
+Log:
+Update to Asterisk SVN trunk r32663
+
+------------------------------------------------------------------------
+r32654 | mogorman | 2006-06-06 20:51:37 +0200 (Tue, 06 Jun 2006) | 3 lines
+
+allow presence events to be handled before the 
+roster is received.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/include/asterisk/jabber.h
+===================================================================
+--- trunk/include/asterisk/jabber.h	2006-06-18 22:09:05 UTC (rev 279)
++++ trunk/include/asterisk/jabber.h	2006-06-18 22:26:18 UTC (rev 280)
+@@ -25,7 +25,6 @@
+ enum aji_state {
+ 	AJI_DISCONNECTED=0,
+ 	AJI_CONNECTING,
+-	AJI_ALMOST,
+ 	AJI_CONNECTED
+ };
+ 
+
+Modified: trunk/res/res_jabber.c
+===================================================================
+--- trunk/res/res_jabber.c	2006-06-18 22:09:05 UTC (rev 279)
++++ trunk/res/res_jabber.c	2006-06-18 22:26:18 UTC (rev 280)
+@@ -554,8 +554,7 @@
+ 		switch (type) {
+ 		case IKS_NODE_START:{
+ 				char secret[160], shasum[320], *handshake;
+-				switch (client-&gt;state) {
+-				case AJI_DISCONNECTED:
++				if (client-&gt;state == AJI_DISCONNECTED) {
+ 					sprintf(secret, &quot;%s%s&quot;, pak-&gt;id, client-&gt;password);
+ 					ast_sha1_hash(shasum, secret);
+ 					handshake = NULL;
+@@ -567,14 +566,7 @@
+ 					}
+ 					client-&gt;state = AJI_CONNECTED;
+ 					break;
+-				case AJI_ALMOST:
+-					client-&gt;state = AJI_CONNECTED;
+-					break;
+-				case AJI_CONNECTING:
+-				case AJI_CONNECTED:
+-					break;
+-				};
+-				break;
++				}
+ 			}
+ 
+ 		case IKS_NODE_NORMAL:{
+@@ -1020,12 +1012,35 @@
+ 	struct aji_buddy *buddy = NULL;
+ 	struct aji_resource *tmp = NULL, *last = NULL, *found = NULL;
+ 	char *ver, *node;
+-
++	
++	if(client-&gt;state != AJI_CONNECTED) {
++		buddy = (struct aji_buddy *) malloc(sizeof(struct aji_buddy));
++		if (!buddy) {
++			ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++			return ;
++		}
++		memset(buddy, 0, sizeof(struct aji_buddy));
++		ASTOBJ_INIT(buddy);
++		ASTOBJ_WRLOCK(buddy);
++		ast_copy_string(buddy-&gt;name, pak-&gt;from-&gt;partial, sizeof(buddy-&gt;name));
++		ast_clear_flag(buddy, AST_FLAGS_ALL);
++		if(ast_test_flag(client, AJI_AUTOPRUNE)) {
++			ast_set_flag(buddy, AJI_AUTOPRUNE);
++			buddy-&gt;objflags |= ASTOBJ_FLAG_MARKED;
++		} else
++			ast_set_flag(buddy, AJI_AUTOREGISTER);
++		ASTOBJ_UNLOCK(buddy);
++		if (buddy) {
++			ASTOBJ_CONTAINER_LINK(&amp;client-&gt;buddies, buddy);
++			buddy = NULL;
++		}
++	}
+ 	buddy = ASTOBJ_CONTAINER_FIND(&amp;client-&gt;buddies, pak-&gt;from-&gt;partial);
+ 	if (!buddy) {
+ 		ast_log(LOG_WARNING, &quot;Got presence packet from %s, someone not in our roster!!!!\n&quot;, pak-&gt;from-&gt;partial);
+ 		return;
+ 	}
++	ASTOBJ_WRLOCK(buddy);
+ 	status = (pak-&gt;show) ? pak-&gt;show : 6;
+ 	priority = atoi((iks_find_cdata(pak-&gt;x, &quot;priority&quot;)) ? iks_find_cdata(pak-&gt;x, &quot;priority&quot;) : &quot;0&quot;);
+ 	tmp = buddy-&gt;resources;
+@@ -1118,6 +1133,8 @@
+ 		if (!tmp)
+ 			buddy-&gt;resources = found;
+ 	}
++	ASTOBJ_UNLOCK(buddy);
++	ASTOBJ_UNREF(buddy, aji_buddy_destroy);
+ 
+ 	node = iks_find_attrib(iks_find(pak-&gt;x, &quot;c&quot;), &quot;node&quot;);
+ 	ver = iks_find_attrib(iks_find(pak-&gt;x, &quot;c&quot;), &quot;ver&quot;);
+@@ -1348,7 +1365,7 @@
+ 			ast_log(LOG_WARNING, &quot;JABBER: Got hook event.\n&quot;);
+ 		} else if (res == IKS_NET_TLSFAIL) {
+ 			ast_log(LOG_WARNING, &quot;JABBER:  Failure in tls.\n&quot;);
+-		} else if (client-&gt;timeout == 0 &amp;&amp; client-&gt;state != AJI_CONNECTED) {
++		} else if (client-&gt;timeout == 0 &amp;&amp; client-&gt;state == AJI_CONNECTED) {
+ 			res = -1;
+ 			ast_log(LOG_WARNING, &quot;JABBER:  Network Timeout\n&quot;);
+ 		} else if (res == IKS_NET_RWERR) {
+@@ -1539,7 +1556,8 @@
+ 	int flag = 0;
+ 	iks *x = NULL;
+ 	struct aji_buddy *buddy;
+-
++	
++	client-&gt;state = AJI_CONNECTED;
+ 	ASTOBJ_CONTAINER_TRAVERSE(&amp;client-&gt;buddies, 1, {
+ 		ASTOBJ_RDLOCK(iterator);
+ 		x = iks_child(pak-&gt;query);
+@@ -1585,8 +1603,10 @@
+ 
+ 			if (!flag) {
+ 				buddy = (struct aji_buddy *) malloc(sizeof(struct aji_buddy));
+-				if (!buddy)
++				if (!buddy) {
+ 					ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++					return 0;
++				}
+ 				memset(buddy, 0, sizeof(struct aji_buddy));
+ 				ASTOBJ_INIT(buddy);
+ 				ASTOBJ_WRLOCK(buddy);
+@@ -1663,7 +1683,7 @@
+ 	if (client) {
+ 		if (client-&gt;state == AJI_DISCONNECTED) {
+ 			iks_filter_add_rule(client-&gt;f, aji_filter_roster, client, IKS_RULE_TYPE, IKS_PAK_IQ, IKS_RULE_SUBTYPE, IKS_TYPE_RESULT, IKS_RULE_ID, &quot;roster&quot;, IKS_RULE_DONE);
+-			client-&gt;state = AJI_CONNECTED;
++			client-&gt;state = AJI_CONNECTING;
+ 			client-&gt;jid = (iks_find_cdata(pak-&gt;query, &quot;jid&quot;)) ? iks_id_new(client-&gt;stack, iks_find_cdata(pak-&gt;query, &quot;jid&quot;)) : client-&gt;jid;
+ 			iks_filter_remove_hook(client-&gt;f, aji_client_connect);
+ 			if(client-&gt;component == AJI_CLIENT)
+@@ -1826,7 +1846,6 @@
+ 			status = &quot;Disconnected&quot;;
+ 			break;
+ 		case AJI_CONNECTING:
+-		case AJI_ALMOST:
+ 			status = &quot;Connecting&quot;;
+ 			break;
+ 		case AJI_CONNECTED:
+@@ -2170,7 +2189,7 @@
+ 			if(iterator-&gt;state == AJI_DISCONNECTED) {
+ 				if (!iterator-&gt;thread)
+ 					ast_pthread_create(&amp;iterator-&gt;thread, NULL, aji_recv_loop, iterator);
+-			} else if (iterator-&gt;state == AJI_CONNECTED) {
++			} else if (iterator-&gt;state == AJI_CONNECTING) {
+ 				aji_get_roster(iterator);
+ 			}
+ 			ASTOBJ_UNLOCK(iterator);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000274.html">[solid-pbx-svn] r279 - trunk/res
+</A></li>
+	<LI>Next message: <A HREF="000276.html">[solid-pbx-svn] r281 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#275">[ date ]</a>
+              <a href="thread.html#275">[ thread ]</a>
+              <a href="subject.html#275">[ subject ]</a>
+              <a href="author.html#275">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

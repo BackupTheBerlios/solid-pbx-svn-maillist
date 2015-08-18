@@ -1,0 +1,2242 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r44 - in trunk: channels pbx/ael
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r44%20-%20in%20trunk%3A%20channels%20pbx/ael&In-Reply-To=%3C200605031618.k43GIKx2029321%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000040.html">
+   <LINK REL="Next"  HREF="000042.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r44 - in trunk: channels pbx/ael</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r44%20-%20in%20trunk%3A%20channels%20pbx/ael&In-Reply-To=%3C200605031618.k43GIKx2029321%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r44 - in trunk: channels pbx/ael">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May  3 18:18:20 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000040.html">[solid-pbx-svn] r43 - in trunk: . channels
+</A></li>
+        <LI>Next message: <A HREF="000042.html">[solid-pbx-svn] r45 - trunk/pbx/ael
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#41">[ date ]</a>
+              <a href="thread.html#41">[ thread ]</a>
+              <a href="subject.html#41">[ subject ]</a>
+              <a href="author.html#41">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-03 18:18:13 +0200 (Wed, 03 May 2006)
+New Revision: 44
+
+Modified:
+   trunk/channels/chan_iax2.c
+   trunk/pbx/ael/ael.tab.c
+   trunk/pbx/ael/ael.y
+Log:
+Update to Asterisk SVN trunk r24423
+
+------------------------------------------------------------------------
+r24421 | rizzo | 2006-05-03 18:00:49 +0200 (Wed, 03 May 2006) | 3 lines
+
+common syntax for context name
+
+
+------------------------------------------------------------------------
+r24422 | file | 2006-05-03 18:07:03 +0200 (Wed, 03 May 2006) | 2 lines
+
+Update chan_iax2 to use linkedlists.h for users and peers. Modify the way get_from_jb and expire_registry works to get rid of certain crash scenarios. Finally - change the way expire_registry works when realtime autoclear is enabled to be a bit more efficient.
+
+------------------------------------------------------------------------
+r24423 | rizzo | 2006-05-03 18:08:35 +0200 (Wed, 03 May 2006) | 3 lines
+
+switch statement in one place
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-05-03 13:18:20 UTC (rev 43)
++++ trunk/channels/chan_iax2.c	2006-05-03 16:18:13 UTC (rev 44)
+@@ -308,8 +308,8 @@
+ 	struct ast_codec_pref prefs;
+ 	struct ast_ha *ha;
+ 	struct iax2_context *contexts;
+-	struct iax2_user *next;
+ 	struct ast_variable *vars;
++	AST_LIST_ENTRY(iax2_user) entry;
+ };
+ 
+ struct iax2_peer {
+@@ -357,7 +357,7 @@
+ 	int smoothing;					/*!&lt; Sample over how many units to determine historic ms */
+ 	
+ 	struct ast_ha *ha;
+-	struct iax2_peer *next;
++	AST_LIST_ENTRY(iax2_peer) entry;
+ };
+ 
+ #define IAX2_TRUNK_PREFACE (sizeof(struct iax_frame) + sizeof(struct ast_iax2_meta_hdr) + sizeof(struct ast_iax2_meta_trunk_hdr))
+@@ -628,15 +628,9 @@
+ 	ast_mutex_t lock;
+ } iaxq;
+ 
+-static struct ast_user_list {
+-	struct iax2_user *users;
+-	ast_mutex_t lock;
+-} userl;
++static AST_LIST_HEAD_STATIC(users, iax2_user);
+ 
+-static struct ast_peer_list {
+-	struct iax2_peer *peers;
+-	ast_mutex_t lock;
+-} peerl;
++static AST_LIST_HEAD_STATIC(peers, iax2_peer);
+ 
+ static struct ast_firmware_list {
+ 	struct iax_firmware *wares;
+@@ -1009,14 +1003,18 @@
+ 
+ static struct iax2_peer *find_peer(const char *name, int realtime) 
+ {
+-	struct iax2_peer *peer;
+-	ast_mutex_lock(&amp;peerl.lock);
+-	for(peer = peerl.peers; peer; peer = peer-&gt;next) {
++	struct iax2_peer *peer = NULL;
++
++	/* Grab peer from linked list */
++	AST_LIST_LOCK(&amp;peers);
++	AST_LIST_TRAVERSE(&amp;peers, peer, entry) {
+ 		if (!strcasecmp(peer-&gt;name, name)) {
+ 			break;
+ 		}
+ 	}
+-	ast_mutex_unlock(&amp;peerl.lock);
++	AST_LIST_UNLOCK(&amp;peers);
++
++	/* Now go for realtime if applicable */
+ 	if(!peer &amp;&amp; realtime)
+ 		peer = realtime_peer(name, NULL);
+ 	return peer;
+@@ -1024,23 +1022,21 @@
+ 
+ static int iax2_getpeername(struct sockaddr_in sin, char *host, int len, int lockpeer)
+ {
+-	struct iax2_peer *peer;
++	struct iax2_peer *peer = NULL;
+ 	int res = 0;
+ 
+ 	if (lockpeer)
+-		ast_mutex_lock(&amp;peerl.lock);
+-	peer = peerl.peers;
+-	while (peer) {
++		AST_LIST_LOCK(&amp;peers);
++	AST_LIST_TRAVERSE(&amp;peers, peer, entry) {
+ 		if ((peer-&gt;addr.sin_addr.s_addr == sin.sin_addr.s_addr) &amp;&amp;
+-				(peer-&gt;addr.sin_port == sin.sin_port)) {
+-					ast_copy_string(host, peer-&gt;name, len);
+-					res = 1;
+-					break;
++		    (peer-&gt;addr.sin_port == sin.sin_port)) {
++			ast_copy_string(host, peer-&gt;name, len);
++			res = 1;
++			break;
+ 		}
+-		peer = peer-&gt;next;
+ 	}
+ 	if (lockpeer)
+-		ast_mutex_unlock(&amp;peerl.lock);
++		AST_LIST_UNLOCK(&amp;peers);
+ 	if (!peer) {
+ 		peer = realtime_peer(NULL, &amp;sin);
+ 		if (peer) {
+@@ -2134,20 +2130,20 @@
+ static char *complete_iax2_show_peer(const char *line, const char *word, int pos, int state)
+ {
+ 	int which = 0;
+-	struct iax2_peer *p;
++	struct iax2_peer *p = NULL;
+ 	char *res = NULL;
+ 	int wordlen = strlen(word);
+ 
+ 	/* 0 - iax2; 1 - show; 2 - peer; 3 - &lt;peername&gt; */
+ 	if (pos == 3) {
+-		ast_mutex_lock(&amp;peerl.lock);
+-		for (p = peerl.peers ; p ; p = p-&gt;next) {
++		AST_LIST_LOCK(&amp;peers);
++		AST_LIST_TRAVERSE(&amp;peers, p, entry) {
+ 			if (!strncasecmp(p-&gt;name, word, wordlen) &amp;&amp; ++which &gt; state) {
+ 				res = ast_strdup(p-&gt;name);
+ 				break;
+ 			}
+ 		}
+-		ast_mutex_unlock(&amp;peerl.lock);
++		AST_LIST_UNLOCK(&amp;peers);
+ 	}
+ 
+ 	return res;
+@@ -2304,66 +2300,75 @@
+ #ifdef NEWJB
+ static int get_from_jb(void *p);
+ 
+-static void update_jbsched(struct chan_iax2_pvt *pvt) {
+-    int when;
+-
+-    when = ast_tvdiff_ms(ast_tvnow(), pvt-&gt;rxcore);
+-
+-    /*    fprintf(stderr, &quot;now = %d, next=%d\n&quot;, when, jb_next(pvt-&gt;jb)); */
+-
+-    when = jb_next(pvt-&gt;jb) - when;
+-    /*   fprintf(stderr, &quot;when = %d\n&quot;, when); */
+-
+-    if(pvt-&gt;jbid &gt; -1) ast_sched_del(sched, pvt-&gt;jbid);
+-
+-    if(when &lt;= 0) {
+-      /* XXX should really just empty until when &gt; 0.. */
+-      when = 1;
+-    }
+-
+-    pvt-&gt;jbid = ast_sched_add(sched, when, get_from_jb, (void *)pvt);
+-
+-    /* Signal scheduler thread */
+-    signal_condition(&amp;sched_lock, &amp;sched_cond);
++static void update_jbsched(struct chan_iax2_pvt *pvt)
++{
++	int when;
++	
++	when = ast_tvdiff_ms(ast_tvnow(), pvt-&gt;rxcore);
++	
++	/*    fprintf(stderr, &quot;now = %d, next=%d\n&quot;, when, jb_next(pvt-&gt;jb)); */
++	
++	when = jb_next(pvt-&gt;jb) - when;
++	/*   fprintf(stderr, &quot;when = %d\n&quot;, when); */
++	
++	if(pvt-&gt;jbid &gt; -1) ast_sched_del(sched, pvt-&gt;jbid);
++	
++	if(when &lt;= 0) {
++		/* XXX should really just empty until when &gt; 0.. */
++		when = 1;
++	}
++	
++	pvt-&gt;jbid = ast_sched_add(sched, when, get_from_jb, CALLNO_TO_PTR(pvt-&gt;callno));
++	
++	/* Signal scheduler thread */
++	signal_condition(&amp;sched_lock, &amp;sched_cond);
+ }
+ 
+ static void __get_from_jb(void *p) 
+ {
+-	/* make sure pvt is valid! */	
+-    struct chan_iax2_pvt *pvt = p;
+-    struct iax_frame *fr;
+-    jb_frame frame;
+-    int ret;
+-    long now;
+-    long next;
+-    struct timeval tv;
++	int callno = PTR_TO_CALLNO(p);
++	struct chan_iax2_pvt *pvt = iaxs[callno];
++	struct iax_frame *fr;
++	jb_frame frame;
++	int ret;
++	long now;
++	long next;
++	struct timeval tv;
++	
++	/* Make sure we have a valid private structure before going on */
++	ast_mutex_lock(&amp;iaxsl[callno]);
++	pvt = iaxs[callno];
++	if (!pvt) {
++		/* No go! */
++		ast_mutex_unlock(&amp;iaxsl[callno]);
++		return;
++	}
+ 
+-    ast_mutex_lock(&amp;iaxsl[pvt-&gt;callno]);
+-    /*  fprintf(stderr, &quot;get_from_jb called\n&quot;); */
+-    pvt-&gt;jbid = -1;
+-
+-    gettimeofday(&amp;tv,NULL);
+-    /* round up a millisecond since ast_sched_runq does; */
+-    /* prevents us from spinning while waiting for our now */
+-    /* to catch up with runq's now */
+-    tv.tv_usec += 1000;
+-
+-    now = ast_tvdiff_ms(tv, pvt-&gt;rxcore);
+-
+-    if(now &gt;= (next = jb_next(pvt-&gt;jb))) {
++	/*  fprintf(stderr, &quot;get_from_jb called\n&quot;); */
++	pvt-&gt;jbid = -1;
++	
++	gettimeofday(&amp;tv,NULL);
++	/* round up a millisecond since ast_sched_runq does; */
++	/* prevents us from spinning while waiting for our now */
++	/* to catch up with runq's now */
++	tv.tv_usec += 1000;
++	
++	now = ast_tvdiff_ms(tv, pvt-&gt;rxcore);
++	
++	if(now &gt;= (next = jb_next(pvt-&gt;jb))) {
+ 		ret = jb_get(pvt-&gt;jb,&amp;frame,now,ast_codec_interp_len(pvt-&gt;voiceformat));
+ 		switch(ret) {
+ 		case JB_OK:
+ 			/*if(frame.type == JB_TYPE_VOICE &amp;&amp; next + 20 != jb_next(pvt-&gt;jb)) fprintf(stderr, &quot;NEXT %ld is not %ld+20!\n&quot;, jb_next(pvt-&gt;jb), next); */
+ 			fr = frame.data;
+ 			__do_deliver(fr);
+-		    break;
++			break;
+ 		case JB_INTERP:
+-		    {
++		{
+ 			struct ast_frame af;
+-	
++			
+ 			/*if(next + 20 != jb_next(pvt-&gt;jb)) fprintf(stderr, &quot;NEXT %ld is not %ld+20!\n&quot;, jb_next(pvt-&gt;jb), next); */
+-	
++			
+ 			/* create an interpolation frame */
+ 			/*fprintf(stderr, &quot;Making Interpolation frame\n&quot;); */
+ 			af.frametype = AST_FRAME_VOICE;
+@@ -2375,28 +2380,28 @@
+ 			af.data  = NULL;
+ 			af.delivery = ast_tvadd(pvt-&gt;rxcore, ast_samp2tv(next, 1000));
+ 			af.offset=AST_FRIENDLY_OFFSET;
+-	
++			
+ 			/* queue the frame:  For consistency, we would call __do_deliver here, but __do_deliver wants an iax_frame,
+ 			 * which we'd need to malloc, and then it would free it.  That seems like a drag */
+-			if (iaxs[pvt-&gt;callno] &amp;&amp; !ast_test_flag(iaxs[pvt-&gt;callno], IAX_ALREADYGONE))
+-				iax2_queue_frame(pvt-&gt;callno, &amp;af);
+-		    }
+-		    break;
++			if (!ast_test_flag(iaxs[callno], IAX_ALREADYGONE))
++				iax2_queue_frame(callno, &amp;af);
++		}
++		break;
+ 		case JB_DROP:
+ 			/*if(next != jb_next(pvt-&gt;jb)) fprintf(stderr, &quot;NEXT %ld is not next %ld!\n&quot;, jb_next(pvt-&gt;jb), next); */
+ 			iax2_frame_free(frame.data);
+-		    break;
++			break;
+ 		case JB_NOFRAME:
+ 		case JB_EMPTY:
+ 			/* do nothing */
+-		    break;
++			break;
+ 		default:
+ 			/* shouldn't happen */
+-		    break;
++			break;
+ 		}
+-    }
+-    update_jbsched(pvt);
+-    ast_mutex_unlock(&amp;iaxsl[pvt-&gt;callno]);
++	}
++	update_jbsched(pvt);
++	ast_mutex_unlock(&amp;iaxsl[callno]);
+ }
+ 
+ static int get_from_jb(void *data)
+@@ -2803,10 +2808,9 @@
+ 				ast_sched_del(sched, peer-&gt;expire);
+ 			peer-&gt;expire = ast_sched_add(sched, (global_rtautoclear) * 1000, expire_registry, peer);
+ 		}
+-		ast_mutex_lock(&amp;peerl.lock);
+-		peer-&gt;next = peerl.peers;
+-		peerl.peers = peer;
+-		ast_mutex_unlock(&amp;peerl.lock);
++		AST_LIST_LOCK(&amp;peers);
++		AST_LIST_INSERT_HEAD(&amp;peers, peer, entry);
++		AST_LIST_UNLOCK(&amp;peers);
+ 		if (ast_test_flag(peer, IAX_DYNAMIC))
+ 			reg_source_db(peer);
+ 	} else {
+@@ -2861,10 +2865,9 @@
+ 
+ 	if (ast_test_flag((&amp;globalflags), IAX_RTCACHEFRIENDS)) {
+ 		ast_set_flag(user, IAX_RTCACHEFRIENDS);
+-		ast_mutex_lock(&amp;userl.lock);
+- 		user-&gt;next = userl.users;
+-		userl.users = user;
+-		ast_mutex_unlock(&amp;userl.lock);
++		AST_LIST_LOCK(&amp;users);
++		AST_LIST_INSERT_HEAD(&amp;users, user, entry);
++		AST_LIST_UNLOCK(&amp;users);
+ 	} else {
+ 		ast_set_flag(user, IAX_TEMPONLY);	
+ 	}
+@@ -3520,19 +3523,19 @@
+ 
+ static int iax2_getpeertrunk(struct sockaddr_in sin)
+ {
+-	struct iax2_peer *peer;
++	struct iax2_peer *peer = NULL;
+ 	int res = 0;
+-	ast_mutex_lock(&amp;peerl.lock);
+-	peer = peerl.peers;
+-	while(peer) {
++
++	AST_LIST_LOCK(&amp;peers);
++	AST_LIST_TRAVERSE(&amp;peers, peer, entry) {
+ 		if ((peer-&gt;addr.sin_addr.s_addr == sin.sin_addr.s_addr) &amp;&amp;
+-				(peer-&gt;addr.sin_port == sin.sin_port)) {
+-					res = ast_test_flag(peer, IAX_TRUNK);
+-					break;
++		    (peer-&gt;addr.sin_port == sin.sin_port)) {
++			res = ast_test_flag(peer, IAX_TRUNK);
++			break;
+ 		}
+-		peer = peer-&gt;next;
+ 	}
+-	ast_mutex_unlock(&amp;peerl.lock);
++	AST_LIST_UNLOCK(&amp;peers);
++
+ 	return res;
+ }
+ 
+@@ -4270,7 +4273,7 @@
+ #define FORMAT &quot;%-15.15s  %-20.20s  %-15.15s  %-15.15s  %-5.5s  %-5.10s\n&quot;
+ #define FORMAT2 &quot;%-15.15s  %-20.20s  %-15.15d  %-15.15s  %-5.5s  %-5.10s\n&quot;
+ 
+-	struct iax2_user *user;
++	struct iax2_user *user = NULL;
+ 	char auth[90];
+ 	char *pstr = &quot;&quot;;
+ 
+@@ -4288,32 +4291,32 @@
+ 		return RESULT_SHOWUSAGE;
+ 	}
+ 
+-	ast_mutex_lock(&amp;userl.lock);
+ 	ast_cli(fd, FORMAT, &quot;Username&quot;, &quot;Secret&quot;, &quot;Authen&quot;, &quot;Def.Context&quot;, &quot;A/C&quot;,&quot;Codec Pref&quot;);
+-	for(user=userl.users;user;user=user-&gt;next) {
++	AST_LIST_LOCK(&amp;users);
++	AST_LIST_TRAVERSE(&amp;users, user, entry) {
+ 		if (havepattern &amp;&amp; regexec(&amp;regexbuf, user-&gt;name, 0, NULL, 0))
+ 			continue;
+-
++		
+ 		if (!ast_strlen_zero(user-&gt;secret)) {
+   			ast_copy_string(auth,user-&gt;secret,sizeof(auth));
+ 		} else if (!ast_strlen_zero(user-&gt;inkeys)) {
+   			snprintf(auth, sizeof(auth), &quot;Key: %-15.15s &quot;, user-&gt;inkeys);
+  		} else
+ 			ast_copy_string(auth, &quot;-no secret-&quot;, sizeof(auth));
+-
++		
+ 		if(ast_test_flag(user,IAX_CODEC_NOCAP))
+ 			pstr = &quot;REQ Only&quot;;
+ 		else if(ast_test_flag(user,IAX_CODEC_NOPREFS))
+ 			pstr = &quot;Disabled&quot;;
+ 		else
+ 			pstr = ast_test_flag(user,IAX_CODEC_USER_FIRST) ? &quot;Caller&quot; : &quot;Host&quot;;
+-
++		
+ 		ast_cli(fd, FORMAT2, user-&gt;name, auth, user-&gt;authmethods, 
+-				user-&gt;contexts ? user-&gt;contexts-&gt;context : context,
+-				user-&gt;ha ? &quot;Yes&quot; : &quot;No&quot;, pstr);
+-
++			user-&gt;contexts ? user-&gt;contexts-&gt;context : context,
++			user-&gt;ha ? &quot;Yes&quot; : &quot;No&quot;, pstr);
++		
+ 	}
+-	ast_mutex_unlock(&amp;userl.lock);
++	AST_LIST_UNLOCK(&amp;users);
+ 
+ 	if (havepattern)
+ 		regfree(&amp;regexbuf);
+@@ -4335,7 +4338,7 @@
+ #define FORMAT2 &quot;%-15.15s  %-15.15s %s  %-15.15s  %-8s  %s %-10s%s&quot;
+ #define FORMAT &quot;%-15.15s  %-15.15s %s  %-15.15s  %-5d%s  %s %-10s%s&quot;
+ 
+-	struct iax2_peer *peer;
++	struct iax2_peer *peer = NULL;
+ 	char name[256];
+ 	char iabuf[INET_ADDRSTRLEN];
+ 	int registeredonly=0;
+@@ -4374,12 +4377,14 @@
+ 		return RESULT_SHOWUSAGE;
+ 	}
+ 
+-	ast_mutex_lock(&amp;peerl.lock);
++
+ 	if (s)
+ 		astman_append(s, FORMAT2, &quot;Name/Username&quot;, &quot;Host&quot;, &quot;   &quot;, &quot;Mask&quot;, &quot;Port&quot;, &quot;   &quot;, &quot;Status&quot;, term);
+ 	else
+ 		ast_cli(fd, FORMAT2, &quot;Name/Username&quot;, &quot;Host&quot;, &quot;   &quot;, &quot;Mask&quot;, &quot;Port&quot;, &quot;   &quot;, &quot;Status&quot;, term);
+-	for (peer = peerl.peers;peer;peer = peer-&gt;next) {
++
++	AST_LIST_LOCK(&amp;peers);
++	AST_LIST_TRAVERSE(&amp;peers, peer, entry) {
+ 		char nm[20];
+ 		char status[20];
+ 		char srch[2000];
+@@ -4404,31 +4409,31 @@
+ 			unmonitored_peers++;
+ 		
+ 		ast_copy_string(nm, ast_inet_ntoa(iabuf, sizeof(iabuf), peer-&gt;mask), sizeof(nm));
+-
++		
+ 		snprintf(srch, sizeof(srch), FORMAT, name, 
+-					peer-&gt;addr.sin_addr.s_addr ? ast_inet_ntoa(iabuf, sizeof(iabuf), peer-&gt;addr.sin_addr) : &quot;(Unspecified)&quot;,
+-					ast_test_flag(peer, IAX_DYNAMIC) ? &quot;(D)&quot; : &quot;(S)&quot;,
+-					nm,
+-					ntohs(peer-&gt;addr.sin_port), ast_test_flag(peer, IAX_TRUNK) ? &quot;(T)&quot; : &quot;   &quot;,
+-					peer-&gt;encmethods ? &quot;(E)&quot; : &quot;   &quot;, status, term);
+-
++			 peer-&gt;addr.sin_addr.s_addr ? ast_inet_ntoa(iabuf, sizeof(iabuf), peer-&gt;addr.sin_addr) : &quot;(Unspecified)&quot;,
++			 ast_test_flag(peer, IAX_DYNAMIC) ? &quot;(D)&quot; : &quot;(S)&quot;,
++			 nm,
++			 ntohs(peer-&gt;addr.sin_port), ast_test_flag(peer, IAX_TRUNK) ? &quot;(T)&quot; : &quot;   &quot;,
++			 peer-&gt;encmethods ? &quot;(E)&quot; : &quot;   &quot;, status, term);
++		
+ 		if (s)
+ 			astman_append(s, FORMAT, name, 
+-					peer-&gt;addr.sin_addr.s_addr ? ast_inet_ntoa(iabuf, sizeof(iabuf), peer-&gt;addr.sin_addr) : &quot;(Unspecified)&quot;,
+-					ast_test_flag(peer, IAX_DYNAMIC) ? &quot;(D)&quot; : &quot;(S)&quot;,
+-					nm,
+-					ntohs(peer-&gt;addr.sin_port), ast_test_flag(peer, IAX_TRUNK) ? &quot;(T)&quot; : &quot;   &quot;,
+-					peer-&gt;encmethods ? &quot;(E)&quot; : &quot;   &quot;, status, term);
++				      peer-&gt;addr.sin_addr.s_addr ? ast_inet_ntoa(iabuf, sizeof(iabuf), peer-&gt;addr.sin_addr) : &quot;(Unspecified)&quot;,
++				      ast_test_flag(peer, IAX_DYNAMIC) ? &quot;(D)&quot; : &quot;(S)&quot;,
++				      nm,
++				      ntohs(peer-&gt;addr.sin_port), ast_test_flag(peer, IAX_TRUNK) ? &quot;(T)&quot; : &quot;   &quot;,
++				      peer-&gt;encmethods ? &quot;(E)&quot; : &quot;   &quot;, status, term);
+ 		else
+ 			ast_cli(fd, FORMAT, name, 
+-					peer-&gt;addr.sin_addr.s_addr ? ast_inet_ntoa(iabuf, sizeof(iabuf), peer-&gt;addr.sin_addr) : &quot;(Unspecified)&quot;,
+-					ast_test_flag(peer, IAX_DYNAMIC) ? &quot;(D)&quot; : &quot;(S)&quot;,
+-					nm,
+-					ntohs(peer-&gt;addr.sin_port), ast_test_flag(peer, IAX_TRUNK) ? &quot;(T)&quot; : &quot;   &quot;,
+-					peer-&gt;encmethods ? &quot;(E)&quot; : &quot;   &quot;, status, term);
++				peer-&gt;addr.sin_addr.s_addr ? ast_inet_ntoa(iabuf, sizeof(iabuf), peer-&gt;addr.sin_addr) : &quot;(Unspecified)&quot;,
++				ast_test_flag(peer, IAX_DYNAMIC) ? &quot;(D)&quot; : &quot;(S)&quot;,
++				nm,
++				ntohs(peer-&gt;addr.sin_port), ast_test_flag(peer, IAX_TRUNK) ? &quot;(T)&quot; : &quot;   &quot;,
++				peer-&gt;encmethods ? &quot;(E)&quot; : &quot;   &quot;, status, term);
+ 		total_peers++;
+ 	}
+-	ast_mutex_unlock(&amp;peerl.lock);
++	AST_LIST_UNLOCK(&amp;peers);
+ 
+ 	if (s)
+ 		astman_append(s,&quot;%d iax2 peers [%d online, %d offline, %d unmonitored]%s&quot;, total_peers, online_peers, offline_peers, unmonitored_peers, term);
+@@ -4578,13 +4583,14 @@
+ {
+ #define FORMAT2 &quot;%-20.20s  %-10.10s  %-20.20s %8.8s  %s\n&quot;
+ #define FORMAT &quot;%-20.20s  %-10.10s  %-20.20s %8d  %s\n&quot;
+-	struct iax2_registry *reg;
++	struct iax2_registry *reg = NULL;
++
+ 	char host[80];
+ 	char perceived[80];
+ 	char iabuf[INET_ADDRSTRLEN];
+ 	if (argc != 3)
+ 		return RESULT_SHOWUSAGE;
+-	ast_mutex_lock(&amp;peerl.lock);
++	AST_LIST_LOCK(&amp;peers);
+ 	ast_cli(fd, FORMAT2, &quot;Host&quot;, &quot;Username&quot;, &quot;Perceived&quot;, &quot;Refresh&quot;, &quot;State&quot;);
+ 	for (reg = registrations;reg;reg = reg-&gt;next) {
+ 		snprintf(host, sizeof(host), &quot;%s:%d&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), reg-&gt;addr.sin_addr), ntohs(reg-&gt;addr.sin_port));
+@@ -4595,7 +4601,7 @@
+ 		ast_cli(fd, FORMAT, host, 
+ 					reg-&gt;username, perceived, reg-&gt;refresh, regstate2str(reg-&gt;regstate));
+ 	}
+-	ast_mutex_unlock(&amp;peerl.lock);
++	AST_LIST_UNLOCK(&amp;peers);
+ 	return RESULT_SUCCESS;
+ #undef FORMAT
+ #undef FORMAT2
+@@ -4959,7 +4965,7 @@
+ 	/* Start pessimistic */
+ 	int res = -1;
+ 	int version = 2;
+-	struct iax2_user *user, *best = NULL;
++	struct iax2_user *user = NULL, *best = NULL;
+ 	int bestscore = 0;
+ 	int gotcapability=0;
+ 	char iabuf[INET_ADDRSTRLEN];
+@@ -5014,10 +5020,9 @@
+ 			ast_inet_ntoa(iabuf, sizeof(iabuf), sin-&gt;sin_addr), version);
+ 		return res;
+ 	}
+-	ast_mutex_lock(&amp;userl.lock);
+ 	/* Search the userlist for a compatible entry, and fill in the rest */
+-	user = userl.users;
+-	while(user) {
++	AST_LIST_LOCK(&amp;users);
++	AST_LIST_TRAVERSE(&amp;users, user, entry) {
+ 		if ((ast_strlen_zero(iaxs[callno]-&gt;username) ||				/* No username specified */
+ 			!strcmp(iaxs[callno]-&gt;username, user-&gt;name))	/* Or this username specified */
+ 			&amp;&amp; ast_apply_ha(user-&gt;ha, sin) 	/* Access is permitted from this IP */
+@@ -5058,9 +5063,8 @@
+ 				}
+ 			}
+ 		}
+-		user = user-&gt;next;	
+ 	}
+-	ast_mutex_unlock(&amp;userl.lock);
++	AST_LIST_UNLOCK(&amp;users);
+ 	user = best;
+ 	if (!user &amp;&amp; !ast_strlen_zero(iaxs[callno]-&gt;username)) {
+ 		user = realtime_user(iaxs[callno]-&gt;username);
+@@ -5473,7 +5477,7 @@
+ 
+ static int authenticate_reply(struct chan_iax2_pvt *p, struct sockaddr_in *sin, struct iax_ies *ies, char *override, char *okey)
+ {
+-	struct iax2_peer *peer;
++	struct iax2_peer *peer = NULL;
+ 	/* Start pessimistic */
+ 	int res = -1;
+ 	int authmethods = 0;
+@@ -5497,23 +5501,21 @@
+ 		/* Normal password authentication */
+ 		res = authenticate(p-&gt;challenge, override, okey, authmethods, &amp;ied, sin, &amp;p-&gt;ecx, &amp;p-&gt;dcx);
+ 	} else {
+-		ast_mutex_lock(&amp;peerl.lock);
+-		peer = peerl.peers;
+-		while(peer) {
++		AST_LIST_LOCK(&amp;peers);
++		AST_LIST_TRAVERSE(&amp;peers, peer, entry) {
+ 			if ((ast_strlen_zero(p-&gt;peer) || !strcmp(p-&gt;peer, peer-&gt;name)) 
+-								/* No peer specified at our end, or this is the peer */
+-			 &amp;&amp; (ast_strlen_zero(peer-&gt;username) || (!strcmp(peer-&gt;username, p-&gt;username)))
+-			 					/* No username specified in peer rule, or this is the right username */
+-			 &amp;&amp; (!peer-&gt;addr.sin_addr.s_addr || ((sin-&gt;sin_addr.s_addr &amp; peer-&gt;mask.s_addr) == (peer-&gt;addr.sin_addr.s_addr &amp; peer-&gt;mask.s_addr)))
+-			 					/* No specified host, or this is our host */
+-			) {
++			    /* No peer specified at our end, or this is the peer */
++			    &amp;&amp; (ast_strlen_zero(peer-&gt;username) || (!strcmp(peer-&gt;username, p-&gt;username)))
++			    /* No username specified in peer rule, or this is the right username */
++			    &amp;&amp; (!peer-&gt;addr.sin_addr.s_addr || ((sin-&gt;sin_addr.s_addr &amp; peer-&gt;mask.s_addr) == (peer-&gt;addr.sin_addr.s_addr &amp; peer-&gt;mask.s_addr)))
++			    /* No specified host, or this is our host */
++				) {
+ 				res = authenticate(p-&gt;challenge, peer-&gt;secret, peer-&gt;outkey, authmethods, &amp;ied, sin, &amp;p-&gt;ecx, &amp;p-&gt;dcx);
+ 				if (!res)
+ 					break;	
+ 			}
+-			peer = peer-&gt;next;
+ 		}
+-		ast_mutex_unlock(&amp;peerl.lock);
++		AST_LIST_UNLOCK(&amp;peers);
+ 		if (!peer) {
+ 			/* We checked our list and didn't find one.  It's unlikely, but possible, 
+ 			   that we're trying to authenticate *to* a realtime peer */
+@@ -5830,8 +5832,26 @@
+ 
+ static void __expire_registry(void *data)
+ {
+-	struct iax2_peer *p = data;
++	char *name = data;
++	struct iax2_peer *p = NULL;
+ 
++	/* Go through and grab this peer... and if it needs to be removed... then do it */
++	AST_LIST_LOCK(&amp;peers);
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;peers, p, entry) {
++		if (!strcasecmp(p-&gt;name, name)) {
++			/* If we are set to auto clear then remove ourselves */
++			if (ast_test_flag(p, IAX_RTAUTOCLEAR))
++				AST_LIST_REMOVE_CURRENT(&amp;peers, entry);
++			break;
++		}
++	}
++	AST_LIST_TRAVERSE_SAFE_END
++	AST_LIST_UNLOCK(&amp;peers);
++
++	/* Peer is already gone for whatever reason */
++	if (!p)
++		return;
++
+ 	ast_log(LOG_DEBUG, &quot;Expiring registration for peer '%s'\n&quot;, p-&gt;name);
+ 	manager_event(EVENT_FLAG_SYSTEM, &quot;PeerStatus&quot;, &quot;Peer: IAX2/%s\r\nPeerStatus: Unregistered\r\nCause: Expired\r\n&quot;, p-&gt;name);
+ 	/* Reset the address */
+@@ -5846,8 +5866,8 @@
+ 		iax2_regfunk(p-&gt;name, 0);
+ 
+ 	if (ast_test_flag(p, IAX_RTAUTOCLEAR)) {
+-		ast_set_flag(p, IAX_DELME);
+-		prune_peers();
++		/* We are already gone from the list, so we can just destroy ourselves */
++		destroy_peer(p);
+ 	}
+ }
+ 
+@@ -5893,7 +5913,7 @@
+ 					if (p-&gt;expire &gt; -1)
+ 						ast_sched_del(sched, p-&gt;expire);
+ 					ast_device_state_changed(&quot;IAX2/%s&quot;, p-&gt;name); /* Activate notification */
+-					p-&gt;expire = ast_sched_add(sched, (p-&gt;expiry + 10) * 1000, expire_registry, (void *)p);
++					p-&gt;expire = ast_sched_add(sched, (p-&gt;expiry + 10) * 1000, expire_registry, (void *)p-&gt;name);
+ 					if (iax2_regfunk)
+ 						iax2_regfunk(p-&gt;name, 1);
+ 					register_peer_exten(p, 1);
+@@ -5971,7 +5991,7 @@
+ 		p-&gt;expiry = refresh;
+ 	}
+ 	if (p-&gt;expiry &amp;&amp; sin-&gt;sin_addr.s_addr)
+-		p-&gt;expire = ast_sched_add(sched, (p-&gt;expiry + 10) * 1000, expire_registry, (void *)p);
++		p-&gt;expire = ast_sched_add(sched, (p-&gt;expiry + 10) * 1000, expire_registry, (void *)p-&gt;name);
+ 	iax_ie_append_str(&amp;ied, IAX_IE_USERNAME, p-&gt;name);
+ 	iax_ie_append_int(&amp;ied, IAX_IE_DATETIME, iax2_datetime(p-&gt;zonetag));
+ 	if (sin-&gt;sin_addr.s_addr) {
+@@ -6289,7 +6309,6 @@
+ 		res = read(fd, buf, sizeof(buf));
+ 		if (res &lt; 1) {
+ 			ast_log(LOG_WARNING, &quot;Unable to read from timing fd\n&quot;);
+-			ast_mutex_unlock(&amp;peerl.lock);
+ 			return 1;
+ 		}
+ 	}
+@@ -6553,7 +6572,7 @@
+ 		thread-&gt;iofd = fd;
+ 		thread-&gt;iores = recvfrom(fd, thread-&gt;buf, sizeof(thread-&gt;buf), 0,(struct sockaddr *) &amp;thread-&gt;iosin, &amp;len);
+ 		if (thread-&gt;iores &lt; 0) {
+-			if (errno != ECONNREFUSED)
++			if (errno != ECONNREFUSED &amp;&amp; errno != EAGAIN)
+ 				ast_log(LOG_WARNING, &quot;Error: %s\n&quot;, strerror(errno));
+ 			handle_error();
+ 			AST_LIST_LOCK(&amp;idle_list);
+@@ -8554,21 +8573,17 @@
+ /*! \brief Create peer structure based on configuration */
+ static struct iax2_peer *build_peer(const char *name, struct ast_variable *v, int temponly)
+ {
+-	struct iax2_peer *peer;
+-	struct iax2_peer *prev;
++	struct iax2_peer *peer = NULL;
+ 	struct ast_ha *oldha = NULL;
+ 	int maskfound=0;
+ 	int found=0;
+-	prev = NULL;
+-	ast_mutex_lock(&amp;peerl.lock);
++
++	AST_LIST_LOCK(&amp;peers);
+ 	if (!temponly) {
+-		peer = peerl.peers;
+-		while(peer) {
++		AST_LIST_TRAVERSE(&amp;peers, peer, entry) {
+ 			if (!strcmp(peer-&gt;name, name)) {	
+ 				break;
+ 			}
+-			prev = peer;
+-			peer = peer-&gt;next;
+ 		}
+ 	} else
+ 		peer = NULL;	
+@@ -8576,15 +8591,10 @@
+ 		found++;
+ 		oldha = peer-&gt;ha;
+ 		peer-&gt;ha = NULL;
+-		/* Already in the list, remove it and it will be added back (or FREE'd) */
+-		if (prev) {
+-			prev-&gt;next = peer-&gt;next;
+-		} else {
+-			peerl.peers = peer-&gt;next;
+-		}
+-		ast_mutex_unlock(&amp;peerl.lock);
++		AST_LIST_REMOVE(&amp;peers, peer, entry);
++		AST_LIST_UNLOCK(&amp;peers);
+  	} else {
+-		ast_mutex_unlock(&amp;peerl.lock);
++		AST_LIST_UNLOCK(&amp;peers);
+ 		if ((peer = ast_calloc(1, sizeof(*peer)))) {
+ 			peer-&gt;expire = -1;
+ 			peer-&gt;pokeexpire = -1;
+@@ -8744,7 +8754,7 @@
+ /*! \brief Create in-memory user structure from configuration */
+ static struct iax2_user *build_user(const char *name, struct ast_variable *v, int temponly)
+ {
+-	struct iax2_user *prev, *user;
++	struct iax2_user *user = NULL;
+ 	struct iax2_context *con, *conl = NULL;
+ 	struct ast_ha *oldha = NULL;
+ 	struct iax2_context *oldcon = NULL;
+@@ -8752,16 +8762,12 @@
+ 	char *varname = NULL, *varval = NULL;
+ 	struct ast_variable *tmpvar = NULL;
+ 	
+-	prev = NULL;
+-	ast_mutex_lock(&amp;userl.lock);
++	AST_LIST_LOCK(&amp;users);
+ 	if (!temponly) {
+-		user = userl.users;
+-		while(user) {
++		AST_LIST_TRAVERSE(&amp;users, user, entry) {
+ 			if (!strcmp(user-&gt;name, name)) {	
+ 				break;
+ 			}
+-			prev = user;
+-			user = user-&gt;next;
+ 		}
+ 	} else
+ 		user = NULL;
+@@ -8772,14 +8778,10 @@
+ 		user-&gt;ha = NULL;
+ 		user-&gt;contexts = NULL;
+ 		/* Already in the list, remove it and it will be added back (or FREE'd) */
+-		if (prev) {
+-			prev-&gt;next = user-&gt;next;
+-		} else {
+-			userl.users = user-&gt;next;
+-		}
+-		ast_mutex_unlock(&amp;userl.lock);
++		AST_LIST_REMOVE(&amp;users, user, entry);
++		AST_LIST_UNLOCK(&amp;users);
+  	} else {
+-		ast_mutex_unlock(&amp;userl.lock);
++		AST_LIST_UNLOCK(&amp;users);
+ 		/* This is going to memset'd to 0 in the next block */
+ 		user = ast_malloc(sizeof(*user));
+ 	}
+@@ -8894,16 +8896,15 @@
+ 
+ static void delete_users(void)
+ {
+-	struct iax2_user *user;
+-	struct iax2_peer *peer;
++	struct iax2_user *user = NULL;
++	struct iax2_peer *peer = NULL;
+ 	struct iax2_registry *reg, *regl;
+ 
+-	ast_mutex_lock(&amp;userl.lock);
+-	for (user=userl.users;user;) {
++	AST_LIST_LOCK(&amp;users);
++	AST_LIST_TRAVERSE(&amp;users, user, entry)
+ 		ast_set_flag(user, IAX_DELME);
+-		user = user-&gt;next;
+-	}
+-	ast_mutex_unlock(&amp;userl.lock);
++	AST_LIST_UNLOCK(&amp;users);
++
+ 	for (reg = registrations;reg;) {
+ 		regl = reg;
+ 		reg = reg-&gt;next;
+@@ -8922,13 +8923,12 @@
+ 		free(regl);
+ 	}
+ 	registrations = NULL;
+-	ast_mutex_lock(&amp;peerl.lock);
+-	for (peer=peerl.peers;peer;) {
+-		/* Assume all will be deleted, and we'll find out for sure later */
++
++	AST_LIST_LOCK(&amp;peers);
++	AST_LIST_TRAVERSE(&amp;peers, peer, entry)
+ 		ast_set_flag(peer, IAX_DELME);
+-		peer = peer-&gt;next;
+-	}
+-	ast_mutex_unlock(&amp;peerl.lock);
++	AST_LIST_UNLOCK(&amp;peers);
++
+ }
+ 
+ static void destroy_user(struct iax2_user *user)
+@@ -8944,21 +8944,18 @@
+ 
+ static void prune_users(void)
+ {
+-	struct iax2_user *user, *usernext, *userlast = NULL;
+-	ast_mutex_lock(&amp;userl.lock);
+-	for (user=userl.users;user;) {
+-		usernext = user-&gt;next;
++	struct iax2_user *user = NULL;
++
++	AST_LIST_LOCK(&amp;users);
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;users, user, entry) {
+ 		if (ast_test_flag(user, IAX_DELME)) {
+ 			destroy_user(user);
+-			if (userlast)
+-				userlast-&gt;next = usernext;
+-			else
+-				userl.users = usernext;
+-		} else
+-			userlast = user;
+-		user = usernext;
++			AST_LIST_REMOVE_CURRENT(&amp;users, entry);
++		}
+ 	}
+-	ast_mutex_unlock(&amp;userl.lock);
++	AST_LIST_TRAVERSE_SAFE_END
++	AST_LIST_UNLOCK(&amp;users);
++
+ }
+ 
+ static void destroy_peer(struct iax2_peer *peer)
+@@ -8987,22 +8984,17 @@
+ 
+ static void prune_peers(void){
+ 	/* Prune peers who still are supposed to be deleted */
+-	struct iax2_peer *peer, *peerlast, *peernext;
+-	ast_mutex_lock(&amp;peerl.lock);
+-	peerlast = NULL;
+-	for (peer=peerl.peers;peer;) {
+-		peernext = peer-&gt;next;
++	struct iax2_peer *peer = NULL;
++
++	AST_LIST_LOCK(&amp;peers);
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;peers, peer, entry) {
+ 		if (ast_test_flag(peer, IAX_DELME)) {
+ 			destroy_peer(peer);
+-			if (peerlast)
+-				peerlast-&gt;next = peernext;
+-			else
+-				peerl.peers = peernext;
+-		} else
+-			peerlast = peer;
+-		peer=peernext;
++			AST_LIST_REMOVE_CURRENT(&amp;peers, entry);
++		}
+ 	}
+-	ast_mutex_unlock(&amp;peerl.lock);
++	AST_LIST_TRAVERSE_SAFE_END
++	AST_LIST_UNLOCK(&amp;peers);
+ }
+ 
+ static void set_timing(void)
+@@ -9274,19 +9266,17 @@
+ 				if (!strcasecmp(utype, &quot;user&quot;) || !strcasecmp(utype, &quot;friend&quot;)) {
+ 					user = build_user(cat, ast_variable_browse(cfg, cat), 0);
+ 					if (user) {
+-						ast_mutex_lock(&amp;userl.lock);
+-						user-&gt;next = userl.users;
+-						userl.users = user;
+-						ast_mutex_unlock(&amp;userl.lock);
++						AST_LIST_LOCK(&amp;users);
++						AST_LIST_INSERT_HEAD(&amp;users, user, entry);
++						AST_LIST_UNLOCK(&amp;users);
+ 					}
+ 				}
+ 				if (!strcasecmp(utype, &quot;peer&quot;) || !strcasecmp(utype, &quot;friend&quot;)) {
+ 					peer = build_peer(cat, ast_variable_browse(cfg, cat), 0);
+ 					if (peer) {
+-						ast_mutex_lock(&amp;peerl.lock);
+-						peer-&gt;next = peerl.peers;
+-						peerl.peers = peer;
+-						ast_mutex_unlock(&amp;peerl.lock);
++						AST_LIST_LOCK(&amp;peers);
++						AST_LIST_INSERT_HEAD(&amp;peers, peer, entry);
++						AST_LIST_UNLOCK(&amp;peers);
+ 						if (ast_test_flag(peer, IAX_DYNAMIC))
+ 							reg_source_db(peer);
+ 					}
+@@ -9307,7 +9297,8 @@
+ {
+ 	char *config = &quot;iax.conf&quot;;
+ 	struct iax2_registry *reg;
+-	struct iax2_peer *peer;
++	struct iax2_peer *peer = NULL;
++
+ 	ast_copy_string(accountcode, &quot;&quot;, sizeof(accountcode));
+ 	ast_copy_string(language, &quot;&quot;, sizeof(language));
+ 	amaflags = 0;
+@@ -9322,12 +9313,13 @@
+ 	for (reg = registrations; reg; reg = reg-&gt;next)
+ 		iax2_do_register(reg);
+ 	/* Qualify hosts, too */
+-	ast_mutex_lock(&amp;peerl.lock);
+-	for (peer = peerl.peers; peer; peer = peer-&gt;next)
++	AST_LIST_LOCK(&amp;peers);
++	AST_LIST_TRAVERSE(&amp;peers, peer, entry)
+ 		iax2_poke_peer(peer, 0);
+-	ast_mutex_unlock(&amp;peerl.lock);
++	AST_LIST_UNLOCK(&amp;peers);
+ 	reload_firmware();
+ 	iax_provision_reload();
++
+ 	return 0;
+ }
+ 
+@@ -10035,8 +10027,6 @@
+ static int unload_module(void *mod)
+ {
+ 	ast_mutex_destroy(&amp;iaxq.lock);
+-	ast_mutex_destroy(&amp;userl.lock);
+-	ast_mutex_destroy(&amp;peerl.lock);
+ 	ast_mutex_destroy(&amp;waresl.lock);
+ 	ast_custom_function_unregister(&amp;iaxpeer_function);
+ 	return __unload_module();
+@@ -10049,8 +10039,8 @@
+ 	char *config = &quot;iax.conf&quot;;
+ 	int res = 0;
+ 	int x;
+-	struct iax2_registry *reg;
+-	struct iax2_peer *peer;
++	struct iax2_registry *reg = NULL;
++	struct iax2_peer *peer = NULL;
+ 	
+ 	ast_custom_function_register(&amp;iaxpeer_function);
+ 
+@@ -10091,8 +10081,6 @@
+ 	ast_netsock_init(netsock);
+ 
+ 	ast_mutex_init(&amp;iaxq.lock);
+-	ast_mutex_init(&amp;userl.lock);
+-	ast_mutex_init(&amp;peerl.lock);
+ 	ast_mutex_init(&amp;waresl.lock);
+ 	
+ 	ast_cli_register_multiple(iax2_cli, sizeof(iax2_cli) / sizeof(iax2_cli[0]));
+@@ -10124,13 +10112,13 @@
+ 
+ 	for (reg = registrations; reg; reg = reg-&gt;next)
+ 		iax2_do_register(reg);
+-	ast_mutex_lock(&amp;peerl.lock);
+-	for (peer = peerl.peers; peer; peer = peer-&gt;next) {
++	AST_LIST_LOCK(&amp;peers);
++	AST_LIST_TRAVERSE(&amp;peers, peer, entry) {
+ 		if (peer-&gt;sockfd &lt; 0)
+ 			peer-&gt;sockfd = defaultsockfd;
+ 		iax2_poke_peer(peer, 0);
+ 	}
+-	ast_mutex_unlock(&amp;peerl.lock);
++	AST_LIST_UNLOCK(&amp;peers);
+ 	reload_firmware();
+ 	iax_provision_reload();
+ 	return res;
+
+Modified: trunk/pbx/ael/ael.tab.c
+===================================================================
+--- trunk/pbx/ael/ael.tab.c	2006-05-03 13:18:20 UTC (rev 43)
++++ trunk/pbx/ael/ael.tab.c	2006-05-03 16:18:13 UTC (rev 44)
+@@ -420,16 +420,16 @@
+ /* YYFINAL -- State number of the termination state. */
+ #define YYFINAL  14
+ /* YYLAST -- Last index in YYTABLE.  */
+-#define YYLAST   387
++#define YYLAST   400
+ 
+ /* YYNTOKENS -- Number of terminals. */
+ #define YYNTOKENS  42
+ /* YYNNTS -- Number of nonterminals. */
+ #define YYNNTS  54
+ /* YYNRULES -- Number of rules. */
+-#define YYNRULES  140
++#define YYNRULES  139
+ /* YYNRULES -- Number of states. */
+-#define YYNSTATES  266
++#define YYNSTATES  265
+ 
+ /* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
+ #define YYUNDEFTOK  2
+@@ -484,15 +484,14 @@
+       85,    87,    90,    93,    95,    97,    99,   101,   103,   105,
+      108,   110,   115,   119,   124,   132,   141,   143,   146,   149,
+      155,   157,   165,   166,   171,   174,   177,   182,   184,   187,
+-     189,   192,   196,   198,   201,   205,   209,   213,   215,   219,
+-     223,   226,   227,   228,   229,   242,   246,   250,   254,   257,
++     189,   192,   196,   198,   201,   205,   211,   215,   217,   221,
++     225,   228,   229,   230,   231,   244,   248,   250,   254,   257,
+      260,   261,   267,   270,   273,   276,   280,   282,   285,   286,
+      288,   292,   296,   302,   308,   314,   320,   322,   326,   332,
+-     336,   340,   341,   347,   351,   352,   356,   360,   363,   365,
+-     366,   368,   369,   373,   374,   376,   379,   384,   388,   393,
+-     397,   400,   404,   405,   407,   410,   412,   418,   421,   424,
+-     428,   431,   434,   438,   441,   444,   449,   451,   454,   457,
+-     462
++     336,   337,   343,   347,   348,   352,   356,   359,   361,   362,
++     364,   365,   369,   370,   372,   375,   380,   384,   389,   393,
++     396,   400,   401,   403,   406,   408,   414,   417,   420,   424,
++     427,   430,   434,   437,   440,   445,   447,   450,   453,   458
+ };
+ 
+ /* YYRHS -- A `-1'-separated list of the rules' RHS. */
+@@ -518,11 +517,11 @@
+       -1,    19,    63,    -1,    22,    63,    -1,    20,     6,    62,
+        7,    -1,    41,    -1,    41,    41,    -1,    41,    -1,    41,
+       41,    -1,    41,    41,    41,    -1,    41,    -1,    41,    41,
+-      -1,    41,    11,    41,    -1,    18,    63,     4,    -1,     4,
+-      60,     5,    -1,    52,    -1,    25,    76,     8,    -1,    26,
+-      77,     8,    -1,    41,    11,    -1,    -1,    -1,    -1,    32,
+-       6,    71,    41,     8,    72,    41,     8,    73,    41,     7,
+-      70,    -1,    33,    63,    70,    -1,    69,    85,     5,    -1,
++      -1,    41,    11,    41,    -1,    18,    63,     4,    85,     5,
++      -1,     4,    60,     5,    -1,    52,    -1,    25,    76,     8,
++      -1,    26,    77,     8,    -1,    41,    11,    -1,    -1,    -1,
++      -1,    32,     6,    71,    41,     8,    72,    41,     8,    73,
++      41,     7,    70,    -1,    33,    63,    70,    -1,    69,    -1,
+       12,    78,     8,    -1,    82,     8,    -1,    41,     8,    -1,
+       -1,    82,     9,    74,    41,     8,    -1,    28,     8,    -1,
+       27,     8,    -1,    29,     8,    -1,    65,    70,    75,    -1,
+@@ -531,20 +530,20 @@
+       68,    -1,    68,    10,    68,    10,    68,    -1,    36,    13,
+       68,    13,    68,    -1,    36,    10,    68,    10,    68,    -1,
+       68,    -1,    68,    10,    68,    -1,    68,    10,    41,    14,
+-      46,    -1,    68,    14,    68,    -1,    68,    14,    36,    -1,
+-      -1,    41,     6,    79,    84,     7,    -1,    41,     6,     7,
+-      -1,    -1,    41,     6,    81,    -1,    80,    84,     7,    -1,
+-      80,     7,    -1,    41,    -1,    -1,    66,    -1,    -1,    84,
+-      10,    83,    -1,    -1,    86,    -1,    85,    86,    -1,    34,
+-      41,    11,    60,    -1,    36,    11,    60,    -1,    35,    41,
+-      11,    60,    -1,    34,    41,    11,    -1,    36,    11,    -1,
+-      35,    41,    11,    -1,    -1,    88,    -1,    87,    88,    -1,
+-      70,    -1,    37,    41,     4,    60,     5,    -1,    38,    91,
+-      -1,    39,    91,    -1,     4,    92,     5,    -1,     4,     5,
+-      -1,    41,     8,    -1,    92,    41,     8,    -1,    92,     1,
+-      -1,    46,     8,    -1,    46,    13,    62,     8,    -1,    93,
+-      -1,    94,    93,    -1,    94,     1,    -1,    40,     4,    94,
+-       5,    -1,    40,     4,     5,    -1
++      46,    -1,    68,    14,    46,    -1,    -1,    41,     6,    79,
++      84,     7,    -1,    41,     6,     7,    -1,    -1,    41,     6,
++      81,    -1,    80,    84,     7,    -1,    80,     7,    -1,    41,
++      -1,    -1,    66,    -1,    -1,    84,    10,    83,    -1,    -1,
++      86,    -1,    85,    86,    -1,    34,    41,    11,    60,    -1,
++      36,    11,    60,    -1,    35,    41,    11,    60,    -1,    34,
++      41,    11,    -1,    36,    11,    -1,    35,    41,    11,    -1,
++      -1,    88,    -1,    87,    88,    -1,    70,    -1,    37,    41,
++       4,    60,     5,    -1,    38,    91,    -1,    39,    91,    -1,
++       4,    92,     5,    -1,     4,     5,    -1,    41,     8,    -1,
++      92,    41,     8,    -1,    92,     1,    -1,    46,     8,    -1,
++      46,    13,    62,     8,    -1,    93,    -1,    94,    93,    -1,
++      94,     1,    -1,    40,     4,    94,     5,    -1,    40,     4,
++       5,    -1
+ };
+ 
+ /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
+@@ -556,15 +555,14 @@
+      244,   245,   246,   249,   250,   251,   252,   253,   254,   255,
+      256,   259,   264,   268,   273,   278,   287,   288,   289,   295,
+      300,   304,   312,   312,   317,   320,   323,   334,   335,   342,
+-     343,   348,   356,   357,   361,   367,   375,   378,   379,   382,
+-     385,   388,   389,   390,   388,   396,   400,   403,   405,   407,
+-     410,   410,   443,   444,   445,   446,   450,   453,   454,   459,
+-     460,   463,   466,   470,   474,   478,   485,   488,   491,   495,
+-     499,   505,   505,   510,   518,   518,   529,   536,   539,   540,
+-     543,   544,   547,   550,   551,   552,   555,   559,   563,   567,
+-     570,   573,   578,   579,   580,   583,   584,   590,   595,   600,
+-     601,   604,   605,   606,   609,   610,   617,   618,   619,   622,
+-     625
++     343,   348,   356,   357,   361,   367,   376,   379,   380,   383,
++     386,   389,   390,   391,   389,   397,   401,   402,   404,   406,
++     409,   409,   442,   443,   444,   445,   449,   452,   453,   458,
++     459,   462,   465,   469,   473,   477,   484,   487,   490,   494,
++     500,   500,   505,   513,   513,   524,   531,   534,   535,   538,
++     539,   542,   545,   546,   547,   550,   554,   558,   562,   565,
++     568,   573,   574,   575,   578,   579,   585,   590,   595,   596,
++     599,   600,   601,   604,   605,   612,   613,   614,   617,   620
+ };
+ #endif
+ 
+@@ -584,9 +582,9 @@
+   &quot;globals&quot;, &quot;global_statements&quot;, &quot;assignment&quot;, &quot;@1&quot;, &quot;arglist&quot;,
+   &quot;elements_block&quot;, &quot;elements&quot;, &quot;element&quot;, &quot;ignorepat&quot;, &quot;extension&quot;,
+   &quot;statements&quot;, &quot;timerange&quot;, &quot;timespec&quot;, &quot;test_expr&quot;, &quot;@2&quot;, &quot;if_like_head&quot;,
+-  &quot;word_list&quot;, &quot;word3_list&quot;, &quot;goto_word&quot;, &quot;switch_head&quot;, &quot;statement&quot;, &quot;@3&quot;,
+-  &quot;@4&quot;, &quot;@5&quot;, &quot;@6&quot;, &quot;opt_else&quot;, &quot;target&quot;, &quot;jumptarget&quot;, &quot;macro_call&quot;, &quot;@7&quot;,
+-  &quot;application_call_head&quot;, &quot;@8&quot;, &quot;application_call&quot;, &quot;opt_word&quot;,
++  &quot;word_list&quot;, &quot;word3_list&quot;, &quot;goto_word&quot;, &quot;switch_statement&quot;, &quot;statement&quot;,
++  &quot;@3&quot;, &quot;@4&quot;, &quot;@5&quot;, &quot;@6&quot;, &quot;opt_else&quot;, &quot;target&quot;, &quot;jumptarget&quot;, &quot;macro_call&quot;,
++  &quot;@7&quot;, &quot;application_call_head&quot;, &quot;@8&quot;, &quot;application_call&quot;, &quot;opt_word&quot;,
+   &quot;eval_arglist&quot;, &quot;case_statements&quot;, &quot;case_statement&quot;, &quot;macro_statements&quot;,
+   &quot;macro_statement&quot;, &quot;switches&quot;, &quot;eswitches&quot;, &quot;switchlist_block&quot;,
+   &quot;switchlist&quot;, &quot;included_entry&quot;, &quot;includeslist&quot;, &quot;includes&quot;, 0
+@@ -619,11 +617,10 @@
+       70,    71,    72,    73,    70,    70,    70,    70,    70,    70,
+       74,    70,    70,    70,    70,    70,    70,    75,    75,    76,
+       76,    76,    76,    76,    76,    76,    77,    77,    77,    77,
+-      77,    79,    78,    78,    81,    80,    82,    82,    83,    83,
+-      84,    84,    84,    85,    85,    85,    86,    86,    86,    86,
+-      86,    86,    87,    87,    87,    88,    88,    89,    90,    91,
+-      91,    92,    92,    92,    93,    93,    94,    94,    94,    95,
+-      95
++      79,    78,    78,    81,    80,    82,    82,    83,    83,    84,
++      84,    84,    85,    85,    85,    86,    86,    86,    86,    86,
++      86,    87,    87,    87,    88,    88,    89,    90,    91,    91,
++      92,    92,    92,    93,    93,    94,    94,    94,    95,    95
+ };
+ 
+ /* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
+@@ -635,15 +632,14 @@
+        1,     2,     2,     1,     1,     1,     1,     1,     1,     2,
+        1,     4,     3,     4,     7,     8,     1,     2,     2,     5,
+        1,     7,     0,     4,     2,     2,     4,     1,     2,     1,
+-       2,     3,     1,     2,     3,     3,     3,     1,     3,     3,
+-       2,     0,     0,     0,    12,     3,     3,     3,     2,     2,
++       2,     3,     1,     2,     3,     5,     3,     1,     3,     3,
++       2,     0,     0,     0,    12,     3,     1,     3,     2,     2,
+        0,     5,     2,     2,     2,     3,     1,     2,     0,     1,
+        3,     3,     5,     5,     5,     5,     1,     3,     5,     3,
+-       3,     0,     5,     3,     0,     3,     3,     2,     1,     0,
+-       1,     0,     3,     0,     1,     2,     4,     3,     4,     3,
+-       2,     3,     0,     1,     2,     1,     5,     2,     2,     3,
+-       2,     2,     3,     2,     2,     4,     1,     2,     2,     4,
+-       3
++       0,     5,     3,     0,     3,     3,     2,     1,     0,     1,
++       0,     3,     0,     1,     2,     4,     3,     4,     3,     2,
++       3,     0,     1,     2,     1,     5,     2,     2,     3,     2,
++       2,     3,     2,     2,     4,     1,     2,     2,     4,     3
+ };
+ 
+ /* YYDEFACT[STATE-NAME] -- Default rule to reduce with in state
+@@ -656,175 +652,179 @@
+        0,     0,    18,    11,    10,     0,    24,     0,    21,    20,
+       16,    19,     0,    12,    26,     0,     0,     0,    30,    27,
+       40,     0,     0,     0,     0,     0,     0,     0,    38,     0,
+-      29,    37,    33,    35,    36,    34,   122,    25,     0,     0,
+-       0,     0,     0,     0,   127,   128,     0,    39,     0,    32,
++      29,    37,    33,    35,    36,    34,   121,    25,     0,     0,
++       0,     0,     0,     0,   126,   127,     0,    39,     0,    32,
+       28,    31,     0,    86,     0,     0,     0,     0,     0,     0,
+        0,     0,     0,     0,     0,     0,     0,     0,    67,     0,
+-     113,   125,   111,     0,     0,   123,    22,     0,     0,     0,
+-      59,     0,   130,     0,     0,   140,     0,   136,     0,    42,
++      76,   124,   110,     0,     0,   122,    22,     0,     0,     0,
++      59,     0,   129,     0,     0,   139,     0,   135,     0,    42,
+        0,    46,     0,     0,    52,     0,    54,     0,    55,     0,
+       62,    89,     0,    96,     0,    83,    82,    84,    71,     0,
+-       0,   104,    79,    70,    88,     0,     0,     0,     0,   114,
+-     107,    57,   110,     0,    78,    80,    15,   124,    41,     0,
+-      43,    60,     0,   131,   133,   129,     0,   134,     0,   138,
+-     139,   137,    48,    66,    47,   101,    77,     0,    65,    50,
+-       0,     0,     0,     0,     0,     0,    63,     0,     0,    68,
+-       0,     0,    69,     0,    75,     0,   105,     0,    85,     0,
+-       0,   120,    76,   115,    58,   106,   109,     0,     0,    61,
+-       0,   132,     0,   103,   111,     0,     0,    56,     0,     0,
+-       0,    64,    91,    90,    62,    97,   100,    99,     0,     0,
+-      87,   119,   121,     0,   108,   112,     0,     0,     0,   135,
+-       0,    53,     0,     0,     0,     0,     0,     0,     0,    72,
+-     126,     0,     0,    81,     0,    44,   102,     0,     0,    95,
+-      94,    93,    92,    98,     0,    45,     0,    49,     0,     0,
+-      73,    51,     0,     0,     0,    74
++       0,   103,    79,    70,    88,   106,    57,   109,     0,    78,
++      80,    15,   123,    41,     0,    43,    60,     0,   130,   132,
++     128,     0,   133,     0,   137,   138,   136,    48,    66,    47,
++     100,    77,     0,   112,    50,     0,     0,     0,     0,     0,
++       0,    63,     0,     0,    68,     0,     0,    69,     0,    75,
++       0,   104,     0,    85,    58,   105,   108,     0,     0,    61,
++       0,   131,     0,   102,   110,     0,     0,     0,     0,     0,
++     113,     0,    56,     0,     0,     0,    64,    91,    90,    62,
++      97,    99,     0,     0,    87,   107,   111,     0,     0,     0,
++     134,     0,    53,     0,     0,   119,    65,   114,     0,     0,
++       0,     0,     0,     0,     0,    72,   125,    81,     0,    44,
++     101,   118,   120,     0,     0,     0,    95,    94,    93,    92,
++      98,     0,    45,     0,     0,     0,    49,     0,     0,    73,
++      51,     0,     0,     0,    74
+ };
+ 
+ /* YYDEFGOTO[NTERM-NUM]. */
+ static const short int yydefgoto[] =
+ {
+       -1,     5,     6,     7,   106,     8,     9,    10,    11,    21,
+-      88,    37,    27,    33,    49,    50,    51,    52,   110,   170,
+-     171,   115,   167,    89,   142,   172,   121,    90,   111,   183,
+-     254,   262,   197,   188,   122,   124,   113,   204,    92,   186,
+-      93,   225,   143,   138,   139,    94,    95,    53,    54,    64,
++      88,    37,    27,    33,    49,    50,    51,    52,   110,   165,
++     166,   115,   162,    89,   137,   167,   121,    90,   111,   178,
++     251,   261,   187,   183,   122,   124,   113,   194,    92,   181,
++      93,   216,   138,   199,   200,    94,    95,    53,    54,    64,
+      104,   107,   108,    55
+ };
+ 
+ /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
+    STATE-NUM.  */
+-#define YYPACT_NINF -139
++#define YYPACT_NINF -178
+ static const short int yypact[] =
+ {
+-     120,  -139,   -30,    15,  -139,    68,   180,  -139,  -139,    72,
+-    -139,  -139,    76,    24,  -139,  -139,  -139,   -21,    40,  -139,
+-     114,     5,  -139,  -139,  -139,   125,  -139,    23,  -139,  -139,
+-    -139,  -139,    20,  -139,  -139,   130,   109,   113,  -139,  -139,
+-    -139,   137,   -15,   164,   167,   167,   174,     8,  -139,   136,
+-    -139,  -139,  -139,  -139,  -139,  -139,   320,  -139,   171,   141,
+-     178,   161,   156,    26,  -139,  -139,    52,  -139,   346,  -139,
+-    -139,  -139,   346,  -139,   157,   193,   193,   194,   193,   -14,
+-     165,   199,   202,   203,   207,   193,   173,   154,  -139,   346,
+-     158,  -139,     1,    27,   294,  -139,  -139,   208,   156,   346,
+-     176,   216,  -139,   222,    13,  -139,    84,  -139,     2,  -139,
+-     238,  -139,   209,   223,  -139,   220,  -139,   196,  -139,    97,
+-      90,   135,   230,   132,   232,  -139,  -139,  -139,  -139,   346,
+-     240,  -139,  -139,  -139,   224,   206,   210,   237,   104,  -139,
+-    -139,   211,  -139,   145,  -139,  -139,  -139,  -139,  -139,   242,
+-    -139,   212,   213,  -139,  -139,  -139,   247,  -139,   196,  -139,
+-    -139,  -139,  -139,  -139,  -139,   252,  -139,   221,  -139,   106,
+-     248,   261,   263,   165,   165,   234,  -139,   165,   165,  -139,
+-     236,    89,  -139,   241,  -139,   346,  -139,   346,  -139,   267,
+-     270,   346,  -139,  -139,  -139,  -139,   243,   244,   250,  -139,
+-     259,  -139,   281,  -139,   221,   285,   156,  -139,   156,   293,
+-     291,  -139,   295,   297,    75,  -139,  -139,  -139,   299,   268,
+-    -139,   346,   346,    44,  -139,  -139,   300,   287,   346,  -139,
+-     162,  -139,   302,   306,   165,   165,   165,   165,   -21,  -139,
+-    -139,    86,   200,  -139,   346,  -139,  -139,   156,   156,  -139,
+-    -139,  -139,  -139,  -139,   277,  -139,   312,  -139,   321,   156,
+-    -139,  -139,   289,   326,   346,  -139
++      64,  -178,   -22,    23,  -178,    63,   117,  -178,  -178,    67,
++    -178,  -178,    70,    12,  -178,  -178,  -178,    30,    41,  -178,
++      95,     6,  -178,  -178,  -178,   107,  -178,    76,  -178,  -178,
++    -178,  -178,   130,  -178,  -178,   146,   101,   116,  -178,  -178,
++    -178,   132,    -6,   156,   159,   159,   161,    51,  -178,   283,
++    -178,  -178,  -178,  -178,  -178,  -178,   333,  -178,   158,   126,
++     169,   152,   137,    16,  -178,  -178,    15,  -178,   359,  -178,
++    -178,  -178,   359,  -178,   139,   171,   171,   173,   171,    83,
++     140,   174,   176,   177,   183,   171,   149,   128,  -178,   359,
++    -178,  -178,     8,   121,   307,  -178,  -178,   184,   137,   359,
++     150,   186,  -178,   187,    13,  -178,   115,  -178,     5,  -178,
++       4,  -178,   188,   189,  -178,   192,  -178,   160,  -178,   131,
++      17,   136,   195,   112,   196,  -178,  -178,  -178,  -178,   359,
++     203,  -178,  -178,  -178,   190,  -178,   175,  -178,    86,  -178,
++    -178,  -178,  -178,  -178,   205,  -178,   181,   191,  -178,  -178,
++    -178,   202,  -178,   160,  -178,  -178,  -178,  -178,  -178,  -178,
++     207,  -178,   197,   138,    32,   211,   208,   214,   140,   140,
++     198,  -178,   140,   140,  -178,   200,    30,  -178,   204,  -178,
++     359,  -178,   359,  -178,  -178,  -178,   209,   212,   213,  -178,
++     194,  -178,   223,  -178,   197,   241,   215,   219,   235,    33,
++    -178,   137,  -178,   137,   242,   236,  -178,   245,   249,    48,
++    -178,  -178,   255,   277,  -178,  -178,  -178,   261,   246,   359,
++    -178,   141,  -178,   265,   266,   359,  -178,  -178,   270,   268,
++     140,   140,   140,   140,    30,  -178,  -178,  -178,   359,  -178,
++    -178,   359,   359,    80,   137,   137,  -178,  -178,  -178,  -178,
++    -178,   251,  -178,   201,   239,   273,  -178,   279,   137,  -178,
++    -178,   252,   287,   359,  -178
+ };
+ 
+ /* YYPGOTO[NTERM-NUM].  */
+ static const short int yypgoto[] =
+ {
+-    -139,  -139,  -139,   328,   -17,  -139,  -139,  -139,  -139,  -139,
+-      -9,  -139,  -139,  -139,  -139,   288,  -139,  -139,  -138,  -139,
+-     183,    48,  -139,  -139,   169,   -57,   -78,  -139,   -55,  -139,
+-    -139,  -139,  -139,  -139,  -139,  -139,  -139,  -139,  -139,  -139,
+-    -139,  -139,   139,  -139,   217,  -139,   257,  -139,  -139,   311,
+-    -139,   251,  -139,  -139
++    -178,  -178,  -178,   284,   -17,  -178,  -178,  -178,  -178,  -178,
++      29,  -178,  -178,  -178,  -178,   258,  -178,  -178,  -177,  -178,
++     145,    25,  -178,  -178,   154,   -58,   -78,  -178,   -55,  -178,
++    -178,  -178,  -178,  -178,  -178,  -178,  -178,  -178,  -178,  -178,
++    -178,  -178,   114,  -178,   102,  -178,   226,  -178,  -178,   272,
++    -178,   220,  -178,  -178
+ };
+ 
+ /* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
+    positive, shift that token.  If negative, reduce the rule which
+    number is the opposite.  If zero, do what YYDEFACT says.
+    If YYTABLE_NINF, syntax error.  */
+-#define YYTABLE_NINF -119
++#define YYTABLE_NINF -118
+ static const short int yytable[] =
+ {
+-      25,    91,   123,   159,    22,   101,    29,   160,   140,    67,
+-      30,    12,    31,   109,   154,    23,    60,    28,   155,    13,
+-      24,    38,   119,    48,    34,    39,    61,   120,    40,    19,
+-      35,   102,    68,    36,   134,   144,   145,    41,    23,    91,
+-      48,   149,   141,    24,   150,   162,    20,   219,    72,  -117,
+-      42,    43,    73,   223,   156,   164,    74,   105,    44,    45,
+-      46,    47,    75,    76,    77,    20,    78,   103,    14,    79,
+-      80,    81,    82,    83,   184,    17,    84,    85,  -117,  -117,
+-    -117,    26,    18,   241,   242,    87,   175,   162,    23,   238,
+-      72,  -116,   157,    24,    73,   209,   210,   158,    74,   212,
+-     213,   175,   215,   217,    75,    76,    77,   173,    78,   192,
+-     174,    79,    80,    81,    82,    83,   176,   -59,    84,    85,
+-    -116,  -116,  -116,    28,   116,   216,   118,    87,     1,    32,
+-     120,   176,   220,   129,    56,     2,     3,    69,   135,   136,
+-     137,    70,   180,     4,    40,   177,   181,   151,   178,   232,
+-      57,   233,   195,    41,    58,   196,   249,   250,   251,   252,
+-     131,    59,   132,    28,   164,   133,    42,    43,   164,   246,
+-      62,    63,   196,   245,    44,    45,    46,    47,    66,    96,
+-      -2,    15,    97,   -14,    98,    99,   164,   164,     1,   255,
+-     256,   257,   135,   136,   137,     2,     3,   100,   112,   114,
+-     117,   162,   261,     4,    72,  -118,   120,   125,    73,   265,
+-     126,   127,    74,   128,   130,   165,   148,   151,    75,    76,
+-      77,   253,    78,   152,   168,    79,    80,    81,    82,    83,
+-     153,   166,    84,    85,  -118,  -118,  -118,   169,   179,   162,
+-     182,    87,    72,   163,   185,   187,    73,   189,   191,   198,
+-      74,   190,   194,   199,   200,   201,    75,    76,    77,   203,
+-      78,   206,   141,    79,    80,    81,    82,    83,   207,   162,
+-      84,    85,    72,   240,   208,   211,    73,   214,   221,    87,
+-      74,   222,   218,   228,   224,   226,    75,    76,    77,   229,
+-      78,   227,   231,    79,    80,    81,    82,    83,    72,   146,
+-      84,    85,    73,   234,   235,   236,    74,   239,   243,    87,
+-     237,   244,    75,    76,    77,   247,    78,   248,   258,    79,
+-      80,    81,    82,    83,    72,   259,    84,    85,    73,   260,
+-     263,    86,    74,   264,    16,    87,   205,    71,    75,    76,
+-      77,   202,    78,   230,     0,    79,    80,    81,    82,    83,
+-      72,   147,    84,    85,    73,   193,    65,    86,    74,   161,
+-       0,    87,     0,     0,    75,    76,    77,     0,    78,     0,
+-       0,    79,    80,    81,    82,    83,     0,     0,    84,    85,
+-       0,     0,     0,     0,     0,     0,     0,    87
++      25,    91,   123,   213,   101,   157,   154,    29,    72,   158,
++     155,    30,    73,   109,   149,   135,    74,    19,   150,    12,
++     105,   102,    75,    76,    77,    60,    78,    13,   170,    79,
++      80,    81,    82,    83,   134,    61,    84,    85,   226,    91,
++     144,    23,    22,   -59,   145,    87,    24,    20,   243,   136,
++      31,    23,    67,    20,   151,   159,    24,   103,   171,   170,
++      28,    48,   234,    14,   253,   254,    23,   196,   197,   198,
++      17,    24,     1,   146,   179,    68,    18,    34,    48,     2,
++       3,   157,    26,    35,    72,  -116,    36,     4,    73,   171,
++     204,   205,    74,   185,   207,   208,   186,   210,    75,    76,
++      77,   116,    78,   118,    28,    79,    80,    81,    82,    83,
++     129,    32,    84,    85,  -116,  -116,  -116,    -2,    15,   119,
++     -14,    87,   175,   152,   120,     1,   176,   214,   153,   139,
++     140,    38,     2,     3,   131,    39,   132,    28,    40,   133,
++       4,   168,    57,   228,   169,   229,   172,    41,   240,   173,
++      56,   186,   246,   247,   248,   249,    59,    58,   159,   211,
++      42,    43,    62,    63,   239,    66,    96,    97,    44,    45,
++      46,    47,   196,   197,   198,    98,    99,   114,   100,   117,
++     112,   120,   125,   252,   126,   127,   255,   256,   159,   128,
++     130,   146,   143,   147,   160,   148,   163,   161,   159,   159,
++     260,   164,   157,   174,   177,    72,  -115,   180,   264,    73,
++     191,   182,   188,    74,   193,   202,   184,   250,   219,    75,
++      76,    77,   189,    78,   201,   203,    79,    80,    81,    82,
++      83,   220,   190,    84,    85,  -115,  -115,  -115,   136,   206,
++     157,   209,    87,    72,  -117,   212,   225,    73,   222,   231,
++     215,    74,   230,   217,   218,   232,   223,    75,    76,    77,
++     224,    78,   233,   235,    79,    80,    81,    82,    83,   237,
++     238,    84,    85,  -117,  -117,  -117,   241,   242,   157,   245,
++      87,    72,   236,   244,    69,    73,   258,   259,    70,    74,
++      16,    40,   257,   262,   263,    75,    76,    77,   192,    78,
++      41,   227,    79,    80,    81,    82,    83,    71,   221,    84,
++      85,    72,   141,    42,    43,    73,   195,    65,    87,    74,
++     142,    44,    45,    46,    47,    75,    76,    77,   156,    78,
++       0,     0,    79,    80,    81,    82,    83,    72,     0,    84,
++      85,    73,     0,     0,    86,    74,     0,     0,    87,     0,
++       0,    75,    76,    77,     0,    78,     0,     0,    79,    80,
++      81,    82,    83,    72,     0,    84,    85,    73,     0,     0,
++      86,    74,     0,     0,    87,     0,     0,    75,    76,    77,
++       0,    78,     0,     0,    79,    80,    81,    82,    83,     0,
++       0,    84,    85,     0,     0,     0,     0,     0,     0,     0,
++      87
+ };
+ 
+ static const short int yycheck[] =
+ {
+-      17,    56,    80,     1,    13,    62,     1,     5,     7,     1,
+-       5,    41,    21,    68,     1,    36,    31,     9,     5,     4,
+-      41,     1,    36,    32,     1,     5,    41,    41,     8,     5,
+-       7,     5,    24,    10,    89,     8,     9,    17,    36,    94,
+-      49,    98,    41,    41,    99,     1,    41,   185,     4,     5,
+-      30,    31,     8,   191,    41,   110,    12,     5,    38,    39,
+-      40,    41,    18,    19,    20,    41,    22,    41,     0,    25,
+-      26,    27,    28,    29,   129,     3,    32,    33,    34,    35,
+-      36,    41,     6,   221,   222,    41,    11,     1,    36,    14,
+-       4,     5,     8,    41,     8,   173,   174,    13,    12,   177,
+-     178,    11,   180,   181,    18,    19,    20,    10,    22,     5,
+-      13,    25,    26,    27,    28,    29,    41,    11,    32,    33,
+-      34,    35,    36,     9,    76,    36,    78,    41,     8,     4,
+-      41,    41,   187,    85,     4,    15,    16,     1,    34,    35,
+-      36,     5,    10,    23,     8,    10,    14,    41,    13,   206,
+-      41,   208,     7,    17,    41,    10,   234,   235,   236,   237,
+-       6,    24,     8,     9,   219,    11,    30,    31,   223,     7,
+-       6,     4,    10,   228,    38,    39,    40,    41,     4,     8,
+-       0,     1,    41,     3,     6,    24,   241,   242,     8,   244,
+-     247,   248,    34,    35,    36,    15,    16,    41,    41,     6,
+-       6,     1,   259,    23,     4,     5,    41,     8,     8,   264,
+-       8,     8,    12,     6,    41,     6,     8,    41,    18,    19,
+-      20,   238,    22,     7,     4,    25,    26,    27,    28,    29,
+-       8,     8,    32,    33,    34,    35,    36,    41,     8,     1,
+-       8,    41,     4,     5,     4,    21,     8,    41,    11,     7,
+-      12,    41,    41,    41,    41,     8,    18,    19,    20,     7,
+-      22,    13,    41,    25,    26,    27,    28,    29,     7,     1,
+-      32,    33,     4,     5,    11,    41,     8,    41,    11,    41,
+-      12,    11,    41,    24,    41,    41,    18,    19,    20,     8,
+-      22,    41,     7,    25,    26,    27,    28,    29,     4,     5,
+-      32,    33,     8,    10,    13,    10,    12,     8,     8,    41,
+-      13,    24,    18,    19,    20,    13,    22,    11,    41,    25,
+-      26,    27,    28,    29,     4,    13,    32,    33,     8,     8,
+-      41,    37,    12,     7,     6,    41,   167,    49,    18,    19,
+-      20,   158,    22,   204,    -1,    25,    26,    27,    28,    29,
+-       4,    94,    32,    33,     8,   138,    45,    37,    12,   108,
+-      -1,    41,    -1,    -1,    18,    19,    20,    -1,    22,    -1,
+-      -1,    25,    26,    27,    28,    29,    -1,    -1,    32,    33,
+-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    41
++      17,    56,    80,   180,    62,     1,     1,     1,     4,     5,
++       5,     5,     8,    68,     1,     7,    12,     5,     5,    41,
++       5,     5,    18,    19,    20,    31,    22,     4,    11,    25,
++      26,    27,    28,    29,    89,    41,    32,    33,     5,    94,
++      98,    36,    13,    11,    99,    41,    41,    41,   225,    41,
++      21,    36,     1,    41,    41,   110,    41,    41,    41,    11,
++       9,    32,    14,     0,   241,   242,    36,    34,    35,    36,
++       3,    41,     8,    41,   129,    24,     6,     1,    49,    15,
++      16,     1,    41,     7,     4,     5,    10,    23,     8,    41,
++     168,   169,    12,     7,   172,   173,    10,   175,    18,    19,
++      20,    76,    22,    78,     9,    25,    26,    27,    28,    29,
++      85,     4,    32,    33,    34,    35,    36,     0,     1,    36,
++       3,    41,    10,     8,    41,     8,    14,   182,    13,     8,
++       9,     1,    15,    16,     6,     5,     8,     9,     8,    11,
++      23,    10,    41,   201,    13,   203,    10,    17,     7,    13,
++       4,    10,   230,   231,   232,   233,    24,    41,   213,   176,
++      30,    31,     6,     4,   219,     4,     8,    41,    38,    39,
++      40,    41,    34,    35,    36,     6,    24,     6,    41,     6,
++      41,    41,     8,   238,     8,     8,   244,   245,   243,     6,
++      41,    41,     8,     7,     6,     8,     4,     8,   253,   254,
++     258,    41,     1,     8,     8,     4,     5,     4,   263,     8,
++       8,    21,     7,    12,     7,     7,    41,   234,    24,    18,
++      19,    20,    41,    22,    13,    11,    25,    26,    27,    28,
++      29,     8,    41,    32,    33,    34,    35,    36,    41,    41,
++       1,    41,    41,     4,     5,    41,    11,     8,     7,    13,
++      41,    12,    10,    41,    41,    10,    41,    18,    19,    20,
++      41,    22,    13,     8,    25,    26,    27,    28,    29,     8,
++      24,    32,    33,    34,    35,    36,    11,    11,     1,    11,
++      41,     4,     5,    13,     1,     8,    13,     8,     5,    12,
++       6,     8,    41,    41,     7,    18,    19,    20,   153,    22,
++      17,   199,    25,    26,    27,    28,    29,    49,   194,    32,
++      33,     4,     5,    30,    31,     8,   162,    45,    41,    12,
++      94,    38,    39,    40,    41,    18,    19,    20,   108,    22,
++      -1,    -1,    25,    26,    27,    28,    29,     4,    -1,    32,
++      33,     8,    -1,    -1,    37,    12,    -1,    -1,    41,    -1,
++      -1,    18,    19,    20,    -1,    22,    -1,    -1,    25,    26,
++      27,    28,    29,     4,    -1,    32,    33,     8,    -1,    -1,
++      37,    12,    -1,    -1,    41,    -1,    -1,    18,    19,    20,
++      -1,    22,    -1,    -1,    25,    26,    27,    28,    29,    -1,
++      -1,    32,    33,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
++      41
+ };
+ 
+ /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
+@@ -844,20 +844,20 @@
+       41,    67,     5,    41,    92,     5,    46,    93,    94,    70,
+       60,    70,    41,    78,     6,    63,    63,     6,    63,    36,
+       41,    68,    76,    68,    77,     8,     8,     8,     6,    63,
+-      41,     6,     8,    11,    70,    34,    35,    36,    85,    86,
+-       7,    41,    66,    84,     8,     9,     5,    88,     8,    67,
+-      70,    41,     7,     8,     1,     5,    41,     8,    13,     1,
+-       5,    93,     1,     5,    70,     6,     8,    64,     4,    41,
+-      61,    62,    67,    10,    13,    11,    41,    10,    13,     8,
+-      10,    14,     8,    71,    70,     4,    81,    21,    75,    41,
+-      41,    11,     5,    86,    41,     7,    10,    74,     7,    41,
+-      41,     8,    62,     7,    79,    66,    13,     7,    11,    68,
+-      68,    41,    68,    68,    41,    68,    36,    68,    41,    60,
+-      70,    11,    11,    60,    41,    83,    41,    41,    24,     8,
+-      84,     7,    67,    67,    10,    13,    10,    13,    14,     8,
+-       5,    60,    60,     8,    24,    70,     7,    13,    11,    68,
+-      68,    68,    68,    46,    72,    70,    67,    67,    41,    13,
+-       8,    67,    73,    41,     7,    70
++      41,     6,     8,    11,    70,     7,    41,    66,    84,     8,
++       9,     5,    88,     8,    67,    70,    41,     7,     8,     1,
++       5,    41,     8,    13,     1,     5,    93,     1,     5,    70,
++       6,     8,    64,     4,    41,    61,    62,    67,    10,    13,
++      11,    41,    10,    13,     8,    10,    14,     8,    71,    70,
++       4,    81,    21,    75,    41,     7,    10,    74,     7,    41,
++      41,     8,    62,     7,    79,    66,    34,    35,    36,    85,
++      86,    13,     7,    11,    68,    68,    41,    68,    68,    41,
++      68,    46,    41,    60,    70,    41,    83,    41,    41,    24,
++       8,    84,     7,    41,    41,    11,     5,    86,    67,    67,
++      10,    13,    10,    13,    14,     8,     5,     8,    24,    70,
++       7,    11,    11,    60,    13,    11,    68,    68,    68,    68,
++      46,    72,    70,    60,    60,    67,    67,    41,    13,     8,
++      67,    73,    41,     7,    70
+ };
+ 
+ #define yyerrok		(yyerrstatus = 0)
+@@ -1395,7 +1395,7 @@
+         { free((yyvaluep-&gt;str));};
+ #line 1397 &quot;ael.tab.c&quot;
+         break;
+-      case 69: /* &quot;switch_head&quot; */
++      case 69: /* &quot;switch_statement&quot; */
+ #line 159 &quot;ael.y&quot;
+         {
+ 		destroy_pval((yyvaluep-&gt;pval));
+@@ -2257,60 +2257,61 @@
+   case 65:
+ #line 367 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_SWITCH, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-1].str); ;}
++		(yyval.pval) = npval2(PV_SWITCH, &amp;(yylsp[-4]), &amp;(yylsp[0]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[-3].str);
++		(yyval.pval)-&gt;u2.statements = (yyvsp[-1].pval);;}
+     break;
+ 
+   case 66:
+-#line 375 &quot;ael.y&quot;
++#line 376 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_STATEMENTBLOCK, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval); ;}
+     break;
+ 
+   case 67:
+-#line 378 &quot;ael.y&quot;
++#line 379 &quot;ael.y&quot;
+     { (yyval.pval) = (yyvsp[0].pval); ;}
+     break;
+ 
+   case 68:
+-#line 379 &quot;ael.y&quot;
++#line 380 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_GOTO, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval);;}
+     break;
+ 
+   case 69:
+-#line 382 &quot;ael.y&quot;
++#line 383 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_GOTO, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval);;}
+     break;
+ 
+   case 70:
+-#line 385 &quot;ael.y&quot;
++#line 386 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_LABEL, &amp;(yylsp[-1]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.str = (yyvsp[-1].str); ;}
+     break;
+ 
+   case 71:
+-#line 388 &quot;ael.y&quot;
++#line 389 &quot;ael.y&quot;
+     {reset_semicount(parseio-&gt;scanner);;}
+     break;
+ 
+   case 72:
+-#line 389 &quot;ael.y&quot;
++#line 390 &quot;ael.y&quot;
+     {reset_semicount(parseio-&gt;scanner);;}
+     break;
+ 
+   case 73:
+-#line 390 &quot;ael.y&quot;
++#line 391 &quot;ael.y&quot;
+     {reset_parencount(parseio-&gt;scanner);;}
+     break;
+ 
+   case 74:
+-#line 390 &quot;ael.y&quot;
++#line 391 &quot;ael.y&quot;
+     { /* XXX word_list maybe ? */
+ 		(yyval.pval) = npval2(PV_FOR, &amp;(yylsp[-11]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.for_init = (yyvsp[-8].str);
+@@ -2320,7 +2321,7 @@
+     break;
+ 
+   case 75:
+-#line 396 &quot;ael.y&quot;
++#line 397 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_WHILE, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.str = (yyvsp[-1].str);
+@@ -2328,38 +2329,36 @@
+     break;
+ 
+   case 76:
+-#line 400 &quot;ael.y&quot;
+-    {
+-		(yyval.pval) = update_last((yyvsp[-2].pval), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[-1].pval);;}
++#line 401 &quot;ael.y&quot;
++    { (yyval.pval) = (yyvsp[0].pval); ;}
+     break;
+ 
+   case 77:
+-#line 403 &quot;ael.y&quot;
++#line 402 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = update_last((yyvsp[-1].pval), &amp;(yylsp[-1])); ;}
+     break;
+ 
+   case 78:
+-#line 405 &quot;ael.y&quot;
++#line 404 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = update_last((yyvsp[-1].pval), &amp;(yylsp[0])); ;}
+     break;
+ 
+   case 79:
+-#line 407 &quot;ael.y&quot;
++#line 406 &quot;ael.y&quot;
+     {
+ 		(yyval.pval)= npval2(PV_APPLICATION_CALL, &amp;(yylsp[-1]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.str = (yyvsp[-1].str);;}
+     break;
+ 
+   case 80:
+-#line 410 &quot;ael.y&quot;
++#line 409 &quot;ael.y&quot;
+     {reset_semicount(parseio-&gt;scanner);;}
+     break;
+ 
+   case 81:
+-#line 410 &quot;ael.y&quot;
++#line 409 &quot;ael.y&quot;
+     {
+ 		char *bufx;
+ 		int tot=0;
+@@ -2396,22 +2395,22 @@
+     break;
+ 
+   case 82:
+-#line 443 &quot;ael.y&quot;
++#line 442 &quot;ael.y&quot;
+     { (yyval.pval) = npval2(PV_BREAK, &amp;(yylsp[-1]), &amp;(yylsp[0])); ;}
+     break;
+ 
+   case 83:
+-#line 444 &quot;ael.y&quot;
++#line 443 &quot;ael.y&quot;
+     { (yyval.pval) = npval2(PV_RETURN, &amp;(yylsp[-1]), &amp;(yylsp[0])); ;}
+     break;
+ 
+   case 84:
+-#line 445 &quot;ael.y&quot;
++#line 444 &quot;ael.y&quot;
+     { (yyval.pval) = npval2(PV_CONTINUE, &amp;(yylsp[-1]), &amp;(yylsp[0])); ;}
+     break;
+ 
+   case 85:
+-#line 446 &quot;ael.y&quot;
++#line 445 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = update_last((yyvsp[-2].pval), &amp;(yylsp[-1]));
+ 		(yyval.pval)-&gt;u2.statements = (yyvsp[-1].pval);
+@@ -2419,41 +2418,41 @@
+     break;
+ 
+   case 86:
+-#line 450 &quot;ael.y&quot;
++#line 449 &quot;ael.y&quot;
+     { (yyval.pval)=0; ;}
+     break;
+ 
+   case 87:
+-#line 453 &quot;ael.y&quot;
++#line 452 &quot;ael.y&quot;
+     { (yyval.pval) = (yyvsp[0].pval); ;}
+     break;
+ 
+   case 88:
+-#line 454 &quot;ael.y&quot;
++#line 453 &quot;ael.y&quot;
+     { (yyval.pval) = NULL ; ;}
+     break;
+ 
+   case 89:
+-#line 459 &quot;ael.y&quot;
++#line 458 &quot;ael.y&quot;
+     { (yyval.pval) = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
+     break;
+ 
+   case 90:
+-#line 460 &quot;ael.y&quot;
++#line 459 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+ 		(yyval.pval)-&gt;next = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
+     break;
+ 
+   case 91:
+-#line 463 &quot;ael.y&quot;
++#line 462 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+ 		(yyval.pval)-&gt;next = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
+     break;
+ 
+   case 92:
+-#line 466 &quot;ael.y&quot;
++#line 465 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = nword((yyvsp[-4].str), &amp;(yylsp[-4]));
+ 		(yyval.pval)-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+@@ -2461,7 +2460,7 @@
+     break;
+ 
+   case 93:
+-#line 470 &quot;ael.y&quot;
++#line 469 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = nword((yyvsp[-4].str), &amp;(yylsp[-4]));
+ 		(yyval.pval)-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+@@ -2469,7 +2468,7 @@
+     break;
+ 
+   case 94:
+-#line 474 &quot;ael.y&quot;
++#line 473 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = nword(strdup(&quot;default&quot;), &amp;(yylsp[-4]));
+ 		(yyval.pval)-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+@@ -2477,7 +2476,7 @@
+     break;
+ 
+   case 95:
+-#line 478 &quot;ael.y&quot;
++#line 477 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = nword(strdup(&quot;default&quot;), &amp;(yylsp[-4]));
+ 		(yyval.pval)-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+@@ -2485,21 +2484,21 @@
+     break;
+ 
+   case 96:
+-#line 485 &quot;ael.y&quot;
++#line 484 &quot;ael.y&quot;
+     {			/* ext, 1 */
+ 		(yyval.pval) = nword((yyvsp[0].str), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;next = nword(strdup(&quot;1&quot;), &amp;(yylsp[0])); ;}
+     break;
+ 
+   case 97:
+-#line 488 &quot;ael.y&quot;
++#line 487 &quot;ael.y&quot;
+     {		/* ext, pri */
+ 		(yyval.pval) = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+ 		(yyval.pval)-&gt;next = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
+     break;
+ 
+   case 98:
+-#line 491 &quot;ael.y&quot;
++#line 490 &quot;ael.y&quot;
+     {	/* context, ext, pri */
+ 		(yyval.pval) = nword((yyvsp[0].str), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;next = nword((yyvsp[-4].str), &amp;(yylsp[-4]));
+@@ -2507,7 +2506,7 @@
+     break;
+ 
+   case 99:
+-#line 495 &quot;ael.y&quot;
++#line 494 &quot;ael.y&quot;
+     {		/* context, ext, 1 */
+ 		(yyval.pval) = nword((yyvsp[0].str), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+@@ -2515,20 +2514,12 @@
+     break;
+ 
+   case 100:
+-#line 499 &quot;ael.y&quot;
+-    {		/* default, ext, 1 */
+-		(yyval.pval) = nword(strdup(&quot;default&quot;), &amp;(yylsp[-2]));
+-		(yyval.pval)-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;next-&gt;next = nword( strdup(&quot;1&quot;), &amp;(yylsp[0])); ;}
+-    break;
+-
+-  case 101:
+-#line 505 &quot;ael.y&quot;
++#line 500 &quot;ael.y&quot;
+     {reset_argcount(parseio-&gt;scanner);;}
+     break;
+ 
+-  case 102:
+-#line 505 &quot;ael.y&quot;
++  case 101:
++#line 500 &quot;ael.y&quot;
+     {
+ 		/* XXX original code had @2 but i think we need @5 */
+ 		(yyval.pval) = npval2(PV_MACRO_CALL, &amp;(yylsp[-4]), &amp;(yylsp[0]));
+@@ -2536,20 +2527,20 @@
+ 		(yyval.pval)-&gt;u2.arglist = (yyvsp[-1].pval);;}
+     break;
+ 
+-  case 103:
+-#line 510 &quot;ael.y&quot;
++  case 102:
++#line 505 &quot;ael.y&quot;
+     {
+ 		(yyval.pval)= npval2(PV_MACRO_CALL, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.str = (yyvsp[-2].str); ;}
+     break;
+ 
+-  case 104:
+-#line 518 &quot;ael.y&quot;
++  case 103:
++#line 513 &quot;ael.y&quot;
+     {reset_argcount(parseio-&gt;scanner);;}
+     break;
+ 
+-  case 105:
+-#line 518 &quot;ael.y&quot;
++  case 104:
++#line 513 &quot;ael.y&quot;
+     {
+ 		if (strcasecmp((yyvsp[-2].str),&quot;goto&quot;) == 0) {
+ 			(yyval.pval) = npval2(PV_GOTO, &amp;(yylsp[-2]), &amp;(yylsp[-1]));
+@@ -2561,8 +2552,8 @@
+ 		} ;}
+     break;
+ 
+-  case 106:
+-#line 529 &quot;ael.y&quot;
++  case 105:
++#line 524 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = update_last((yyvsp[-2].pval), &amp;(yylsp[0]));
+  		if( (yyval.pval)-&gt;type == PV_GOTO )
+@@ -2572,202 +2563,202 @@
+ 	;}
+     break;
+ 
+-  case 107:
+-#line 536 &quot;ael.y&quot;
++  case 106:
++#line 531 &quot;ael.y&quot;
+     { (yyval.pval) = update_last((yyvsp[-1].pval), &amp;(yylsp[0])); ;}
+     break;
+ 
+-  case 108:
+-#line 539 &quot;ael.y&quot;
++  case 107:
++#line 534 &quot;ael.y&quot;
+     { (yyval.str) = (yyvsp[0].str) ;}
+     break;
+ 
+-  case 109:
+-#line 540 &quot;ael.y&quot;
++  case 108:
++#line 535 &quot;ael.y&quot;
+     { (yyval.str) = strdup(&quot;&quot;); ;}
+     break;
+ 
+-  case 110:
+-#line 543 &quot;ael.y&quot;
++  case 109:
++#line 538 &quot;ael.y&quot;
+     { (yyval.pval) = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
+     break;
+ 
+-  case 111:
+-#line 544 &quot;ael.y&quot;
++  case 110:
++#line 539 &quot;ael.y&quot;
+     {
+ 		(yyval.pval)= npval(PV_WORD,0/*@1.first_line*/,0/*@1.last_line*/,0/* @1.first_column*/, 0/*@1.last_column*/);
+ 		(yyval.pval)-&gt;u1.str = strdup(&quot;&quot;); ;}
+     break;
+ 
+-  case 112:
+-#line 547 &quot;ael.y&quot;
++  case 111:
++#line 542 &quot;ael.y&quot;
+     { (yyval.pval) = linku1((yyvsp[-2].pval), nword((yyvsp[0].str), &amp;(yylsp[0]))); ;}
+     break;
+ 
+-  case 113:
+-#line 550 &quot;ael.y&quot;
++  case 112:
++#line 545 &quot;ael.y&quot;
+     { (yyval.pval) = NULL; ;}
+     break;
+ 
+-  case 114:
+-#line 551 &quot;ael.y&quot;
++  case 113:
++#line 546 &quot;ael.y&quot;
+     {(yyval.pval)=(yyvsp[0].pval);;}
+     break;
+ 
+-  case 115:
+-#line 552 &quot;ael.y&quot;
++  case 114:
++#line 547 &quot;ael.y&quot;
+     { (yyval.pval) = linku1((yyvsp[-1].pval), (yyvsp[0].pval)); ;}
+     break;
+ 
+-  case 116:
+-#line 555 &quot;ael.y&quot;
++  case 115:
++#line 550 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_CASE, &amp;(yylsp[-3]), &amp;(yylsp[-1])); /* XXX 3 or 4 ? */
+ 		(yyval.pval)-&gt;u1.str = (yyvsp[-2].str);
+ 		(yyval.pval)-&gt;u2.statements = (yyvsp[0].pval);;}
+     break;
+ 
+-  case 117:
+-#line 559 &quot;ael.y&quot;
++  case 116:
++#line 554 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_DEFAULT, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.str = NULL;
+ 		(yyval.pval)-&gt;u2.statements = (yyvsp[0].pval);;}
+     break;
+ 
+-  case 118:
+-#line 563 &quot;ael.y&quot;
++  case 117:
++#line 558 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_PATTERN, &amp;(yylsp[-3]), &amp;(yylsp[0])); /* <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">XXX at 3</A> or @4 ? */
+ 		(yyval.pval)-&gt;u1.str = (yyvsp[-2].str);
+ 		(yyval.pval)-&gt;u2.statements = (yyvsp[0].pval);;}
+     break;
+ 
+-  case 119:
+-#line 567 &quot;ael.y&quot;
++  case 118:
++#line 562 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_CASE, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.str = (yyvsp[-1].str);;}
+     break;
+ 
+-  case 120:
+-#line 570 &quot;ael.y&quot;
++  case 119:
++#line 565 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_DEFAULT, &amp;(yylsp[-1]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.str = NULL;;}
+     break;
+ 
+-  case 121:
+-#line 573 &quot;ael.y&quot;
++  case 120:
++#line 568 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_PATTERN, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.str = (yyvsp[-1].str);;}
+     break;
+ 
+-  case 122:
+-#line 578 &quot;ael.y&quot;
++  case 121:
++#line 573 &quot;ael.y&quot;
+     { (yyval.pval) = NULL; ;}
+     break;
+ 
+-  case 123:
+-#line 579 &quot;ael.y&quot;
++  case 122:
++#line 574 &quot;ael.y&quot;
+     {(yyval.pval) = (yyvsp[0].pval);;}
+     break;
+ 
+-  case 124:
+-#line 580 &quot;ael.y&quot;
++  case 123:
++#line 575 &quot;ael.y&quot;
+     { (yyval.pval) = linku1((yyvsp[-1].pval), (yyvsp[0].pval)); ;}
+     break;
+ 
+-  case 125:
+-#line 583 &quot;ael.y&quot;
++  case 124:
++#line 578 &quot;ael.y&quot;
+     {(yyval.pval)=(yyvsp[0].pval);;}
+     break;
+ 
+-  case 126:
+-#line 584 &quot;ael.y&quot;
++  case 125:
++#line 579 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_CATCH, &amp;(yylsp[-4]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.str = (yyvsp[-3].str);
+ 		(yyval.pval)-&gt;u2.statements = (yyvsp[-1].pval);;}
+     break;
+ 
+-  case 127:
+-#line 590 &quot;ael.y&quot;
++  case 126:
++#line 585 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_SWITCHES, &amp;(yylsp[-1]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.list = (yyvsp[0].pval); ;}
+     break;
+ 
+-  case 128:
+-#line 595 &quot;ael.y&quot;
++  case 127:
++#line 590 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_ESWITCHES, &amp;(yylsp[-1]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.list = (yyvsp[0].pval); ;}
+     break;
+ 
+-  case 129:
+-#line 600 &quot;ael.y&quot;
++  case 128:
++#line 595 &quot;ael.y&quot;
+     { (yyval.pval) = (yyvsp[-1].pval); ;}
+     break;
+ 
+-  case 130:
+-#line 601 &quot;ael.y&quot;
++  case 129:
++#line 596 &quot;ael.y&quot;
+     { (yyval.pval) = NULL; ;}
+     break;
+ 
+-  case 131:
+-#line 604 &quot;ael.y&quot;
++  case 130:
++#line 599 &quot;ael.y&quot;
+     { (yyval.pval) = nword((yyvsp[-1].str), &amp;(yylsp[-1])); ;}
+     break;
+ 
+-  case 132:
+-#line 605 &quot;ael.y&quot;
++  case 131:
++#line 600 &quot;ael.y&quot;
+     { (yyval.pval) = linku1((yyvsp[-2].pval), nword((yyvsp[-1].str), &amp;(yylsp[-1]))); ;}
+     break;
+ 
+-  case 133:
+-#line 606 &quot;ael.y&quot;
++  case 132:
++#line 601 &quot;ael.y&quot;
+     {(yyval.pval)=(yyvsp[-1].pval);;}
+     break;
+ 
+-  case 134:
+-#line 609 &quot;ael.y&quot;
++  case 133:
++#line 604 &quot;ael.y&quot;
+     { (yyval.pval) = nword((yyvsp[-1].str), &amp;(yylsp[-1])); ;}
+     break;
+ 
+-  case 135:
+-#line 610 &quot;ael.y&quot;
++  case 134:
++#line 605 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = nword((yyvsp[-3].str), &amp;(yylsp[-3]));
+ 		(yyval.pval)-&gt;u2.arglist = (yyvsp[-1].pval);
+ 		prev_word=0; /* XXX sure ? */ ;}
+     break;
+ 
+-  case 136:
+-#line 617 &quot;ael.y&quot;
++  case 135:
++#line 612 &quot;ael.y&quot;
+     { (yyval.pval) = (yyvsp[0].pval); ;}
+     break;
+ 
+-  case 137:
+-#line 618 &quot;ael.y&quot;
++  case 136:
++#line 613 &quot;ael.y&quot;
+     { (yyval.pval) = linku1((yyvsp[-1].pval), (yyvsp[0].pval)); ;}
+     break;
+ 
+-  case 138:
+-#line 619 &quot;ael.y&quot;
++  case 137:
++#line 614 &quot;ael.y&quot;
+     {(yyval.pval)=(yyvsp[-1].pval);;}
+     break;
+ 
+-  case 139:
+-#line 622 &quot;ael.y&quot;
++  case 138:
++#line 617 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_INCLUDES, &amp;(yylsp[-3]), &amp;(yylsp[0]));
+ 		(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval);;}
+     break;
+ 
+-  case 140:
+-#line 625 &quot;ael.y&quot;
++  case 139:
++#line 620 &quot;ael.y&quot;
+     {
+ 		(yyval.pval) = npval2(PV_INCLUDES, &amp;(yylsp[-2]), &amp;(yylsp[0]));;}
+     break;
+@@ -2777,7 +2768,7 @@
+     }
+ 
+ /* Line 1126 of yacc.c.  */
+-#line 2781 &quot;ael.tab.c&quot;
++#line 2772 &quot;ael.tab.c&quot;
+ 
+   yyvsp -= yylen;
+   yyssp -= yylen;
+@@ -3052,7 +3043,7 @@
+ }
+ 
+ 
+-#line 630 &quot;ael.y&quot;
++#line 625 &quot;ael.y&quot;
+ 
+ 
+ static char *token_equivs1[] =
+
+Modified: trunk/pbx/ael/ael.y
+===================================================================
+--- trunk/pbx/ael/ael.y	2006-05-03 13:18:20 UTC (rev 43)
++++ trunk/pbx/ael/ael.y	2006-05-03 16:18:13 UTC (rev 44)
+@@ -98,7 +98,7 @@
+ %type &lt;pval&gt;macro_call
+ %type &lt;pval&gt;target jumptarget
+ %type &lt;pval&gt;statement
+-%type &lt;pval&gt;switch_head
++%type &lt;pval&gt;switch_statement
+ 
+ %type &lt;pval&gt;if_like_head
+ %type &lt;pval&gt;statements
+@@ -162,7 +162,7 @@
+ 	}	includes includeslist switchlist eswitches switches
+ 		macro_statement macro_statements case_statement case_statements
+ 		eval_arglist application_call application_call_head
+-		macro_call target jumptarget statement switch_head
++		macro_call target jumptarget statement switch_statement
+ 		if_like_head statements extension
+ 		ignorepat element elements arglist assignment
+ 		global_statements globals macro context object objects
+@@ -364,9 +364,10 @@
+ 		free($3);}
+ 	;
+ 
+-switch_head : KW_SWITCH test_expr LC {
+-		$$ = npval2(PV_SWITCH, &amp;@1, &amp;@3);
+-		$$-&gt;u1.str = $2; }
++switch_statement : KW_SWITCH test_expr LC case_statements RC {
++		$$ = npval2(PV_SWITCH, &amp;@1, &amp;@5);
++		$$-&gt;u1.str = $2;
++		$$-&gt;u2.statements = $4;}
+ 	;
+ 
+ /*
+@@ -397,9 +398,7 @@
+ 		$$ = npval2(PV_WHILE, &amp;@1, &amp;@3);
+ 		$$-&gt;u1.str = $2;
+ 		$$-&gt;u2.statements = $3; }
+-	| switch_head case_statements RC {
+-		$$ = update_last($1, &amp;@3);
+-		$$-&gt;u2.statements = $2;}
++	| switch_statement { $$ = $1; }
+ 	| AMPER macro_call SEMI {
+ 		$$ = update_last($2, &amp;@2); }
+ 	| application_call SEMI {
+@@ -492,14 +491,10 @@
+ 		$$ = nword($5, &amp;@5);
+ 		$$-&gt;next = nword($1, &amp;@1);
+ 		$$-&gt;next-&gt;next = nword($3, &amp;@3); }
+-	| goto_word AT goto_word {		/* context, ext, 1 */
++	| goto_word AT context_name {		/* context, ext, 1 */
+ 		$$ = nword($3, &amp;@3);
+ 		$$-&gt;next = nword($1, &amp;@1);
+ 		$$-&gt;next-&gt;next = nword(strdup(&quot;1&quot;), &amp;@3); }
+-	| goto_word AT KW_DEFAULT {		/* default, ext, 1 */
+-		$$ = nword(strdup(&quot;default&quot;), &amp;@1);
+-		$$-&gt;next = nword($1, &amp;@3);
+-		$$-&gt;next-&gt;next = nword( strdup(&quot;1&quot;), &amp;@3); }
+ 	;
+ 
+ macro_call : word LP {reset_argcount(parseio-&gt;scanner);} eval_arglist RP {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000040.html">[solid-pbx-svn] r43 - in trunk: . channels
+</A></li>
+	<LI>Next message: <A HREF="000042.html">[solid-pbx-svn] r45 - trunk/pbx/ael
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#41">[ date ]</a>
+              <a href="thread.html#41">[ thread ]</a>
+              <a href="subject.html#41">[ subject ]</a>
+              <a href="author.html#41">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

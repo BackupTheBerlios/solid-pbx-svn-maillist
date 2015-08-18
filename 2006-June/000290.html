@@ -1,0 +1,187 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r296 - in trunk: . build_tools sounds
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r296%20-%20in%20trunk%3A%20.%20build_tools%20sounds&In-Reply-To=%3C200606231735.k5NHZlgB027233%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000289.html">
+   <LINK REL="Next"  HREF="000292.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r296 - in trunk: . build_tools sounds</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r296%20-%20in%20trunk%3A%20.%20build_tools%20sounds&In-Reply-To=%3C200606231735.k5NHZlgB027233%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r296 - in trunk: . build_tools sounds">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri Jun 23 19:35:47 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000289.html">[solid-pbx-svn] r295 - trunk/sounds
+</A></li>
+        <LI>Next message: <A HREF="000292.html">[solid-pbx-svn] r297 - in trunk: . configs include/asterisk res sounds
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#290">[ date ]</a>
+              <a href="thread.html#290">[ thread ]</a>
+              <a href="subject.html#290">[ subject ]</a>
+              <a href="author.html#290">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-23 19:35:45 +0200 (Fri, 23 Jun 2006)
+New Revision: 296
+
+Modified:
+   trunk/Makefile
+   trunk/build_tools/menuselect.c
+   trunk/build_tools/menuselect_curses.c
+   trunk/sounds/Makefile
+Log:
+Update to Asterisk SVN trunk r32903
+
+------------------------------------------------------------------------
+r32901 | kpfleming | 2006-06-07 23:05:05 +0200 (Wed, 07 Jun 2006) | 4 lines
+
+don't force the sounds to download... only when needed
+fix a few buglets i caused in menuselect
+remove downloaded sounds on 'dist-clean'
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-23 17:34:29 UTC (rev 295)
++++ trunk/Makefile	2006-06-23 17:35:45 UTC (rev 296)
+@@ -380,7 +380,7 @@
+ 	@echo &quot; +               make install                +&quot;  
+ 	@echo &quot; +-------------------------------------------+&quot;  
+ 
+-all: cleantest config.status menuselect.makeopts depend asterisk subdirs sounds
++all: cleantest config.status menuselect.makeopts depend asterisk subdirs
+ 
+ config.status: configure
+ 	@CFLAGS=&quot;&quot; ./configure
+@@ -519,12 +519,13 @@
+ distclean: dist-clean
+ 
+ dist-clean: clean
++	$(MAKE) -C mxml clean
++	$(MAKE) -C build_tools dist-clean
++	$(MAKE) -C sounds dist-clean
+ 	rm -f menuselect.makeopts makeopts makeopts.xml
+ 	rm -f config.log config.status
+ 	rm -f include/autoconfig.h
+ 	rm -f include/asterisk/buildopts.h
+-	$(MAKE) -C mxml clean
+-	$(MAKE) -C build_tools dist-clean
+ 
+ datafiles: all
+ 	if [ x`$(ID) -un` = xroot ]; then sh build_tools/mkpkgconfig $(DESTDIR)/usr/lib/pkgconfig; fi
+@@ -540,6 +541,7 @@
+ 		$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTDATADIR)/images ; \
+ 	done
+ 	mkdir -p $(DESTDIR)$(AGI_DIR)
++	$(MAKE) -C sounds install
+ 
+ update: 
+ 	@if [ -d .svn ]; then \
+@@ -871,6 +873,7 @@
+ 	rm -rf $(DESTDIR)$(ASTDATADIR)/firmware
+ 	rm -rf $(DESTDIR)$(ASTMANDIR)/man8
+ 	for x in $(SUBDIRS); do $(MAKE) -C $$x uninstall || exit 1 ; done
++	$(MAKE) -C sounds uninstall
+ 
+ uninstall: _uninstall
+ 	@echo &quot; +--------- Asterisk Uninstall Complete -----+&quot;  
+
+Modified: trunk/build_tools/menuselect.c
+===================================================================
+--- trunk/build_tools/menuselect.c	2006-06-23 17:34:29 UTC (rev 295)
++++ trunk/build_tools/menuselect.c	2006-06-23 17:35:45 UTC (rev 296)
+@@ -24,7 +24,7 @@
+  * \brief A menu-driven system for Asterisk module selection
+  */
+ 
+-#include &quot;autoconfig.h&quot;
++#include &quot;asterisk.h&quot;
+ 
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+@@ -34,8 +34,6 @@
+ #include &quot;mxml/mxml.h&quot;
+ #include &quot;menuselect.h&quot;
+ 
+-#include &quot;asterisk.h&quot;
+-
+ #include &quot;asterisk/linkedlists.h&quot;
+ 
+ #undef MENUSELECT_DEBUG
+
+Modified: trunk/build_tools/menuselect_curses.c
+===================================================================
+--- trunk/build_tools/menuselect_curses.c	2006-06-23 17:34:29 UTC (rev 295)
++++ trunk/build_tools/menuselect_curses.c	2006-06-23 17:35:45 UTC (rev 296)
+@@ -24,7 +24,7 @@
+  * \brief curses frontend for Asterisk module selection
+  */
+ 
+-#include &quot;autoconfig.h&quot;
++#include &quot;asterisk/autoconfig.h&quot;
+ 
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/sounds/Makefile
+===================================================================
+--- trunk/sounds/Makefile	2006-06-23 17:34:29 UTC (rev 295)
++++ trunk/sounds/Makefile	2006-06-23 17:35:45 UTC (rev 296)
+@@ -37,12 +37,13 @@
+ MENUSELECT_MOH:=$(subst -MP3,-mp3,$(MENUSELECT_MOH))
+ MOH:=$(MENUSELECT_MOH:MOH-%=asterisk-moh-%.tar.gz)
+ 
+-%.gz:
++%.tar.gz:
+ 	@wget --no-verbose --continue $(SOUNDS_URL)/$@
+ 
+ all:	$(CORE_SOUNDS) $(EXTRA_SOUNDS) $(MOH)
+ 
+-clean:
++dist-clean:
++	rm -f *.tar.gz
+ 
+ install: all
+ 	mkdir -p $(DESTDIR)$(ASTDATADIR)/sounds
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000289.html">[solid-pbx-svn] r295 - trunk/sounds
+</A></li>
+	<LI>Next message: <A HREF="000292.html">[solid-pbx-svn] r297 - in trunk: . configs include/asterisk res sounds
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#290">[ date ]</a>
+              <a href="thread.html#290">[ thread ]</a>
+              <a href="subject.html#290">[ subject ]</a>
+              <a href="author.html#290">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

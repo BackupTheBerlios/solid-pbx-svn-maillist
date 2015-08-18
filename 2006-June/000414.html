@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r419 - trunk/codecs/gsm/inc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r419%20-%20trunk/codecs/gsm/inc&In-Reply-To=%3C200606280726.k5S7QELq002758%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000413.html">
+   <LINK REL="Next"  HREF="000415.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r419 - trunk/codecs/gsm/inc</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r419%20-%20trunk/codecs/gsm/inc&In-Reply-To=%3C200606280726.k5S7QELq002758%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r419 - trunk/codecs/gsm/inc">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 09:26:14 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000413.html">[solid-pbx-svn] r418 - in trunk: . apps codecs codecs/gsm codecs/gsm/inc codecs/gsm/src
+</A></li>
+        <LI>Next message: <A HREF="000415.html">[solid-pbx-svn] r420 - in trunk: . apps channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#414">[ date ]</a>
+              <a href="thread.html#414">[ thread ]</a>
+              <a href="subject.html#414">[ subject ]</a>
+              <a href="author.html#414">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 09:26:01 +0200 (Wed, 28 Jun 2006)
+New Revision: 419
+
+Modified:
+   trunk/codecs/gsm/inc/unproto.h
+Log:
+Update to Asterisk SVN trunk r50
+
+------------------------------------------------------------------------
+r41 | markster | 1999-11-15 07:09:01 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.1.10 from FTP
+
+------------------------------------------------------------------------
+r42 | markster | 1999-11-15 07:09:02 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.1.4 from FTP
+
+------------------------------------------------------------------------
+r43 | markster | 1999-11-15 07:09:02 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.1.11 from FTP
+
+------------------------------------------------------------------------
+r44 | markster | 1999-11-15 07:09:03 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.1.5 from FTP
+
+------------------------------------------------------------------------
+r45 | markster | 1999-11-15 07:09:03 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.1.12 from FTP
+
+------------------------------------------------------------------------
+r46 | markster | 1999-11-15 07:09:04 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.1.6 from FTP
+
+------------------------------------------------------------------------
+r47 | markster | 1999-11-15 07:09:04 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.2.0 from FTP
+
+------------------------------------------------------------------------
+r48 | markster | 1999-11-15 07:09:05 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.1.7 from FTP
+
+------------------------------------------------------------------------
+r49 | markster | 1999-11-15 07:09:05 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.3.0 from FTP
+
+------------------------------------------------------------------------
+r50 | markster | 1999-11-15 23:07:19 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/codecs/gsm/inc/unproto.h
+===================================================================
+--- trunk/codecs/gsm/inc/unproto.h	2006-06-28 06:25:21 UTC (rev 418)
++++ trunk/codecs/gsm/inc/unproto.h	2006-06-28 07:26:01 UTC (rev 419)
+@@ -21,3 +21,26 @@
+ #undef	P8
+ 
+ #endif	/* PROTO_H */
++/*
++ * Copyright 1992 by Jutta Degener and Carsten Bormann, Technische
++ * Universitaet Berlin.  See the accompanying file &quot;COPYRIGHT&quot; for
++ * details.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
++ */
++
++/*$Header$*/
++
++#ifdef	PROTO_H		/* sic */
++#undef	PROTO_H
++
++#undef	P
++#undef	P0
++#undef	P1
++#undef	P2
++#undef	P3
++#undef	P4
++#undef	P5
++#undef	P6
++#undef	P7
++#undef	P8
++
++#endif	/* PROTO_H */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000413.html">[solid-pbx-svn] r418 - in trunk: . apps codecs codecs/gsm codecs/gsm/inc codecs/gsm/src
+</A></li>
+	<LI>Next message: <A HREF="000415.html">[solid-pbx-svn] r420 - in trunk: . apps channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#414">[ date ]</a>
+              <a href="thread.html#414">[ thread ]</a>
+              <a href="subject.html#414">[ subject ]</a>
+              <a href="author.html#414">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

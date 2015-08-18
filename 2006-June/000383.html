@@ -1,0 +1,1099 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r388 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r388%20-%20trunk&In-Reply-To=%3C200606280158.k5S1wJnb019684%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000382.html">
+   <LINK REL="Next"  HREF="000384.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r388 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r388%20-%20trunk&In-Reply-To=%3C200606280158.k5S1wJnb019684%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r388 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:58:19 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000382.html">[solid-pbx-svn] r387 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000384.html">[solid-pbx-svn] r389 - trunk/build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#383">[ date ]</a>
+              <a href="thread.html#383">[ thread ]</a>
+              <a href="subject.html#383">[ subject ]</a>
+              <a href="author.html#383">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:58:07 +0200 (Wed, 28 Jun 2006)
+New Revision: 388
+
+Modified:
+   trunk/Makefile
+   trunk/ast_expr2.c
+   trunk/ast_expr2.fl
+   trunk/ast_expr2.h
+   trunk/ast_expr2.y
+   trunk/ast_expr2f.c
+Log:
+Update to Asterisk SVN trunk r34983
+
+------------------------------------------------------------------------
+r34980 | russell | 2006-06-20 03:06:50 +0200 (Tue, 20 Jun 2006) | 9 lines
+
+- use $(CC) instead of gcc when building testexpr2
+- modify ast_expr2.fl and ast_expr2.y to not try to register the file version
+  in a STANDALONE build
+- add config.status as a dependency on testexpr2 to ensure configure is
+  executed before building it
+- add include/asterisk/buildopts.h as a dependency for testexpr2 as well
+- add -Iinclude to the gcc commands for building the testexpr2 objects so that
+  it can find the local asterisk headers
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-28 01:48:44 UTC (rev 387)
++++ trunk/Makefile	2006-06-28 01:58:07 UTC (rev 388)
+@@ -423,10 +423,10 @@
+ ast_expr2f.c:
+ 	flex -o $@ --full ast_expr2.fl
+ 
+-testexpr2: ast_expr2f.c ast_expr2.c ast_expr2.h
+-	gcc -g -c -DSTANDALONE ast_expr2f.c
+-	gcc -g -c -DSTANDALONE ast_expr2.c
+-	gcc -g -o testexpr2 ast_expr2f.o ast_expr2.o
++testexpr2: config.status include/asterisk/buildopts.h ast_expr2f.c ast_expr2.c ast_expr2.h
++	$(CC) -g -c -Iinclude -DSTANDALONE ast_expr2f.c
++	$(CC) -g -c -Iinclude -DSTANDALONE ast_expr2.c
++	$(CC) -g -o testexpr2 ast_expr2f.o ast_expr2.o
+ 	rm ast_expr2.o ast_expr2f.o 
+ 
+ manpage: asterisk.8
+
+Modified: trunk/ast_expr2.c
+===================================================================
+--- trunk/ast_expr2.c	2006-06-28 01:48:44 UTC (rev 387)
++++ trunk/ast_expr2.c	2006-06-28 01:58:07 UTC (rev 388)
+@@ -1,8 +1,10 @@
+-/* A Bison parser, made by GNU Bison 2.1a.  */
++/* A Bison parser, made by GNU Bison 2.3.  */
+ 
+-/* Skeleton parser for Yacc-like parsing with Bison,
+-   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
++/* Skeleton implementation for Bison's Yacc-like parsers in C
+ 
++   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
++   Free Software Foundation, Inc.
++
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2, or (at your option)
+@@ -18,11 +20,19 @@
+    Foundation, Inc., 51 Franklin Street, Fifth Floor,
+    Boston, MA 02110-1301, USA.  */
+ 
+-/* As a special exception, when this file is copied by Bison into a
+-   Bison output file, you may use that output file without restriction.
+-   This special exception was added by the Free Software Foundation
+-   in version 1.24 of Bison.  */
++/* As a special exception, you may create a larger work that contains
++   part or all of the Bison parser skeleton and distribute that work
++   under terms of your choice, so long as that work isn't itself a
++   parser generator using the skeleton or a modified version thereof
++   as a parser skeleton.  Alternatively, if you modify or redistribute
++   the parser skeleton itself, you may (at your option) remove this
++   special exception, which will cause the skeleton and the resulting
++   Bison output files to be licensed under the GNU General Public
++   License without this special exception.
+ 
++   This special exception was added by the Free Software Foundation in
++   version 2.2 of Bison.  */
++
+ /* C LALR(1) parser skeleton written by Richard Stallman, by
+    simplifying the original so-called &quot;semantic&quot; parser.  */
+ 
+@@ -37,7 +47,7 @@
+ #define YYBISON 1
+ 
+ /* Bison version.  */
+-#define YYBISON_VERSION &quot;2.1a&quot;
++#define YYBISON_VERSION &quot;2.3&quot;
+ 
+ /* Skeleton name.  */
+ #define YYSKELETON_NAME &quot;yacc.c&quot;
+@@ -131,7 +141,9 @@
+ 
+ #include &quot;asterisk.h&quot;
+ 
++#ifndef STANDALONE
+ ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++#endif
+ 
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+@@ -276,12 +288,12 @@
+ 
+ #if ! defined YYSTYPE &amp;&amp; ! defined YYSTYPE_IS_DECLARED
+ typedef union YYSTYPE
+-#line 140 &quot;ast_expr2.y&quot;
++#line 147 &quot;ast_expr2.y&quot;
+ {
+ 	struct val *val;
+ }
+-/* Line 198 of yacc.c.  */
+-#line 276 &quot;ast_expr2.c&quot;
++/* Line 193 of yacc.c.  */
++#line 293 &quot;ast_expr2.c&quot;
+ 	YYSTYPE;
+ # define yystype YYSTYPE /* obsolescent; will be withdrawn */
+ # define YYSTYPE_IS_DECLARED 1
+@@ -303,13 +315,13 @@
+ 
+ 
+ /* Copy the second part of user declarations.  */
+-#line 144 &quot;ast_expr2.y&quot;
++#line 151 &quot;ast_expr2.y&quot;
+ 
+ extern int		ast_yylex __P((YYSTYPE *, YYLTYPE *, yyscan_t));
+ 
+ 
+-/* Line 221 of yacc.c.  */
+-#line 304 &quot;ast_expr2.c&quot;
++/* Line 216 of yacc.c.  */
++#line 321 &quot;ast_expr2.c&quot;
+ 
+ #ifdef short
+ # undef short
+@@ -439,8 +451,13 @@
+ #  ifndef YYSTACK_ALLOC_MAXIMUM
+ #   define YYSTACK_ALLOC_MAXIMUM YYSIZE_MAXIMUM
+ #  endif
+-#  ifdef __cplusplus
+-extern &quot;C&quot; {
++#  if (defined __cplusplus &amp;&amp; ! defined _STDLIB_H \
++       &amp;&amp; ! ((defined YYMALLOC || defined malloc) \
++	     &amp;&amp; (defined YYFREE || defined free)))
++#   include &lt;stdlib.h&gt; /* INFRINGES ON USER NAME SPACE */
++#   ifndef _STDLIB_H
++#    define _STDLIB_H 1
++#   endif
+ #  endif
+ #  ifndef YYMALLOC
+ #   define YYMALLOC malloc
+@@ -456,9 +473,6 @@
+ void free (void *); /* INFRINGES ON USER NAME SPACE */
+ #   endif
+ #  endif
+-#  ifdef __cplusplus
+-}
+-#  endif
+ # endif
+ #endif /* ! defined yyoverflow || YYERROR_VERBOSE */
+ 
+@@ -602,9 +616,9 @@
+ /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
+ static const yytype_uint16 yyrline[] =
+ {
+-       0,   168,   168,   176,   183,   184,   188,   192,   196,   200,
+-     204,   208,   212,   216,   220,   224,   228,   232,   236,   240,
+-     244,   248,   252,   256
++       0,   175,   175,   183,   190,   191,   195,   199,   203,   207,
++     211,   215,   219,   223,   227,   231,   235,   239,   243,   247,
++     251,   255,   259,   263
+ };
+ #endif
+ 
+@@ -862,14 +876,14 @@
+ #if (defined __STDC__ || defined __C99__FUNC__ \
+      || defined __cplusplus || defined _MSC_VER)
+ static void
+-yy_symbol_value_print (FILE *yyoutput, int yytype, const YYSTYPE * const yyvaluep, const YYLTYPE * const yylocationp)
++yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp)
+ #else
+ static void
+ yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp)
+     FILE *yyoutput;
+     int yytype;
+-    const YYSTYPE * const yyvaluep;
+-    const YYLTYPE * const yylocationp;
++    YYSTYPE const * const yyvaluep;
++    YYLTYPE const * const yylocationp;
+ #endif
+ {
+   if (!yyvaluep)
+@@ -896,14 +910,14 @@
+ #if (defined __STDC__ || defined __C99__FUNC__ \
+      || defined __cplusplus || defined _MSC_VER)
+ static void
+-yy_symbol_print (FILE *yyoutput, int yytype, const YYSTYPE * const yyvaluep, const YYLTYPE * const yylocationp)
++yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp)
+ #else
+ static void
+ yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp)
+     FILE *yyoutput;
+     int yytype;
+-    const YYSTYPE * const yyvaluep;
+-    const YYLTYPE * const yylocationp;
++    YYSTYPE const * const yyvaluep;
++    YYLTYPE const * const yylocationp;
+ #endif
+ {
+   if (yytype &lt; YYNTOKENS)
+@@ -956,8 +970,7 @@
+ yy_reduce_print (YYSTYPE *yyvsp, YYLTYPE *yylsp, int yyrule)
+ #else
+ static void
+-yy_reduce_print (yyvsp, yylsp, yyrule
+-		   )
++yy_reduce_print (yyvsp, yylsp, yyrule)
+     YYSTYPE *yyvsp;
+     YYLTYPE *yylsp;
+     int yyrule;
+@@ -1080,7 +1093,7 @@
+ {
+   if (*yystr == '&quot;')
+     {
+-      size_t yyn = 0;
++      YYSIZE_T yyn = 0;
+       char const *yyp = yystr;
+ 
+       for (;;)
+@@ -1127,7 +1140,7 @@
+ {
+   int yyn = yypact[yystate];
+ 
+-  if (! (YYPACT_NINF &lt; yyn &amp;&amp; yyn &lt; YYLAST))
++  if (! (YYPACT_NINF &lt; yyn &amp;&amp; yyn &lt;= YYLAST))
+     return 0;
+   else
+     {
+@@ -1165,7 +1178,7 @@
+       int yyxbegin = yyn &lt; 0 ? -yyn : 0;
+ 
+       /* Stay within bounds of both yycheck and yytname.  */
+-      int yychecklim = YYLAST - yyn;
++      int yychecklim = YYLAST - yyn + 1;
+       int yyxend = yychecklim &lt; YYNTOKENS ? yychecklim : YYNTOKENS;
+       int yycount = 1;
+ 
+@@ -1253,114 +1266,114 @@
+   switch (yytype)
+     {
+       case 3: /* &quot;TOK_COLONCOLON&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1250 &quot;ast_expr2.c&quot;
++#line 1268 &quot;ast_expr2.c&quot;
+ 	break;
+       case 4: /* &quot;TOK_COND&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1255 &quot;ast_expr2.c&quot;
++#line 1273 &quot;ast_expr2.c&quot;
+ 	break;
+       case 5: /* &quot;TOK_OR&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1260 &quot;ast_expr2.c&quot;
++#line 1278 &quot;ast_expr2.c&quot;
+ 	break;
+       case 6: /* &quot;TOK_AND&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1265 &quot;ast_expr2.c&quot;
++#line 1283 &quot;ast_expr2.c&quot;
+ 	break;
+       case 7: /* &quot;TOK_NE&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1270 &quot;ast_expr2.c&quot;
++#line 1288 &quot;ast_expr2.c&quot;
+ 	break;
+       case 8: /* &quot;TOK_LE&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1275 &quot;ast_expr2.c&quot;
++#line 1293 &quot;ast_expr2.c&quot;
+ 	break;
+       case 9: /* &quot;TOK_GE&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1280 &quot;ast_expr2.c&quot;
++#line 1298 &quot;ast_expr2.c&quot;
+ 	break;
+       case 10: /* &quot;TOK_LT&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1285 &quot;ast_expr2.c&quot;
++#line 1303 &quot;ast_expr2.c&quot;
+ 	break;
+       case 11: /* &quot;TOK_GT&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1290 &quot;ast_expr2.c&quot;
++#line 1308 &quot;ast_expr2.c&quot;
+ 	break;
+       case 12: /* &quot;TOK_EQ&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1295 &quot;ast_expr2.c&quot;
++#line 1313 &quot;ast_expr2.c&quot;
+ 	break;
+       case 13: /* &quot;TOK_MINUS&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1300 &quot;ast_expr2.c&quot;
++#line 1318 &quot;ast_expr2.c&quot;
+ 	break;
+       case 14: /* &quot;TOK_PLUS&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1305 &quot;ast_expr2.c&quot;
++#line 1323 &quot;ast_expr2.c&quot;
+ 	break;
+       case 15: /* &quot;TOK_MOD&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1310 &quot;ast_expr2.c&quot;
++#line 1328 &quot;ast_expr2.c&quot;
+ 	break;
+       case 16: /* &quot;TOK_DIV&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1315 &quot;ast_expr2.c&quot;
++#line 1333 &quot;ast_expr2.c&quot;
+ 	break;
+       case 17: /* &quot;TOK_MULT&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1320 &quot;ast_expr2.c&quot;
++#line 1338 &quot;ast_expr2.c&quot;
+ 	break;
+       case 18: /* &quot;TOK_COMPL&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1325 &quot;ast_expr2.c&quot;
++#line 1343 &quot;ast_expr2.c&quot;
+ 	break;
+       case 19: /* &quot;TOK_EQTILDE&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1330 &quot;ast_expr2.c&quot;
++#line 1348 &quot;ast_expr2.c&quot;
+ 	break;
+       case 20: /* &quot;TOK_COLON&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1335 &quot;ast_expr2.c&quot;
++#line 1353 &quot;ast_expr2.c&quot;
+ 	break;
+       case 21: /* &quot;TOK_LP&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1340 &quot;ast_expr2.c&quot;
++#line 1358 &quot;ast_expr2.c&quot;
+ 	break;
+       case 22: /* &quot;TOK_RP&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1345 &quot;ast_expr2.c&quot;
++#line 1363 &quot;ast_expr2.c&quot;
+ 	break;
+       case 23: /* &quot;TOKEN&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1350 &quot;ast_expr2.c&quot;
++#line 1368 &quot;ast_expr2.c&quot;
+ 	break;
+       case 26: /* &quot;expr&quot; */
+-#line 162 &quot;ast_expr2.y&quot;
++#line 169 &quot;ast_expr2.y&quot;
+ 	{  free_value((yyvaluep-&gt;val)); };
+-#line 1355 &quot;ast_expr2.c&quot;
++#line 1373 &quot;ast_expr2.c&quot;
+ 	break;
+ 
+       default:
+@@ -1683,7 +1696,7 @@
+   switch (yyn)
+     {
+         case 2:
+-#line 168 &quot;ast_expr2.y&quot;
++#line 175 &quot;ast_expr2.y&quot;
+     { ((struct parse_io *)parseio)-&gt;val = (struct val *)calloc(sizeof(struct val),1);
+               ((struct parse_io *)parseio)-&gt;val-&gt;type = (yyvsp[(1) - (1)].val)-&gt;type;
+               if( (yyvsp[(1) - (1)].val)-&gt;type == AST_EXPR_integer )
+@@ -1695,7 +1708,7 @@
+     break;
+ 
+   case 3:
+-#line 176 &quot;ast_expr2.y&quot;
++#line 183 &quot;ast_expr2.y&quot;
+     {/* nothing */ ((struct parse_io *)parseio)-&gt;val = (struct val *)calloc(sizeof(struct val),1);
+               ((struct parse_io *)parseio)-&gt;val-&gt;type = AST_EXPR_string;
+ 			  ((struct parse_io *)parseio)-&gt;val-&gt;u.s = strdup(&quot;&quot;); 
+@@ -1703,12 +1716,12 @@
+     break;
+ 
+   case 4:
+-#line 183 &quot;ast_expr2.y&quot;
++#line 190 &quot;ast_expr2.y&quot;
+     { (yyval.val)= (yyvsp[(1) - (1)].val);;}
+     break;
+ 
+   case 5:
+-#line 184 &quot;ast_expr2.y&quot;
++#line 191 &quot;ast_expr2.y&quot;
+     { (yyval.val) = (yyvsp[(2) - (3)].val); 
+ 	                       (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+ 						   (yyloc).first_line=0; (yyloc).last_line=0;
+@@ -1716,7 +1729,7 @@
+     break;
+ 
+   case 6:
+-#line 188 &quot;ast_expr2.y&quot;
++#line 195 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_or ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val));
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+                          (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1724,7 +1737,7 @@
+     break;
+ 
+   case 7:
+-#line 192 &quot;ast_expr2.y&quot;
++#line 199 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_and ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                      (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1732,7 +1745,7 @@
+     break;
+ 
+   case 8:
+-#line 196 &quot;ast_expr2.y&quot;
++#line 203 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_eq ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val));
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                     (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column;
+@@ -1740,7 +1753,7 @@
+     break;
+ 
+   case 9:
+-#line 200 &quot;ast_expr2.y&quot;
++#line 207 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_gt ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val));
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+                          (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column;
+@@ -1748,7 +1761,7 @@
+     break;
+ 
+   case 10:
+-#line 204 &quot;ast_expr2.y&quot;
++#line 211 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_lt ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                     (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1756,7 +1769,7 @@
+     break;
+ 
+   case 11:
+-#line 208 &quot;ast_expr2.y&quot;
++#line 215 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_ge ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                      (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1764,7 +1777,7 @@
+     break;
+ 
+   case 12:
+-#line 212 &quot;ast_expr2.y&quot;
++#line 219 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_le ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                      (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1772,7 +1785,7 @@
+     break;
+ 
+   case 13:
+-#line 216 &quot;ast_expr2.y&quot;
++#line 223 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_ne ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                      (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1780,7 +1793,7 @@
+     break;
+ 
+   case 14:
+-#line 220 &quot;ast_expr2.y&quot;
++#line 227 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_plus ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                       (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1788,7 +1801,7 @@
+     break;
+ 
+   case 15:
+-#line 224 &quot;ast_expr2.y&quot;
++#line 231 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_minus ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                        (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1796,7 +1809,7 @@
+     break;
+ 
+   case 16:
+-#line 228 &quot;ast_expr2.y&quot;
++#line 235 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_negate ((yyvsp[(2) - (2)].val)); 
+ 						DESTROY((yyvsp[(1) - (2)].val));	
+ 	                        (yyloc).first_column = (yylsp[(1) - (2)]).first_column; (yyloc).last_column = (yylsp[(2) - (2)]).last_column; 
+@@ -1804,7 +1817,7 @@
+     break;
+ 
+   case 17:
+-#line 232 &quot;ast_expr2.y&quot;
++#line 239 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_compl ((yyvsp[(2) - (2)].val)); 
+ 						DESTROY((yyvsp[(1) - (2)].val));	
+ 	                        (yyloc).first_column = (yylsp[(1) - (2)]).first_column; (yyloc).last_column = (yylsp[(2) - (2)]).last_column; 
+@@ -1812,7 +1825,7 @@
+     break;
+ 
+   case 18:
+-#line 236 &quot;ast_expr2.y&quot;
++#line 243 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_times ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                       (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1820,7 +1833,7 @@
+     break;
+ 
+   case 19:
+-#line 240 &quot;ast_expr2.y&quot;
++#line 247 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_div ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                      (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1828,7 +1841,7 @@
+     break;
+ 
+   case 20:
+-#line 244 &quot;ast_expr2.y&quot;
++#line 251 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_rem ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                      (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1836,7 +1849,7 @@
+     break;
+ 
+   case 21:
+-#line 248 &quot;ast_expr2.y&quot;
++#line 255 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_colon ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                        (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1844,7 +1857,7 @@
+     break;
+ 
+   case 22:
+-#line 252 &quot;ast_expr2.y&quot;
++#line 259 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_eqtilde ((yyvsp[(1) - (3)].val), (yyvsp[(3) - (3)].val)); 
+ 						DESTROY((yyvsp[(2) - (3)].val));	
+ 	                        (yyloc).first_column = (yylsp[(1) - (3)]).first_column; (yyloc).last_column = (yylsp[(3) - (3)]).last_column; 
+@@ -1852,7 +1865,7 @@
+     break;
+ 
+   case 23:
+-#line 256 &quot;ast_expr2.y&quot;
++#line 263 &quot;ast_expr2.y&quot;
+     { (yyval.val) = op_cond ((yyvsp[(1) - (5)].val), (yyvsp[(3) - (5)].val), (yyvsp[(5) - (5)].val)); 
+ 						DESTROY((yyvsp[(2) - (5)].val));	
+ 						DESTROY((yyvsp[(4) - (5)].val));	
+@@ -1861,8 +1874,8 @@
+     break;
+ 
+ 
+-/* Line 1270 of yacc.c.  */
+-#line 1857 &quot;ast_expr2.c&quot;
++/* Line 1267 of yacc.c.  */
++#line 1875 &quot;ast_expr2.c&quot;
+       default: break;
+     }
+   YY_SYMBOL_PRINT (&quot;-&gt; $$ =&quot;, yyr1[yyn], &amp;yyval, &amp;yyloc);
+@@ -2077,11 +2090,12 @@
+   if (yymsg != yymsgbuf)
+     YYSTACK_FREE (yymsg);
+ #endif
+-  return yyresult;
++  /* Make sure YYID is used.  */
++  return YYID (yyresult);
+ }
+ 
+ 
+-#line 263 &quot;ast_expr2.y&quot;
++#line 270 &quot;ast_expr2.y&quot;
+ 
+ 
+ static struct val *
+
+Modified: trunk/ast_expr2.fl
+===================================================================
+--- trunk/ast_expr2.fl	2006-06-28 01:48:44 UTC (rev 387)
++++ trunk/ast_expr2.fl	2006-06-28 01:58:07 UTC (rev 388)
+@@ -24,7 +24,9 @@
+ 
+ #include &quot;asterisk.h&quot;
+ 
++#ifndef STANDALONE
+ ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++#endif
+ 
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/ast_expr2.h
+===================================================================
+--- trunk/ast_expr2.h	2006-06-28 01:48:44 UTC (rev 387)
++++ trunk/ast_expr2.h	2006-06-28 01:58:07 UTC (rev 388)
+@@ -1,8 +1,10 @@
+-/* A Bison parser, made by GNU Bison 2.1a.  */
++/* A Bison parser, made by GNU Bison 2.3.  */
+ 
+-/* Skeleton parser for Yacc-like parsing with Bison,
+-   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
++/* Skeleton interface for Bison's Yacc-like parsers in C
+ 
++   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
++   Free Software Foundation, Inc.
++
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2, or (at your option)
+@@ -18,11 +20,19 @@
+    Foundation, Inc., 51 Franklin Street, Fifth Floor,
+    Boston, MA 02110-1301, USA.  */
+ 
+-/* As a special exception, when this file is copied by Bison into a
+-   Bison output file, you may use that output file without restriction.
+-   This special exception was added by the Free Software Foundation
+-   in version 1.24 of Bison.  */
++/* As a special exception, you may create a larger work that contains
++   part or all of the Bison parser skeleton and distribute that work
++   under terms of your choice, so long as that work isn't itself a
++   parser generator using the skeleton or a modified version thereof
++   as a parser skeleton.  Alternatively, if you modify or redistribute
++   the parser skeleton itself, you may (at your option) remove this
++   special exception, which will cause the skeleton and the resulting
++   Bison output files to be licensed under the GNU General Public
++   License without this special exception.
+ 
++   This special exception was added by the Free Software Foundation in
++   version 2.2 of Bison.  */
++
+ /* Tokens.  */
+ #ifndef YYTOKENTYPE
+ # define YYTOKENTYPE
+@@ -80,12 +90,12 @@
+ 
+ #if ! defined YYSTYPE &amp;&amp; ! defined YYSTYPE_IS_DECLARED
+ typedef union YYSTYPE
+-#line 140 &quot;ast_expr2.y&quot;
++#line 147 &quot;ast_expr2.y&quot;
+ {
+ 	struct val *val;
+ }
+-/* Line 1536 of yacc.c.  */
+-#line 89 &quot;ast_expr2.h&quot;
++/* Line 1529 of yacc.c.  */
++#line 99 &quot;ast_expr2.h&quot;
+ 	YYSTYPE;
+ # define yystype YYSTYPE /* obsolescent; will be withdrawn */
+ # define YYSTYPE_IS_DECLARED 1
+@@ -108,5 +118,3 @@
+ #endif
+ 
+ 
+-
+-
+
+Modified: trunk/ast_expr2.y
+===================================================================
+--- trunk/ast_expr2.y	2006-06-28 01:48:44 UTC (rev 387)
++++ trunk/ast_expr2.y	2006-06-28 01:58:07 UTC (rev 388)
+@@ -14,7 +14,9 @@
+ 
+ #include &quot;asterisk.h&quot;
+ 
++#ifndef STANDALONE
+ ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++#endif
+ 
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/ast_expr2f.c
+===================================================================
+--- trunk/ast_expr2f.c	2006-06-28 01:48:44 UTC (rev 387)
++++ trunk/ast_expr2f.c	2006-06-28 01:58:07 UTC (rev 388)
+@@ -1356,7 +1356,9 @@
+ 
+ #include &quot;asterisk.h&quot;
+ 
++#ifndef STANDALONE
+ ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++#endif
+ 
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+@@ -1425,7 +1427,7 @@
+ static int curlycount = 0;
+ static char *expr2_token_subst(char *mess);
+ 
+-#line 1425 &quot;ast_expr2f.c&quot;
++#line 1427 &quot;ast_expr2f.c&quot;
+ 
+ #define INITIAL 0
+ #define var 1
+@@ -1648,10 +1650,10 @@
+ 	register int yy_act;
+     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+ 
+-#line 102 &quot;ast_expr2.fl&quot;
++#line 104 &quot;ast_expr2.fl&quot;
+ 
+ 
+-#line 1651 &quot;ast_expr2f.c&quot;
++#line 1653 &quot;ast_expr2f.c&quot;
+ 
+     yylval = yylval_param;
+ 
+@@ -1734,122 +1736,122 @@
+ 
+ case 1:
+ YY_RULE_SETUP
+-#line 104 &quot;ast_expr2.fl&quot;
++#line 106 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_OR;}
+ 	YY_BREAK
+ case 2:
+ YY_RULE_SETUP
+-#line 105 &quot;ast_expr2.fl&quot;
++#line 107 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_AND;}
+ 	YY_BREAK
+ case 3:
+ YY_RULE_SETUP
+-#line 106 &quot;ast_expr2.fl&quot;
++#line 108 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_EQ;}
+ 	YY_BREAK
+ case 4:
+ YY_RULE_SETUP
+-#line 107 &quot;ast_expr2.fl&quot;
++#line 109 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_OR;}
+ 	YY_BREAK
+ case 5:
+ YY_RULE_SETUP
+-#line 108 &quot;ast_expr2.fl&quot;
++#line 110 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_AND;}
+ 	YY_BREAK
+ case 6:
+ YY_RULE_SETUP
+-#line 109 &quot;ast_expr2.fl&quot;
++#line 111 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_EQ;}
+ 	YY_BREAK
+ case 7:
+ YY_RULE_SETUP
+-#line 110 &quot;ast_expr2.fl&quot;
++#line 112 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_EQTILDE;}
+ 	YY_BREAK
+ case 8:
+ YY_RULE_SETUP
+-#line 111 &quot;ast_expr2.fl&quot;
++#line 113 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_GT;}
+ 	YY_BREAK
+ case 9:
+ YY_RULE_SETUP
+-#line 112 &quot;ast_expr2.fl&quot;
++#line 114 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_LT;}
+ 	YY_BREAK
+ case 10:
+ YY_RULE_SETUP
+-#line 113 &quot;ast_expr2.fl&quot;
++#line 115 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_GE;}
+ 	YY_BREAK
+ case 11:
+ YY_RULE_SETUP
+-#line 114 &quot;ast_expr2.fl&quot;
++#line 116 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_LE;}
+ 	YY_BREAK
+ case 12:
+ YY_RULE_SETUP
+-#line 115 &quot;ast_expr2.fl&quot;
++#line 117 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_NE;}
+ 	YY_BREAK
+ case 13:
+ YY_RULE_SETUP
+-#line 116 &quot;ast_expr2.fl&quot;
++#line 118 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_PLUS;}
+ 	YY_BREAK
+ case 14:
+ YY_RULE_SETUP
+-#line 117 &quot;ast_expr2.fl&quot;
++#line 119 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_MINUS;}
+ 	YY_BREAK
+ case 15:
+ YY_RULE_SETUP
+-#line 118 &quot;ast_expr2.fl&quot;
++#line 120 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_MULT;}
+ 	YY_BREAK
+ case 16:
+ YY_RULE_SETUP
+-#line 119 &quot;ast_expr2.fl&quot;
++#line 121 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_DIV;}
+ 	YY_BREAK
+ case 17:
+ YY_RULE_SETUP
+-#line 120 &quot;ast_expr2.fl&quot;
++#line 122 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_MOD;}
+ 	YY_BREAK
+ case 18:
+ YY_RULE_SETUP
+-#line 121 &quot;ast_expr2.fl&quot;
++#line 123 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_COND;}
+ 	YY_BREAK
+ case 19:
+ YY_RULE_SETUP
+-#line 122 &quot;ast_expr2.fl&quot;
++#line 124 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_COMPL;}
+ 	YY_BREAK
+ case 20:
+ YY_RULE_SETUP
+-#line 123 &quot;ast_expr2.fl&quot;
++#line 125 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_COLON;}
+ 	YY_BREAK
+ case 21:
+ YY_RULE_SETUP
+-#line 124 &quot;ast_expr2.fl&quot;
++#line 126 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_COLONCOLON;}
+ 	YY_BREAK
+ case 22:
+ YY_RULE_SETUP
+-#line 125 &quot;ast_expr2.fl&quot;
++#line 127 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_LP;}
+ 	YY_BREAK
+ case 23:
+ YY_RULE_SETUP
+-#line 126 &quot;ast_expr2.fl&quot;
++#line 128 &quot;ast_expr2.fl&quot;
+ { SET_COLUMNS; SET_STRING; return TOK_RP;}
+ 	YY_BREAK
+ case 24:
+ YY_RULE_SETUP
+-#line 127 &quot;ast_expr2.fl&quot;
++#line 129 &quot;ast_expr2.fl&quot;
+ {
+ 		/* gather the contents of ${} expressions, with trailing stuff,
+ 		 * into a single TOKEN.
+@@ -1862,24 +1864,24 @@
+ 	YY_BREAK
+ case 25:
+ YY_RULE_SETUP
+-#line 137 &quot;ast_expr2.fl&quot;
++#line 139 &quot;ast_expr2.fl&quot;
+ {}
+ 	YY_BREAK
+ case 26:
+ /* rule 26 can match eol */
+ YY_RULE_SETUP
+-#line 138 &quot;ast_expr2.fl&quot;
++#line 140 &quot;ast_expr2.fl&quot;
+ {SET_COLUMNS; SET_STRING; return TOKEN;}
+ 	YY_BREAK
+ case 27:
+ /* rule 27 can match eol */
+ YY_RULE_SETUP
+-#line 140 &quot;ast_expr2.fl&quot;
++#line 142 &quot;ast_expr2.fl&quot;
+ {/* what to do with eol */}
+ 	YY_BREAK
+ case 28:
+ YY_RULE_SETUP
+-#line 141 &quot;ast_expr2.fl&quot;
++#line 143 &quot;ast_expr2.fl&quot;
+ {
+ 		SET_COLUMNS;
+ 		/* the original behavior of the expression parser was
+@@ -1891,7 +1893,7 @@
+ 	YY_BREAK
+ case 29:
+ YY_RULE_SETUP
+-#line 150 &quot;ast_expr2.fl&quot;
++#line 152 &quot;ast_expr2.fl&quot;
+ {
+ 		SET_COLUMNS;
+ 		SET_STRING;
+@@ -1901,7 +1903,7 @@
+ case 30:
+ /* rule 30 can match eol */
+ YY_RULE_SETUP
+-#line 157 &quot;ast_expr2.fl&quot;
++#line 159 &quot;ast_expr2.fl&quot;
+ {
+ 		curlycount--;
+ 		if (curlycount &lt; 0) {
+@@ -1915,7 +1917,7 @@
+ case 31:
+ /* rule 31 can match eol */
+ YY_RULE_SETUP
+-#line 167 &quot;ast_expr2.fl&quot;
++#line 169 &quot;ast_expr2.fl&quot;
+ {
+ 		curlycount++;
+ 		yymore();
+@@ -1923,7 +1925,7 @@
+ 	YY_BREAK
+ case 32:
+ YY_RULE_SETUP
+-#line 173 &quot;ast_expr2.fl&quot;
++#line 175 &quot;ast_expr2.fl&quot;
+ {
+ 		BEGIN(0);
+ 		SET_COLUMNS;
+@@ -1934,7 +1936,7 @@
+ case 33:
+ /* rule 33 can match eol */
+ YY_RULE_SETUP
+-#line 180 &quot;ast_expr2.fl&quot;
++#line 182 &quot;ast_expr2.fl&quot;
+ {
+ 		char c = yytext[yyleng-1];
+ 		BEGIN(0);
+@@ -1946,7 +1948,7 @@
+ 	YY_BREAK
+ case 34:
+ YY_RULE_SETUP
+-#line 189 &quot;ast_expr2.fl&quot;
++#line 191 &quot;ast_expr2.fl&quot;
+ {
+ 		curlycount = 0;
+ 		BEGIN(var);
+@@ -1954,7 +1956,7 @@
+ 	}
+ 	YY_BREAK
+ case YY_STATE_EOF(trail):
+-#line 195 &quot;ast_expr2.fl&quot;
++#line 197 &quot;ast_expr2.fl&quot;
+ {
+ 		BEGIN(0);
+ 		SET_COLUMNS;
+@@ -1965,10 +1967,10 @@
+ 	YY_BREAK
+ case 35:
+ YY_RULE_SETUP
+-#line 203 &quot;ast_expr2.fl&quot;
++#line 205 &quot;ast_expr2.fl&quot;
+ ECHO;
+ 	YY_BREAK
+-#line 1968 &quot;ast_expr2f.c&quot;
++#line 1970 &quot;ast_expr2f.c&quot;
+ case YY_STATE_EOF(INITIAL):
+ case YY_STATE_EOF(var):
+ 	yyterminate();
+@@ -2201,7 +2203,7 @@
+ 
+ 		/* Read in more data. */
+ 		YY_INPUT( (&amp;YY_CURRENT_BUFFER_LVALUE-&gt;yy_ch_buf[number_to_move]),
+-			yyg-&gt;yy_n_chars, num_to_read );
++			yyg-&gt;yy_n_chars, (size_t) num_to_read );
+ 
+ 		YY_CURRENT_BUFFER_LVALUE-&gt;yy_n_chars = yyg-&gt;yy_n_chars;
+ 		}
+@@ -3095,7 +3097,7 @@
+ 
+ #define YYTABLES_NAME &quot;yytables&quot;
+ 
+-#line 203 &quot;ast_expr2.fl&quot;
++#line 205 &quot;ast_expr2.fl&quot;
+ 
+ 
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000382.html">[solid-pbx-svn] r387 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000384.html">[solid-pbx-svn] r389 - trunk/build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#383">[ date ]</a>
+              <a href="thread.html#383">[ thread ]</a>
+              <a href="subject.html#383">[ subject ]</a>
+              <a href="author.html#383">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

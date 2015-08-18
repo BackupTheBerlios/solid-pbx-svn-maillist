@@ -1,0 +1,350 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r164 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r164%20-%20trunk/apps&In-Reply-To=%3C200605170329.k4H3TRKe005508%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000158.html">
+   <LINK REL="Next"  HREF="000160.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r164 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r164%20-%20trunk/apps&In-Reply-To=%3C200605170329.k4H3TRKe005508%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r164 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 17 05:29:27 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000158.html">[solid-pbx-svn] r163 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000160.html">[solid-pbx-svn] r165 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#159">[ date ]</a>
+              <a href="thread.html#159">[ thread ]</a>
+              <a href="subject.html#159">[ subject ]</a>
+              <a href="author.html#159">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-17 05:29:21 +0200 (Wed, 17 May 2006)
+New Revision: 164
+
+Modified:
+   trunk/apps/app_voicemail.c
+Log:
+Update to Asterisk SVN trunk r27677
+
+------------------------------------------------------------------------
+r27637 | tilghman | 2006-05-17 04:27:17 +0200 (Wed, 17 May 2006) | 10 lines
+
+Merged revisions 27636 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r27636 | tilghman | 2006-05-16 21:19:50 -0500 (Tue, 16 May 2006) | 2 lines
+
+Bug 7125 - Fix race condition between resequencing and leaving a message
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-17 00:29:06 UTC (rev 163)
++++ trunk/apps/app_voicemail.c	2006-05-17 03:29:21 UTC (rev 164)
+@@ -2413,17 +2413,17 @@
+ 
+ static int leave_voicemail(struct ast_channel *chan, char *ext, struct leave_vm_options *options)
+ {
+-	char tmptxtfile[256], txtfile[256];
++	char txtfile[256], tmptxtfile[256];
+ 	char callerid[256];
+ 	FILE *txt;
+-	int res = 0;
++	int res = 0, txtdes;
+ 	int msgnum;
+ 	int duration = 0;
+ 	int ausemacro = 0;
+ 	int ousemacro = 0;
+ 	int ouseexten = 0;
+ 	char date[256];
+-	char dir[256];
++	char dir[256], tmpdir[260];
+ 	char fn[256];
+ 	char prefile[256]=&quot;&quot;;
+ 	char tempfile[256]=&quot;&quot;;
+@@ -2475,6 +2475,7 @@
+ 	DISPOSE(tempfile, -1);
+ 	/* It's easier just to try to make it than to check for its existence */
+ 	create_dirpath(dir, sizeof(dir), vmu-&gt;context, ext, &quot;INBOX&quot;);
++	create_dirpath(tmpdir, sizeof(tmpdir), vmu-&gt;context, ext, &quot;tmp&quot;);
+ 
+ 	/* Check current or macro-calling context for special extensions */
+ 	if (ast_test_flag(vmu, VM_OPERATOR)) {
+@@ -2579,121 +2580,129 @@
+ 	if (!ast_strlen_zero(fmt)) {
+ 		msgnum = 0;
+ 
+-		if (vm_lock_path(dir)) {
+-			free_user(vmu);
+-			return ERROR_LOCK_PATH;
++		if (count_messages(vmu, dir) &gt;= vmu-&gt;maxmsg) {
++			res = ast_streamfile(chan, &quot;vm-mailboxfull&quot;, chan-&gt;language);
++			if (!res)
++				res = ast_waitstream(chan, &quot;&quot;);
++			ast_log(LOG_WARNING, &quot;No more messages possible\n&quot;);
++			pbx_builtin_setvar_helper(chan, &quot;VMSTATUS&quot;, &quot;FAILED&quot;);
++			goto leave_vm_out;
+ 		}
+ 
+-		/* 
+-		 * This operation can be very expensive if done say over NFS or if the mailbox has 100+ messages
+-		 * in the folder.  So we should get this first so we don't cut off the first few seconds of the 
+-		 * message.  
+-		 */
+-		do {
+-			make_file(fn, sizeof(fn), dir, msgnum);
+-			if (!EXISTS(dir,msgnum,fn,chan-&gt;language))
+-				break;
+-			msgnum++;
+-		} while (msgnum &lt; vmu-&gt;maxmsg);
++		snprintf(tmptxtfile, sizeof(tmptxtfile), &quot;%s/XXXXXX&quot;, tmpdir);
++		txtdes = mkstemp(tmptxtfile);
++		if (txtdes &lt; 0) {
++			res = ast_streamfile(chan, &quot;vm-mailboxfull&quot;, chan-&gt;language);
++			if (!res)
++				res = ast_waitstream(chan, &quot;&quot;);
++			ast_log(LOG_ERROR, &quot;Unable to create message file: %s\n&quot;, strerror(errno));
++			pbx_builtin_setvar_helper(chan, &quot;VMSTATUS&quot;, &quot;FAILED&quot;);
++			goto leave_vm_out;
++		}
+ 
+ 		/* Now play the beep once we have the message number for our next message. */
+ 		if (res &gt;= 0) {
+ 			/* Unless we're *really* silent, try to send the beep */
+ 			res = ast_stream_and_wait(chan, &quot;beep&quot;, chan-&gt;language, &quot;&quot;);
+ 		}
+-		if (msgnum &lt; vmu-&gt;maxmsg) {
+-			/* assign a variable with the name of the voicemail file */	  
+-			pbx_builtin_setvar_helper(chan, &quot;VM_MESSAGEFILE&quot;, fn);
+-				
+-			/* Store information */
+-			snprintf(txtfile, sizeof(txtfile), &quot;%s.txt&quot;, fn);
+-			snprintf(tmptxtfile, sizeof(tmptxtfile), &quot;%s.txt.tmp&quot;, fn);
+-			txt = fopen(tmptxtfile, &quot;w+&quot;);
+-			if (txt) {
+-				get_date(date, sizeof(date));
+-				fprintf(txt, 
+-					&quot;;\n&quot;
+-					&quot;; Message Information file\n&quot;
+-					&quot;;\n&quot;
+-					&quot;[message]\n&quot;
+-					&quot;origmailbox=%s\n&quot;
+-					&quot;context=%s\n&quot;
+-					&quot;macrocontext=%s\n&quot;
+-					&quot;exten=%s\n&quot;
+-					&quot;priority=%d\n&quot;
+-					&quot;callerchan=%s\n&quot;
+-					&quot;callerid=%s\n&quot;
+-					&quot;origdate=%s\n&quot;
+-					&quot;origtime=%ld\n&quot;
+-					&quot;category=%s\n&quot;,
+-					ext,
+-					chan-&gt;context,
+-					chan-&gt;macrocontext, 
+-					chan-&gt;exten,
+-					chan-&gt;priority,
+-					chan-&gt;name,
+-					ast_callerid_merge(callerid, sizeof(callerid), chan-&gt;cid.cid_name, chan-&gt;cid.cid_num, &quot;Unknown&quot;),
+-					date, (long)time(NULL),
+-					category ? category : &quot;&quot;); 
+-			} else
+-				ast_log(LOG_WARNING, &quot;Error opening text file for output\n&quot;);
+-			res = play_record_review(chan, NULL, fn, vmmaxmessage, fmt, 1, vmu, &amp;duration, dir, options-&gt;record_gain);
+-			if (res == '0') {
+-				if (txt &amp;&amp; EXISTS(dir,msgnum,fn,chan-&gt;language)) {
+-					fclose(txt);
+-					rename(tmptxtfile, txtfile);
+-				} else if (txt &amp;&amp; !EXISTS(dir,msgnum,fn,chan-&gt;language)) {
+-					if (option_debug) 
+-						ast_log(LOG_DEBUG, &quot;The recorded media file is gone, so we should remove the .txt file too!\n&quot;);
+-					fclose(txt);
+-					unlink(tmptxtfile);	
+-				}
+-				goto transfer;
+-			}
+-			if (res &gt; 0)
+-				res = 0;
+-			if (txt) {
+-				fprintf(txt, &quot;duration=%d\n&quot;, duration);
+-				fclose(txt);
+-				rename(tmptxtfile, txtfile);
+-			}
+-				
++
++		/* Store information */
++		txt = fdopen(txtdes, &quot;w+&quot;);
++		if (txt) {
++			get_date(date, sizeof(date));
++			fprintf(txt, 
++				&quot;;\n&quot;
++				&quot;; Message Information file\n&quot;
++				&quot;;\n&quot;
++				&quot;[message]\n&quot;
++				&quot;origmailbox=%s\n&quot;
++				&quot;context=%s\n&quot;
++				&quot;macrocontext=%s\n&quot;
++				&quot;exten=%s\n&quot;
++				&quot;priority=%d\n&quot;
++				&quot;callerchan=%s\n&quot;
++				&quot;callerid=%s\n&quot;
++				&quot;origdate=%s\n&quot;
++				&quot;origtime=%ld\n&quot;
++				&quot;category=%s\n&quot;,
++				ext,
++				chan-&gt;context,
++				chan-&gt;macrocontext, 
++				chan-&gt;exten,
++				chan-&gt;priority,
++				chan-&gt;name,
++				ast_callerid_merge(callerid, sizeof(callerid), chan-&gt;cid.cid_name, chan-&gt;cid.cid_num, &quot;Unknown&quot;),
++				date, (long)time(NULL),
++				category ? category : &quot;&quot;); 
++		} else
++			ast_log(LOG_WARNING, &quot;Error opening text file for output\n&quot;);
++		res = play_record_review(chan, NULL, tmptxtfile, vmmaxmessage, fmt, 1, vmu, &amp;duration, NULL, options-&gt;record_gain);
++
++		if (txt) {
+ 			if (duration &lt; vmminmessage) {
+ 				if (option_verbose &gt; 2) 
+ 					ast_verbose( VERBOSE_PREFIX_3 &quot;Recording was %d seconds long but needs to be at least %d - abandoning\n&quot;, duration, vmminmessage);
+ 				DELETE(dir,msgnum,fn);
+-				/* XXX We should really give a prompt too short/option start again, with leave_vm_out called only after a timeout XXX */
+-				pbx_builtin_setvar_helper(chan, &quot;VMSTATUS&quot;, &quot;FAILED&quot;);
+-				goto leave_vm_out;
+-			}
+-			/* Are there to be more recipients of this message? */
+-			while (tmpptr) {
+-				struct ast_vm_user recipu, *recip;
+-				char *exten, *context;
+-					
+-				exten = strsep(&amp;tmpptr, &quot;&amp;&quot;);
+-				context = strchr(exten, '@');
+-				if (context) {
+-					*context = '\0';
+-					context++;
++			} else {
++				fprintf(txt, &quot;duration=%d\n&quot;, duration);
++				fclose(txt);
++				if (vm_lock_path(dir)) {
++					ast_log(LOG_ERROR, &quot;Couldn't lock directory %s.  Voicemail will be lost.\n&quot;, dir);
++					/* Delete files */
++					ast_filedelete(tmptxtfile, NULL);
++					unlink(tmptxtfile);
++				} else {
++					for (;;) {
++						make_file(fn, sizeof(fn), dir, msgnum);
++						if (!EXISTS(dir, msgnum, fn, NULL))
++							break;
++						msgnum++;
++					}
++
++					/* assign a variable with the name of the voicemail file */	  
++					pbx_builtin_setvar_helper(chan, &quot;VM_MESSAGEFILE&quot;, fn);
++
++					snprintf(txtfile, sizeof(txtfile), &quot;%s.txt&quot;, fn);
++					ast_filerename(tmptxtfile, fn, NULL);
++					rename(tmptxtfile, txtfile);
++
++					ast_unlock_path(dir);
++
++					/* Are there to be more recipients of this message? */
++					while (tmpptr) {
++						struct ast_vm_user recipu, *recip;
++						char *exten, *context;
++
++						exten = strsep(&amp;tmpptr, &quot;&amp;&quot;);
++						context = strchr(exten, '@');
++						if (context) {
++							*context = '\0';
++							context++;
++						}
++						if ((recip = find_user(&amp;recipu, context, exten))) {
++							copy_message(chan, vmu, 0, msgnum, duration, recip, fmt);
++							free_user(recip);
++						}
++					}
++					if (ast_fileexists(fn, NULL, NULL)) {
++						STORE(dir, vmu-&gt;mailbox, vmu-&gt;context, msgnum);
++						notify_new_message(chan, vmu, msgnum, duration, fmt, chan-&gt;cid.cid_num, chan-&gt;cid.cid_name);
++						DISPOSE(dir, msgnum);
++					}
+ 				}
+-				if ((recip = find_user(&amp;recipu, context, exten))) {
+-					copy_message(chan, vmu, 0, msgnum, duration, recip, fmt);
+-					free_user(recip);
+-				}
+ 			}
+-			if (ast_fileexists(fn, NULL, NULL)) {
+-				STORE(dir, vmu-&gt;mailbox, vmu-&gt;context, msgnum);
+-				notify_new_message(chan, vmu, msgnum, duration, fmt, chan-&gt;cid.cid_num, chan-&gt;cid.cid_name);
+-				DISPOSE(dir, msgnum);
+-			}
++		}
++
++		if (res == '0') {
++			goto transfer;
++		} else if (res &gt; 0)
++			res = 0;
++
++		if (duration &lt; vmminmessage)
++			/* XXX We should really give a prompt too short/option start again, with leave_vm_out called only after a timeout XXX */
++			pbx_builtin_setvar_helper(chan, &quot;VMSTATUS&quot;, &quot;FAILED&quot;);
++		else
+ 			pbx_builtin_setvar_helper(chan, &quot;VMSTATUS&quot;, &quot;SUCCESS&quot;);
+-		} else {
+-			ast_unlock_path(dir);
+-			res = ast_stream_and_wait(chan, &quot;vm-mailboxfull&quot;, chan-&gt;language, &quot;&quot;);
+-			ast_log(LOG_WARNING, &quot;No more messages possible\n&quot;);
+-			pbx_builtin_setvar_helper(chan, &quot;VMSTATUS&quot;, &quot;FAILED&quot;);
+-		}
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;No format for saving voicemail?\n&quot;);
+  leave_vm_out:
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000158.html">[solid-pbx-svn] r163 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000160.html">[solid-pbx-svn] r165 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#159">[ date ]</a>
+              <a href="thread.html#159">[ thread ]</a>
+              <a href="subject.html#159">[ subject ]</a>
+              <a href="author.html#159">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r31 - in trunk: . pbx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r31%20-%20in%20trunk%3A%20.%20pbx&In-Reply-To=%3C200605020518.k425IPwk003481%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000027.html">
+   <LINK REL="Next"  HREF="000029.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r31 - in trunk: . pbx</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r31%20-%20in%20trunk%3A%20.%20pbx&In-Reply-To=%3C200605020518.k425IPwk003481%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r31 - in trunk: . pbx">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  2 07:18:25 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000027.html">[solid-pbx-svn] r30 - in trunk: apps pbx/ael utils
+</A></li>
+        <LI>Next message: <A HREF="000029.html">[solid-pbx-svn] r32 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#28">[ date ]</a>
+              <a href="thread.html#28">[ thread ]</a>
+              <a href="subject.html#28">[ subject ]</a>
+              <a href="author.html#28">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-02 07:18:05 +0200 (Tue, 02 May 2006)
+New Revision: 31
+
+Modified:
+   trunk/pbx.c
+   trunk/pbx/pbx_dundi.c
+Log:
+Update to Asterisk SVN trunk r24160
+
+------------------------------------------------------------------------
+r24139 | russell | 2006-05-02 06:40:09 +0200 (Tue, 02 May 2006) | 2 lines
+
+staticize the list heads from my recent conversions to list macros
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/pbx/pbx_dundi.c
+===================================================================
+--- trunk/pbx/pbx_dundi.c	2006-05-02 03:19:04 UTC (rev 30)
++++ trunk/pbx/pbx_dundi.c	2006-05-02 05:18:05 UTC (rev 31)
+@@ -257,11 +257,11 @@
+ 	AST_LIST_ENTRY(dundi_peer) list;
+ };
+ 
+-AST_LIST_HEAD_STATIC(peers, dundi_peer);
+-AST_LIST_HEAD_STATIC(pcq, dundi_precache_queue);
+-AST_LIST_HEAD_NOLOCK_STATIC(mappings, dundi_mapping);
+-AST_LIST_HEAD_NOLOCK_STATIC(requests, dundi_request);
+-AST_LIST_HEAD_NOLOCK_STATIC(alltrans, dundi_transaction);
++static AST_LIST_HEAD_STATIC(peers, dundi_peer);
++static AST_LIST_HEAD_STATIC(pcq, dundi_precache_queue);
++static AST_LIST_HEAD_NOLOCK_STATIC(mappings, dundi_mapping);
++static AST_LIST_HEAD_NOLOCK_STATIC(requests, dundi_request);
++static AST_LIST_HEAD_NOLOCK_STATIC(alltrans, dundi_transaction);
+ 
+ static int dundi_xmit(struct dundi_packet *pack);
+ 
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-02 03:19:04 UTC (rev 30)
++++ trunk/pbx.c	2006-05-02 05:18:05 UTC (rev 31)
+@@ -244,7 +244,7 @@
+ AST_MUTEX_DEFINE_STATIC(maxcalllock);
+ static int countcalls = 0;
+ 
+-AST_LIST_HEAD_STATIC(acf_root, ast_custom_function);
++static AST_LIST_HEAD_STATIC(acf_root, ast_custom_function);
+ 
+ /*! \brief Declaration of builtin applications */
+ static struct pbx_builtin {
+@@ -464,7 +464,7 @@
+ static struct ast_context *contexts = NULL;
+ AST_MUTEX_DEFINE_STATIC(conlock); 		/*!&lt; Lock for the ast_context list */
+ 
+-AST_LIST_HEAD_STATIC(apps, ast_app);
++static AST_LIST_HEAD_STATIC(apps, ast_app);
+ 
+ struct ast_switch *switches = NULL;
+ AST_MUTEX_DEFINE_STATIC(switchlock);		/*!&lt; Lock for switches */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000027.html">[solid-pbx-svn] r30 - in trunk: apps pbx/ael utils
+</A></li>
+	<LI>Next message: <A HREF="000029.html">[solid-pbx-svn] r32 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#28">[ date ]</a>
+              <a href="thread.html#28">[ thread ]</a>
+              <a href="subject.html#28">[ subject ]</a>
+              <a href="author.html#28">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

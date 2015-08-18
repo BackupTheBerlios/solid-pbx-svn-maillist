@@ -1,0 +1,492 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r362 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r362%20-%20trunk/apps&In-Reply-To=%3C200606280129.k5S1Tgmw013848%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000356.html">
+   <LINK REL="Next"  HREF="000358.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r362 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r362%20-%20trunk/apps&In-Reply-To=%3C200606280129.k5S1Tgmw013848%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r362 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:29:42 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000356.html">[solid-pbx-svn] r361 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000358.html">[solid-pbx-svn] r363 - trunk/build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#357">[ date ]</a>
+              <a href="thread.html#357">[ thread ]</a>
+              <a href="subject.html#357">[ subject ]</a>
+              <a href="author.html#357">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:29:16 +0200 (Wed, 28 Jun 2006)
+New Revision: 362
+
+Modified:
+   trunk/apps/app_queue.c
+Log:
+Update to Asterisk SVN trunk r34283
+
+------------------------------------------------------------------------
+r34275 | kpfleming | 2006-06-15 15:35:04 +0200 (Thu, 15 Jun 2006) | 11 lines
+
+Merged revisions 34274 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r34274 | kpfleming | 2006-06-15 08:30:22 -0500 (Thu, 15 Jun 2006) | 3 lines
+
+don't use prefixed structure names for internal structures
+don't use a plural structure name for a singular object
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-06-28 01:28:27 UTC (rev 361)
++++ trunk/apps/app_queue.c	2006-06-28 01:29:16 UTC (rev 362)
+@@ -289,7 +289,7 @@
+ LOCAL_USER_DECL;
+ 
+ struct queue_ent {
+-	struct ast_call_queue *parent;	/*!&lt; What queue is our parent */
++	struct call_queue *parent;	/*!&lt; What queue is our parent */
+ 	char moh[80];			/*!&lt; Name of musiconhold to be used */
+ 	char announce[80];		/*!&lt; Announcement to play for member when call is answered */
+ 	char context[AST_MAX_CONTEXT];	/*!&lt; Context when user exits queue */
+@@ -322,20 +322,20 @@
+ 	struct member *next;		/*!&lt; Next member */
+ };
+ 
+-struct ast_member_interfaces {
++struct member_interface {
+ 	char interface[80];
+-	AST_LIST_ENTRY(ast_member_interfaces) list;    /*!&lt; Next call queue */
++	AST_LIST_ENTRY(member_interface) list;    /*!&lt; Next call queue */
+ };
+ 
+-static AST_LIST_HEAD_STATIC(interfaces, ast_member_interfaces);
++static AST_LIST_HEAD_STATIC(interfaces, member_interface);
+ 
+-/* values used in multi-bit flags in ast_call_queue */
++/* values used in multi-bit flags in call_queue */
+ #define QUEUE_EMPTY_NORMAL 1
+ #define QUEUE_EMPTY_STRICT 2
+ #define ANNOUNCEHOLDTIME_ALWAYS 1
+ #define ANNOUNCEHOLDTIME_ONCE 2
+ 
+-struct ast_call_queue {
++struct call_queue {
+ 	ast_mutex_t lock;	
+ 	char name[80];			/*!&lt; Name */
+ 	char moh[80];			/*!&lt; Music On Hold class to be used */
+@@ -392,10 +392,10 @@
+ 	
+ 	struct member *members;		/*!&lt; Head of the list of members */
+ 	struct queue_ent *head;		/*!&lt; Head of the list of callers */
+-	AST_LIST_ENTRY(ast_call_queue) list;	/*!&lt; Next call queue */
++	AST_LIST_ENTRY(call_queue) list;	/*!&lt; Next call queue */
+ };
+ 
+-static AST_LIST_HEAD_STATIC(queues, ast_call_queue);
++static AST_LIST_HEAD_STATIC(queues, call_queue);
+ 
+ static int set_member_paused(char *queuename, char *interface, int paused);
+ 
+@@ -446,7 +446,7 @@
+ }
+ 
+ /*! \brief Insert the 'new' entry after the 'prev' entry of queue 'q' */
+-static inline void insert_entry(struct ast_call_queue *q, struct queue_ent *prev, struct queue_ent *new, int *pos)
++static inline void insert_entry(struct call_queue *q, struct queue_ent *prev, struct queue_ent *new, int *pos)
+ {
+ 	struct queue_ent *cur;
+ 
+@@ -471,7 +471,7 @@
+ 	QUEUE_NORMAL
+ };
+ 
+-static enum queue_member_status get_member_status(const struct ast_call_queue *q, int max_penalty)
++static enum queue_member_status get_member_status(const struct call_queue *q, int max_penalty)
+ {
+ 	struct member *member;
+ 	enum queue_member_status result = QUEUE_NO_MEMBERS;
+@@ -504,10 +504,10 @@
+ 
+ static void *changethread(void *data)
+ {
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct statechange *sc = data;
+ 	struct member *cur;
+-	struct ast_member_interfaces *curint;
++	struct member_interface *curint;
+ 	char *loc;
+ 	char *technology;
+ 
+@@ -607,9 +607,9 @@
+ 	return cur;
+ }
+ 
+-static struct ast_call_queue *alloc_queue(const char *queuename)
++static struct call_queue *alloc_queue(const char *queuename)
+ {
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 
+ 	if ((q = ast_calloc(1, sizeof(*q)))) {
+ 		ast_mutex_init(&amp;q-&gt;lock);
+@@ -618,7 +618,7 @@
+ 	return q;
+ }
+ 
+-static void init_queue(struct ast_call_queue *q)
++static void init_queue(struct call_queue *q)
+ {
+ 	int i;
+ 
+@@ -654,7 +654,7 @@
+ 	}
+ }
+ 
+-static void clear_queue(struct ast_call_queue *q)
++static void clear_queue(struct call_queue *q)
+ {
+ 	q-&gt;holdtime = 0;
+ 	q-&gt;callscompleted = 0;
+@@ -665,7 +665,7 @@
+ 
+ static int add_to_interfaces(char *interface) 
+ {
+-	struct ast_member_interfaces *curint;
++	struct member_interface *curint;
+ 
+ 	AST_LIST_LOCK(&amp;interfaces);
+ 	AST_LIST_TRAVERSE(&amp;interfaces, curint, list) {
+@@ -692,7 +692,7 @@
+ 
+ static int interface_exists_global(char *interface)
+ {
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct member *mem;
+ 	int ret = 0;
+ 
+@@ -714,7 +714,7 @@
+ 
+ static int remove_from_interfaces(char *interface)
+ {
+-	struct ast_member_interfaces *curint;
++	struct member_interface *curint;
+ 
+ 	AST_LIST_LOCK(&amp;interfaces);
+ 	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;interfaces, curint, list) {
+@@ -736,7 +736,7 @@
+ 
+ static void clear_and_free_interfaces(void)
+ {
+-	struct ast_member_interfaces *curint;
++	struct member_interface *curint;
+ 
+ 	AST_LIST_LOCK(&amp;interfaces);
+ 	while ((curint = AST_LIST_REMOVE_HEAD(&amp;interfaces, list)))
+@@ -751,7 +751,7 @@
+    The failunknown flag is set for config files (and static realtime) to show
+    errors for unknown parameters. It is cleared for dynamic realtime to allow
+    extra fields in the tables. */
+-static void queue_set_param(struct ast_call_queue *q, const char *param, const char *val, int linenum, int failunknown)
++static void queue_set_param(struct call_queue *q, const char *param, const char *val, int linenum, int failunknown)
+ {
+ 	int i = 0;
+ 	char *c, *lastc;
+@@ -901,7 +901,7 @@
+ 	}
+ }
+ 
+-static void rt_handle_member_record(struct ast_call_queue *q, char *interface, const char *penalty_str)
++static void rt_handle_member_record(struct call_queue *q, char *interface, const char *penalty_str)
+ {
+ 	struct member *m, *prev_m;
+ 	int penalty = 0;
+@@ -934,7 +934,7 @@
+ 	}
+ }
+ 
+-static void free_members(struct ast_call_queue *q, int all)
++static void free_members(struct call_queue *q, int all)
+ {
+ 	/* Free non-dynamic members */
+ 	struct member *curm, *next, *prev = NULL;
+@@ -953,7 +953,7 @@
+ 	}
+ }
+ 
+-static void destroy_queue(struct ast_call_queue *q)
++static void destroy_queue(struct call_queue *q)
+ {
+ 	free_members(q, 1);
+ 	ast_mutex_destroy(&amp;q-&gt;lock);
+@@ -963,10 +963,10 @@
+ /*!\brief Reload a single queue via realtime.
+    \return Return the queue, or NULL if it doesn't exist.
+    \note Should be called with the global qlock locked. */
+-static struct ast_call_queue *find_queue_by_name_rt(const char *queuename, struct ast_variable *queue_vars, struct ast_config *member_config)
++static struct call_queue *find_queue_by_name_rt(const char *queuename, struct ast_variable *queue_vars, struct ast_config *member_config)
+ {
+ 	struct ast_variable *v;
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct member *m, *prev_m, *next_m;
+ 	char *interface;
+ 	char *tmp, *tmp_name;
+@@ -1078,11 +1078,11 @@
+ 	return q;
+ }
+ 
+-static struct ast_call_queue *load_realtime_queue(char *queuename)
++static struct call_queue *load_realtime_queue(char *queuename)
+ {
+ 	struct ast_variable *queue_vars;
+ 	struct ast_config *member_config = NULL;
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 
+ 	/* Find the queue in the in-core list first. */
+ 	AST_LIST_LOCK(&amp;queues);
+@@ -1127,7 +1127,7 @@
+ 
+ static int join_queue(char *queuename, struct queue_ent *qe, enum queue_result *reason)
+ {
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct queue_ent *cur, *prev = NULL;
+ 	int res = -1;
+ 	int pos = 0;
+@@ -1362,7 +1362,7 @@
+ 
+ static void leave_queue(struct queue_ent *qe)
+ {
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct queue_ent *cur, *prev = NULL;
+ 	int pos = 0;
+ 
+@@ -1418,7 +1418,7 @@
+ 	}
+ }
+ 
+-static int update_status(struct ast_call_queue *q, struct member *member, int status)
++static int update_status(struct call_queue *q, struct member *member, int status)
+ {
+ 	struct member *cur;
+ 
+@@ -1448,7 +1448,7 @@
+ 	return 0;
+ }
+ 
+-static int update_dial_status(struct ast_call_queue *q, struct member *member, int status)
++static int update_dial_status(struct call_queue *q, struct member *member, int status)
+ {
+ 	if (status == AST_CAUSE_BUSY)
+ 		status = AST_DEVICE_BUSY;
+@@ -1463,9 +1463,9 @@
+ 
+ /* traverse all defined queues which have calls waiting and contain this member
+    return 0 if no other queue has precedence (higher weight) or 1 if found  */
+-static int compare_weight(struct ast_call_queue *rq, struct member *member)
++static int compare_weight(struct call_queue *rq, struct member *member)
+ {
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct member *mem;
+ 	int found = 0;
+ 	
+@@ -2130,7 +2130,7 @@
+ 	return res;
+ }
+ 
+-static int update_queue(struct ast_call_queue *q, struct member *member)
++static int update_queue(struct call_queue *q, struct member *member)
+ {
+ 	struct member *cur;
+ 
+@@ -2151,7 +2151,7 @@
+ 	return 0;
+ }
+ 
+-static int calc_metric(struct ast_call_queue *q, struct member *mem, int pos, struct queue_ent *qe, struct callattempt *tmp)
++static int calc_metric(struct call_queue *q, struct member *mem, int pos, struct queue_ent *qe, struct callattempt *tmp)
+ {
+ 	if (mem-&gt;penalty &gt; qe-&gt;max_penalty)
+ 		return -1;
+@@ -2597,7 +2597,7 @@
+ 	return ast_waitfordigit(qe-&gt;chan, retrywait);
+ }
+ 
+-static struct member * interface_exists(struct ast_call_queue *q, char *interface)
++static struct member *interface_exists(struct call_queue *q, char *interface)
+ {
+ 	struct member *mem;
+ 
+@@ -2618,7 +2618,7 @@
+  * &lt;pm_family&gt;/&lt;queuename&gt; = &lt;interface&gt;;&lt;penalty&gt;;&lt;paused&gt;[|...]
+  *
+  */
+-static void dump_queue_members(struct ast_call_queue *pm_queue)
++static void dump_queue_members(struct call_queue *pm_queue)
+ {
+ 	struct member *cur_member;
+ 	char value[PM_MAX_LEN];
+@@ -2654,7 +2654,7 @@
+ 
+ static int remove_from_queue(char *queuename, char *interface)
+ {
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct member *last_member, *look;
+ 	int res = RES_NOSUCHQUEUE;
+ 
+@@ -2707,7 +2707,7 @@
+ 
+ static int add_to_queue(char *queuename, char *interface, int penalty, int paused, int dump)
+ {
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct member *new_member;
+ 	int res = RES_NOSUCHQUEUE;
+ 
+@@ -2757,7 +2757,7 @@
+ static int set_member_paused(char *queuename, char *interface, int paused)
+ {
+ 	int found = 0;
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct member *mem;
+ 
+ 	/* Special event for when all queues are paused - individual events still generated */
+@@ -2807,7 +2807,7 @@
+ 	int paused = 0;
+ 	struct ast_db_entry *db_tree;
+ 	struct ast_db_entry *entry;
+-	struct ast_call_queue *cur_queue;
++	struct call_queue *cur_queue;
+ 	char queue_data[PM_MAX_LEN];
+ 
+ 	AST_LIST_LOCK(&amp;queues);
+@@ -3393,7 +3393,7 @@
+ static int queue_function_qac(struct ast_channel *chan, char *cmd, char *data, char *buf, size_t len)
+ {
+ 	int count = 0;
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct localuser *lu;
+ 	struct member *m;
+ 
+@@ -3435,7 +3435,7 @@
+ static int queue_function_queuewaitingcount(struct ast_channel *chan, char *cmd, char *data, char *buf, size_t len)
+ {
+ 	int count = 0;
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct localuser *lu;
+ 
+ 	buf[0] = '\0';
+@@ -3470,7 +3470,7 @@
+ static int queue_function_queuememberlist(struct ast_channel *chan, char *cmd, char *data, char *buf, size_t len)
+ {
+ 	struct localuser *u;
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct member *m;
+ 
+ 	/* Ensure an otherwise empty list doesn't return garbage */
+@@ -3559,7 +3559,7 @@
+ 
+ static void reload_queues(void)
+ {
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct ast_config *cfg;
+ 	char *cat, *tmp;
+ 	struct ast_variable *var;
+@@ -3711,7 +3711,7 @@
+ 
+ static int __queues_show(struct mansession *s, int manager, int fd, int argc, char **argv, int queue_show)
+ {
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct queue_ent *qe;
+ 	struct member *mem;
+ 	int pos;
+@@ -3849,7 +3849,7 @@
+ 
+ static char *complete_queue(const char *line, const char *word, int pos, int state)
+ {
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	char *ret = NULL;
+ 	int which = 0;
+ 	int wordlen = strlen(word);
+@@ -3888,7 +3888,7 @@
+ 	char *queuefilter = astman_get_header(m,&quot;Queue&quot;);
+ 	char *memberfilter = astman_get_header(m,&quot;Member&quot;);
+ 	char idText[256] = &quot;&quot;;
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct queue_ent *qe;
+ 	float sl = 0;
+ 	struct member *mem;
+@@ -4179,7 +4179,7 @@
+ static char *complete_remove_queue_member(const char *line, const char *word, int pos, int state)
+ {
+ 	int which = 0;
+-	struct ast_call_queue *q;
++	struct call_queue *q;
+ 	struct member *m;
+ 
+ 	/* 0 - add; 1 - queue; 2 - member; 3 - &lt;member&gt;; 4 - from; 5 - &lt;queue&gt; */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000356.html">[solid-pbx-svn] r361 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000358.html">[solid-pbx-svn] r363 - trunk/build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#357">[ date ]</a>
+              <a href="thread.html#357">[ thread ]</a>
+              <a href="subject.html#357">[ subject ]</a>
+              <a href="author.html#357">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

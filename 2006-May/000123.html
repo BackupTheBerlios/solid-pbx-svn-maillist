@@ -1,0 +1,1254 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r127 - in trunk: apps channels configs funcs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r127%20-%20in%20trunk%3A%20apps%20channels%20configs%20funcs&In-Reply-To=%3C200605101629.k4AGTMQC010614%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000122.html">
+   <LINK REL="Next"  HREF="000124.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r127 - in trunk: apps channels configs funcs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r127%20-%20in%20trunk%3A%20apps%20channels%20configs%20funcs&In-Reply-To=%3C200605101629.k4AGTMQC010614%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r127 - in trunk: apps channels configs funcs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 10 18:29:22 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000122.html">[solid-pbx-svn] r126 - in trunk: . channels res
+</A></li>
+        <LI>Next message: <A HREF="000124.html">[solid-pbx-svn] r128 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#123">[ date ]</a>
+              <a href="thread.html#123">[ thread ]</a>
+              <a href="subject.html#123">[ subject ]</a>
+              <a href="author.html#123">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-10 18:29:16 +0200 (Wed, 10 May 2006)
+New Revision: 127
+
+Modified:
+   trunk/apps/app_chanspy.c
+   trunk/apps/app_playback.c
+   trunk/apps/app_sendtext.c
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_sip.c
+   trunk/channels/chan_zap.c
+   trunk/configs/iax.conf.sample
+   trunk/configs/say.conf.sample
+   trunk/funcs/func_channel.c
+Log:
+Update to Asterisk SVN trunk r26564
+
+------------------------------------------------------------------------
+r26527 | rizzo | 2006-05-10 17:30:37 +0200 (Wed, 10 May 2006) | 3 lines
+
+german syntax for numbers from christian richter
+
+
+------------------------------------------------------------------------
+r26528 | russell | 2006-05-10 17:30:59 +0200 (Wed, 10 May 2006) | 2 lines
+
+use the channel lock wrappers (issue #7120, Mithraen)
+
+------------------------------------------------------------------------
+r26529 | rizzo | 2006-05-10 17:38:54 +0200 (Wed, 10 May 2006) | 3 lines
+
+support reload say.conf to ease testing
+
+
+------------------------------------------------------------------------
+r26531 | russell | 2006-05-10 17:41:23 +0200 (Wed, 10 May 2006) | 2 lines
+
+remove some chekc sof the result of ast_mutex_lock (issue #7119, Mithraen)
+
+------------------------------------------------------------------------
+r26564 | kpfleming | 2006-05-10 18:14:26 +0200 (Wed, 10 May 2006) | 2 lines
+
+and chan_iax2 gets smaller... remove the old jitterbuffer
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_chanspy.c
+===================================================================
+--- trunk/apps/app_chanspy.c	2006-05-10 15:28:41 UTC (rev 126)
++++ trunk/apps/app_chanspy.c	2006-05-10 16:29:16 UTC (rev 127)
+@@ -198,9 +198,9 @@
+ 
+ 	ast_log(LOG_NOTICE, &quot;Attaching %s to %s\n&quot;, spychan-&gt;name, chan-&gt;name);
+ 
+-	ast_mutex_lock(&amp;chan-&gt;lock);
++	ast_channel_lock(chan);
+ 	res = ast_channel_spy_add(chan, spy);
+-	ast_mutex_unlock(&amp;chan-&gt;lock);
++	ast_channel_unlock(chan);
+ 
+ 	if (!res &amp;&amp; ast_test_flag(chan, AST_FLAG_NBRIDGE) &amp;&amp; (peer = ast_bridged_channel(chan))) {
+ 		ast_softhangup(peer, AST_SOFTHANGUP_UNBRIDGE);	
+@@ -219,9 +219,9 @@
+ 	if (!chan)
+ 		return;
+ 
+-	ast_mutex_lock(&amp;chan-&gt;lock);
++	ast_channel_lock(chan);
+ 	ast_channel_spy_remove(chan, spy);
+-	ast_mutex_unlock(&amp;chan-&gt;lock);
++	ast_channel_unlock(chan);
+ };
+ 
+ /* Map 'volume' levels from -4 through +4 into
+
+Modified: trunk/apps/app_playback.c
+===================================================================
+--- trunk/apps/app_playback.c	2006-05-10 15:28:41 UTC (rev 126)
++++ trunk/apps/app_playback.c	2006-05-10 16:29:16 UTC (rev 127)
+@@ -451,6 +451,16 @@
+ 	return res;
+ }
+ 
++static int reload(void *mod)
++{
++	if (say_cfg) {
++		ast_config_destroy(say_cfg);
++		ast_log(LOG_NOTICE, &quot;Reloading say.conf\n&quot;);
++	}
++	say_cfg = ast_config_load(&quot;say.conf&quot;);
++	return 0;
++}
++
+ static int unload_module(void *mod)
+ {
+ 	int res;
+@@ -464,6 +474,7 @@
+ 
+ static int load_module(void *mod)
+ {
++	reload(mod);
+         ast_cli_register_multiple(myclis, sizeof(myclis)/sizeof(struct ast_cli_entry));
+ 	return ast_register_application(app, playback_exec, synopsis, descrip);
+ }
+@@ -478,4 +489,4 @@
+ 	return ASTERISK_GPL_KEY;
+ }
+ 
+-STD_MOD1;
++STD_MOD(MOD_1,reload,NULL,NULL);
+
+Modified: trunk/apps/app_sendtext.c
+===================================================================
+--- trunk/apps/app_sendtext.c	2006-05-10 15:28:41 UTC (rev 126)
++++ trunk/apps/app_sendtext.c	2006-05-10 16:29:16 UTC (rev 127)
+@@ -93,9 +93,9 @@
+ 			priority_jump = 1;
+ 	}
+ 
+-	ast_mutex_lock(&amp;chan-&gt;lock);
++	ast_channel_lock(chan);
+ 	if (!chan-&gt;tech-&gt;send_text) {
+-		ast_mutex_unlock(&amp;chan-&gt;lock);
++		ast_channel_unlock(chan);
+ 		/* Does not support transport */
+ 		if (priority_jump || ast_opt_priority_jumping)
+ 			ast_goto_if_exists(chan, chan-&gt;context, chan-&gt;exten, chan-&gt;priority + 101);
+@@ -103,7 +103,7 @@
+ 		return 0;
+ 	}
+ 	status = &quot;FAILURE&quot;;
+-	ast_mutex_unlock(&amp;chan-&gt;lock);
++	ast_channel_unlock(chan);
+ 	res = ast_sendtext(chan, args.text);
+ 	if (!res)
+ 		status = &quot;SUCCESS&quot;;
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-05-10 15:28:41 UTC (rev 126)
++++ trunk/channels/chan_iax2.c	2006-05-10 16:29:16 UTC (rev 127)
+@@ -98,11 +98,8 @@
+ #include &quot;iax2.h&quot;
+ #include &quot;iax2-parser.h&quot;
+ #include &quot;iax2-provision.h&quot;
++#include &quot;../jitterbuf.h&quot;
+ 
+-/* Define NEWJB to use the new channel independent jitterbuffer,
+- * otherwise, use the old jitterbuffer */
+-#define NEWJB
+-
+ /* Define SCHED_MULTITHREADED to run the scheduler in a special
+    multithreaded mode. */
+ #define SCHED_MULTITHREADED
+@@ -111,10 +108,6 @@
+    thread is actually doing. */
+ #define DEBUG_SCHED_MULTITHREAD
+ 
+-#ifdef NEWJB
+-#include &quot;../jitterbuf.h&quot;
+-#endif
+-
+ #ifndef IPTOS_MINCOST
+ #define IPTOS_MINCOST 0x02
+ #endif
+@@ -166,11 +159,8 @@
+ static int maxtrunkcall = TRUNK_CALL_START;
+ static int maxnontrunkcall = 1;
+ static int maxjitterbuffer=1000;
+-#ifdef NEWJB
+ static int resyncthreshold=1000;
+ static int maxjitterinterps=10;
+-#endif
+-static int jittershrinkrate=2;
+ static int trunkfreq = 20;
+ static int authdebug = 1;
+ static int autokill = 0;
+@@ -220,8 +210,6 @@
+ 
+ static int iax2_capability = IAX_CAPABILITY_FULLBANDWIDTH;
+ 
+-static int iax2_dropcount = DEFAULT_DROP;
+-
+ static int iaxdebug = 0;
+ 
+ static int iaxtrunkdebug = 0;
+@@ -447,11 +435,6 @@
+ /* If consecutive voice frame timestamps jump by more than this many milliseconds, then jitter buffer will resync */
+ #define TS_GAP_FOR_JB_RESYNC	5000
+ 
+-/* If we have more than this much excess real jitter buffer, shrink it. */
+-static int max_jitter_buffer = MAX_JITTER_BUFFER;
+-/* If we have less than this much excess real jitter buffer, enlarge it. */
+-static int min_jitter_buffer = MIN_JITTER_BUFFER;
+-
+ static int iaxthreadcount = DEFAULT_THREAD_COUNT;
+ static int iaxmaxthreadcount = DEFAULT_MAX_THREAD_COUNT;
+ static int iaxdynamicthreadcount = 0;
+@@ -506,21 +489,10 @@
+ 	struct timeval offset;
+ 	/*! timeval that we base our delivery on */
+ 	struct timeval rxcore;
+-#ifdef NEWJB
+ 	/*! The jitterbuffer */
+         jitterbuf *jb;
+ 	/*! active jb read scheduler id */
+         int jbid;                       
+-#else
+-	/*! Historical delivery time */
+-	int history[MEMORY_SIZE];
+-	/*! Current base jitterbuffer */
+-	int jitterbuffer;
+-	/*! Current jitter measure */
+-	int jitter;
+-	/*! Historic jitter value */
+-	int historicjitter;
+-#endif
+ 	/*! LAG */
+ 	int lag;
+ 	/*! Error, as discovered by the manager */
+@@ -738,7 +710,6 @@
+ 	ast_log(LOG_WARNING, &quot;%s&quot;, data);
+ }
+ 
+-#ifdef NEWJB
+ static void jb_error_output(const char *fmt, ...)
+ {
+ 	va_list args;
+@@ -774,9 +745,7 @@
+ 
+ 	ast_verbose(buf);
+ }
+-#endif
+ 
+-
+ /* XXX We probably should use a mutex when working with this XXX */
+ static struct chan_iax2_pvt *iaxs[IAX_MAX_CALLS];
+ static ast_mutex_t iaxsl[IAX_MAX_CALLS];
+@@ -1058,6 +1027,7 @@
+ static struct chan_iax2_pvt *new_iax(struct sockaddr_in *sin, int lockpeer, const char *host)
+ {
+ 	struct chan_iax2_pvt *tmp;
++	jb_conf jbconf;
+ 
+ 	if (!(tmp = ast_calloc(1, sizeof(*tmp))))
+ 		return NULL;
+@@ -1075,18 +1045,14 @@
+ 	/* ast_copy_string(tmp-&gt;context, context, sizeof(tmp-&gt;context)); */
+ 	ast_copy_string(tmp-&gt;exten, &quot;s&quot;, sizeof(tmp-&gt;exten));
+ 	ast_copy_string(tmp-&gt;host, host, sizeof(tmp-&gt;host));
+-#ifdef NEWJB
+-	{
+-		jb_conf jbconf;
+ 
+-		tmp-&gt;jb = jb_new();
+-		tmp-&gt;jbid = -1;
+-		jbconf.max_jitterbuf = maxjitterbuffer;
+-		jbconf.resync_threshold = resyncthreshold;
+-		jbconf.max_contig_interp = maxjitterinterps;
+-		jb_setconf(tmp-&gt;jb,&amp;jbconf);
+-	}
+-#endif
++	tmp-&gt;jb = jb_new();
++	tmp-&gt;jbid = -1;
++	jbconf.max_jitterbuf = maxjitterbuffer;
++	jbconf.resync_threshold = resyncthreshold;
++	jbconf.max_contig_interp = maxjitterinterps;
++	jb_setconf(tmp-&gt;jb,&amp;jbconf);
++
+ 	return tmp;
+ }
+ 
+@@ -1582,28 +1548,6 @@
+ 	return 0;
+ }
+ 
+-#ifndef NEWJB
+-static int __real_do_deliver(void *data)
+-{
+-	/* Locking version of __do_deliver */
+-	struct iax_frame *fr = data;
+-	int callno = fr-&gt;callno;
+-	int res;
+-	ast_mutex_lock(&amp;iaxsl[callno]);
+-	res = __do_deliver(data);
+-	ast_mutex_unlock(&amp;iaxsl[callno]);
+-	return res;
+-}
+-static int do_deliver(void *data)
+-{
+-#ifdef SCHED_MULTITHREADED
+-	if (schedule_action(__do_deliver, data))
+-#endif		
+-		__real_do_deliver(data);
+-	return 0;
+-}
+-#endif /* NEWJB */
+-
+ static int handle_error(void)
+ {
+ 	/* XXX Ideally we should figure out why an error occured and then abort those
+@@ -1703,11 +1647,9 @@
+ 	if (pvt-&gt;initid &gt; -1)
+ 		ast_sched_del(sched, pvt-&gt;initid);
+ 	pvt-&gt;initid = -1;
+-#ifdef NEWJB
+ 	if (pvt-&gt;jbid &gt; -1)
+ 		ast_sched_del(sched, pvt-&gt;jbid);
+ 	pvt-&gt;jbid = -1;
+-#endif
+ }
+ 
+ static int iax2_predestroy(int callno)
+@@ -1798,18 +1740,15 @@
+ 		if (pvt-&gt;reg)
+ 			pvt-&gt;reg-&gt;callno = 0;
+ 		if (!owner) {
++			jb_frame frame;
+ 			if (pvt-&gt;vars) {
+-				ast_variables_destroy(pvt-&gt;vars);
+-				pvt-&gt;vars = NULL;
++			    ast_variables_destroy(pvt-&gt;vars);
++			    pvt-&gt;vars = NULL;
+ 			}
+-#ifdef NEWJB
+- 			{
+-                            jb_frame frame;
+-                            while(jb_getall(pvt-&gt;jb,&amp;frame) == JB_OK)
++
++			while (jb_getall(pvt-&gt;jb, &amp;frame) == JB_OK)
+ 				iax2_frame_free(frame.data);
+-                            jb_destroy(pvt-&gt;jb);
+-                        }
+-#endif
++			jb_destroy(pvt-&gt;jb);
+ 			free(pvt);
+ 		}
+ 	}
+@@ -1939,43 +1878,6 @@
+ 	return 0;
+ }
+ 
+-static int iax2_set_jitter(int fd, int argc, char *argv[])
+-{
+-#ifdef NEWJB
+-	ast_cli(fd, &quot;sorry, this command is deprecated\n&quot;);
+-	return RESULT_SUCCESS;
+-#else
+-	if ((argc != 4) &amp;&amp; (argc != 5))
+-		return RESULT_SHOWUSAGE;
+-	if (argc == 4) {
+-		max_jitter_buffer = atoi(argv[3]);
+-		if (max_jitter_buffer &lt; 0)
+-			max_jitter_buffer = 0;
+-	} else {
+-		if (argc == 5) {
+-			int callno = atoi(argv[3]);
+-			if ((callno &gt;= 0) &amp;&amp; (callno &lt; IAX_MAX_CALLS)) {
+-				if (iaxs[callno]) {
+-					iaxs[callno]-&gt;jitterbuffer = atoi(argv[4]);
+-					if (iaxs[callno]-&gt;jitterbuffer &lt; 0)
+-						iaxs[callno]-&gt;jitterbuffer = 0;
+-				} else
+-					ast_cli(fd, &quot;No such call '%d'\n&quot;, callno);
+-			} else
+-				ast_cli(fd, &quot;%d is not a valid call number\n&quot;, callno);
+-		}
+-	}
+-	return RESULT_SUCCESS;
+-#endif
+-}
+-
+-static char jitter_usage[] = 
+-&quot;Usage: iax set jitter [callid] &lt;value&gt;\n&quot;
+-&quot;       If used with a callid, it sets the jitter buffer to the given static\n&quot;
+-&quot;value (until its next calculation).  If used without a callid, the value is used\n&quot;
+-&quot;to establish the maximum excess jitter buffer that is permitted before the jitter\n&quot;
+-&quot;buffer size is reduced.&quot;;
+-
+ static int iax2_prune_realtime(int fd, int argc, char *argv[])
+ {
+ 	struct iax2_peer *peer;
+@@ -2300,7 +2202,6 @@
+ 	}
+ }
+ 
+-#ifdef NEWJB
+ static int get_from_jb(void *p);
+ 
+ static void update_jbsched(struct chan_iax2_pvt *pvt)
+@@ -2415,81 +2316,17 @@
+ 		__get_from_jb(data);
+ 	return 0;
+ }
+-#endif
+ 
+-/* while we transition from the old JB to the new one, we can either make two schedule_delivery functions, or 
+- * make preprocessor swiss-cheese out of this one.  I'm not sure which is less revolting.. */
+ static int schedule_delivery(struct iax_frame *fr, int updatehistory, int fromtrunk, unsigned int *tsout)
+ {
+-#ifdef NEWJB
+ 	int type, len;
+ 	int ret;
+ 	int needfree = 0;
+-#else
+-	int x;
+-	int ms;
+-	int delay;
+-	unsigned int orig_ts;
+-	int drops[MEMORY_SIZE];
+-	int min, max=0, prevjitterbuffer, maxone=0,y,z, match;
+ 
+-	/* Remember current jitterbuffer so we can log any change */
+-	prevjitterbuffer = iaxs[fr-&gt;callno]-&gt;jitterbuffer;
+-	/* Similarly for the frame timestamp */
+-	orig_ts = fr-&gt;ts;
+-#endif
+-
+-#if 0
+-	if (option_debug &amp;&amp; iaxdebug)
+-		ast_log(LOG_DEBUG, &quot;schedule_delivery: ts=%d, last=%d, update=%d\n&quot;,
+-				fr-&gt;ts, iaxs[fr-&gt;callno]-&gt;last, updatehistory);
+-#endif
+-
+ 	/* Attempt to recover wrapped timestamps */
+ 	unwrap_timestamp(fr);
+ 	
+-	if (updatehistory) {
+-#ifndef NEWJB
+ 
+-		/* Attempt to spot a change of timebase on timestamps coming from the other side
+-		   We detect by noticing a jump in consecutive timestamps that can't reasonably be explained
+-		   by network jitter or reordering.  Sometimes, also, the peer stops sending us frames
+-		   for a while - in this case this code might also resync us.  But that's not a bad thing.
+-		   Be careful of non-voice frames which are timestamped differently (especially ACKS!)
+-		   [that's why we only do this when updatehistory is true]
+-		*/
+-		x = fr-&gt;ts - iaxs[fr-&gt;callno]-&gt;last;
+-		if (x &gt; TS_GAP_FOR_JB_RESYNC || x &lt; -TS_GAP_FOR_JB_RESYNC) {
+-			if (option_debug &amp;&amp; iaxdebug)
+-				ast_log(LOG_DEBUG, &quot;schedule_delivery: call=%d: TS jumped.  resyncing rxcore (ts=%d, last=%d)\n&quot;,
+-							fr-&gt;callno, fr-&gt;ts, iaxs[fr-&gt;callno]-&gt;last);
+-			/* zap rxcore - calc_rxstamp will make a new one based on this frame */
+-			iaxs[fr-&gt;callno]-&gt;rxcore = ast_tv(0, 0);
+-			/* wipe &quot;last&quot; if stamps have jumped backwards */
+-			if (x&lt;0)
+-				iaxs[fr-&gt;callno]-&gt;last = 0;
+-			/* should we also empty history? */
+-		}
+-		/* ms is a measure of the &quot;lateness&quot; of the frame relative to the &quot;reference&quot;
+-		   frame we received.  (initially the very first, but also see code just above here).
+-		   Understand that &quot;ms&quot; can easily be -ve if lag improves since the reference frame.
+-		   Called by IAX thread, with iaxsl lock held. */
+-		ms = calc_rxstamp(iaxs[fr-&gt;callno], fr-&gt;ts) - fr-&gt;ts;
+-	
+-		/* Rotate our history queue of &quot;lateness&quot;.  Don't worry about those initial
+-		   zeros because the first entry will always be zero */
+-		for (x=0;x&lt;MEMORY_SIZE - 1;x++) 
+-			iaxs[fr-&gt;callno]-&gt;history[x] = iaxs[fr-&gt;callno]-&gt;history[x+1];
+-		/* Add a history entry for this one */
+-		iaxs[fr-&gt;callno]-&gt;history[x] = ms;
+-#endif
+-	}
+-#ifndef NEWJB
+-	else
+-		ms = 0;
+-#endif
+-
+-
+ 	/* delivery time is sender's sent timestamp converted back into absolute time according to our clock */
+ 	if ( !fromtrunk &amp;&amp; !ast_tvzero(iaxs[fr-&gt;callno]-&gt;rxcore))
+ 		fr-&gt;af.delivery = ast_tvadd(iaxs[fr-&gt;callno]-&gt;rxcore, ast_samp2tv(fr-&gt;ts, 1000));
+@@ -2500,40 +2337,6 @@
+ 		fr-&gt;af.delivery = ast_tv(0,0);
+ 	}
+ 
+-#ifndef NEWJB
+-	/* Initialize the minimum to reasonable values.  It's too much
+-	   work to do the same for the maximum, repeatedly */
+-	min=iaxs[fr-&gt;callno]-&gt;history[0];
+-	for (z=0;z &lt; iax2_dropcount + 1;z++) {
+-		/* Start very optimistic ;-) */
+-		max=-999999999;
+-		for (x=0;x&lt;MEMORY_SIZE;x++) {
+-			if (max &lt; iaxs[fr-&gt;callno]-&gt;history[x]) {
+-				/* We have a candidate new maximum value.  Make
+-				   sure it's not in our drop list */
+-				match = 0;
+-				for (y=0;!match &amp;&amp; (y&lt;z);y++)
+-					match |= (drops[y] == x);
+-				if (!match) {
+-					/* It's not in our list, use it as the new maximum */
+-					max = iaxs[fr-&gt;callno]-&gt;history[x];
+-					maxone = x;
+-				}
+-				
+-			}
+-			if (!z) {
+-				/* On our first pass, find the minimum too */
+-				if (min &gt; iaxs[fr-&gt;callno]-&gt;history[x])
+-					min = iaxs[fr-&gt;callno]-&gt;history[x];
+-			}
+-		}
+-#if 1
+-		drops[z] = maxone;
+-#endif
+-	}
+-#endif
+-
+-#ifdef NEWJB
+ 	type = JB_TYPE_CONTROL;
+ 	len = 0;
+ 
+@@ -2574,10 +2377,8 @@
+ 			*tsout = fr-&gt;ts;
+ 		__do_deliver(fr);
+ 		return -1;
+-
+ 	}
+ 
+-
+ 	/* insert into jitterbuffer */
+ 	/* TODO: Perhaps we could act immediately if it's not droppable and late */
+ 	ret = jb_put(iaxs[fr-&gt;callno]-&gt;jb, fr, type, len, fr-&gt;ts,
+@@ -2587,88 +2388,6 @@
+ 	} else if (ret == JB_SCHED) {
+ 		update_jbsched(iaxs[fr-&gt;callno]);
+ 	}
+-#else
+-	/* Just for reference, keep the &quot;jitter&quot; value, the difference between the
+-	   earliest and the latest. */
+-	if (max &gt;= min)
+-		iaxs[fr-&gt;callno]-&gt;jitter = max - min;	
+-	
+-	/* IIR filter for keeping track of historic jitter, but always increase
+-	   historic jitter immediately for increase */
+-	
+-	if (iaxs[fr-&gt;callno]-&gt;jitter &gt; iaxs[fr-&gt;callno]-&gt;historicjitter )
+-		iaxs[fr-&gt;callno]-&gt;historicjitter = iaxs[fr-&gt;callno]-&gt;jitter;
+-	else
+-		iaxs[fr-&gt;callno]-&gt;historicjitter = GAMMA * (double)iaxs[fr-&gt;callno]-&gt;jitter + (1-GAMMA) * 
+-			iaxs[fr-&gt;callno]-&gt;historicjitter;
+-
+-	/* If our jitter buffer is too big (by a significant margin), then we slowly
+-	   shrink it to avoid letting the change be perceived */
+-	if (max &lt; iaxs[fr-&gt;callno]-&gt;jitterbuffer - max_jitter_buffer)
+-		iaxs[fr-&gt;callno]-&gt;jitterbuffer -= jittershrinkrate;
+-
+-	/* If our jitter buffer headroom is too small (by a significant margin), then we slowly enlarge it */
+-	/* min_jitter_buffer should be SMALLER than max_jitter_buffer - leaving a &quot;no mans land&quot;
+-	   in between - otherwise the jitterbuffer size will hunt up and down causing unnecessary
+-	   disruption.  Set maxexcessbuffer to say 150msec, minexcessbuffer to say 50 */
+-	if (max &gt; iaxs[fr-&gt;callno]-&gt;jitterbuffer - min_jitter_buffer)
+-		iaxs[fr-&gt;callno]-&gt;jitterbuffer += jittershrinkrate;
+-
+-	/* If our jitter buffer is smaller than our maximum delay, grow the jitter
+-	   buffer immediately to accomodate it (and a little more).  */
+-	if (max &gt; iaxs[fr-&gt;callno]-&gt;jitterbuffer)
+-		iaxs[fr-&gt;callno]-&gt;jitterbuffer = max 
+-			/* + ((float)iaxs[fr-&gt;callno]-&gt;jitter) * 0.1 */;
+-
+-	/* update &quot;min&quot;, just for RRs and stats */
+-	iaxs[fr-&gt;callno]-&gt;min = min; 
+-
+-	/* Subtract the lateness from our jitter buffer to know how long to wait
+-	   before sending our packet.  */
+-	delay = iaxs[fr-&gt;callno]-&gt;jitterbuffer - ms;
+-
+-	/* Whatever happens, no frame waits longer than maxjitterbuffer */
+-	if (delay &gt; maxjitterbuffer)
+-		delay = maxjitterbuffer;
+-	
+-	/* If jitter buffer is disabled then just pretend the frame is &quot;right on time&quot; */
+-	/* If frame came from trunk, also don't do any delay */
+-	if ( (!ast_test_flag(iaxs[fr-&gt;callno], IAX_USEJITTERBUF)) || fromtrunk )
+-		delay = 0;
+-
+-	if (option_debug &amp;&amp; iaxdebug) {
+-		/* Log jitter stats for possible offline analysis */
+-		ast_log(LOG_DEBUG, &quot;Jitter: call=%d ts=%d orig=%d last=%d %s: min=%d max=%d jb=%d %+d lateness=%d jbdelay=%d jitter=%d historic=%d\n&quot;,
+-					fr-&gt;callno, fr-&gt;ts, orig_ts, iaxs[fr-&gt;callno]-&gt;last,
+-					(fr-&gt;af.frametype == AST_FRAME_VOICE) ? &quot;VOICE&quot; : &quot;CONTROL&quot;,
+-					min, max, iaxs[fr-&gt;callno]-&gt;jitterbuffer,
+-					iaxs[fr-&gt;callno]-&gt;jitterbuffer - prevjitterbuffer,
+-					ms, delay,
+-					iaxs[fr-&gt;callno]-&gt;jitter, iaxs[fr-&gt;callno]-&gt;historicjitter);
+-	}
+-
+-	if (delay &lt; 1) {
+-		/* Don't deliver it more than 4 ms late */
+-		if ((delay &gt; -4) || (fr-&gt;af.frametype != AST_FRAME_VOICE)) {
+-			if (option_debug &amp;&amp; iaxdebug)
+-				ast_log(LOG_DEBUG, &quot;schedule_delivery: Delivering immediately (Calculated delay is %d)\n&quot;, delay);
+-			if (tsout)
+-				*tsout = fr-&gt;ts;
+-			__do_deliver(fr);
+-			return -1;
+-		} else {
+-			if (option_debug &amp;&amp; iaxdebug)
+-				ast_log(LOG_DEBUG, &quot;schedule_delivery: Dropping voice packet since %dms delay is too old\n&quot;, delay);
+-			iaxs[fr-&gt;callno]-&gt;frames_dropped++;
+-			needfree++;
+-		}
+-	} else {
+-		if (option_debug &amp;&amp; iaxdebug)
+-			ast_log(LOG_DEBUG, &quot;schedule_delivery: Scheduling delivery in %d ms\n&quot;, delay);
+-		fr-&gt;retrans = ast_sched_add(sched, delay, do_deliver, fr);
+-		signal_condition(&amp;sched_lock, &amp;sched_cond);
+-	}
+-#endif
+ 	if (tsout)
+ 		*tsout = fr-&gt;ts;
+ 	if (needfree) {
+@@ -4607,21 +4326,6 @@
+ #undef FORMAT2
+ }
+ 
+-#ifndef NEWJB
+-static int jitterbufsize(struct chan_iax2_pvt *pvt) {
+-	int min, i;
+-	min = 99999999;
+-	for (i=0; i&lt;MEMORY_SIZE; i++) {
+-		if (pvt-&gt;history[i] &lt; min)
+-			min = pvt-&gt;history[i];
+-	}
+-	if (pvt-&gt;jitterbuffer - min &gt; maxjitterbuffer)
+-		return maxjitterbuffer;
+-	else
+-		return pvt-&gt;jitterbuffer - min;
+-}
+-#endif
+-
+ static int iax2_show_channels(int fd, int argc, char *argv[])
+ {
+ #define FORMAT2 &quot;%-20.20s  %-15.15s  %-10.10s  %-11.11s  %-11.11s  %-7.7s  %-6.6s  %-6.6s  %s\n&quot;
+@@ -4650,7 +4354,6 @@
+ #endif
+ 			{
+ 				int lag, jitter, localdelay;
+-#ifdef NEWJB
+ 				jb_info jbinfo;
+ 
+ 				if(ast_test_flag(iaxs[x], IAX_USEJITTERBUF)) {
+@@ -4661,10 +4364,6 @@
+ 					jitter = -1;
+ 					localdelay = 0;
+ 				}
+-#else
+-				jitter = iaxs[x]-&gt;jitter;
+-				localdelay = ast_test_flag(iaxs[x], IAX_USEJITTERBUF) ? jitterbufsize(iaxs[x]) : 0;
+-#endif
+ 				lag = iaxs[x]-&gt;remote_rr.delay;
+ 				ast_cli(fd, FORMAT,
+ 						iaxs[x]-&gt;owner ? iaxs[x]-&gt;owner-&gt;name : &quot;(None)&quot;,
+@@ -4716,7 +4415,6 @@
+ 			{
+ 				int localjitter, localdelay, locallost, locallosspct, localdropped, localooo;
+ 				char *fmt;
+-#ifdef NEWJB
+ 				jb_info jbinfo;
+ 
+ 				if(ast_test_flag(iaxs[x], IAX_USEJITTERBUF)) {
+@@ -4735,17 +4433,6 @@
+ 					localdropped = 0;
+ 					localooo = -1;
+ 				}
+-#else
+-				localjitter = iaxs[x]-&gt;jitter;
+-				if(ast_test_flag(iaxs[x], IAX_USEJITTERBUF)) 
+-				{
+-					localdelay = jitterbufsize(iaxs[x]);
+-					localdropped = iaxs[x]-&gt;frames_dropped;
+-				} else {
+-					localdelay = localdropped = 0;
+-				}
+-				locallost = locallosspct = localooo = -1;
+-#endif
+ 				if (limit_fmt)
+ 					fmt = &quot;%-25.25s %4d %4d %4d %5d %3d %5d %4d %6d %4d %4d %5d %3d %5d %4d %6d\n&quot;;
+ 				else
+@@ -4830,9 +4517,7 @@
+ {
+ 	if (argc != 3)
+ 		return RESULT_SHOWUSAGE;
+-#ifdef NEWJB
+ 	jb_setoutput(jb_error_output, jb_warning_output, jb_debug_output);
+-#endif
+ 	ast_cli(fd, &quot;IAX2 Jitterbuffer Debugging Enabled\n&quot;);
+ 	return RESULT_SUCCESS;
+ }
+@@ -4859,10 +4544,8 @@
+ {
+ 	if (argc != 4)
+ 		return RESULT_SHOWUSAGE;
+-#ifdef NEWJB
+ 	jb_setoutput(jb_error_output, jb_warning_output, NULL);
+ 	jb_debug_output(&quot;\n&quot;);
+-#endif
+ 	ast_cli(fd, &quot;IAX2 Jitterbuffer Debugging Disabled\n&quot;);
+ 	return RESULT_SUCCESS;
+ }
+@@ -5639,6 +5322,7 @@
+ 	int peercallno = 0;
+ 	struct chan_iax2_pvt *pvt = iaxs[callno];
+ 	struct iax_frame *cur;
++	jb_frame frame;
+ 
+ 	if (ies-&gt;callno)
+ 		peercallno = ies-&gt;callno;
+@@ -5663,20 +5347,10 @@
+ 	pvt-&gt;transfercallno = -1;
+ 	memset(&amp;pvt-&gt;rxcore, 0, sizeof(pvt-&gt;rxcore));
+ 	memset(&amp;pvt-&gt;offset, 0, sizeof(pvt-&gt;offset));
+-#ifdef NEWJB
+-	{	/* reset jitterbuffer */
+-	    	jb_frame frame;
+-            	while(jb_getall(pvt-&gt;jb,&amp;frame) == JB_OK)
+-                	iax2_frame_free(frame.data);
+-
+-		jb_reset(pvt-&gt;jb);
+-	}
+-#else
+-	memset(&amp;pvt-&gt;history, 0, sizeof(pvt-&gt;history));
+-	pvt-&gt;jitterbuffer = 0;
+-	pvt-&gt;jitter = 0;
+-	pvt-&gt;historicjitter = 0;
+-#endif
++	/* reset jitterbuffer */
++	while(jb_getall(pvt-&gt;jb,&amp;frame) == JB_OK)
++		iax2_frame_free(frame.data);
++	jb_reset(pvt-&gt;jb);
+ 	pvt-&gt;lag = 0;
+ 	pvt-&gt;last = 0;
+ 	pvt-&gt;lastsent = 0;
+@@ -6519,7 +6193,6 @@
+ 
+ static void construct_rr(struct chan_iax2_pvt *pvt, struct iax_ie_data *iep) 
+ {
+-#ifdef NEWJB
+ 	jb_info stats;
+ 	jb_getinfo(pvt-&gt;jb, &amp;stats);
+ 	
+@@ -6532,18 +6205,6 @@
+ 	iax_ie_append_short(iep,IAX_IE_RR_DELAY, stats.current - stats.min);
+ 	iax_ie_append_int(iep,IAX_IE_RR_DROPPED, stats.frames_dropped);
+ 	iax_ie_append_int(iep,IAX_IE_RR_OOO, stats.frames_ooo);
+-#else
+-	memset(iep, 0, sizeof(*iep));
+-	iax_ie_append_int(iep,IAX_IE_RR_JITTER, pvt-&gt;jitter);
+-	iax_ie_append_int(iep,IAX_IE_RR_PKTS, pvt-&gt;frames_received);
+-	if(!ast_test_flag(pvt, IAX_USEJITTERBUF)) 
+-		iax_ie_append_short(iep,IAX_IE_RR_DELAY, 0);
+-	else
+-		iax_ie_append_short(iep,IAX_IE_RR_DELAY, pvt-&gt;jitterbuffer - pvt-&gt;min);
+-	iax_ie_append_int(iep,IAX_IE_RR_DROPPED, pvt-&gt;frames_dropped);
+-	/* don't know, don't send! iax_ie_append_int(&amp;ied,IAX_IE_RR_OOO, 0); */
+-	/* don't know, don't send! iax_ie_append_int(&amp;ied,IAX_IE_RR_LOSS, 0); */
+-#endif
+ }
+ 
+ static void save_rr(struct iax_frame *fr, struct iax_ies *ies) 
+@@ -9154,22 +8815,12 @@
+ 		}
+ 		else if (!strcasecmp(v-&gt;name, &quot;maxjitterbuffer&quot;)) 
+ 			maxjitterbuffer = atoi(v-&gt;value);
+-#ifdef NEWJB
+ 		else if (!strcasecmp(v-&gt;name, &quot;resyncthreshold&quot;)) 
+ 			resyncthreshold = atoi(v-&gt;value);
+ 		else if (!strcasecmp(v-&gt;name, &quot;maxjitterinterps&quot;)) 
+ 			maxjitterinterps = atoi(v-&gt;value);
+-#endif
+-		else if (!strcasecmp(v-&gt;name, &quot;jittershrinkrate&quot;)) 
+-			jittershrinkrate = atoi(v-&gt;value);
+-		else if (!strcasecmp(v-&gt;name, &quot;maxexcessbuffer&quot;)) 
+-			max_jitter_buffer = atoi(v-&gt;value);
+-		else if (!strcasecmp(v-&gt;name, &quot;minexcessbuffer&quot;)) 
+-			min_jitter_buffer = atoi(v-&gt;value);
+ 		else if (!strcasecmp(v-&gt;name, &quot;lagrqtime&quot;)) 
+ 			lagrq_time = atoi(v-&gt;value);
+-		else if (!strcasecmp(v-&gt;name, &quot;dropcount&quot;)) 
+-			iax2_dropcount = atoi(v-&gt;value);
+ 		else if (!strcasecmp(v-&gt;name, &quot;maxregexpire&quot;)) 
+ 			max_reg_expire = atoi(v-&gt;value);
+ 		else if (!strcasecmp(v-&gt;name, &quot;minregexpire&quot;)) 
+@@ -9968,8 +9619,6 @@
+ #endif /* IAXTESTS */
+ 
+ static struct ast_cli_entry iax2_cli[] = {
+-	{ { &quot;iax2&quot;, &quot;set&quot;, &quot;jitter&quot;, NULL }, iax2_set_jitter,
+-	  &quot;Sets IAX jitter buffer&quot;, jitter_usage },
+ 	{ { &quot;iax2&quot;, &quot;show&quot;, &quot;stats&quot;, NULL }, iax2_show_stats,
+ 	  &quot;Display IAX statistics&quot;, show_stats_usage },
+ 	{ { &quot;iax2&quot;, &quot;show&quot;, &quot;cache&quot;, NULL }, iax2_show_cache,
+@@ -10099,9 +9748,7 @@
+ 
+ 	iax_set_output(iax_debug_output);
+ 	iax_set_error(iax_error_output);
+-#ifdef NEWJB
+ 	jb_setoutput(jb_error_output, jb_warning_output, NULL);
+-#endif
+ 	
+ #ifdef HAVE_ZAPTEL
+ #ifdef ZT_TIMERACK
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-10 15:28:41 UTC (rev 126)
++++ trunk/channels/chan_sip.c	2006-05-10 16:29:16 UTC (rev 127)
+@@ -12153,10 +12153,7 @@
+ 	/* If we're supposed to be stopped -- stay stopped */
+ 	if (monitor_thread == AST_PTHREADT_STOP)
+ 		return 0;
+-	if (ast_mutex_lock(&amp;monlock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to lock monitor\n&quot;);
+-		return -1;
+-	}
++	ast_mutex_lock(&amp;monlock);
+ 	if (monitor_thread == pthread_self()) {
+ 		ast_mutex_unlock(&amp;monlock);
+ 		ast_log(LOG_WARNING, &quot;Cannot kill myself\n&quot;);
+@@ -13994,51 +13991,39 @@
+ 	ast_manager_unregister(&quot;SIPpeers&quot;);
+ 	ast_manager_unregister(&quot;SIPshowpeer&quot;);
+ 
+-	if (!ast_mutex_lock(&amp;iflock)) {
+-		/* Hangup all interfaces if they have an owner */
+-		for (p = iflist; p ; p = p-&gt;next) {
+-			if (p-&gt;owner)
+-				ast_softhangup(p-&gt;owner, AST_SOFTHANGUP_APPUNLOAD);
+-		}
+-		ast_mutex_unlock(&amp;iflock);
+-	} else {
+-		ast_log(LOG_WARNING, &quot;Unable to lock the interface list\n&quot;);
+-		return -1;
++	ast_mutex_lock(&amp;iflock);
++	/* Hangup all interfaces if they have an owner */
++	for (p = iflist; p ; p = p-&gt;next) {
++		if (p-&gt;owner)
++			ast_softhangup(p-&gt;owner, AST_SOFTHANGUP_APPUNLOAD);
+ 	}
++	ast_mutex_unlock(&amp;iflock);
+ 
+-	if (!ast_mutex_lock(&amp;monlock)) {
+-		if (monitor_thread &amp;&amp; (monitor_thread != AST_PTHREADT_STOP)) {
+-			pthread_cancel(monitor_thread);
+-			pthread_kill(monitor_thread, SIGURG);
+-			pthread_join(monitor_thread, NULL);
+-		}
+-		monitor_thread = AST_PTHREADT_STOP;
+-		ast_mutex_unlock(&amp;monlock);
+-	} else {
+-		ast_log(LOG_WARNING, &quot;Unable to lock the monitor\n&quot;);
+-		return -1;
++	ast_mutex_lock(&amp;monlock);
++	if (monitor_thread &amp;&amp; (monitor_thread != AST_PTHREADT_STOP)) {
++		pthread_cancel(monitor_thread);
++		pthread_kill(monitor_thread, SIGURG);
++		pthread_join(monitor_thread, NULL);
+ 	}
++	monitor_thread = AST_PTHREADT_STOP;
++	ast_mutex_unlock(&amp;monlock);
+ 
+-	if (!ast_mutex_lock(&amp;iflock)) {
+-		/* Destroy all the interfaces and free their memory */
+-		p = iflist;
+-		while (p) {
+-			pl = p;
+-			p = p-&gt;next;
+-			/* Free associated memory */
+-			ast_mutex_destroy(&amp;pl-&gt;lock);
+-			if (pl-&gt;chanvars) {
+-				ast_variables_destroy(pl-&gt;chanvars);
+-				pl-&gt;chanvars = NULL;
+-			}
+-			free(pl);
++	ast_mutex_lock(&amp;iflock);
++	/* Destroy all the interfaces and free their memory */
++	p = iflist;
++	while (p) {
++		pl = p;
++		p = p-&gt;next;
++		/* Free associated memory */
++		ast_mutex_destroy(&amp;pl-&gt;lock);
++		if (pl-&gt;chanvars) {
++			ast_variables_destroy(pl-&gt;chanvars);
++			pl-&gt;chanvars = NULL;
+ 		}
+-		iflist = NULL;
+-		ast_mutex_unlock(&amp;iflock);
+-	} else {
+-		ast_log(LOG_WARNING, &quot;Unable to lock the interface list\n&quot;);
+-		return -1;
++		free(pl);
+ 	}
++	iflist = NULL;
++	ast_mutex_unlock(&amp;iflock);
+ 
+ 	/* Free memory for local network address mask */
+ 	ast_free_ha(localaddr);
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-05-10 15:28:41 UTC (rev 126)
++++ trunk/channels/chan_zap.c	2006-05-10 16:29:16 UTC (rev 127)
+@@ -6539,10 +6539,7 @@
+ #endif
+ 	for(;;) {
+ 		/* Lock the interface list */
+-		if (ast_mutex_lock(&amp;iflock)) {
+-			ast_log(LOG_ERROR, &quot;Unable to grab interface lock\n&quot;);
+-			return NULL;
+-		}
++		ast_mutex_lock(&amp;iflock);
+ 		if (!pfds || (lastalloc != ifcount)) {
+ 			if (pfds)
+ 				free(pfds);
+@@ -6588,10 +6585,7 @@
+ 		}
+ 		/* Alright, lock the interface list again, and let's look and see what has
+ 		   happened */
+-		if (ast_mutex_lock(&amp;iflock)) {
+-			ast_log(LOG_WARNING, &quot;Unable to lock the interface list\n&quot;);
+-			continue;
+-		}
++		ast_mutex_lock(&amp;iflock);
+ 		found = 0;
+ 		spoint = 0;
+ 		lastpass = thispass;
+@@ -6731,10 +6725,7 @@
+ 	/* If we're supposed to be stopped -- stay stopped */
+ 	if (monitor_thread == AST_PTHREADT_STOP)
+ 		return 0;
+-	if (ast_mutex_lock(&amp;monlock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to lock monitor\n&quot;);
+-		return -1;
+-	}
++	ast_mutex_lock(&amp;monlock);
+ 	if (monitor_thread == pthread_self()) {
+ 		ast_mutex_unlock(&amp;monlock);
+ 		ast_log(LOG_WARNING, &quot;Cannot kill myself\n&quot;);
+@@ -7609,10 +7600,7 @@
+ 		}
+ 	}
+ 	/* Search for an unowned channel */
+-	if (ast_mutex_lock(lock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock interface list???\n&quot;);
+-		return NULL;
+-	}
++	ast_mutex_lock(lock);
+ 	exit = p;
+ 	while(p &amp;&amp; !tmp) {
+ 		if (roundrobin)
+@@ -10103,57 +10091,45 @@
+ 	ast_manager_unregister( &quot;ZapDNDon&quot; );
+ 	ast_manager_unregister(&quot;ZapShowChannels&quot;);
+ 	ast_channel_unregister(&amp;zap_tech);
+-	if (!ast_mutex_lock(&amp;iflock)) {
+-		/* Hangup all interfaces if they have an owner */
+-		p = iflist;
+-		while(p) {
+-			if (p-&gt;owner)
+-				ast_softhangup(p-&gt;owner, AST_SOFTHANGUP_APPUNLOAD);
+-			p = p-&gt;next;
+-		}
+-		ast_mutex_unlock(&amp;iflock);
+-	} else {
+-		ast_log(LOG_WARNING, &quot;Unable to lock the monitor\n&quot;);
+-		return -1;
++	ast_mutex_lock(&amp;iflock);
++	/* Hangup all interfaces if they have an owner */
++	p = iflist;
++	while(p) {
++		if (p-&gt;owner)
++			ast_softhangup(p-&gt;owner, AST_SOFTHANGUP_APPUNLOAD);
++		p = p-&gt;next;
+ 	}
+-	if (!ast_mutex_lock(&amp;monlock)) {
+-		if (monitor_thread &amp;&amp; (monitor_thread != AST_PTHREADT_STOP) &amp;&amp; (monitor_thread != AST_PTHREADT_NULL)) {
+-			pthread_cancel(monitor_thread);
+-			pthread_kill(monitor_thread, SIGURG);
+-			pthread_join(monitor_thread, NULL);
+-		}
+-		monitor_thread = AST_PTHREADT_STOP;
+-		ast_mutex_unlock(&amp;monlock);
+-	} else {
+-		ast_log(LOG_WARNING, &quot;Unable to lock the monitor\n&quot;);
+-		return -1;
++	ast_mutex_unlock(&amp;iflock);
++	ast_mutex_lock(&amp;monlock);
++	if (monitor_thread &amp;&amp; (monitor_thread != AST_PTHREADT_STOP) &amp;&amp; (monitor_thread != AST_PTHREADT_NULL)) {
++		pthread_cancel(monitor_thread);
++		pthread_kill(monitor_thread, SIGURG);
++		pthread_join(monitor_thread, NULL);
+ 	}
++	monitor_thread = AST_PTHREADT_STOP;
++	ast_mutex_unlock(&amp;monlock);
+ 
+-	if (!ast_mutex_lock(&amp;iflock)) {
+-		/* Destroy all the interfaces and free their memory */
+-		p = iflist;
+-		while(p) {
+-			/* Free any callerid */
+-			if (p-&gt;cidspill)
+-				free(p-&gt;cidspill);
+-			/* Close the zapata thingy */
+-			if (p-&gt;subs[SUB_REAL].zfd &gt; -1)
+-				zt_close(p-&gt;subs[SUB_REAL].zfd);
+-			pl = p;
+-			p = p-&gt;next;
+-			x++;
+-			/* Free associated memory */
+-			if(pl)
+-				destroy_zt_pvt(&amp;pl);
+-			ast_verbose(VERBOSE_PREFIX_3 &quot;Unregistered channel %d\n&quot;, x);
+-		}
+-		iflist = NULL;
+-		ifcount = 0;
+-		ast_mutex_unlock(&amp;iflock);
+-	} else {
+-		ast_log(LOG_WARNING, &quot;Unable to lock the monitor\n&quot;);
+-		return -1;
++	ast_mutex_lock(&amp;iflock);
++	/* Destroy all the interfaces and free their memory */
++	p = iflist;
++	while(p) {
++		/* Free any callerid */
++		if (p-&gt;cidspill)
++			free(p-&gt;cidspill);
++		/* Close the zapata thingy */
++		if (p-&gt;subs[SUB_REAL].zfd &gt; -1)
++			zt_close(p-&gt;subs[SUB_REAL].zfd);
++		pl = p;
++		p = p-&gt;next;
++		x++;
++		/* Free associated memory */
++		if(pl)
++			destroy_zt_pvt(&amp;pl);
++		ast_verbose(VERBOSE_PREFIX_3 &quot;Unregistered channel %d\n&quot;, x);
+ 	}
++	iflist = NULL;
++	ifcount = 0;
++	ast_mutex_unlock(&amp;iflock);
+ #ifdef HAVE_LIBPRI		
+ 	for(i=0;i&lt;NUM_SPANS;i++) {
+ 		if (pris[i].master &amp;&amp; (pris[i].master != AST_PTHREADT_NULL))
+@@ -10204,11 +10180,8 @@
+ 	}
+ 	
+ 
+-	if (ast_mutex_lock(&amp;iflock)) {
+-		/* It's a little silly to lock it, but we mind as well just to be sure */
+-		ast_log(LOG_ERROR, &quot;Unable to lock interface list???\n&quot;);
+-		return -1;
+-	}
++	/* It's a little silly to lock it, but we mind as well just to be sure */
++	ast_mutex_lock(&amp;iflock);
+ #ifdef HAVE_LIBPRI
+ 	if (!reload) {
+ 		/* Process trunkgroups first */
+
+Modified: trunk/configs/iax.conf.sample
+===================================================================
+--- trunk/configs/iax.conf.sample	2006-05-10 15:28:41 UTC (rev 126)
++++ trunk/configs/iax.conf.sample	2006-05-10 16:29:16 UTC (rev 127)
+@@ -75,12 +75,6 @@
+ ; The jitter buffer's function is to compensate for varying
+ ; network delay.
+ ;
+-; There are presently two jitterbuffer implementations available for Asterisk
+-; and chan_iax2; the classic and the new, channel/application independent
+-; implementation.  These are controlled at compile-time.  The new jitterbuffer
+-; additionally has support for PLC which greatly improves quality as the
+-; jitterbuffer adapts size, and in compensating for lost packets.
+-;
+ ; All the jitter buffer settings except dropcount are in milliseconds.
+ ; The jitter buffer works for INCOMING audio - the outbound audio
+ ; will be dejittered by the jitter buffer at the other end.
+@@ -93,13 +87,7 @@
+ ; can each handle this.  However, some endpoints may have poor jitterbuffers 
+ ; themselves, so this option will force * to always jitterbuffer, even in this
+ ; case.
+-; [This option presently applies only to the new jitterbuffer implementation]
+ ;
+-; dropcount: the jitter buffer is sized such that no more than &quot;dropcount&quot;
+-; frames would have been &quot;too late&quot; over the last 2 seconds.
+-; Set to a small number.  &quot;3&quot; represents 1.5% of frames dropped
+-; [This option is not applicable to, and ignored by the new jitterbuffer implementation]
+-;
+ ; maxjitterbuffer: a maximum size for the jitter buffer.
+ ; Setting a reasonable maximum here will prevent the call delay
+ ; from rising to silly values in extreme situations; you'll hear
+@@ -111,35 +99,13 @@
+ ; change in delay is measured as twice the measured jitter plus this resync
+ ; threshold.
+ ; Resyncing can be disabled by setting this parameter to -1.
+-; [This option presently applies only to the new jitterbuffer implementation]
+ ;
+ ; maxjitterinterps: the maximum number of interpolation frames the jitterbuffer
+ ; should return in a row. Since some clients do not send CNG/DTX frames to
+ ; indicate silence, the jitterbuffer will assume silence has begun after
+ ; returning this many interpolations. This prevents interpolating throughout
+ ; a long silence.
+-; [This option presently applies only to the new jitterbuffer implementation]
+ ;
+-; maxexcessbuffer: If conditions improve after a period of high jitter,
+-; the jitter buffer can end up bigger than necessary.  If it ends up
+-; more than &quot;maxexcessbuffer&quot; bigger than needed, Asterisk will start
+-; gradually decreasing the amount of jitter buffering.
+-; 	This option is not applicable to, 
+-;	and ignored by the new jitterbuffer implementation
+-;
+-; minexcessbuffer: Sets a desired mimimum amount of headroom in 
+-; the jitter buffer.  If Asterisk has less headroom than this, then
+-; it will start gradually increasing the amount of jitter buffering.
+-; 	This option is not applicable to, 
+-;	and ignored by the new jitterbuffer implementation
+-;
+-; jittershrinkrate: when the jitter buffer is being gradually shrunk 
+-; (or enlarged), how many millisecs shall we take off per 20ms frame
+-; received?  Use a small number, or you will be able to hear it
+-; changing.  An example: if you set this to 2, then the jitter buffer
+-; size will change by 100 millisecs per second.
+-; 	This option is not applicable to, 
+-;	and ignored by the new jitterbuffer implementation
+ 
+ jitterbuffer=no
+ forcejitterbuffer=no
+
+Modified: trunk/configs/say.conf.sample
+===================================================================
+--- trunk/configs/say.conf.sample	2006-05-10 15:28:41 UTC (rev 126)
++++ trunk/configs/say.conf.sample	2006-05-10 16:29:16 UTC (rev 127)
+@@ -27,7 +27,7 @@
+ ;
+ ; Processing occurs as follows:
+ ; If the format is empty, or there is no format, the entire
+-; string is matched agains one of the pattern on the left hand side.
++; string is matched against one of the pattern on the left hand side.
+ ; On the first match, the various comma-separated components on the right
+ ; hand side are pronounced, as follows:
+ ; + a component starting with a prefix: (i.e. with a ':' in it)
+@@ -148,3 +148,24 @@
+     _time::. =&gt; date:IMp:${SAY}
+ 
+ 
++[de](date-base,digit-base)
++    _[n]um:0. =&gt; num:${SAY:1}
++    _[n]um:X =&gt; digits/${SAY}
++    _[n]um:1X =&gt; digits/${SAY}
++    _[n]um:[2-9]0 =&gt; digits/${SAY}
++    _[n]um:[2-9][2-9] =&gt; digits/${SAY:1}-and, digits/${SAY:0:1}0
++    _[n]um:1XX =&gt; digits/ein, digits/hundred, num:${SAY:1}
++    _[n]um:[2-9]XX =&gt; digits/${SAY:0:1}, digits/hundred, num:${SAY:1}
++    _[n]um:1XXX =&gt; digits/ein, digits/thousand, num:${SAY:1}
++    _[n]um:[2-9]XXX =&gt; digits/${SAY:0:1}, digits/thousand, num:${SAY:1}
++    _[n]um:XXXXX =&gt; num:${SAY:0:2}, digits/thousand, num:${SAY:2}
++    _[n]um:X00XXX =&gt; digits/${SAY:0:1}, digits/hundred, digits/thousand, num:${SAY:3}
++    _[n]um:XXXXXX =&gt; digits/${SAY:0:1}, digits/hundred, num:${SAY:1}
++    _[n]um:1XXXXXX =&gt; digits/eine, digits/million, num:${SAY:1}
++    _[n]um:[2-9]XXXXXX =&gt; digits/${SAY:0:1}, digits/millions, num:${SAY:1}
++    _[n]um:XXXXXXXX =&gt; num:${SAY:0:1}, digits/millions, num:${SAY:2}
++
++    _datetime::. =&gt; date:AdBY 'digits/at' IMp:${SAY}
++    _date::. =&gt; date:AdBY:${SAY}
++    _time::. =&gt; date:IMp:${SAY}
++
+
+Modified: trunk/funcs/func_channel.c
+===================================================================
+--- trunk/funcs/func_channel.c	2006-05-10 15:28:41 UTC (rev 126)
++++ trunk/funcs/func_channel.c	2006-05-10 16:29:16 UTC (rev 127)
+@@ -40,15 +40,15 @@
+ #include &quot;asterisk/stringfields.h&quot;
+ #define locked_copy_string(chan, dest, source, len) \
+ 	do { \
+-		ast_mutex_lock(&amp;chan-&gt;lock); \
++		ast_channel_lock(chan); \
+ 		ast_copy_string(dest, source, len); \
+-		ast_mutex_unlock(&amp;chan-&gt;lock); \
++		ast_channel_unlock(chan); \
+ 	} while (0)
+ #define locked_string_field_set(chan, field, source) \
+ 	do { \
+-		ast_mutex_lock(&amp;chan-&gt;lock); \
++		ast_channel_lock(chan); \
+ 		ast_string_field_set(chan, field, source); \
+-		ast_mutex_unlock(&amp;chan-&gt;lock); \
++		ast_channel_unlock(chan); \
+ 	} while (0)
+ 
+ static int func_channel_read(struct ast_channel *chan, char *function,
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000122.html">[solid-pbx-svn] r126 - in trunk: . channels res
+</A></li>
+	<LI>Next message: <A HREF="000124.html">[solid-pbx-svn] r128 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#123">[ date ]</a>
+              <a href="thread.html#123">[ thread ]</a>
+              <a href="subject.html#123">[ subject ]</a>
+              <a href="author.html#123">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

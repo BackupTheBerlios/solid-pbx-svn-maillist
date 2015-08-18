@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r322 - in trunk: apps codecs/lpc10
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r322%20-%20in%20trunk%3A%20apps%20codecs/lpc10&In-Reply-To=%3C200606272332.k5RNWkwU023770%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000316.html">
+   <LINK REL="Next"  HREF="000318.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r322 - in trunk: apps codecs/lpc10</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r322%20-%20in%20trunk%3A%20apps%20codecs/lpc10&In-Reply-To=%3C200606272332.k5RNWkwU023770%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r322 - in trunk: apps codecs/lpc10">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 01:32:46 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000316.html">[solid-pbx-svn] r321 - in trunk: channels doc
+</A></li>
+        <LI>Next message: <A HREF="000318.html">[solid-pbx-svn] r323 - in trunk: pbx pbx/ael utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#317">[ date ]</a>
+              <a href="thread.html#317">[ thread ]</a>
+              <a href="subject.html#317">[ subject ]</a>
+              <a href="author.html#317">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 01:32:41 +0200 (Wed, 28 Jun 2006)
+New Revision: 322
+
+Modified:
+   trunk/apps/app_osplookup.c
+   trunk/codecs/lpc10/lpc10.h
+   trunk/codecs/lpc10/lpcini.c
+Log:
+Update to Asterisk SVN trunk r33403
+
+------------------------------------------------------------------------
+r33398 | kpfleming | 2006-06-10 01:13:52 +0200 (Sat, 10 Jun 2006) | 2 lines
+
+get rid of some more compiler warnings (thanks tholo for making me fix the lpc10 stuff... that had been a problem for far too long)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_osplookup.c
+===================================================================
+--- trunk/apps/app_osplookup.c	2006-06-27 23:20:12 UTC (rev 321)
++++ trunk/apps/app_osplookup.c	2006-06-27 23:32:41 UTC (rev 322)
+@@ -162,7 +162,7 @@
+ 		}
+ 	}
+ 	ast_log(LOG_DEBUG, &quot;OSPAuth: source '%s'\n&quot;, source);
+-	ast_log(LOG_DEBUG, &quot;OSPAuth: token size '%d'\n&quot;, strlen(token));
++	ast_log(LOG_DEBUG, &quot;OSPAuth: token size '%zd'\n&quot;, strlen(token));
+ 
+ 	res = ast_osp_auth(provider, &amp;handle, source, chan-&gt;cid.cid_num, chan-&gt;exten, token, &amp;timelimit);
+ 	if (res &gt; 0) {
+@@ -294,11 +294,11 @@
+ 	pbx_builtin_setvar_helper(chan, &quot;OSPCALLING&quot;, result.calling);
+ 	ast_log(LOG_DEBUG, &quot;OSPLookup: OSPCALLING '%s'\n&quot;, result.calling);
+ 	pbx_builtin_setvar_helper(chan, &quot;OSPOUTTOKEN&quot;, result.token);
+-	ast_log(LOG_DEBUG, &quot;OSPLookup: OSPOUTTOKEN size '%d'\n&quot;, strlen(result.token));
++	ast_log(LOG_DEBUG, &quot;OSPLookup: OSPOUTTOKEN size '%zd'\n&quot;, strlen(result.token));
+ 	if (!ast_strlen_zero(result.token)) {
+ 		snprintf(buffer, sizeof(buffer), &quot;P-OSP-Auth-Token: %s&quot;, result.token);
+ 		pbx_builtin_setvar_helper(chan, &quot;_SIPADDHEADER&quot;, buffer);
+-		ast_log(LOG_DEBUG, &quot;OSPLookup: SIPADDHEADER size '%d'\n&quot;, strlen(buffer));
++		ast_log(LOG_DEBUG, &quot;OSPLookup: SIPADDHEADER size '%zd'\n&quot;, strlen(buffer));
+ 	}
+ 	snprintf(buffer, sizeof(buffer), &quot;%d&quot;, result.numresults);
+ 	pbx_builtin_setvar_helper(chan, &quot;OSPRESULTS&quot;, buffer);
+@@ -440,11 +440,11 @@
+ 	pbx_builtin_setvar_helper(chan, &quot;OSPCALLING&quot;, result.calling);
+ 	ast_log(LOG_DEBUG, &quot;OSPNext: OSPCALLING '%s'\n&quot;, result.calling);
+ 	pbx_builtin_setvar_helper(chan, &quot;OSPOUTTOKEN&quot;, result.token);
+-	ast_log(LOG_DEBUG, &quot;OSPNext: OSPOUTTOKEN size '%d'\n&quot;, strlen(result.token));
++	ast_log(LOG_DEBUG, &quot;OSPNext: OSPOUTTOKEN size '%zd'\n&quot;, strlen(result.token));
+ 	if (!ast_strlen_zero(result.token)) {
+ 		snprintf(buffer, sizeof(buffer), &quot;P-OSP-Auth-Token: %s&quot;, result.token);
+ 		pbx_builtin_setvar_helper(chan, &quot;_SIPADDHEADER&quot;, buffer);
+-		ast_log(LOG_DEBUG, &quot;OSPNext: SIPADDHEADER size '%d'\n&quot;, strlen(buffer));
++		ast_log(LOG_DEBUG, &quot;OSPNext: SIPADDHEADER size '%zd'\n&quot;, strlen(buffer));
+ 	}
+ 	snprintf(buffer, sizeof(buffer), &quot;%d&quot;, result.numresults);
+ 	pbx_builtin_setvar_helper(chan, &quot;OSPRESULTS&quot;, buffer);
+
+Modified: trunk/codecs/lpc10/lpc10.h
+===================================================================
+--- trunk/codecs/lpc10/lpc10.h	2006-06-27 23:20:12 UTC (rev 321)
++++ trunk/codecs/lpc10/lpc10.h	2006-06-27 23:32:41 UTC (rev 322)
+@@ -31,6 +31,8 @@
+ #ifndef __LPC10_H__
+ #define __LPC10_H__
+ 
++#define P_R_O_T_O_T_Y_P_E_S
++
+ #define LPC10_SAMPLES_PER_FRAME 180
+ #define LPC10_BITS_IN_COMPRESSED_FRAME 54
+ 
+
+Modified: trunk/codecs/lpc10/lpcini.c
+===================================================================
+--- trunk/codecs/lpc10/lpcini.c	2006-06-27 23:20:12 UTC (rev 321)
++++ trunk/codecs/lpc10/lpcini.c	2006-06-27 23:32:41 UTC (rev 322)
+@@ -29,13 +29,6 @@
+ 
+ */
+ 
+-#ifdef P_R_O_T_O_T_Y_P_E_S
+-extern int lpcini_(void);
+-/* comlen contrl_ 12 */
+-/*:ref: initlpcenc_ 14 0 */
+-/*:ref: initlpcdec_ 14 0 */
+-#endif
+-
+ /*  -- translated by f2c (version 19951025).
+    You must link the resulting object file with the libraries:
+ 	-lf2c -lm   (in that order)
+@@ -44,6 +37,13 @@
+ #include &lt;stdlib.h&gt;
+ #include &quot;f2c.h&quot;
+ 
++#ifdef P_R_O_T_O_T_Y_P_E_S
++extern int lpcini_(void);
++/* comlen contrl_ 12 */
++/*:ref: initlpcenc_ 14 0 */
++/*:ref: initlpcdec_ 14 0 */
++#endif
++
+ /* Common Block Declarations */
+ 
+ struct {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000316.html">[solid-pbx-svn] r321 - in trunk: channels doc
+</A></li>
+	<LI>Next message: <A HREF="000318.html">[solid-pbx-svn] r323 - in trunk: pbx pbx/ael utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#317">[ date ]</a>
+              <a href="thread.html#317">[ thread ]</a>
+              <a href="subject.html#317">[ subject ]</a>
+              <a href="author.html#317">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

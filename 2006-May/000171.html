@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r176 - in trunk: . apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r176%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605191619.k4JGJ4ov005523%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000170.html">
+   <LINK REL="Next"  HREF="000172.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r176 - in trunk: . apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r176%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605191619.k4JGJ4ov005523%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r176 - in trunk: . apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May 19 18:19:04 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000170.html">[solid-pbx-svn] r175 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000172.html">[solid-pbx-svn] r177 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#171">[ date ]</a>
+              <a href="thread.html#171">[ thread ]</a>
+              <a href="subject.html#171">[ subject ]</a>
+              <a href="author.html#171">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-19 18:19:01 +0200 (Fri, 19 May 2006)
+New Revision: 176
+
+Modified:
+   trunk/app.c
+   trunk/apps/app_queue.c
+   trunk/apps/app_voicemail.c
+Log:
+Update to Asterisk SVN trunk r28674
+
+------------------------------------------------------------------------
+r28628 | file | 2006-05-19 17:40:39 +0200 (Fri, 19 May 2006) | 10 lines
+
+Merged revisions 28627 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r28627 | file | 2006-05-19 12:38:59 -0300 (Fri, 19 May 2006) | 2 lines
+
+Treat paused queue members as unreachable (issue #7127 reported by peterh)
+
+.......
+
+------------------------------------------------------------------------
+r28629 | tilghman | 2006-05-19 17:44:33 +0200 (Fri, 19 May 2006) | 2 lines
+
+Missing messagecount2 function
+
+------------------------------------------------------------------------
+r28631 | file | 2006-05-19 17:53:14 +0200 (Fri, 19 May 2006) | 9 lines
+
+Blocked revisions 28630 via svnmerge
+
+.......
+r28630 | file | 2006-05-19 12:52:09 -0300 (Fri, 19 May 2006) | 2 lines
+
+Backport of fix for issue #6654 that was fixed in trunk but not here
+
+.......
+
+------------------------------------------------------------------------
+r28657 | file | 2006-05-19 18:04:35 +0200 (Fri, 19 May 2006) | 10 lines
+
+Merged revisions 28651 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r28651 | file | 2006-05-19 13:03:33 -0300 (Fri, 19 May 2006) | 2 lines
+
+When forwarding messages use the context that the active voicemail user was found in. (issue #7010)
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/app.c
+===================================================================
+--- trunk/app.c	2006-05-19 09:19:25 UTC (rev 175)
++++ trunk/app.c	2006-05-19 16:19:01 UTC (rev 176)
+@@ -196,6 +196,20 @@
+ 	return 0;
+ }
+ 
++int ast_app_messagecount2(const char *context, const char *mailbox, const char *folder)
++{
++	static int warned = 0;
++	if (ast_messagecount2_func)
++		return ast_messagecount2_func(context, mailbox, folder);
++
++	if (!warned &amp;&amp; (option_verbose &gt; 2)) {
++		warned++;
++		ast_verbose(VERBOSE_PREFIX_3 &quot;Message count requested for mailbox %s@%s/%s but voicemail not loaded.\n&quot;, mailbox, context, folder);
++	}
++
++	return 0;
++}
++
+ int ast_dtmf_stream(struct ast_channel *chan, struct ast_channel *peer, const char *digits, int between) 
+ {
+ 	const char *ptr;
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-05-19 09:19:25 UTC (rev 175)
++++ trunk/apps/app_queue.c	2006-05-19 16:19:01 UTC (rev 176)
+@@ -455,6 +455,8 @@
+ 		if (max_penalty &amp;&amp; (member-&gt;penalty &gt; max_penalty))
+ 			continue;
+ 
++		if (member-&gt;paused) continue;
++
+ 		switch (member-&gt;status) {
+ 		case AST_DEVICE_INVALID:
+ 			/* nothing to do */
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-19 09:19:25 UTC (rev 175)
++++ trunk/apps/app_voicemail.c	2006-05-19 16:19:01 UTC (rev 176)
+@@ -5626,7 +5626,7 @@
+ 
+ 				case '5': /* Leave VoiceMail */
+ 					if (ast_test_flag(vmu, VM_SVMAIL)) {
+-						cmd = forward_message(chan, context, vms.curdir, vms.curmsg, vmu, vmfmts, 1, record_gain);
++						cmd = forward_message(chan, vmu-&gt;context, vms.curdir, vms.curmsg, vmu, vmfmts, 1, record_gain);
+ 						if (cmd == ERROR_LOCK_PATH) {
+ 							res = cmd;
+ 							goto out;
+@@ -5707,7 +5707,7 @@
+ 	
+ 		case '8':
+ 			if (vms.lastmsg &gt; -1) {
+-				cmd = forward_message(chan, context, vms.curdir, vms.curmsg, vmu, vmfmts, 0, record_gain);
++				cmd = forward_message(chan, vmu-&gt;context, vms.curdir, vms.curmsg, vmu, vmfmts, 0, record_gain);
+ 				if (cmd == ERROR_LOCK_PATH) {
+ 					res = cmd;
+ 					goto out;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000170.html">[solid-pbx-svn] r175 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000172.html">[solid-pbx-svn] r177 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#171">[ date ]</a>
+              <a href="thread.html#171">[ thread ]</a>
+              <a href="subject.html#171">[ subject ]</a>
+              <a href="author.html#171">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

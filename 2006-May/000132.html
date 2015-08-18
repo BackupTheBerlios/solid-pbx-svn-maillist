@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r136 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r136%20-%20trunk&In-Reply-To=%3C200605111328.k4BDSllS009968%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000131.html">
+   <LINK REL="Next"  HREF="000137.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r136 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r136%20-%20trunk&In-Reply-To=%3C200605111328.k4BDSllS009968%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r136 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May 11 15:28:47 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000131.html">[solid-pbx-svn] r135 - in trunk: . channels
+</A></li>
+        <LI>Next message: <A HREF="000137.html">[solid-pbx-svn] r137 - in trunk: . channels configs doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#132">[ date ]</a>
+              <a href="thread.html#132">[ thread ]</a>
+              <a href="subject.html#132">[ subject ]</a>
+              <a href="author.html#132">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-11 15:28:42 +0200 (Thu, 11 May 2006)
+New Revision: 136
+
+Modified:
+   trunk/Makefile
+Log:
+Update to Asterisk SVN trunk r26877
+
+------------------------------------------------------------------------
+r26877 | kpfleming | 2006-05-11 15:15:10 +0200 (Thu, 11 May 2006) | 2 lines
+
+various minor cleanups
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-11 11:29:18 UTC (rev 135)
++++ trunk/Makefile	2006-05-11 13:28:42 UTC (rev 136)
+@@ -69,7 +69,7 @@
+ OVERWRITE=y
+ 
+ # Include debug and macro symbols in the executables (-g) and profiling info (-pg)
+-DEBUG=-g3 #-pg
++DEBUG=-g3
+ 
+ # Set NOCRYPTO to yes if you do not want to have crypto support or dependencies
+ #NOCRYPTO=yes
+@@ -85,18 +85,8 @@
+ #endif
+ 
+ # Asterisk SMDI integration
+-WITH_SMDI = 1
++WITH_SMDI=1
+ 
+-# Optional debugging parameters
+-DEBUG_THREADS = #-DDUMP_SCHEDULER #-DDEBUG_SCHEDULER #-DDEBUG_THREADS #-DDO_CRASH #-DDETECT_DEADLOCKS
+-
+-# If you want to debug channel locking, try this (depends on code using
+-# ast_channel_lock and companions to work)
+-DEBUG_THREADS += #-DDEBUG_CHANNEL_LOCKS
+-
+-# Uncomment next one to enable ast_frame tracing (for debugging)
+-TRACE_FRAMES = #-DTRACE_FRAMES
+-
+ # Where to install asterisk after compiling
+ # Default -&gt; leave empty
+ INSTALL_PREFIX?=
+@@ -110,16 +100,16 @@
+ #DESTDIR?=/tmp/asterisk
+ 
+ # Original busydetect routine
+-BUSYDETECT = #-DBUSYDETECT
++#BUSYDETECT = -DBUSYDETECT
+ 
+ # Improved busydetect routine, comment the previous one if you use this one
+-BUSYDETECT+= #-DBUSYDETECT_MARTIN 
++#BUSYDETECT+= -DBUSYDETECT_MARTIN 
+ # Detect the busy signal looking only at tone lengths
+ # For example if you have 3 beeps 100ms tone, 100ms silence separated by 500 ms of silence
+-BUSYDETECT+= #-DBUSYDETECT_TONEONLY
++#BUSYDETECT+= -DBUSYDETECT_TONEONLY
+ # Enforce the detection of busy signal (get rid of false hangups)
+ # Don't use together with -DBUSYDETECT_TONEONLY
+-BUSYDETECT+= #-DBUSYDETECT_COMPARE_TONE_AND_SILENCE
++#BUSYDETECT+= -DBUSYDETECT_COMPARE_TONE_AND_SILENCE
+ 
+ # Define standard directories for various platforms
+ # These apply if they are not redefined in asterisk.conf 
+@@ -251,7 +241,7 @@
+   ID=/usr/xpg4/bin/id
+ endif
+ 
+-ASTCFLAGS+=-pipe  -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations $(DEBUG) $(INCLUDE) #-DMAKE_VALGRIND_HAPPY
++ASTCFLAGS+=-pipe  -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations $(DEBUG) $(INCLUDE)
+ ASTCFLAGS+=$(OPTIMIZE)
+ 
+ ifeq ($(AST_DEVMODE),yes)
+@@ -259,7 +249,7 @@
+ endif
+ 
+ ifeq ($(shell gcc -v 2&gt;&amp;1 | grep 'gcc version' | cut -f3 -d' ' | cut -f1 -d.),4)
+-ASTCFLAGS+= -Wno-pointer-sign
++ASTCFLAGS+=-Wno-pointer-sign
+ endif
+ ASTOBJ=-o asterisk
+ 
+@@ -322,13 +312,9 @@
+   endif
+ endif
+ 
+-ASTCFLAGS+= $(DEBUG_THREADS)
+-ASTCFLAGS+= $(TRACE_FRAMES)
+-ASTCFLAGS+= $(MALLOC_DEBUG)
+-ASTCFLAGS+= $(BUSYDETECT)
+-ASTCFLAGS+= $(OPTIONS)
++ASTCFLAGS+=$(MALLOC_DEBUG)$(BUSYDETECT)$(OPTIONS)
+ ifeq ($(findstring dont-optimize,$(MAKECMDGOALS)),)
+-ASTCFLAGS+= -fomit-frame-pointer 
++ASTCFLAGS+=-fomit-frame-pointer 
+ endif
+ 
+ MOD_SUBDIRS=res channels pbx apps codecs formats cdr funcs
+@@ -347,11 +333,11 @@
+ # we need to link in the objects statically, not as a library, because
+ # otherwise modules will not have them available if none of the static
+ # objects use it.
+-OBJS+= stdtime/localtime.o
++OBJS+=stdtime/localtime.o
+ 
+ # At the moment say.o is an optional component which can be overridden
+ # by a module.
+-OBJS+= say.o
++OBJS+=say.o
+ 
+ ifeq ($(wildcard $(CROSS_COMPILE_TARGET)/usr/include/sys/poll.h),)
+   OBJS+= poll.o
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000131.html">[solid-pbx-svn] r135 - in trunk: . channels
+</A></li>
+	<LI>Next message: <A HREF="000137.html">[solid-pbx-svn] r137 - in trunk: . channels configs doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#132">[ date ]</a>
+              <a href="thread.html#132">[ thread ]</a>
+              <a href="subject.html#132">[ subject ]</a>
+              <a href="author.html#132">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

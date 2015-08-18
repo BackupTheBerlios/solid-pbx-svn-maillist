@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r307 - in trunk: build_tools include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r307%20-%20in%20trunk%3A%20build_tools%20include/asterisk&In-Reply-To=%3C200606240221.k5O2LZCJ027017%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000301.html">
+   <LINK REL="Next"  HREF="000303.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r307 - in trunk: build_tools include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r307%20-%20in%20trunk%3A%20build_tools%20include/asterisk&In-Reply-To=%3C200606240221.k5O2LZCJ027017%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r307 - in trunk: build_tools include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 24 04:21:35 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000301.html">[solid-pbx-svn] r306 - in trunk: . build_tools channels
+</A></li>
+        <LI>Next message: <A HREF="000303.html">[solid-pbx-svn] r308 - in trunk: . channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#302">[ date ]</a>
+              <a href="thread.html#302">[ thread ]</a>
+              <a href="subject.html#302">[ subject ]</a>
+              <a href="author.html#302">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-24 04:21:24 +0200 (Sat, 24 Jun 2006)
+New Revision: 307
+
+Modified:
+   trunk/build_tools/menuselect.c
+   trunk/include/asterisk/compat.h
+Log:
+Update to Asterisk SVN trunk r33123
+
+------------------------------------------------------------------------
+r33114 | russell | 2006-06-08 22:49:59 +0200 (Thu, 08 Jun 2006) | 3 lines
+
+always include inttypes.h and sys/types.h in asterisk/compat.h to fix a build
+problem on mac and place asterisk.h back at the top of menuselect.c
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/build_tools/menuselect.c
+===================================================================
+--- trunk/build_tools/menuselect.c	2006-06-24 02:20:03 UTC (rev 306)
++++ trunk/build_tools/menuselect.c	2006-06-24 02:21:24 UTC (rev 307)
+@@ -24,13 +24,13 @@
+  * \brief A menu-driven system for Asterisk module selection
+  */
+ 
++#include &quot;asterisk.h&quot;
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;unistd.h&gt;
+ 
+-#include &quot;asterisk.h&quot;
+-
+ #include &quot;mxml/mxml.h&quot;
+ #include &quot;menuselect.h&quot;
+ 
+
+Modified: trunk/include/asterisk/compat.h
+===================================================================
+--- trunk/include/asterisk/compat.h	2006-06-24 02:20:03 UTC (rev 306)
++++ trunk/include/asterisk/compat.h	2006-06-24 02:21:24 UTC (rev 307)
+@@ -16,6 +16,9 @@
+ #ifndef _COMPAT_H
+ #define _COMPAT_H
+ 
++#include &lt;inttypes.h&gt;
++#include &lt;sys/types.h&gt;
++
+ #ifndef HAVE_STRSEP
+ char* strsep(char** str, const char* delims);
+ #endif
+@@ -81,18 +84,6 @@
+ #endif
+ #endif /* __CYGWIN__ */
+ 
+-#ifdef __linux__
+-#include &lt;inttypes.h&gt;
+-#endif
+-
+-#ifdef __Darwin__
+-#include &lt;inttypes.h&gt;
+-#endif
+-
+-#ifdef __FreeBSD__
+-#include &lt;sys/types.h&gt;
+-#endif
+-
+ #ifdef __CYGWIN__
+ typedef unsigned long long uint64_t;
+ #endif
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000301.html">[solid-pbx-svn] r306 - in trunk: . build_tools channels
+</A></li>
+	<LI>Next message: <A HREF="000303.html">[solid-pbx-svn] r308 - in trunk: . channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#302">[ date ]</a>
+              <a href="thread.html#302">[ thread ]</a>
+              <a href="subject.html#302">[ subject ]</a>
+              <a href="author.html#302">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

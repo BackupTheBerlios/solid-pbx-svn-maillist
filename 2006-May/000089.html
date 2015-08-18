@@ -1,0 +1,1177 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r93 - in trunk: . include
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r93%20-%20in%20trunk%3A%20.%20include&In-Reply-To=%3C200605081636.k48GaROF005227%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000090.html">
+   <LINK REL="Next"  HREF="000091.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r93 - in trunk: . include</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r93%20-%20in%20trunk%3A%20.%20include&In-Reply-To=%3C200605081636.k48GaROF005227%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r93 - in trunk: . include">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  8 18:36:27 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000090.html">[solid-pbx-svn] r92 - in trunk: . channels configs include mxml
+</A></li>
+        <LI>Next message: <A HREF="000091.html">[solid-pbx-svn] r94 - trunk/utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#89">[ date ]</a>
+              <a href="thread.html#89">[ thread ]</a>
+              <a href="subject.html#89">[ subject ]</a>
+              <a href="author.html#89">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-08 18:36:21 +0200 (Mon, 08 May 2006)
+New Revision: 93
+
+Modified:
+   trunk/Makefile
+   trunk/configure
+   trunk/include/autoconfig.h.in
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r25653
+
+------------------------------------------------------------------------
+r25651 | kpfleming | 2006-05-08 18:11:33 +0200 (Mon, 08 May 2006) | 2 lines
+
+commit the proper configure script
+
+------------------------------------------------------------------------
+r25652 | rizzo | 2006-05-08 18:14:29 +0200 (Mon, 08 May 2006) | 3 lines
+
+localize some variables
+
+
+------------------------------------------------------------------------
+r25653 | kpfleming | 2006-05-08 18:17:00 +0200 (Mon, 08 May 2006) | 2 lines
+
+make Makefile slightly less noisy
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-08 16:32:48 UTC (rev 92)
++++ trunk/Makefile	2006-05-08 16:36:21 UTC (rev 93)
+@@ -543,16 +543,16 @@
+ 	$(CC) $(AUDIO_LIBS) -o muted muted.o
+ 
+ subdirs: 
+-	for x in $(MOD_SUBDIRS); do CFLAGS=&quot;$(ASTCFLAGS) $(MOD_SUBDIR_CFLAGS)&quot; $(MAKE) -C $$x || exit 1 ; done
+-	CFLAGS=&quot;$(ASTCFLAGS) $(OTHER_SUBDIR_CFLAGS)&quot; $(MAKE) -C utils
+-	CFLAGS=&quot;$(ASTCFLAGS) $(OTHER_SUBDIR_CFLAGS)&quot; $(MAKE) -C agi
++	@for x in $(MOD_SUBDIRS); do CFLAGS=&quot;$(ASTCFLAGS) $(MOD_SUBDIR_CFLAGS)&quot; $(MAKE) -C $$x || exit 1 ; done
++	@CFLAGS=&quot;$(ASTCFLAGS) $(OTHER_SUBDIR_CFLAGS)&quot; $(MAKE) -C utils
++	@CFLAGS=&quot;$(ASTCFLAGS) $(OTHER_SUBDIR_CFLAGS)&quot; $(MAKE) -C agi
+ 
+ clean-depend:
+-	for x in $(SUBDIRS); do $(MAKE) -C $$x clean-depend || exit 1 ; done
++	@for x in $(SUBDIRS); do $(MAKE) -C $$x clean-depend || exit 1 ; done
+ 	rm -f .depend .tags-depend
+ 
+ clean: clean-depend
+-	for x in $(SUBDIRS); do $(MAKE) -C $$x clean || exit 1 ; done
++	@for x in $(SUBDIRS); do $(MAKE) -C $$x clean || exit 1 ; done
+ 	rm -f *.o *.so asterisk
+ 	rm -f defaults.h
+ 	rm -f include/asterisk/build.h
+@@ -708,7 +708,7 @@
+ 	if [ -f mpg123-0.59r/mpg123 ]; then $(MAKE) -C mpg123-0.59r install; fi
+ 
+ install-subdirs:
+-	for x in $(SUBDIRS); do $(MAKE) -C $$x install || exit 1 ; done
++	@for x in $(SUBDIRS); do $(MAKE) -C $$x install || exit 1 ; done
+ 
+ NEWMODS=$(notdir $(wildcard */*.so))
+ OLDMODS=$(filter-out $(NEWMODS),$(notdir $(wildcard $(DESTDIR)$(MODULES_DIR)/*.so)))
+@@ -914,7 +914,7 @@
+ valgrind: dont-optimize
+ 
+ depend: include/asterisk/version.h .depend defaults.h 
+-	for x in $(SUBDIRS); do $(MAKE) -C $$x depend || exit 1 ; done
++	@for x in $(SUBDIRS); do $(MAKE) -C $$x depend || exit 1 ; done
+ 
+ .depend: include/asterisk/version.h defaults.h
+ 	build_tools/mkdep $(CFLAGS) $(wildcard *.c)
+
+Modified: trunk/configure
+===================================================================
+--- trunk/configure	2006-05-08 16:32:48 UTC (rev 92)
++++ trunk/configure	2006-05-08 16:36:21 UTC (rev 93)
+@@ -1,5 +1,5 @@
+ #! /bin/sh
+-# From configure.ac Revision: 23897 .
++# From configure.ac Revision: 25611 .
+ # Guess values for system-dependent variables and create Makefiles.
+ # Generated by GNU Autoconf 2.59.
+ #
+@@ -314,7 +314,7 @@
+ # include &lt;unistd.h&gt;
+ #endif&quot;
+ 
+-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os PBX_PLATFORM PBX_CPU PBX_VENDOR PBX_OS UNAME ac_pt_UNAME PBX_OSREV OSISWIN32 PBX_OSTYPE CC ac_ct_CC CXX ac_ct_CXX RANLIB ac_ct_RANLIB AR ac_ct_AR NM ac_ct_NM WINDRES ac_ct_WINDRES DLLWRAP ac_ct_DLLWRAP CFLAGS LDFLAGS CPPFLAGS EXEEXT OBJEXT CXXFLAGS CPP CXXCPP AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LN_S GNU_MAKE GREP FIND COMPRESS BASENAME DIRNAME LN DOT AST_DEVMODE EGREP asound_LIB asound_INCLUDE PBX_LIBasound curses_LIB curses_INCLUDE PBX_LIBcurses nbs_LIB nbs_INCLUDE PBX_LIBnbs ncurses_LIB ncurses_INCLUDE PBX_LIBn!
+ curses newt_LIB newt_INCLUDE PBX_LIBnewt odbc_LIB odbc_INCLUDE PBX_LIBodbc ogg_LIB ogg_INCLUDE PBX_LIBogg osptk_LIB osptk_INCLUDE PBX_LIBosptk popt_LIB popt_INCLUDE PBX_LIBpopt pri_LIB pri_INCLUDE PBX_LIBpri speex_LIB speex_INCLUDE PBX_LIBspeex sqlite_LIB sqlite_INCLUDE PBX_LIBsqlite ssl_LIB ssl_INCLUDE PBX_LIBssl tds_LIB tds_INCLUDE PBX_LIBtds vorbis_LIB vorbis_INCLUDE PBX_LIBvorbis z_LIB z_INCLUDE PBX_LIBz ossaudio_LIB ossaudio_INCLUDE PBX_LIBossaudio tonezone_LIB tonezone_INCLUDE PBX_LIBtonezone gsm_LIB gsm_INCLUDE PBX_LIBgsm PG_CONFIG ac_pt_PG_CONFIG pq_INCLUDE pq_LIB PBX_LIBpq PBX_H323 PBX_IXJUSER VPB_INCLUDE VPB_LIB PBX_LIBvpb QT_INCLUDE QT_LIB QTMOC ac_pt_QTMOC PBX_QT KDE_INCLUDE KDE_LIBS PBX_KDE KDEINIT ac_pt_KDEINIT KDEDIR GTKCONFIG ac_ct_GTKCONFIG PBX_GTK GTK_INCLUDE GTK_LIBS PWLIB_INCLUDE PWLIB_LIB PBX_LIBPWLIB CURL ac_pt_CURL PBX_CURL CURLLIBS ALLOCA LIBOBJS POW_LIB LTLIBOBJS'
++ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os target target_cpu target_vendor target_os PBX_PLATFORM PBX_CPU PBX_VENDOR PBX_OS UNAME ac_pt_UNAME PBX_OSREV OSISWIN32 PBX_OSTYPE CC ac_ct_CC CXX ac_ct_CXX RANLIB ac_ct_RANLIB AR ac_ct_AR NM ac_ct_NM WINDRES ac_ct_WINDRES DLLWRAP ac_ct_DLLWRAP CFLAGS LDFLAGS CPPFLAGS EXEEXT OBJEXT CXXFLAGS CPP CXXCPP AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LN_S GNU_MAKE GREP FIND COMPRESS BASENAME DIRNAME LN DOT AST_DEVMODE EGREP asound_LIB asound_INCLUDE PBX_LIBasound curses_LIB curses_INCLUDE PBX_LIBcurses nbs_LIB nbs_INCLUDE PBX_LIBnbs ncurses_LIB ncurses_INCLUDE PBX_LIBn!
+ curses newt_LIB newt_INCLUDE PBX_LIBnewt odbc_LIB odbc_INCLUDE PBX_LIBodbc ogg_LIB ogg_INCLUDE PBX_LIBogg osptk_LIB osptk_INCLUDE PBX_LIBosptk popt_LIB popt_INCLUDE PBX_LIBpopt pri_LIB pri_INCLUDE PBX_LIBpri speex_LIB speex_INCLUDE PBX_LIBspeex sqlite_LIB sqlite_INCLUDE PBX_LIBsqlite ssl_LIB ssl_INCLUDE PBX_LIBssl tds_LIB tds_INCLUDE PBX_LIBtds termcap_LIB termcap_INCLUDE PBX_LIBtermcap tinfo_LIB tinfo_INCLUDE PBX_LIBtinfo vorbis_LIB vorbis_INCLUDE PBX_LIBvorbis z_LIB z_INCLUDE PBX_LIBz EDITLINE_LIBS ossaudio_LIB ossaudio_INCLUDE PBX_LIBossaudio tonezone_LIB tonezone_INCLUDE PBX_LIBtonezone gsm_LIB gsm_INCLUDE PBX_LIBgsm PG_CONFIG ac_pt_PG_CONFIG pq_INCLUDE pq_LIB PBX_LIBpq PBX_H323 PBX_IXJUSER VPB_INCLUDE VPB_LIB PBX_LIBvpb QT_INCLUDE QT_LIB QTMOC ac_pt_QTMOC PBX_QT KDE_INCLUDE KDE_LIBS PBX_KDE KDEINIT ac_pt_KDEINIT KDEDIR GTKCONFIG ac_ct_GTKCONFIG PBX_GTK GTK_INCLUDE GTK_LIBS PWLIB_INCLUDE PWLIB_LIB PBX_LIBPWLIB CURL ac_pt_CURL PBX_CURL CURLLIBS ALLOCA LIBOBJS POW_LIB LTL!
+ IBOBJS'
+ ac_subst_files=''
+ 
+ # Initialize some variables set by options.
+@@ -882,6 +882,8 @@
+   --with-sqlite=PATH      use SQLite files in PATH
+   --with-ssl=PATH         use OpenSSL files in PATH
+   --with-tds=PATH         use FreeTDS files in PATH
++  --with-termcap=PATH     use Termcap files in PATH
++  --with-tinfo=PATH       use Term Info files in PATH
+   --with-vorbis=PATH      use Vorbis files in PATH
+   --with-z=PATH           use zlib files in PATH
+   --with-ossaudio=PATH    use Open Sound System files in PATH
+@@ -10848,6 +10850,862 @@
+ 
+ 
+ 
++# Check whether --with-termcap or --without-termcap was given.
++if test &quot;${with_termcap+set}&quot; = set; then
++  withval=&quot;$with_termcap&quot;
++
++case ${withval} in
++     n|no)
++     USE_termcap=no
++     ;;
++     y|ye|yes)
++     termcap_MANDATORY=&quot;yes&quot;
++     ;;
++     *)
++     termcap_DIR=&quot;${withval}&quot;
++     termcap_MANDATORY=&quot;yes&quot;
++     ;;
++esac
++
++fi;
++
++PBX_LIBtermcap=0
++
++if test &quot;${USE_termcap}&quot; != &quot;no&quot;; then
++   libdir=&quot;&quot;
++   if test &quot;x${termcap_DIR}&quot; != &quot;x&quot;; then
++      libdir=&quot;-L${termcap_DIR}/lib&quot;
++   fi
++   echo &quot;$as_me:$LINENO: checking for tgetent in -ltermcap&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking for tgetent in -ltermcap... $ECHO_C&quot; &gt;&amp;6
++if test &quot;${ac_cv_lib_termcap_tgetent+set}&quot; = set; then
++  echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS=&quot;-ltermcap ${libdir}  $LIBS&quot;
++cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h &gt;&gt;conftest.$ac_ext
++cat &gt;&gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* end confdefs.h.  */
++
++/* Override any gcc2 internal prototype to avoid an error.  */
++#ifdef __cplusplus
++extern &quot;C&quot;
++#endif
++/* We use char because int might match the return type of a gcc2
++   builtin and then its argument prototype would still apply.  */
++char tgetent ();
++int
++main ()
++{
++tgetent ();
++  ;
++  return 0;
++}
++_ACEOF
++rm -f conftest.$ac_objext conftest$ac_exeext
++if { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_link\&quot;&quot;) &gt;&amp;5
++  (eval $ac_link) 2&gt;conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 &gt;conftest.err
++  rm -f conftest.er1
++  cat conftest.err &gt;&amp;5
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); } &amp;&amp;
++	 { ac_try='test -z &quot;$ac_c_werror_flag&quot;			 || test ! -s conftest.err'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; } &amp;&amp;
++	 { ac_try='test -s conftest$ac_exeext'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; }; then
++  ac_cv_lib_termcap_tgetent=yes
++else
++  echo &quot;$as_me: failed program was:&quot; &gt;&amp;5
++sed 's/^/| /' conftest.$ac_ext &gt;&amp;5
++
++ac_cv_lib_termcap_tgetent=no
++fi
++rm -f conftest.err conftest.$ac_objext \
++      conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++echo &quot;$as_me:$LINENO: result: $ac_cv_lib_termcap_tgetent&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_cv_lib_termcap_tgetent&quot; &gt;&amp;6
++if test $ac_cv_lib_termcap_tgetent = yes; then
++  :
++fi
++
++
++   if test &quot;${ac_cv_lib_termcap_tgetent}&quot; = &quot;yes&quot;; then
++      termcap_LIB=&quot;-ltermcap &quot;
++      TERMCAP_HEADER_FOUND=&quot;1&quot;
++      if test &quot;x${termcap_DIR}&quot; != &quot;x&quot;; then
++         termcap_LIB=&quot;${libdir} ${termcap_LIB}&quot;
++	 termcap_INCLUDE=&quot;-I${termcap_DIR}/include&quot;
++	 if test &quot;x&quot; != &quot;x&quot; ; then
++	    as_ac_Header=`echo &quot;ac_cv_header_${termcap_DIR}/include/&quot; | $as_tr_sh`
++if eval &quot;test \&quot;\${$as_ac_Header+set}\&quot; = set&quot;; then
++  echo &quot;$as_me:$LINENO: checking for ${termcap_DIR}/include/&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking for ${termcap_DIR}/include/... $ECHO_C&quot; &gt;&amp;6
++if eval &quot;test \&quot;\${$as_ac_Header+set}\&quot; = set&quot;; then
++  echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
++fi
++echo &quot;$as_me:$LINENO: result: `eval echo '${'$as_ac_Header'}'`&quot; &gt;&amp;5
++echo &quot;${ECHO_T}`eval echo '${'$as_ac_Header'}'`&quot; &gt;&amp;6
++else
++  # Is the header compilable?
++echo &quot;$as_me:$LINENO: checking ${termcap_DIR}/include/ usability&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking ${termcap_DIR}/include/ usability... $ECHO_C&quot; &gt;&amp;6
++cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h &gt;&gt;conftest.$ac_ext
++cat &gt;&gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* end confdefs.h.  */
++$ac_includes_default
++#include &lt;${termcap_DIR}/include/&gt;
++_ACEOF
++rm -f conftest.$ac_objext
++if { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_compile\&quot;&quot;) &gt;&amp;5
++  (eval $ac_compile) 2&gt;conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 &gt;conftest.err
++  rm -f conftest.er1
++  cat conftest.err &gt;&amp;5
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); } &amp;&amp;
++	 { ac_try='test -z &quot;$ac_c_werror_flag&quot;			 || test ! -s conftest.err'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; } &amp;&amp;
++	 { ac_try='test -s conftest.$ac_objext'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; }; then
++  ac_header_compiler=yes
++else
++  echo &quot;$as_me: failed program was:&quot; &gt;&amp;5
++sed 's/^/| /' conftest.$ac_ext &gt;&amp;5
++
++ac_header_compiler=no
++fi
++rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
++echo &quot;$as_me:$LINENO: result: $ac_header_compiler&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_header_compiler&quot; &gt;&amp;6
++
++# Is the header present?
++echo &quot;$as_me:$LINENO: checking ${termcap_DIR}/include/ presence&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking ${termcap_DIR}/include/ presence... $ECHO_C&quot; &gt;&amp;6
++cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h &gt;&gt;conftest.$ac_ext
++cat &gt;&gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* end confdefs.h.  */
++#include &lt;${termcap_DIR}/include/&gt;
++_ACEOF
++if { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_cpp conftest.$ac_ext\&quot;&quot;) &gt;&amp;5
++  (eval $ac_cpp conftest.$ac_ext) 2&gt;conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 &gt;conftest.err
++  rm -f conftest.er1
++  cat conftest.err &gt;&amp;5
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); } &gt;/dev/null; then
++  if test -s conftest.err; then
++    ac_cpp_err=$ac_c_preproc_warn_flag
++    ac_cpp_err=$ac_cpp_err$ac_c_werror_flag
++  else
++    ac_cpp_err=
++  fi
++else
++  ac_cpp_err=yes
++fi
++if test -z &quot;$ac_cpp_err&quot;; then
++  ac_header_preproc=yes
++else
++  echo &quot;$as_me: failed program was:&quot; &gt;&amp;5
++sed 's/^/| /' conftest.$ac_ext &gt;&amp;5
++
++  ac_header_preproc=no
++fi
++rm -f conftest.err conftest.$ac_ext
++echo &quot;$as_me:$LINENO: result: $ac_header_preproc&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_header_preproc&quot; &gt;&amp;6
++
++# So?  What about this header?
++case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
++  yes:no: )
++    { echo &quot;$as_me:$LINENO: WARNING: ${termcap_DIR}/include/: accepted by the compiler, rejected by the preprocessor!&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${termcap_DIR}/include/: accepted by the compiler, rejected by the preprocessor!&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${termcap_DIR}/include/: proceeding with the compiler's result&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${termcap_DIR}/include/: proceeding with the compiler's result&quot; &gt;&amp;2;}
++    ac_header_preproc=yes
++    ;;
++  no:yes:* )
++    { echo &quot;$as_me:$LINENO: WARNING: ${termcap_DIR}/include/: present but cannot be compiled&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${termcap_DIR}/include/: present but cannot be compiled&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${termcap_DIR}/include/:     check for missing prerequisite headers?&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${termcap_DIR}/include/:     check for missing prerequisite headers?&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${termcap_DIR}/include/: see the Autoconf documentation&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${termcap_DIR}/include/: see the Autoconf documentation&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${termcap_DIR}/include/:     section \&quot;Present But Cannot Be Compiled\&quot;&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${termcap_DIR}/include/:     section \&quot;Present But Cannot Be Compiled\&quot;&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${termcap_DIR}/include/: proceeding with the preprocessor's result&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${termcap_DIR}/include/: proceeding with the preprocessor's result&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${termcap_DIR}/include/: in the future, the compiler will take precedence&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${termcap_DIR}/include/: in the future, the compiler will take precedence&quot; &gt;&amp;2;}
++    (
++      cat &lt;&lt;\_ASBOX
++## ------------------------------------------ ##
++## Report this to the AC_PACKAGE_NAME lists.  ##
++## ------------------------------------------ ##
++_ASBOX
++    ) |
++      sed &quot;s/^/$as_me: WARNING:     /&quot; &gt;&amp;2
++    ;;
++esac
++echo &quot;$as_me:$LINENO: checking for ${termcap_DIR}/include/&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking for ${termcap_DIR}/include/... $ECHO_C&quot; &gt;&amp;6
++if eval &quot;test \&quot;\${$as_ac_Header+set}\&quot; = set&quot;; then
++  echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
++else
++  eval &quot;$as_ac_Header=\$ac_header_preproc&quot;
++fi
++echo &quot;$as_me:$LINENO: result: `eval echo '${'$as_ac_Header'}'`&quot; &gt;&amp;5
++echo &quot;${ECHO_T}`eval echo '${'$as_ac_Header'}'`&quot; &gt;&amp;6
++
++fi
++if test `eval echo '${'$as_ac_Header'}'` = yes; then
++  TERMCAP_HEADER_FOUND=1
++else
++  TERMCAP_HEADER_FOUND=0
++fi
++
++
++	 fi
++      else
++	 if test &quot;x&quot; != &quot;x&quot; ; then
++            if test &quot;${ac_cv_header_+set}&quot; = set; then
++  echo &quot;$as_me:$LINENO: checking for &quot; &gt;&amp;5
++echo $ECHO_N &quot;checking for ... $ECHO_C&quot; &gt;&amp;6
++if test &quot;${ac_cv_header_+set}&quot; = set; then
++  echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
++fi
++echo &quot;$as_me:$LINENO: result: $ac_cv_header_&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_cv_header_&quot; &gt;&amp;6
++else
++  # Is the header compilable?
++echo &quot;$as_me:$LINENO: checking  usability&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking  usability... $ECHO_C&quot; &gt;&amp;6
++cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h &gt;&gt;conftest.$ac_ext
++cat &gt;&gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* end confdefs.h.  */
++$ac_includes_default
++#include &lt;&gt;
++_ACEOF
++rm -f conftest.$ac_objext
++if { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_compile\&quot;&quot;) &gt;&amp;5
++  (eval $ac_compile) 2&gt;conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 &gt;conftest.err
++  rm -f conftest.er1
++  cat conftest.err &gt;&amp;5
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); } &amp;&amp;
++	 { ac_try='test -z &quot;$ac_c_werror_flag&quot;			 || test ! -s conftest.err'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; } &amp;&amp;
++	 { ac_try='test -s conftest.$ac_objext'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; }; then
++  ac_header_compiler=yes
++else
++  echo &quot;$as_me: failed program was:&quot; &gt;&amp;5
++sed 's/^/| /' conftest.$ac_ext &gt;&amp;5
++
++ac_header_compiler=no
++fi
++rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
++echo &quot;$as_me:$LINENO: result: $ac_header_compiler&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_header_compiler&quot; &gt;&amp;6
++
++# Is the header present?
++echo &quot;$as_me:$LINENO: checking  presence&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking  presence... $ECHO_C&quot; &gt;&amp;6
++cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h &gt;&gt;conftest.$ac_ext
++cat &gt;&gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* end confdefs.h.  */
++#include &lt;&gt;
++_ACEOF
++if { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_cpp conftest.$ac_ext\&quot;&quot;) &gt;&amp;5
++  (eval $ac_cpp conftest.$ac_ext) 2&gt;conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 &gt;conftest.err
++  rm -f conftest.er1
++  cat conftest.err &gt;&amp;5
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); } &gt;/dev/null; then
++  if test -s conftest.err; then
++    ac_cpp_err=$ac_c_preproc_warn_flag
++    ac_cpp_err=$ac_cpp_err$ac_c_werror_flag
++  else
++    ac_cpp_err=
++  fi
++else
++  ac_cpp_err=yes
++fi
++if test -z &quot;$ac_cpp_err&quot;; then
++  ac_header_preproc=yes
++else
++  echo &quot;$as_me: failed program was:&quot; &gt;&amp;5
++sed 's/^/| /' conftest.$ac_ext &gt;&amp;5
++
++  ac_header_preproc=no
++fi
++rm -f conftest.err conftest.$ac_ext
++echo &quot;$as_me:$LINENO: result: $ac_header_preproc&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_header_preproc&quot; &gt;&amp;6
++
++# So?  What about this header?
++case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
++  yes:no: )
++    { echo &quot;$as_me:$LINENO: WARNING: : accepted by the compiler, rejected by the preprocessor!&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : accepted by the compiler, rejected by the preprocessor!&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: : proceeding with the compiler's result&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : proceeding with the compiler's result&quot; &gt;&amp;2;}
++    ac_header_preproc=yes
++    ;;
++  no:yes:* )
++    { echo &quot;$as_me:$LINENO: WARNING: : present but cannot be compiled&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : present but cannot be compiled&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: :     check for missing prerequisite headers?&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: :     check for missing prerequisite headers?&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: : see the Autoconf documentation&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : see the Autoconf documentation&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: :     section \&quot;Present But Cannot Be Compiled\&quot;&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: :     section \&quot;Present But Cannot Be Compiled\&quot;&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: : proceeding with the preprocessor's result&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : proceeding with the preprocessor's result&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: : in the future, the compiler will take precedence&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : in the future, the compiler will take precedence&quot; &gt;&amp;2;}
++    (
++      cat &lt;&lt;\_ASBOX
++## ------------------------------------------ ##
++## Report this to the AC_PACKAGE_NAME lists.  ##
++## ------------------------------------------ ##
++_ASBOX
++    ) |
++      sed &quot;s/^/$as_me: WARNING:     /&quot; &gt;&amp;2
++    ;;
++esac
++echo &quot;$as_me:$LINENO: checking for &quot; &gt;&amp;5
++echo $ECHO_N &quot;checking for ... $ECHO_C&quot; &gt;&amp;6
++if test &quot;${ac_cv_header_+set}&quot; = set; then
++  echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
++else
++  ac_cv_header_=$ac_header_preproc
++fi
++echo &quot;$as_me:$LINENO: result: $ac_cv_header_&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_cv_header_&quot; &gt;&amp;6
++
++fi
++if test $ac_cv_header_ = yes; then
++  TERMCAP_HEADER_FOUND=1
++else
++  TERMCAP_HEADER_FOUND=0
++fi
++
++
++	 fi
++      fi
++      if test &quot;x${TERMCAP_HEADER_FOUND}&quot; = &quot;x0&quot; ; then
++         if test ! -z &quot;${termcap_MANDATORY}&quot; ;
++         then
++            echo &quot; ***&quot;
++            echo &quot; *** It appears that you do not have the termcap development package installed.&quot;
++            echo &quot; *** Please install it to include Termcap support, or re-run configure&quot;
++            echo &quot; *** without explicitly specifying --with-termcap&quot;
++            exit 1
++         fi
++         termcap_LIB=&quot;&quot;
++         termcap_INCLUDE=&quot;&quot;
++         PBX_LIBtermcap=0
++      else
++         PBX_LIBtermcap=1
++
++cat &gt;&gt;confdefs.h &lt;&lt;_ACEOF
++#define HAVE_TERMCAP 1
++_ACEOF
++
++      fi
++   elif test ! -z &quot;${termcap_MANDATORY}&quot;;
++   then
++      echo &quot;***&quot;
++      echo &quot;*** The Termcap installation on this system appears to be broken.&quot;
++      echo &quot;*** Either correct the installation, or run configure&quot;
++      echo &quot;*** without explicity specifying --with-termcap&quot;
++      exit 1
++   fi
++fi
++
++
++
++
++
++
++# Check whether --with-tinfo or --without-tinfo was given.
++if test &quot;${with_tinfo+set}&quot; = set; then
++  withval=&quot;$with_tinfo&quot;
++
++case ${withval} in
++     n|no)
++     USE_tinfo=no
++     ;;
++     y|ye|yes)
++     tinfo_MANDATORY=&quot;yes&quot;
++     ;;
++     *)
++     tinfo_DIR=&quot;${withval}&quot;
++     tinfo_MANDATORY=&quot;yes&quot;
++     ;;
++esac
++
++fi;
++
++PBX_LIBtinfo=0
++
++if test &quot;${USE_tinfo}&quot; != &quot;no&quot;; then
++   libdir=&quot;&quot;
++   if test &quot;x${tinfo_DIR}&quot; != &quot;x&quot;; then
++      libdir=&quot;-L${tinfo_DIR}/lib&quot;
++   fi
++   echo &quot;$as_me:$LINENO: checking for tgetent in -ltinfo&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking for tgetent in -ltinfo... $ECHO_C&quot; &gt;&amp;6
++if test &quot;${ac_cv_lib_tinfo_tgetent+set}&quot; = set; then
++  echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS=&quot;-ltinfo ${libdir}  $LIBS&quot;
++cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h &gt;&gt;conftest.$ac_ext
++cat &gt;&gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* end confdefs.h.  */
++
++/* Override any gcc2 internal prototype to avoid an error.  */
++#ifdef __cplusplus
++extern &quot;C&quot;
++#endif
++/* We use char because int might match the return type of a gcc2
++   builtin and then its argument prototype would still apply.  */
++char tgetent ();
++int
++main ()
++{
++tgetent ();
++  ;
++  return 0;
++}
++_ACEOF
++rm -f conftest.$ac_objext conftest$ac_exeext
++if { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_link\&quot;&quot;) &gt;&amp;5
++  (eval $ac_link) 2&gt;conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 &gt;conftest.err
++  rm -f conftest.er1
++  cat conftest.err &gt;&amp;5
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); } &amp;&amp;
++	 { ac_try='test -z &quot;$ac_c_werror_flag&quot;			 || test ! -s conftest.err'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; } &amp;&amp;
++	 { ac_try='test -s conftest$ac_exeext'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; }; then
++  ac_cv_lib_tinfo_tgetent=yes
++else
++  echo &quot;$as_me: failed program was:&quot; &gt;&amp;5
++sed 's/^/| /' conftest.$ac_ext &gt;&amp;5
++
++ac_cv_lib_tinfo_tgetent=no
++fi
++rm -f conftest.err conftest.$ac_objext \
++      conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++echo &quot;$as_me:$LINENO: result: $ac_cv_lib_tinfo_tgetent&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_cv_lib_tinfo_tgetent&quot; &gt;&amp;6
++if test $ac_cv_lib_tinfo_tgetent = yes; then
++  :
++fi
++
++
++   if test &quot;${ac_cv_lib_tinfo_tgetent}&quot; = &quot;yes&quot;; then
++      tinfo_LIB=&quot;-ltinfo &quot;
++      TINFO_HEADER_FOUND=&quot;1&quot;
++      if test &quot;x${tinfo_DIR}&quot; != &quot;x&quot;; then
++         tinfo_LIB=&quot;${libdir} ${tinfo_LIB}&quot;
++	 tinfo_INCLUDE=&quot;-I${tinfo_DIR}/include&quot;
++	 if test &quot;x&quot; != &quot;x&quot; ; then
++	    as_ac_Header=`echo &quot;ac_cv_header_${tinfo_DIR}/include/&quot; | $as_tr_sh`
++if eval &quot;test \&quot;\${$as_ac_Header+set}\&quot; = set&quot;; then
++  echo &quot;$as_me:$LINENO: checking for ${tinfo_DIR}/include/&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking for ${tinfo_DIR}/include/... $ECHO_C&quot; &gt;&amp;6
++if eval &quot;test \&quot;\${$as_ac_Header+set}\&quot; = set&quot;; then
++  echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
++fi
++echo &quot;$as_me:$LINENO: result: `eval echo '${'$as_ac_Header'}'`&quot; &gt;&amp;5
++echo &quot;${ECHO_T}`eval echo '${'$as_ac_Header'}'`&quot; &gt;&amp;6
++else
++  # Is the header compilable?
++echo &quot;$as_me:$LINENO: checking ${tinfo_DIR}/include/ usability&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking ${tinfo_DIR}/include/ usability... $ECHO_C&quot; &gt;&amp;6
++cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h &gt;&gt;conftest.$ac_ext
++cat &gt;&gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* end confdefs.h.  */
++$ac_includes_default
++#include &lt;${tinfo_DIR}/include/&gt;
++_ACEOF
++rm -f conftest.$ac_objext
++if { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_compile\&quot;&quot;) &gt;&amp;5
++  (eval $ac_compile) 2&gt;conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 &gt;conftest.err
++  rm -f conftest.er1
++  cat conftest.err &gt;&amp;5
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); } &amp;&amp;
++	 { ac_try='test -z &quot;$ac_c_werror_flag&quot;			 || test ! -s conftest.err'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; } &amp;&amp;
++	 { ac_try='test -s conftest.$ac_objext'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; }; then
++  ac_header_compiler=yes
++else
++  echo &quot;$as_me: failed program was:&quot; &gt;&amp;5
++sed 's/^/| /' conftest.$ac_ext &gt;&amp;5
++
++ac_header_compiler=no
++fi
++rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
++echo &quot;$as_me:$LINENO: result: $ac_header_compiler&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_header_compiler&quot; &gt;&amp;6
++
++# Is the header present?
++echo &quot;$as_me:$LINENO: checking ${tinfo_DIR}/include/ presence&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking ${tinfo_DIR}/include/ presence... $ECHO_C&quot; &gt;&amp;6
++cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h &gt;&gt;conftest.$ac_ext
++cat &gt;&gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* end confdefs.h.  */
++#include &lt;${tinfo_DIR}/include/&gt;
++_ACEOF
++if { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_cpp conftest.$ac_ext\&quot;&quot;) &gt;&amp;5
++  (eval $ac_cpp conftest.$ac_ext) 2&gt;conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 &gt;conftest.err
++  rm -f conftest.er1
++  cat conftest.err &gt;&amp;5
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); } &gt;/dev/null; then
++  if test -s conftest.err; then
++    ac_cpp_err=$ac_c_preproc_warn_flag
++    ac_cpp_err=$ac_cpp_err$ac_c_werror_flag
++  else
++    ac_cpp_err=
++  fi
++else
++  ac_cpp_err=yes
++fi
++if test -z &quot;$ac_cpp_err&quot;; then
++  ac_header_preproc=yes
++else
++  echo &quot;$as_me: failed program was:&quot; &gt;&amp;5
++sed 's/^/| /' conftest.$ac_ext &gt;&amp;5
++
++  ac_header_preproc=no
++fi
++rm -f conftest.err conftest.$ac_ext
++echo &quot;$as_me:$LINENO: result: $ac_header_preproc&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_header_preproc&quot; &gt;&amp;6
++
++# So?  What about this header?
++case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
++  yes:no: )
++    { echo &quot;$as_me:$LINENO: WARNING: ${tinfo_DIR}/include/: accepted by the compiler, rejected by the preprocessor!&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${tinfo_DIR}/include/: accepted by the compiler, rejected by the preprocessor!&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${tinfo_DIR}/include/: proceeding with the compiler's result&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${tinfo_DIR}/include/: proceeding with the compiler's result&quot; &gt;&amp;2;}
++    ac_header_preproc=yes
++    ;;
++  no:yes:* )
++    { echo &quot;$as_me:$LINENO: WARNING: ${tinfo_DIR}/include/: present but cannot be compiled&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${tinfo_DIR}/include/: present but cannot be compiled&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${tinfo_DIR}/include/:     check for missing prerequisite headers?&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${tinfo_DIR}/include/:     check for missing prerequisite headers?&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${tinfo_DIR}/include/: see the Autoconf documentation&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${tinfo_DIR}/include/: see the Autoconf documentation&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${tinfo_DIR}/include/:     section \&quot;Present But Cannot Be Compiled\&quot;&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${tinfo_DIR}/include/:     section \&quot;Present But Cannot Be Compiled\&quot;&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${tinfo_DIR}/include/: proceeding with the preprocessor's result&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${tinfo_DIR}/include/: proceeding with the preprocessor's result&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: ${tinfo_DIR}/include/: in the future, the compiler will take precedence&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: ${tinfo_DIR}/include/: in the future, the compiler will take precedence&quot; &gt;&amp;2;}
++    (
++      cat &lt;&lt;\_ASBOX
++## ------------------------------------------ ##
++## Report this to the AC_PACKAGE_NAME lists.  ##
++## ------------------------------------------ ##
++_ASBOX
++    ) |
++      sed &quot;s/^/$as_me: WARNING:     /&quot; &gt;&amp;2
++    ;;
++esac
++echo &quot;$as_me:$LINENO: checking for ${tinfo_DIR}/include/&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking for ${tinfo_DIR}/include/... $ECHO_C&quot; &gt;&amp;6
++if eval &quot;test \&quot;\${$as_ac_Header+set}\&quot; = set&quot;; then
++  echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
++else
++  eval &quot;$as_ac_Header=\$ac_header_preproc&quot;
++fi
++echo &quot;$as_me:$LINENO: result: `eval echo '${'$as_ac_Header'}'`&quot; &gt;&amp;5
++echo &quot;${ECHO_T}`eval echo '${'$as_ac_Header'}'`&quot; &gt;&amp;6
++
++fi
++if test `eval echo '${'$as_ac_Header'}'` = yes; then
++  TINFO_HEADER_FOUND=1
++else
++  TINFO_HEADER_FOUND=0
++fi
++
++
++	 fi
++      else
++	 if test &quot;x&quot; != &quot;x&quot; ; then
++            if test &quot;${ac_cv_header_+set}&quot; = set; then
++  echo &quot;$as_me:$LINENO: checking for &quot; &gt;&amp;5
++echo $ECHO_N &quot;checking for ... $ECHO_C&quot; &gt;&amp;6
++if test &quot;${ac_cv_header_+set}&quot; = set; then
++  echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
++fi
++echo &quot;$as_me:$LINENO: result: $ac_cv_header_&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_cv_header_&quot; &gt;&amp;6
++else
++  # Is the header compilable?
++echo &quot;$as_me:$LINENO: checking  usability&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking  usability... $ECHO_C&quot; &gt;&amp;6
++cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h &gt;&gt;conftest.$ac_ext
++cat &gt;&gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* end confdefs.h.  */
++$ac_includes_default
++#include &lt;&gt;
++_ACEOF
++rm -f conftest.$ac_objext
++if { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_compile\&quot;&quot;) &gt;&amp;5
++  (eval $ac_compile) 2&gt;conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 &gt;conftest.err
++  rm -f conftest.er1
++  cat conftest.err &gt;&amp;5
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); } &amp;&amp;
++	 { ac_try='test -z &quot;$ac_c_werror_flag&quot;			 || test ! -s conftest.err'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; } &amp;&amp;
++	 { ac_try='test -s conftest.$ac_objext'
++  { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_try\&quot;&quot;) &gt;&amp;5
++  (eval $ac_try) 2&gt;&amp;5
++  ac_status=$?
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); }; }; then
++  ac_header_compiler=yes
++else
++  echo &quot;$as_me: failed program was:&quot; &gt;&amp;5
++sed 's/^/| /' conftest.$ac_ext &gt;&amp;5
++
++ac_header_compiler=no
++fi
++rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
++echo &quot;$as_me:$LINENO: result: $ac_header_compiler&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_header_compiler&quot; &gt;&amp;6
++
++# Is the header present?
++echo &quot;$as_me:$LINENO: checking  presence&quot; &gt;&amp;5
++echo $ECHO_N &quot;checking  presence... $ECHO_C&quot; &gt;&amp;6
++cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h &gt;&gt;conftest.$ac_ext
++cat &gt;&gt;conftest.$ac_ext &lt;&lt;_ACEOF
++/* end confdefs.h.  */
++#include &lt;&gt;
++_ACEOF
++if { (eval echo &quot;$as_me:$LINENO: \&quot;$ac_cpp conftest.$ac_ext\&quot;&quot;) &gt;&amp;5
++  (eval $ac_cpp conftest.$ac_ext) 2&gt;conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 &gt;conftest.err
++  rm -f conftest.er1
++  cat conftest.err &gt;&amp;5
++  echo &quot;$as_me:$LINENO: \$? = $ac_status&quot; &gt;&amp;5
++  (exit $ac_status); } &gt;/dev/null; then
++  if test -s conftest.err; then
++    ac_cpp_err=$ac_c_preproc_warn_flag
++    ac_cpp_err=$ac_cpp_err$ac_c_werror_flag
++  else
++    ac_cpp_err=
++  fi
++else
++  ac_cpp_err=yes
++fi
++if test -z &quot;$ac_cpp_err&quot;; then
++  ac_header_preproc=yes
++else
++  echo &quot;$as_me: failed program was:&quot; &gt;&amp;5
++sed 's/^/| /' conftest.$ac_ext &gt;&amp;5
++
++  ac_header_preproc=no
++fi
++rm -f conftest.err conftest.$ac_ext
++echo &quot;$as_me:$LINENO: result: $ac_header_preproc&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_header_preproc&quot; &gt;&amp;6
++
++# So?  What about this header?
++case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
++  yes:no: )
++    { echo &quot;$as_me:$LINENO: WARNING: : accepted by the compiler, rejected by the preprocessor!&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : accepted by the compiler, rejected by the preprocessor!&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: : proceeding with the compiler's result&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : proceeding with the compiler's result&quot; &gt;&amp;2;}
++    ac_header_preproc=yes
++    ;;
++  no:yes:* )
++    { echo &quot;$as_me:$LINENO: WARNING: : present but cannot be compiled&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : present but cannot be compiled&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: :     check for missing prerequisite headers?&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: :     check for missing prerequisite headers?&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: : see the Autoconf documentation&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : see the Autoconf documentation&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: :     section \&quot;Present But Cannot Be Compiled\&quot;&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: :     section \&quot;Present But Cannot Be Compiled\&quot;&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: : proceeding with the preprocessor's result&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : proceeding with the preprocessor's result&quot; &gt;&amp;2;}
++    { echo &quot;$as_me:$LINENO: WARNING: : in the future, the compiler will take precedence&quot; &gt;&amp;5
++echo &quot;$as_me: WARNING: : in the future, the compiler will take precedence&quot; &gt;&amp;2;}
++    (
++      cat &lt;&lt;\_ASBOX
++## ------------------------------------------ ##
++## Report this to the AC_PACKAGE_NAME lists.  ##
++## ------------------------------------------ ##
++_ASBOX
++    ) |
++      sed &quot;s/^/$as_me: WARNING:     /&quot; &gt;&amp;2
++    ;;
++esac
++echo &quot;$as_me:$LINENO: checking for &quot; &gt;&amp;5
++echo $ECHO_N &quot;checking for ... $ECHO_C&quot; &gt;&amp;6
++if test &quot;${ac_cv_header_+set}&quot; = set; then
++  echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
++else
++  ac_cv_header_=$ac_header_preproc
++fi
++echo &quot;$as_me:$LINENO: result: $ac_cv_header_&quot; &gt;&amp;5
++echo &quot;${ECHO_T}$ac_cv_header_&quot; &gt;&amp;6
++
++fi
++if test $ac_cv_header_ = yes; then
++  TINFO_HEADER_FOUND=1
++else
++  TINFO_HEADER_FOUND=0
++fi
++
++
++	 fi
++      fi
++      if test &quot;x${TINFO_HEADER_FOUND}&quot; = &quot;x0&quot; ; then
++         if test ! -z &quot;${tinfo_MANDATORY}&quot; ;
++         then
++            echo &quot; ***&quot;
++            echo &quot; *** It appears that you do not have the tinfo development package installed.&quot;
++            echo &quot; *** Please install it to include Term Info support, or re-run configure&quot;
++            echo &quot; *** without explicitly specifying --with-tinfo&quot;
++            exit 1
++         fi
++         tinfo_LIB=&quot;&quot;
++         tinfo_INCLUDE=&quot;&quot;
++         PBX_LIBtinfo=0
++      else
++         PBX_LIBtinfo=1
++
++cat &gt;&gt;confdefs.h &lt;&lt;_ACEOF
++#define HAVE_TINFO 1
++_ACEOF
++
++      fi
++   elif test ! -z &quot;${tinfo_MANDATORY}&quot;;
++   then
++      echo &quot;***&quot;
++      echo &quot;*** The Term Info installation on this system appears to be broken.&quot;
++      echo &quot;*** Either correct the installation, or run configure&quot;
++      echo &quot;*** without explicity specifying --with-tinfo&quot;
++      exit 1
++   fi
++fi
++
++
++
++
++
++
+ # Check whether --with-vorbis or --without-vorbis was given.
+ if test &quot;${with_vorbis+set}&quot; = set; then
+   withval=&quot;$with_vorbis&quot;
+@@ -11703,6 +12561,21 @@
+ 
+ 
+ 
++EDITLINE_LIBS=&quot;&quot;
++if test &quot;x$termcap_LIB&quot; != &quot;x&quot; ; then
++  EDITLINE_LIBS=&quot;$termcap_LIB&quot;
++elif test &quot;x$tinfo_LIB&quot; != &quot;x&quot; ; then
++  EDITLINE_LIBS=&quot;$tinfo_LIB&quot;
++elif test &quot;x$curses_LIB&quot; != &quot;x&quot; ; then
++  EDITLINE_LIBS=&quot;$curses_LIB&quot;
++elif test &quot;x$ncurses_LIB&quot; != &quot;x&quot; ; then
++  EDITLINE_LIBS=&quot;$ncurses_LIB&quot;
++else
++  echo &quot;*** termcap support not found&quot;
++  exit 1
++fi
++
++
+ PBX_LIBossaudio=0
+ if test &quot;${ac_cv_header_linux_soundcard_h+set}&quot; = set; then
+   echo &quot;$as_me:$LINENO: checking for linux/soundcard.h&quot; &gt;&amp;5
+@@ -13962,7 +14835,7 @@
+ 
+ fi;
+ if test &quot;${USE_VPB}&quot; != &quot;no&quot;; then
+-   echo -n &quot;checking for vpb_open in -lvpb...&quot;
++   echo -n &quot;checking for vpb_open in -lvpb... &quot;
+    saved_libs=&quot;${LIBS}&quot;
+    saved_cppflags=&quot;${CPPFLAGS}&quot;
+    if test &quot;x${VPB_DIR}&quot; != &quot;x&quot;; then
+@@ -14075,7 +14948,7 @@
+ 
+ PBX_QT=0
+ if test &quot;${USE_QT}&quot; != &quot;no&quot;; then
+-   echo -n &quot;checking for QDate in -lqt...&quot;
++   echo -n &quot;checking for QDate in -lqt... &quot;
+    saved_libs=&quot;${LIBS}&quot;
+    saved_cppflags=&quot;${CPPFLAGS}&quot;
+    if test &quot;x${QT_DIR}&quot; != &quot;x&quot;; then
+@@ -14337,7 +15210,7 @@
+ 
+ PBX_KDE=0
+ if test &quot;${USE_KDE}&quot; != &quot;no&quot;; then
+-   echo -n &quot;checking for crashHandler in -lkdecore...&quot;
++   echo -n &quot;checking for crashHandler in -lkdecore... &quot;
+    saved_ldflags=&quot;${LDFLAGS}&quot;
+    LDFLAGS=&quot;-I${KDE_DIR}/include ${LDFLAGS} -L${KDE_DIR}/lib -lkdecore&quot;
+ 	cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+@@ -14641,7 +15514,7 @@
+ 
+ fi;
+ if test &quot;${USE_PWLIB}&quot; != &quot;no&quot;; then
+-	echo -n &quot;checking for existence of pwlib...&quot;
++	echo -n &quot;checking for existence of pwlib... &quot;
+ 
+ 	saved_ldflags=&quot;${LDFLAGS}&quot;
+ 	LDFLAGS=&quot;${LDFLAGS} -L${PWLIB_DIR} -l${PLATFORM_PTLIB}&quot;
+@@ -22062,12 +22935,19 @@
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at tds_LIB</A>@,$tds_LIB,;t t
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at tds_INCLUDE</A>@,$tds_INCLUDE,;t t
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at PBX_LIBtds</A>@,$PBX_LIBtds,;t t
+<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">+s, at termcap_LIB</A>@,$termcap_LIB,;t t
+<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">+s, at termcap_INCLUDE</A>@,$termcap_INCLUDE,;t t
+<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">+s, at PBX_LIBtermcap</A>@,$PBX_LIBtermcap,;t t
+<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">+s, at tinfo_LIB</A>@,$tinfo_LIB,;t t
+<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">+s, at tinfo_INCLUDE</A>@,$tinfo_INCLUDE,;t t
+<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">+s, at PBX_LIBtinfo</A>@,$PBX_LIBtinfo,;t t
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at vorbis_LIB</A>@,$vorbis_LIB,;t t
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at vorbis_INCLUDE</A>@,$vorbis_INCLUDE,;t t
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at PBX_LIBvorbis</A>@,$PBX_LIBvorbis,;t t
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at z_LIB</A>@,$z_LIB,;t t
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at z_INCLUDE</A>@,$z_INCLUDE,;t t
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at PBX_LIBz</A>@,$PBX_LIBz,;t t
+<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">+s, at EDITLINE_LIBS</A>@,$EDITLINE_LIBS,;t t
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at ossaudio_LIB</A>@,$ossaudio_LIB,;t t
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at ossaudio_INCLUDE</A>@,$ossaudio_INCLUDE,;t t
+ <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">s, at PBX_LIBossaudio</A>@,$PBX_LIBossaudio,;t t
+@@ -22633,7 +23513,7 @@
+ 
+ echo &quot;Package configured for: &quot;
+ echo &quot; OS type  : $PBX_OSTYPE&quot;
+-echo &quot; host cpu : $host_cpu&quot;
++echo &quot; Host CPU : $host_cpu&quot;
+ if test &quot;x${crossCompile}&quot; = xYes; then
+    echo &quot;&quot;
+    echo &quot; Cross Compilation = YES&quot;
+
+Modified: trunk/include/autoconfig.h.in
+===================================================================
+--- trunk/include/autoconfig.h.in	2006-05-08 16:32:48 UTC (rev 92)
++++ trunk/include/autoconfig.h.in	2006-05-08 16:36:21 UTC (rev 93)
+@@ -360,9 +360,15 @@
+ /* Define to 1 if you have &lt;sys/wait.h&gt; that is POSIX.1 compatible. */
+ #undef HAVE_SYS_WAIT_H
+ 
++/* Define to indicate the Termcap library */
++#undef HAVE_TERMCAP
++
+ /* Define to 1 if you have the &lt;termios.h&gt; header file. */
+ #undef HAVE_TERMIOS_H
+ 
++/* Define to indicate the Term Info library */
++#undef HAVE_TINFO
++
+ /* Define to 1 if you have the &lt;unistd.h&gt; header file. */
+ #undef HAVE_UNISTD_H
+ 
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-08 16:32:48 UTC (rev 92)
++++ trunk/pbx.c	2006-05-08 16:36:21 UTC (rev 93)
+@@ -1259,7 +1259,7 @@
+ 	/* Substitutes variables into cp2, based on string cp1, and assuming cp2 to be
+ 	   zero-filled */
+ 	whereweare=tmp=cp1;
+-	while(!ast_strlen_zero(whereweare) &amp;&amp; count) {
++	while (!ast_strlen_zero(whereweare) &amp;&amp; count) {
+ 		/* Assume we're copying the whole remaining string */
+ 		pos = strlen(whereweare);
+ 		nextvar = NULL;
+@@ -1691,15 +1691,16 @@
+ void ast_hint_state_changed(const char *device)
+ {
+ 	struct ast_hint *hint;
+-	struct ast_state_cb *cblist;
+-	char buf[AST_MAX_EXTENSION];
+-	char *parse;
+-	char *cur;
+-	int state;
+ 
+ 	AST_LIST_LOCK(&amp;hints);
+ 
+ 	AST_LIST_TRAVERSE(&amp;hints, hint, list) {
++		struct ast_state_cb *cblist;
++		char buf[AST_MAX_EXTENSION];
++		char *parse;
++		char *cur;
++		int state;
++
+ 		ast_copy_string(buf, ast_get_extension_app(hint-&gt;exten), sizeof(buf));
+ 		parse = buf;
+ 		for (cur = strsep(&amp;parse, &quot;&amp;&quot;); cur; cur = strsep(&amp;parse, &quot;&amp;&quot;)) {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000090.html">[solid-pbx-svn] r92 - in trunk: . channels configs include mxml
+</A></li>
+	<LI>Next message: <A HREF="000091.html">[solid-pbx-svn] r94 - trunk/utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#89">[ date ]</a>
+              <a href="thread.html#89">[ thread ]</a>
+              <a href="subject.html#89">[ subject ]</a>
+              <a href="author.html#89">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

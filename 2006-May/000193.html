@@ -1,0 +1,888 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r198 - in trunk: . channels configs include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r198%20-%20in%20trunk%3A%20.%20channels%20configs%20include/asterisk&In-Reply-To=%3C200605311726.k4VHQs4N008253%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000192.html">
+   <LINK REL="Next"  HREF="000194.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r198 - in trunk: . channels configs include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r198%20-%20in%20trunk%3A%20.%20channels%20configs%20include/asterisk&In-Reply-To=%3C200605311726.k4VHQs4N008253%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r198 - in trunk: . channels configs include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 31 19:26:54 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000192.html">[solid-pbx-svn] r197 - in trunk: . apps
+</A></li>
+        <LI>Next message: <A HREF="000194.html">[solid-pbx-svn] r199 - in trunk: apps channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#193">[ date ]</a>
+              <a href="thread.html#193">[ thread ]</a>
+              <a href="subject.html#193">[ subject ]</a>
+              <a href="author.html#193">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-31 19:26:40 +0200 (Wed, 31 May 2006)
+New Revision: 198
+
+Modified:
+   trunk/.cleancount
+   trunk/Makefile
+   trunk/channel.c
+   trunk/channels/chan_alsa.c
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_oss.c
+   trunk/channels/chan_sip.c
+   trunk/channels/chan_zap.c
+   trunk/configs/alsa.conf.sample
+   trunk/configs/oss.conf.sample
+   trunk/configs/sip.conf.sample
+   trunk/configs/zapata.conf.sample
+   trunk/frame.c
+   trunk/include/asterisk/channel.h
+   trunk/include/asterisk/frame.h
+   trunk/rtp.c
+   trunk/translate.c
+Log:
+Update to Asterisk SVN trunk r31075
+
+------------------------------------------------------------------------
+r31050 | file | 2006-05-31 18:31:41 +0200 (Wed, 31 May 2006) | 2 lines
+
+OKAY - Only replace our IP address in the outgoing SIP messages if the actual source address is within the specified local network. (issue #7051 reported by Luke-Jr with mods by me)
+
+------------------------------------------------------------------------
+r31052 | russell | 2006-05-31 18:56:50 +0200 (Wed, 31 May 2006) | 7 lines
+
+Add support for using a jitterbuffer for RTP on bridged calls. This includes
+a new implementation of a fixed size jitterbuffer, as well as support for the
+existing adaptive jitterbuffer implementation. (issue #3854, Slav Klenov)
+
+Thank you very much to Slav Klenov of Securax and all of the people involved
+in the testing of this feature for all of your hard work!
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/.cleancount
+===================================================================
+--- trunk/.cleancount	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/.cleancount	2006-05-31 17:26:40 UTC (rev 198)
+@@ -1 +1 @@
+-17
++18
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/Makefile	2006-05-31 17:26:40 UTC (rev 198)
+@@ -282,7 +282,7 @@
+ 	astmm.o enum.o srv.o dns.o aescrypt.o aestab.o aeskey.o \
+ 	utils.o plc.o jitterbuf.o dnsmgr.o devicestate.o \
+ 	netsock.o slinfactory.o ast_expr2.o ast_expr2f.o \
+-	cryptostub.o sha1.o http.o
++	cryptostub.o sha1.o http.o scx_jitterbuf.o abstract_jb.o
+ 
+ # we need to link in the objects statically, not as a library, because
+ # otherwise modules will not have them available if none of the static
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/channel.c	2006-05-31 17:26:40 UTC (rev 198)
+@@ -1012,6 +1012,9 @@
+ 	while ((vardata = AST_LIST_REMOVE_HEAD(headp, entries)))
+ 		ast_var_delete(vardata);
+ 
++	/* Destroy the jitterbuffer */
++	ast_jb_destroy(chan);
++
+ 	ast_string_field_free_all(chan);
+ 	free(chan);
+ 	AST_LIST_UNLOCK(&amp;channels);
+@@ -3303,6 +3306,9 @@
+ 	int watch_c0_dtmf;
+ 	int watch_c1_dtmf;
+ 	void *pvt0, *pvt1;
++	/* Indicates whether a frame was queued into a jitterbuffer */
++	int frame_put_in_jb = 0;
++	int jb_in_use;
+ 	int to;
+ 	
+ 	cs[0] = c0;
+@@ -3314,6 +3320,9 @@
+ 	watch_c0_dtmf = config-&gt;flags &amp; AST_BRIDGE_DTMF_CHANNEL_0;
+ 	watch_c1_dtmf = config-&gt;flags &amp; AST_BRIDGE_DTMF_CHANNEL_1;
+ 
++	/* Check the need of a jitterbuffer for each channel */
++	jb_in_use = ast_jb_do_usecheck(c0, c1);
++
+ 	for (;;) {
+ 		struct ast_channel *who, *other;
+ 
+@@ -3332,9 +3341,15 @@
+ 			}
+ 		} else
+ 			to = -1;
++		/* Calculate the appropriate max sleep interval - in general, this is the time,
++		   left to the closest jb delivery moment */
++		if (jb_in_use)
++			to = ast_jb_get_when_to_wakeup(c0, c1, to);
+ 		who = ast_waitfor_n(cs, 2, &amp;to);
+ 		if (!who) {
+-			ast_log(LOG_DEBUG, &quot;Nobody there, continuing...\n&quot;);
++			/* No frame received within the specified timeout - check if we have to deliver now */
++			if (jb_in_use)
++				ast_jb_get_and_deliver(c0, c1);
+ 			if (c0-&gt;_softhangup == AST_SOFTHANGUP_UNBRIDGE || c1-&gt;_softhangup == AST_SOFTHANGUP_UNBRIDGE) {
+ 				if (c0-&gt;_softhangup == AST_SOFTHANGUP_UNBRIDGE)
+ 					c0-&gt;_softhangup = 0;
+@@ -3354,6 +3369,9 @@
+ 		}
+ 
+ 		other = (who == c0) ? c1 : c0; /* the 'other' channel */
++		/* Try add the frame info the who's bridged channel jitterbuff */
++		if (jb_in_use)
++			frame_put_in_jb = !ast_jb_put(other, f);
+ 
+ 		if ((f-&gt;frametype == AST_FRAME_CONTROL) &amp;&amp; !(config-&gt;flags &amp; AST_BRIDGE_IGNORE_SIGS)) {
+ 			int bridge_exit = 0;
+@@ -3390,8 +3408,13 @@
+ 				ast_log(LOG_DEBUG, &quot;Got DTMF on channel (%s)\n&quot;, who-&gt;name);
+ 				break;
+ 			}
+-			/* other frames go to the other side */
+-			ast_write(other, f);
++			/* Write immediately frames, not passed through jb */
++			if (!frame_put_in_jb)
++				ast_write(other, f);
++				
++			/* Check if we have to deliver now */
++			if (jb_in_use)
++				ast_jb_get_and_deliver(c0, c1);
+ 		}
+ 		/* XXX do we want to pass on also frames not matched above ? */
+ 		ast_frfree(f);
+
+Modified: trunk/channels/chan_alsa.c
+===================================================================
+--- trunk/channels/chan_alsa.c	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/channels/chan_alsa.c	2006-05-31 17:26:40 UTC (rev 198)
+@@ -70,6 +70,17 @@
+ #include &quot;alsa-monitor.h&quot;
+ #endif
+ 
++#include &quot;asterisk/abstract_jb.h&quot;
++/* Global jitterbuffer configuration - by default, jb is disabled */
++static struct ast_jb_conf default_jbconf =
++{
++	.flags = 0,
++	.max_size = -1,
++	.resync_threshold = -1,
++	.impl = &quot;&quot;
++};
++static struct ast_jb_conf global_jbconf;
++
+ #define DEBUG 0
+ /* Which device to use */
+ #define ALSA_INDEV &quot;hw:0,0&quot;
+@@ -812,6 +823,8 @@
+ 				tmp = NULL;
+ 			}
+ 		}
++		if (tmp)
++			ast_jb_configure(tmp, &amp;global_jbconf);
+ 	}
+ 	return tmp;
+ }
+@@ -1051,9 +1064,18 @@
+ 	int x;
+ 	struct ast_config *cfg;
+ 	struct ast_variable *v;
++
++	/* Copy the default jb config over global_jbconf */
++	memcpy(&amp;global_jbconf, &amp;default_jbconf, sizeof(struct ast_jb_conf));
++
+ 	if ((cfg = ast_config_load(config))) {
+ 		v = ast_variable_browse(cfg, &quot;general&quot;);
+ 		while(v) {
++			/* handle jb conf */
++			if (!ast_jb_read_conf(&amp;global_jbconf, v-&gt;name, v-&gt;value)) {
++				v = v-&gt;next;
++				continue;
++			}
+ 			if (!strcasecmp(v-&gt;name, &quot;autoanswer&quot;))
+ 				autoanswer = ast_true(v-&gt;value);
+ 			else if (!strcasecmp(v-&gt;name, &quot;silencesuppression&quot;))
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/channels/chan_iax2.c	2006-05-31 17:26:40 UTC (rev 198)
+@@ -1543,6 +1543,7 @@
+ 	  the IAX thread with the iaxsl lock held. */
+ 	struct iax_frame *fr = data;
+ 	fr-&gt;retrans = -1;
++	fr-&gt;af.has_timing_info = 0;
+ 	if (iaxs[fr-&gt;callno] &amp;&amp; !ast_test_flag(iaxs[fr-&gt;callno], IAX_ALREADYGONE))
+ 		iax2_queue_frame(fr-&gt;callno, &amp;fr-&gt;af);
+ 	/* Free our iax frame */
+
+Modified: trunk/channels/chan_oss.c
+===================================================================
+--- trunk/channels/chan_oss.c	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/channels/chan_oss.c	2006-05-31 17:26:40 UTC (rev 198)
+@@ -82,6 +82,17 @@
+ #include &quot;ring10.h&quot;
+ #include &quot;answer.h&quot;
+ 
++#include &quot;asterisk/abstract_jb.h&quot;
++/* Global jitterbuffer configuration - by default, jb is disabled */
++static struct ast_jb_conf default_jbconf =
++{
++	.flags = 0,
++	.max_size = -1,
++	.resync_threshold = -1,
++	.impl = &quot;&quot;
++};
++static struct ast_jb_conf global_jbconf;
++
+ /*
+  * Basic mode of operation:
+  *
+@@ -141,6 +152,33 @@
+     ; queuesize = 10		; frames in device driver
+     ; frags = 8			; argument to SETFRAGMENT
+ 
++    ;------------------------------ JITTER BUFFER CONFIGURATION --------------------------
++    ; jbenable = yes              ; Enables the use of a jitterbuffer on the receiving side of an
++                                  ; OSS channel. Defaults to &quot;no&quot;. An enabled jitterbuffer will
++                                  ; be used only if the sending side can create and the receiving
++                                  ; side can not accept jitter. The ZAP channel can't accept jitter,
++                                  ; thus an enabled jitterbuffer on the receive ZAP side will always
++                                  ; be used if the sending side can create jitter or if ZAP jb is
++                                  ; forced.
++
++    ; jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a ZAP
++                                  ; channel. Defaults to &quot;no&quot;.
++
++    ; jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
++
++    ; jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
++                                  ; resynchronized. Useful to improve the quality of the voice, with
++                                  ; big jumps in/broken timestamps, usualy sent from exotic devices
++                                  ; and programs. Defaults to 1000.
++
++    ; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a SIP
++                                  ; channel. Two implementation are currenlty available - &quot;fixed&quot;
++                                  ; (with size always equals to jbmax-size) and &quot;adaptive&quot; (with
++                                  ; variable size, actually the new jb of IAX2). Defaults to fixed.
++
++    ; jblog = no                  ; Enables jitterbuffer frame logging. Defaults to &quot;no&quot;.
++    ;-----------------------------------------------------------------------------------
++
+ [card1]
+     ; device = /dev/dsp1	; alternate device
+ 
+@@ -981,6 +1019,9 @@
+ 			/* XXX what about usecnt ? */
+ 		}
+ 	}
++	if (c)
++		ast_jb_configure(c, &amp;global_jbconf);
++
+ 	return c;
+ }
+ 
+@@ -1407,6 +1448,10 @@
+ 	for (v = ast_variable_browse(cfg, ctg);v; v=v-&gt;next) {
+ 		M_START(v-&gt;name, v-&gt;value);
+ 
++		/* handle jb conf */
++		if (!ast_jb_read_conf(&amp;global_jbconf, v-&gt;name, v-&gt;value))
++			continue;
++
+ 		M_BOOL(&quot;autoanswer&quot;, o-&gt;autoanswer)
+ 		M_BOOL(&quot;autohangup&quot;, o-&gt;autohangup)
+ 		M_BOOL(&quot;overridecontext&quot;, o-&gt;overridecontext)
+@@ -1472,6 +1517,9 @@
+ 	int i;
+ 	struct ast_config *cfg;
+ 
++	/* Copy the default jb config over global_jbconf */
++	memcpy(&amp;global_jbconf, &amp;default_jbconf, sizeof(struct ast_jb_conf));
++
+ 	/* load config file */
+ 	cfg = ast_config_load(config);
+ 	if (cfg != NULL) {
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/channels/chan_sip.c	2006-05-31 17:26:40 UTC (rev 198)
+@@ -202,6 +202,17 @@
+ 
+ #define	INITIAL_CSEQ		101	/*!&lt; our initial sip sequence number */
+ 
++#include &quot;asterisk/abstract_jb.h&quot;
++/* Global jitterbuffer configuration - by default, jb is disabled */
++static struct ast_jb_conf default_jbconf =
++{
++	.flags = 0,
++	.max_size = -1,
++	.resync_threshold = -1,
++	.impl = &quot;&quot;
++};
++static struct ast_jb_conf global_jbconf;
++
+ static const char tdesc[] = &quot;Session Initiation Protocol (SIP)&quot;;
+ static const char config[] = &quot;sip.conf&quot;;
+ static const char notify_config[] = &quot;sip_notify.conf&quot;;
+@@ -850,6 +861,7 @@
+ 	struct ast_variable *chanvars;		/*!&lt; Channel variables to set for inbound call */
+ 	struct sip_pvt *next;			/*!&lt; Next dialog in chain */
+ 	struct sip_invite_param *options;	/*!&lt; Options for INVITE */
++	struct ast_jb_conf jbconf;
+ } *iflist = NULL;
+ 
+ #define FLAG_RESPONSE (1 &lt;&lt; 0)
+@@ -1256,7 +1268,7 @@
+ 	.type = &quot;SIP&quot;,
+ 	.description = &quot;Session Initiation Protocol (SIP)&quot;,
+ 	.capabilities = ((AST_FORMAT_MAX_AUDIO &lt;&lt; 1) - 1),
+-	.properties = AST_CHAN_TP_WANTSJITTER,
++	.properties = AST_CHAN_TP_WANTSJITTER | AST_CHAN_TP_CREATESJITTER,
+ 	.requester = sip_request_call,
+ 	.devicestate = sip_devicestate,
+ 	.call = sip_call,
+@@ -1456,11 +1468,16 @@
+ 	 * apply it to their address to see if we need to substitute our
+ 	 * externip or can get away with our internal bindaddr
+ 	 */
+-	struct sockaddr_in theirs;
++	struct sockaddr_in theirs, ours;
++
++	/* Get our local information */
++	ast_ouraddrfor(them, us);
+ 	theirs.sin_addr = *them;
++	ours.sin_addr = *us;
+ 
+ 	if (localaddr &amp;&amp; externip.sin_addr.s_addr &amp;&amp;
+-	   ast_apply_ha(localaddr, &amp;theirs)) {
++	    ast_apply_ha(localaddr, &amp;theirs) &amp;&amp;
++	    !ast_apply_ha(localaddr, &amp;ours)) {
+ 		if (externexpire &amp;&amp; time(NULL) &gt;= externexpire) {
+ 			struct ast_hostent ahp;
+ 			struct hostent *hp;
+@@ -1480,8 +1497,6 @@
+ 		}
+ 	} else if (bindaddr.sin_addr.s_addr)
+ 		*us = bindaddr.sin_addr;
+-	else
+-		return ast_ouraddrfor(them, us);
+ 	return 0;
+ }
+ 
+@@ -3309,7 +3324,11 @@
+ 
+ 	if (recordhistory)
+ 		append_history(i, &quot;NewChan&quot;, &quot;Channel %s - from %s&quot;, tmp-&gt;name, i-&gt;callid);
+-				
++
++	/* Configure the new channel jb */
++	if (tmp &amp;&amp; i &amp;&amp; i-&gt;rtp)
++		ast_jb_configure(tmp, &amp;i-&gt;jbconf);
++
+ 	return tmp;
+ }
+ 
+@@ -3644,6 +3663,9 @@
+ 		p-&gt;noncodeccapability |= AST_RTP_DTMF;
+ 	ast_string_field_set(p, context, default_context);
+ 
++	/* Assign default jb conf to the new sip_pvt */
++	memcpy(&amp;p-&gt;jbconf, &amp;global_jbconf, sizeof(struct ast_jb_conf));
++
+ 	/* Add to active dialog list */
+ 	ast_mutex_lock(&amp;iflock);
+ 	p-&gt;next = iflist;
+@@ -13244,7 +13266,6 @@
+ 	for (; v; v = v-&gt;next) {
+ 		if (handle_common_options(&amp;peerflags[0], &amp;mask[0], v))
+ 			continue;
+-
+ 		if (realtime &amp;&amp; !strcasecmp(v-&gt;name, &quot;regseconds&quot;)) {
+ 			ast_get_time_t(v-&gt;value, &amp;regseconds, 0, NULL);
+ 		} else if (realtime &amp;&amp; !strcasecmp(v-&gt;name, &quot;ipaddr&quot;) &amp;&amp; !ast_strlen_zero(v-&gt;value) ) {
+@@ -13537,12 +13558,19 @@
+ 	global_relaxdtmf = FALSE;
+ 	global_callevents = FALSE;
+ 	global_t1min = DEFAULT_T1MIN;		
++
++	/* Copy the default jb config over global_jbconf */
++	memcpy(&amp;global_jbconf, &amp;default_jbconf, sizeof(struct ast_jb_conf));
++
+ 	ast_clear_flag(&amp;global_flags[1], SIP_PAGE2_VIDEOSUPPORT);
+ 
+ 	/* Read the [general] config section of sip.conf (or from realtime config) */
+ 	for (v = ast_variable_browse(cfg, &quot;general&quot;); v; v = v-&gt;next) {
+ 		if (handle_common_options(&amp;global_flags[0], &amp;dummy[0], v))
+ 			continue;
++		/* handle jb conf */
++		if (!ast_jb_read_conf(&amp;global_jbconf, v-&gt;name, v-&gt;value))
++			continue;
+ 
+ 		/* Create the interface list */
+ 		if (!strcasecmp(v-&gt;name, &quot;context&quot;)) {
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/channels/chan_zap.c	2006-05-31 17:26:40 UTC (rev 198)
+@@ -109,6 +109,17 @@
+ #define SMDI_MD_WAIT_TIMEOUT 1500 /* 1.5 seconds */
+ #endif
+ 
++#include &quot;asterisk/abstract_jb.h&quot;
++/* Global jitterbuffer configuration - by default, jb is disabled */
++static struct ast_jb_conf default_jbconf =
++{
++	.flags = 0,
++	.max_size = -1,
++	.resync_threshold = -1,
++	.impl = &quot;&quot;
++};
++static struct ast_jb_conf global_jbconf;
++
+ #if !defined(ZT_SIG_EM_E1) || (defined(HAVE_LIBPRI) &amp;&amp; !defined(ZT_SIG_HARDHDLC))
+ #error &quot;Your zaptel is too old.  please update&quot;
+ #endif
+@@ -684,6 +695,7 @@
+ #endif	
+ 	int polarity;
+ 	int dsp_features;
++	struct ast_jb_conf jbconf;
+ 
+ } *iflist = NULL, *ifend = NULL;
+ 
+@@ -5195,6 +5207,9 @@
+ 		}
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;Unable to allocate channel structure\n&quot;);
++	/* Configure the new channel jb */
++	if (tmp &amp;&amp; i)
++		ast_jb_configure(tmp, &amp;i-&gt;jbconf);
+ 	return tmp;
+ }
+ 
+@@ -6988,6 +7003,8 @@
+ 		for (x=0;x&lt;3;x++)
+ 			tmp-&gt;subs[x].zfd = -1;
+ 		tmp-&gt;channel = channel;
++		/* Assign default jb conf to the new zt_pvt */
++		memcpy(&amp;tmp-&gt;jbconf, &amp;global_jbconf, sizeof(struct ast_jb_conf));
+ 	}
+ 
+ 	if (tmp) {
+@@ -10200,6 +10217,7 @@
+ {
+ 	struct ast_config *cfg;
+ 	struct ast_variable *v;
++	struct ast_variable *vjb;
+ 	struct zt_pvt *tmp;
+ 	char *chan;
+ 	char *c;
+@@ -10289,6 +10307,11 @@
+ 	}
+ #endif
+ 	v = ast_variable_browse(cfg, &quot;channels&quot;);
++	/* Copy the default jb config over global_jbconf */
++	memcpy(&amp;global_jbconf, &amp;default_jbconf, sizeof(struct ast_jb_conf));
++	/* Traverse all variables to handle jb conf */
++	for (vjb = v; vjb; vjb = vjb-&gt;next)
++		ast_jb_read_conf(&amp;global_jbconf, vjb-&gt;name, vjb-&gt;value);
+ 	while(v) {
+ 		/* Create the interface list */
+ 		if (!strcasecmp(v-&gt;name, &quot;channel&quot;)
+
+Modified: trunk/configs/alsa.conf.sample
+===================================================================
+--- trunk/configs/alsa.conf.sample	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/configs/alsa.conf.sample	2006-05-31 17:26:40 UTC (rev 198)
+@@ -29,3 +29,31 @@
+ ; To set which ALSA device to use, change this parameter
+ ;input_device=hw:0,0
+ ;output_device=hw:0,0
++
++;------------------------------ JITTER BUFFER CONFIGURATION --------------------------
++; jbenable = yes              ; Enables the use of a jitterbuffer on the receiving side of an
++                              ; ALSA channel. Defaults to &quot;no&quot;. An enabled jitterbuffer will
++                              ; be used only if the sending side can create and the receiving
++                              ; side can not accept jitter. The ZAP channel can't accept jitter,
++                              ; thus an enabled jitterbuffer on the receive ZAP side will always
++                              ; be used if the sending side can create jitter or if ZAP jb is
++                              ; forced.
++
++; jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a ZAP
++                              ; channel. Defaults to &quot;no&quot;.
++
++; jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
++
++; jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
++                              ; resynchronized. Useful to improve the quality of the voice, with
++                              ; big jumps in/broken timestamps, usualy sent from exotic devices
++                              ; and programs. Defaults to 1000.
++
++; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a SIP
++                              ; channel. Two implementation are currenlty available - &quot;fixed&quot;
++                              ; (with size always equals to jbmax-size) and &quot;adaptive&quot; (with
++                              ; variable size, actually the new jb of IAX2). Defaults to fixed.
++
++; jblog = no                  ; Enables jitterbuffer frame logging. Defaults to &quot;no&quot;.
++;-----------------------------------------------------------------------------------
++
+
+Modified: trunk/configs/oss.conf.sample
+===================================================================
+--- trunk/configs/oss.conf.sample	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/configs/oss.conf.sample	2006-05-31 17:26:40 UTC (rev 198)
+@@ -46,6 +46,34 @@
+     ; queuesize = 10		; frames in device driver
+     ; frags = 8			; argument to SETFRAGMENT
+ 
++    ;------------------------------ JITTER BUFFER CONFIGURATION --------------------------
++    ; jbenable = yes              ; Enables the use of a jitterbuffer on the receiving side of an
++                                  ; OSS channel. Defaults to &quot;no&quot;. An enabled jitterbuffer will
++                                  ; be used only if the sending side can create and the receiving
++                                  ; side can not accept jitter. The ZAP channel can't accept jitter,
++                                  ; thus an enabled jitterbuffer on the receive ZAP side will always
++                                  ; be used if the sending side can create jitter or if ZAP jb is
++                                  ; forced.
++
++    ; jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a ZAP
++                                  ; channel. Defaults to &quot;no&quot;.
++
++    ; jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
++
++    ; jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
++                                  ; resynchronized. Useful to improve the quality of the voice, with
++                                  ; big jumps in/broken timestamps, usualy sent from exotic devices
++                                  ; and programs. Defaults to 1000.
++
++    ; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a SIP
++                                  ; channel. Two implementation are currenlty available - &quot;fixed&quot;
++                                  ; (with size always equals to jbmax-size) and &quot;adaptive&quot; (with
++                                  ; variable size, actually the new jb of IAX2). Defaults to fixed.
++
++    ; jblog = no                  ; Enables jitterbuffer frame logging. Defaults to &quot;no&quot;.
++    ;-----------------------------------------------------------------------------------
++
++
+ [card1]
+     ; device = /dev/dsp1	; alternate device
+ 
+
+Modified: trunk/configs/sip.conf.sample
+===================================================================
+--- trunk/configs/sip.conf.sample	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/configs/sip.conf.sample	2006-05-31 17:26:40 UTC (rev 198)
+@@ -302,6 +302,32 @@
+                           ; destinations which do not have a prior
+                           ; account relationship with your server. 
+ 
++;------------------------------ JITTER BUFFER CONFIGURATION --------------------------
++; jbenable = yes              ; Enables the use of a jitterbuffer on the receiving side of a
++                              ; SIP channel. Defaults to &quot;no&quot;. An enabled jitterbuffer will
++                              ; be used only if the sending side can create and the receiving
++                              ; side can not accept jitter. The SIP channel can accept jitter,
++                              ; thus a jitterbuffer on the receive SIP side will be used only
++                              ; if it is forced and enabled.
++
++; jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a SIP
++                              ; channel. Defaults to &quot;no&quot;.
++
++; jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
++
++; jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
++                              ; resynchronized. Useful to improve the quality of the voice, with
++                              ; big jumps in/broken timestamps, usualy sent from exotic devices
++                              ; and programs. Defaults to 1000.
++
++; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a SIP
++                              ; channel. Two implementation are currenlty available - &quot;fixed&quot;
++                              ; (with size always equals to jbmaxsize) and &quot;adaptive&quot; (with
++                              ; variable size, actually the new jb of IAX2). Defaults to fixed.
++
++; jblog = no                  ; Enables jitterbuffer frame logging. Defaults to &quot;no&quot;.
++;-----------------------------------------------------------------------------------
++
+ [authentication]
+ ; Global credentials for outbound calls, i.e. when a proxy challenges your
+ ; Asterisk server for authentication. These credentials override
+
+Modified: trunk/configs/zapata.conf.sample
+===================================================================
+--- trunk/configs/zapata.conf.sample	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/configs/zapata.conf.sample	2006-05-31 17:26:40 UTC (rev 198)
+@@ -495,6 +495,33 @@
+ ;
+ ;jitterbuffers=4
+ ;
++;------------------------------ JITTER BUFFER CONFIGURATION --------------------------
++; jbenable = yes              ; Enables the use of a jitterbuffer on the receiving side of a
++                              ; ZAP channel. Defaults to &quot;no&quot;. An enabled jitterbuffer will
++                              ; be used only if the sending side can create and the receiving
++                              ; side can not accept jitter. The ZAP channel can't accept jitter,
++                              ; thus an enabled jitterbuffer on the receive ZAP side will always
++                              ; be used if the sending side can create jitter or if ZAP jb is
++                              ; forced.
++
++; jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a ZAP
++                              ; channel. Defaults to &quot;no&quot;.
++
++; jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
++
++; jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
++                              ; resynchronized. Useful to improve the quality of the voice, with
++                              ; big jumps in/broken timestamps, usualy sent from exotic devices
++                              ; and programs. Defaults to 1000.
++
++; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a SIP
++                              ; channel. Two implementation are currenlty available - &quot;fixed&quot;
++                              ; (with size always equals to jbmax-size) and &quot;adaptive&quot; (with
++                              ; variable size, actually the new jb of IAX2). Defaults to fixed.
++
++; jblog = no                  ; Enables jitterbuffer frame logging. Defaults to &quot;no&quot;.
++;-----------------------------------------------------------------------------------
++;
+ ; You can define your own custom ring cadences here.  You can define up to 8
+ ; pairs.  If the silence is negative, it indicates where the callerid spill is
+ ; to be placed.  Also, if you define any custom cadences, the default cadences
+
+Modified: trunk/frame.c
+===================================================================
+--- trunk/frame.c	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/frame.c	2006-05-31 17:26:40 UTC (rev 198)
+@@ -316,6 +316,13 @@
+ 		out-&gt;samples = fr-&gt;samples;
+ 		out-&gt;offset = fr-&gt;offset;
+ 		out-&gt;data = fr-&gt;data;
++		/* Copy the timing data */
++		out-&gt;has_timing_info = fr-&gt;has_timing_info;
++		if (fr-&gt;has_timing_info) {
++			out-&gt;ts = fr-&gt;ts;
++			out-&gt;len = fr-&gt;len;
++			out-&gt;seqno = fr-&gt;seqno;
++		}
+ 	} else
+ 		out = fr;
+ 	
+@@ -380,6 +387,12 @@
+ 	out-&gt;prev = NULL;
+ 	out-&gt;next = NULL;
+ 	memcpy(out-&gt;data, f-&gt;data, out-&gt;datalen);	
++	out-&gt;has_timing_info = f-&gt;has_timing_info;
++	if (f-&gt;has_timing_info) {
++		out-&gt;ts = f-&gt;ts;
++		out-&gt;len = f-&gt;len;
++		out-&gt;seqno = f-&gt;seqno;
++	}
+ 	return out;
+ }
+ 
+
+Modified: trunk/include/asterisk/channel.h
+===================================================================
+--- trunk/include/asterisk/channel.h	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/include/asterisk/channel.h	2006-05-31 17:26:40 UTC (rev 198)
+@@ -86,6 +86,8 @@
+ #ifndef _ASTERISK_CHANNEL_H
+ #define _ASTERISK_CHANNEL_H
+ 
++#include &quot;asterisk/abstract_jb.h&quot;
++
+ #include &lt;unistd.h&gt;
+ #ifdef POLLCOMPAT 
+ #include &quot;asterisk/poll-compat.h&quot;
+@@ -445,6 +447,9 @@
+ 
+ 	/*! For easy linking */
+ 	AST_LIST_ENTRY(ast_channel) chan_list;
++
++	/*! The jitterbuffer state  */
++	struct ast_jb jb;
+ };
+ 
+ /* \defgroup chanprop Channel tech properties:
+@@ -452,6 +457,11 @@
+ /* @{ */
+ #define AST_CHAN_TP_WANTSJITTER	(1 &lt;&lt; 0)	
+ 
++/* \defgroup chanprop Channel tech properties:
++	\brief Channels have this property if they can create jitter; i.e. most VoIP channels */
++/* @{ */
++#define AST_CHAN_TP_CREATESJITTER (1 &lt;&lt; 1)
++
+ /* This flag has been deprecated by the transfercapbilty data member in struct ast_channel */
+ /* #define AST_FLAG_DIGITAL	(1 &lt;&lt; 0) */	/* if the call is a digital ISDN call */
+ #define AST_FLAG_DEFER_DTMF	(1 &lt;&lt; 1)	/*!&lt; if dtmf should be deferred */
+
+Modified: trunk/include/asterisk/frame.h
+===================================================================
+--- trunk/include/asterisk/frame.h	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/include/asterisk/frame.h	2006-05-31 17:26:40 UTC (rev 198)
+@@ -109,6 +109,14 @@
+ 	struct ast_frame *prev;			
+ 	/*! Next/Prev for linking stand alone frames */
+ 	struct ast_frame *next;			
++	/*! Timing data flag */
++	int has_timing_info;
++	/*! Timestamp in milliseconds */
++	long ts;
++	/*! Length in milliseconds */
++	long len;
++	/*! Sequence number */
++	int seqno;
+ };
+ 
+ /*!
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/rtp.c	2006-05-31 17:26:40 UTC (rev 198)
+@@ -696,7 +696,6 @@
+ 	int padding;
+ 	int mark;
+ 	int ext;
+-	int x;
+ 	char iabuf[INET_ADDRSTRLEN];
+ 	unsigned int ssrc;
+ 	unsigned int timestamp;
+@@ -835,17 +834,6 @@
+ 	if (!rtp-&gt;lastrxts)
+ 		rtp-&gt;lastrxts = timestamp;
+ 
+-	if (rtp-&gt;rxseqno) {
+-		for (x=rtp-&gt;rxseqno + 1; x &lt; seqno; x++) {
+-			/* Queue empty frames */
+-			rtp-&gt;f.mallocd = 0;
+-			rtp-&gt;f.datalen = 0;
+-			rtp-&gt;f.data = NULL;
+-			rtp-&gt;f.offset = 0;
+-			rtp-&gt;f.samples = 0;
+-			rtp-&gt;f.src = &quot;RTPMissedFrame&quot;;
+-		}
+-	}
+ 	rtp-&gt;rxseqno = seqno;
+ 
+ 	if (rtp-&gt;dtmfcount) {
+@@ -877,6 +865,11 @@
+ 		if (rtp-&gt;f.subclass == AST_FORMAT_SLINEAR) 
+ 			ast_frame_byteswap_be(&amp;rtp-&gt;f);
+ 		calc_rxstamp(&amp;rtp-&gt;f.delivery, rtp, timestamp, mark);
++		/* Add timing data to let ast_generic_bridge() put the frame into a jitterbuf */
++		rtp-&gt;f.has_timing_info = 1;
++		rtp-&gt;f.ts = timestamp / 8;
++		rtp-&gt;f.len = rtp-&gt;f.samples / 8;
++		rtp-&gt;f.seqno = seqno;
+ 	} else {
+ 		/* Video -- samples is # of samples vs. 90000 */
+ 		if (!rtp-&gt;lastividtimestamp)
+@@ -1701,6 +1694,9 @@
+ 	if (rtp-&gt;lastts &gt; rtp-&gt;lastdigitts)
+ 		rtp-&gt;lastdigitts = rtp-&gt;lastts;
+ 
++	if (f-&gt;has_timing_info)
++		rtp-&gt;lastts = f-&gt;ts * 8;
++
+ 	/* Get a pointer to the header */
+ 	rtpheader = (unsigned char *)(f-&gt;data - hdrlen);
+ 
+
+Modified: trunk/translate.c
+===================================================================
+--- trunk/translate.c	2006-05-31 16:25:28 UTC (rev 197)
++++ trunk/translate.c	2006-05-31 17:26:40 UTC (rev 198)
+@@ -154,6 +154,12 @@
+ 	int16_t *dst = (int16_t *)pvt-&gt;outbuf;
+ 	int ret;
+ 	int samples = pvt-&gt;samples;	/* initial value */
++	
++	/* Copy the last in jb timing info to the pvt */
++	pvt-&gt;f.has_timing_info = f-&gt;has_timing_info;
++	pvt-&gt;f.ts = f-&gt;ts;
++	pvt-&gt;f.len = f-&gt;len;
++	pvt-&gt;f.seqno = f-&gt;seqno;
+ 
+ 	if (f-&gt;samples == 0) {
+ 		ast_log(LOG_WARNING, &quot;no samples for %s\n&quot;, pvt-&gt;t-&gt;name);
+@@ -285,7 +291,16 @@
+ 	struct ast_trans_pvt *p = path;
+ 	struct ast_frame *out = f;
+ 	struct timeval delivery;
++	int has_timing_info;
++	long ts;
++	long len;
++	int seqno;
+ 
++	has_timing_info = f-&gt;has_timing_info;
++	ts = f-&gt;ts;
++	len = f-&gt;len;
++	seqno = f-&gt;seqno;
++
+ 	/* XXX hmmm... check this below */
+ 	if (!ast_tvzero(f-&gt;delivery)) {
+ 		if (!ast_tvzero(path-&gt;nextin)) {
+@@ -331,6 +346,12 @@
+ 		path-&gt;nextout = ast_tvadd(path-&gt;nextout, ast_samp2tv( out-&gt;samples, 8000));
+ 	} else {
+ 		out-&gt;delivery = ast_tv(0, 0);
++		out-&gt;has_timing_info = has_timing_info;
++		if (has_timing_info) {
++			out-&gt;ts = ts;
++			out-&gt;len = len;
++			out-&gt;seqno = seqno;
++		}
+ 	}
+ 	/* Invalidate prediction if we're entering a silence period */
+ 	if (out-&gt;frametype == AST_FRAME_CNG)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000192.html">[solid-pbx-svn] r197 - in trunk: . apps
+</A></li>
+	<LI>Next message: <A HREF="000194.html">[solid-pbx-svn] r199 - in trunk: apps channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#193">[ date ]</a>
+              <a href="thread.html#193">[ thread ]</a>
+              <a href="subject.html#193">[ subject ]</a>
+              <a href="author.html#193">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

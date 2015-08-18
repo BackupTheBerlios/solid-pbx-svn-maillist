@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r246 - in trunk: channels configs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r246%20-%20in%20trunk%3A%20channels%20configs&In-Reply-To=%3C200606180526.k5I5QFTw027817%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000240.html">
+   <LINK REL="Next"  HREF="000242.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r246 - in trunk: channels configs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r246%20-%20in%20trunk%3A%20channels%20configs&In-Reply-To=%3C200606180526.k5I5QFTw027817%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r246 - in trunk: channels configs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 07:26:15 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000240.html">[solid-pbx-svn] r245 - trunk/configs
+</A></li>
+        <LI>Next message: <A HREF="000242.html">[solid-pbx-svn] r247 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#241">[ date ]</a>
+              <a href="thread.html#241">[ thread ]</a>
+              <a href="subject.html#241">[ subject ]</a>
+              <a href="author.html#241">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 07:25:28 +0200 (Sun, 18 Jun 2006)
+New Revision: 246
+
+Modified:
+   trunk/channels/chan_sip.c
+   trunk/configs/jabber.conf.sample
+Log:
+Update to Asterisk SVN trunk r32073
+
+------------------------------------------------------------------------
+r32064 | mogorman | 2006-06-04 19:08:18 +0200 (Sun, 04 Jun 2006) | 2 lines
+
+oops my config file was out of date not the sample
+
+------------------------------------------------------------------------
+r32065 | oej | 2006-06-04 19:35:30 +0200 (Sun, 04 Jun 2006) | 2 lines
+
+Show max bitrate in &quot;sip show user&quot; and &quot;sip show channel&quot;
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-18 04:25:15 UTC (rev 245)
++++ trunk/channels/chan_sip.c	2006-06-18 05:25:28 UTC (rev 246)
+@@ -8675,7 +8675,7 @@
+ 		ast_cli(fd, &quot;  Call limit   : %d\n&quot;, peer-&gt;call_limit);
+ 		ast_cli(fd, &quot;  Dynamic      : %s\n&quot;, (ast_test_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_DYNAMIC)?&quot;Yes&quot;:&quot;No&quot;));
+ 		ast_cli(fd, &quot;  Callerid     : %s\n&quot;, ast_callerid_merge(cbuf, sizeof(cbuf), peer-&gt;cid_name, peer-&gt;cid_num, &quot;&lt;unspecified&gt;&quot;));
+-		ast_cli(fd, &quot;  MaxCallBR    : %dkbps\n&quot;, peer-&gt;maxcallbitrate);
++		ast_cli(fd, &quot;  MaxCallBR    : %d kbps\n&quot;, peer-&gt;maxcallbitrate);
+ 		ast_cli(fd, &quot;  Expire       : %d\n&quot;, peer-&gt;expire);
+ 		ast_cli(fd, &quot;  Insecure     : %s\n&quot;, insecure2str(ast_test_flag(&amp;peer-&gt;flags[0], SIP_INSECURE_PORT), ast_test_flag(&amp;peer-&gt;flags[0], SIP_INSECURE_INVITE)));
+ 		ast_cli(fd, &quot;  Nat          : %s\n&quot;, nat2str(ast_test_flag(&amp;peer-&gt;flags[0], SIP_NAT)));
+@@ -8757,7 +8757,7 @@
+ 		astman_append(s, &quot;TransferMode: %s\r\n&quot;, transfermode2str(peer-&gt;allowtransfer));
+ 		astman_append(s, &quot;LastMsgsSent: %d\r\n&quot;, peer-&gt;lastmsgssent);
+ 		astman_append(s, &quot;Call limit: %d\r\n&quot;, peer-&gt;call_limit);
+-		astman_append(s, &quot;MaxCallBR: %dkbps\r\n&quot;, peer-&gt;maxcallbitrate);
++		astman_append(s, &quot;MaxCallBR: %d kbps\r\n&quot;, peer-&gt;maxcallbitrate);
+ 		astman_append(s, &quot;Dynamic: %s\r\n&quot;, (ast_test_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_DYNAMIC)?&quot;Y&quot;:&quot;N&quot;));
+ 		astman_append(s, &quot;Callerid: %s\r\n&quot;, ast_callerid_merge(cbuf, sizeof(cbuf), peer-&gt;cid_name, peer-&gt;cid_num, &quot;&quot;));
+ 		astman_append(s, &quot;RegExpire: %ld seconds\r\n&quot;, ast_sched_when(sched,peer-&gt;expire));
+@@ -8842,6 +8842,7 @@
+ 			ast_cli(fd, &quot;  Accountcode  : %s\n&quot;, user-&gt;accountcode);
+ 		ast_cli(fd, &quot;  AMA flags    : %s\n&quot;, ast_cdr_flags2str(user-&gt;amaflags));
+ 		ast_cli(fd, &quot;  Transfer mode: %s\n&quot;, transfermode2str(user-&gt;allowtransfer));
++		ast_cli(fd, &quot;  MaxCallBR    : %d kbps\n&quot;, user-&gt;maxcallbitrate);
+ 		ast_cli(fd, &quot;  CallingPres  : %s\n&quot;, ast_describe_caller_presentation(user-&gt;callingpres));
+ 		ast_cli(fd, &quot;  Call limit   : %d\n&quot;, user-&gt;call_limit);
+ 		ast_cli(fd, &quot;  Callgroup    : &quot;);
+@@ -8973,7 +8974,7 @@
+ 	ast_cli(fd, &quot;  Outbound reg. attempts: %d\n&quot;, global_regattempts_max);
+ 	ast_cli(fd, &quot;  Notify ringing state:   %s\n&quot;, global_notifyringing ? &quot;Yes&quot; : &quot;No&quot;);
+ 	ast_cli(fd, &quot;  SIP Transfer mode:      %s\n&quot;, transfermode2str(global_allowtransfer));
+-	ast_cli(fd, &quot;  Max Call Bitrate:       %dkbps\r\n&quot;, default_maxcallbitrate);
++	ast_cli(fd, &quot;  Max Call Bitrate:       %d kbps\r\n&quot;, default_maxcallbitrate);
+ 	ast_cli(fd, &quot;\nDefault Settings:\n&quot;);
+ 	ast_cli(fd, &quot;-----------------\n&quot;);
+ 	ast_cli(fd, &quot;  Context:                %s\n&quot;, default_context);
+@@ -9258,6 +9259,7 @@
+ 			ast_cli(fd, &quot;  Their Codec Capability:   %d\n&quot;, cur-&gt;peercapability);
+ 			ast_cli(fd, &quot;  Joint Codec Capability:   %d\n&quot;, cur-&gt;jointcapability);
+ 			ast_cli(fd, &quot;  Format:                 %s\n&quot;, ast_getformatname_multiple(formatbuf, sizeof(formatbuf), cur-&gt;owner ? cur-&gt;owner-&gt;nativeformats : 0) );
++			ast_cli(fd, &quot;  MaxCallBR:              %d kbps\n&quot;, cur-&gt;maxcallbitrate);
+ 			ast_cli(fd, &quot;  Theoretical Address:    %s:%d\n&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), cur-&gt;sa.sin_addr), ntohs(cur-&gt;sa.sin_port));
+ 			ast_cli(fd, &quot;  Received Address:       %s:%d\n&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), cur-&gt;recv.sin_addr), ntohs(cur-&gt;recv.sin_port));
+ 			ast_cli(fd, &quot;  SIP Transfer mode:      %s\n&quot;, transfermode2str(cur-&gt;allowtransfer));
+
+Modified: trunk/configs/jabber.conf.sample
+===================================================================
+--- trunk/configs/jabber.conf.sample	2006-06-18 04:25:15 UTC (rev 245)
++++ trunk/configs/jabber.conf.sample	2006-06-18 05:25:28 UTC (rev 246)
+@@ -1,7 +1,7 @@
+ [general]
+ ;debug=yes				;;Turn on debugging by default.
+-;noautoprune=yes			;;Disables auto remove users from buddy list.
+-;noautoregister=yes			;;Disable auto register users from buddy list. 
++;autoprune=yes				;;Auto remove users from buddy list.
++;autoregister=yes			;;Auto register users from buddy list. 
+ 
+ ;[asterisk]				;;label
+ ;type=client				;;Client or Component connection
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000240.html">[solid-pbx-svn] r245 - trunk/configs
+</A></li>
+	<LI>Next message: <A HREF="000242.html">[solid-pbx-svn] r247 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#241">[ date ]</a>
+              <a href="thread.html#241">[ thread ]</a>
+              <a href="subject.html#241">[ subject ]</a>
+              <a href="author.html#241">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

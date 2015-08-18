@@ -1,0 +1,246 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r374 - in trunk/channels: . misdn
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r374%20-%20in%20trunk/channels%3A%20.%20misdn&In-Reply-To=%3C200606280138.k5S1cEom016665%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000368.html">
+   <LINK REL="Next"  HREF="000370.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r374 - in trunk/channels: . misdn</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r374%20-%20in%20trunk/channels%3A%20.%20misdn&In-Reply-To=%3C200606280138.k5S1cEom016665%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r374 - in trunk/channels: . misdn">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:38:14 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000368.html">[solid-pbx-svn] r373 - in trunk: apps build_tools
+</A></li>
+        <LI>Next message: <A HREF="000370.html">[solid-pbx-svn] r375 - in trunk: . channels configs db1-ast
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#369">[ date ]</a>
+              <a href="thread.html#369">[ thread ]</a>
+              <a href="subject.html#369">[ subject ]</a>
+              <a href="author.html#369">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:38:12 +0200 (Wed, 28 Jun 2006)
+New Revision: 374
+
+Modified:
+   trunk/channels/chan_misdn.c
+   trunk/channels/misdn/isdn_lib.c
+   trunk/channels/misdn/isdn_lib.h
+Log:
+Update to Asterisk SVN trunk r34613
+
+------------------------------------------------------------------------
+r34604 | crichter | 2006-06-18 21:09:32 +0200 (Sun, 18 Jun 2006) | 1 line
+
+added TONE_HANGUP, also added Tone generation by mISDN_dsp for post hangup tones, therefore the TONE_X defines are in the isdn_lib.h now. changed a REALEASE to a DISCONNECT in NT Stack, to make tones available in that state.
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_misdn.c
+===================================================================
+--- trunk/channels/chan_misdn.c	2006-06-28 01:37:31 UTC (rev 373)
++++ trunk/channels/chan_misdn.c	2006-06-28 01:38:12 UTC (rev 374)
+@@ -111,17 +111,7 @@
+ /* BEGIN: chan_misdn.h */
+ 
+ 
+-enum tone_e {
+-	TONE_NONE=0,
+-	TONE_DIAL,
+-	TONE_ALERTING,
+-	TONE_FAR_ALERTING,
+-	TONE_BUSY,
+-	TONE_CUSTOM,
+-	TONE_FILE
+-};
+ 
+-
+ enum misdn_chan_state {
+ 	MISDN_NOTHING,		/*!&lt; at beginning */
+ 	MISDN_WAITING4DIGS, /*!&lt;  when waiting for infos */
+@@ -1981,7 +1971,7 @@
+ 		return 0;
+ 	}
+ 
+-	stop_bc_tones(p);
++	/*stop_bc_tones(p);*/
+ 	
+ 	release_unlock;
+ 	
+@@ -2008,11 +1998,11 @@
+ 		case MISDN_HOLDED:
+ 		case MISDN_DIALING:
+ 			start_bc_tones(p);
+-			tone_indicate(p, TONE_BUSY);
++			tone_indicate(p, TONE_HANGUP);
+ 			p-&gt;state=MISDN_CLEANING;
+ 		
+ 			if (bc-&gt;nt)
+-				misdn_lib_send_event( bc, EVENT_RELEASE);
++				misdn_lib_send_event( bc, EVENT_DISCONNECT);
+ 			else
+ 				misdn_lib_send_event( bc, EVENT_RELEASE_COMPLETE);
+       
+@@ -2024,7 +2014,7 @@
+ 			chan_misdn_log(2, bc-&gt;port, &quot; --&gt; * State Alerting\n&quot;);
+ 
+ 			if (p-&gt;orginator != ORG_AST) 
+-				tone_indicate(p, TONE_BUSY);
++				tone_indicate(p, TONE_HANGUP);
+       
+ 			p-&gt;state=MISDN_CLEANING;
+ 			misdn_lib_send_event( bc, EVENT_DISCONNECT);
+@@ -2033,7 +2023,7 @@
+ 			/*  Alerting or Disconect */
+ 			chan_misdn_log(2, bc-&gt;port, &quot; --&gt; * State Connected\n&quot;);
+ 			start_bc_tones(p);
+-			tone_indicate(p, TONE_BUSY);
++			tone_indicate(p, TONE_HANGUP);
+ 			misdn_lib_send_event( bc, EVENT_DISCONNECT);
+       
+ 			p-&gt;state=MISDN_CLEANING; /* MISDN_HUNGUP_FROM_AST; */
+@@ -2129,7 +2119,7 @@
+ 	if (!ast) return NULL;
+ 	if (! (tmp=MISDN_ASTERISK_TECH_PVT(ast)) ) return NULL;
+ 	if (!tmp-&gt;bc) return NULL;
+-	
++
+ 	len=read(tmp-&gt;pipe[0],tmp-&gt;ast_rd_buf,sizeof(tmp-&gt;ast_rd_buf));
+ 
+ 	if (len&lt;=0) {
+@@ -2367,14 +2357,9 @@
+ 	
+ 	if (!cl-&gt;ast) {
+ 		chan_misdn_log(-1,cl-&gt;bc-&gt;port,&quot;Ast Ptr Not existing anymore.. we need to generate tones ourselves now (tbd)\n&quot;);
++		
++		misdn_lib_send_tone(cl-&gt;bc,tone);
+ 		return 0;
+-#if 0
+-		struct ast_channel *dummy=misdn_new(cl, AST_STATE_RESERVED, cl-&gt;bc-&gt;dad, cl-&gt;bc-&gt;oad, AST_FORMAT_ALAW, cl-&gt;bc-&gt;port, 99);
+-		cl-&gt;ast=dummy;
+-		/* return 0; */
+-		cl-&gt;dummy=1;
+-		ast=cl-&gt;ast;
+-#endif
+ 	}
+ 	
+ 	switch (tone) {
+
+Modified: trunk/channels/misdn/isdn_lib.c
+===================================================================
+--- trunk/channels/misdn/isdn_lib.c	2006-06-28 01:37:31 UTC (rev 373)
++++ trunk/channels/misdn/isdn_lib.c	2006-06-28 01:38:12 UTC (rev 374)
+@@ -3798,6 +3798,8 @@
+ 	unsigned int *d = (unsigned int*)&amp;ctrl-&gt;data.p;
+ 	struct misdn_stack *stack=get_stack_by_bc(bc);
+ 	
++	cb_log(4,bc-&gt;port,&quot;ph_control: c1:%x c2:%x\n&quot;,c1,c2);
++	
+ 	ctrl-&gt;prim = PH_CONTROL | REQUEST;
+ 	ctrl-&gt;addr = bc-&gt;addr | FLG_MSG_DOWN;
+ 	ctrl-&gt;dinfo = 0;
+@@ -3915,6 +3917,29 @@
+ 
+ 
+ 
++void misdn_lib_send_tone(struct misdn_bchannel *bc, enum tone_e tone) 
++{
++	switch(tone) {
++	case TONE_DIAL:
++		manager_ph_control(bc, TONE_PATT_ON, TONE_GERMAN_DIALTONE);	
++	break;
++	
++	case TONE_ALERTING:
++		manager_ph_control(bc, TONE_PATT_ON, TONE_GERMAN_RINGING);	
++	break;
++	
++	case TONE_HANGUP:
++		manager_ph_control(bc, TONE_PATT_ON, TONE_GERMAN_HANGUP);	
++	break;
++
++	case TONE_NONE:
++	default:
++		manager_ph_control(bc, TONE_PATT_OFF, TONE_GERMAN_HANGUP);	
++	}
++
++}
++
++
+ void manager_ec_enable(struct misdn_bchannel *bc)
+ {
+ 	int ec_arr[2];
+
+Modified: trunk/channels/misdn/isdn_lib.h
+===================================================================
+--- trunk/channels/misdn/isdn_lib.h	2006-06-28 01:37:31 UTC (rev 373)
++++ trunk/channels/misdn/isdn_lib.h	2006-06-28 01:38:12 UTC (rev 374)
+@@ -21,6 +21,19 @@
+ 
+ 
+ 
++enum tone_e {
++	TONE_NONE=0,
++	TONE_DIAL,
++	TONE_ALERTING,
++	TONE_FAR_ALERTING,
++	TONE_BUSY,
++	TONE_HANGUP,
++	TONE_CUSTOM,
++	TONE_FILE
++};
++
++
++
+ #define MAX_BCHANS 30
+ 
+ enum bchannel_state {
+@@ -376,6 +389,7 @@
+ void manager_ec_enable(struct misdn_bchannel *bc);
+ void manager_ec_disable(struct misdn_bchannel *bc);
+ 
++void misdn_lib_send_tone(struct misdn_bchannel *bc, enum tone_e tone);
+ 
+ void get_show_stack_details(int port, char *buf);
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000368.html">[solid-pbx-svn] r373 - in trunk: apps build_tools
+</A></li>
+	<LI>Next message: <A HREF="000370.html">[solid-pbx-svn] r375 - in trunk: . channels configs db1-ast
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#369">[ date ]</a>
+              <a href="thread.html#369">[ thread ]</a>
+              <a href="subject.html#369">[ subject ]</a>
+              <a href="author.html#369">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

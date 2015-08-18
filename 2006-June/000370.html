@@ -1,0 +1,317 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r375 - in trunk: . channels configs db1-ast
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r375%20-%20in%20trunk%3A%20.%20channels%20configs%20db1-ast&In-Reply-To=%3C200606280138.k5S1ctpG016881%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000369.html">
+   <LINK REL="Next"  HREF="000371.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r375 - in trunk: . channels configs db1-ast</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r375%20-%20in%20trunk%3A%20.%20channels%20configs%20db1-ast&In-Reply-To=%3C200606280138.k5S1ctpG016881%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r375 - in trunk: . channels configs db1-ast">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:38:55 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000369.html">[solid-pbx-svn] r374 - in trunk/channels: . misdn
+</A></li>
+        <LI>Next message: <A HREF="000371.html">[solid-pbx-svn] r376 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#370">[ date ]</a>
+              <a href="thread.html#370">[ thread ]</a>
+              <a href="subject.html#370">[ subject ]</a>
+              <a href="author.html#370">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:38:49 +0200 (Wed, 28 Jun 2006)
+New Revision: 375
+
+Modified:
+   trunk/Makefile
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_jingle.c
+   trunk/configs/iax.conf.sample
+   trunk/db1-ast/Makefile
+Log:
+Update to Asterisk SVN trunk r34633
+
+------------------------------------------------------------------------
+r34628 | russell | 2006-06-18 22:18:41 +0200 (Sun, 18 Jun 2006) | 13 lines
+
+Merged revisions 34627 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r34627 | russell | 2006-06-18 16:15:15 -0400 (Sun, 18 Jun 2006) | 5 lines
+
+don't store multiple secrets delimited with semicolons for peers because this
+is only valid for users. Instead, only keep the last specified secret for a
+peer entry. Also, document how multiple secrets are handled in the sample
+config. (Reported by PCadach on #asterisk-bugs)
+
+.......
+
+------------------------------------------------------------------------
+r34629 | russell | 2006-06-18 22:33:53 +0200 (Sun, 18 Jun 2006) | 4 lines
+
+there is no reason to build and link stdtime/libtime.a because we already
+directly include stdtime/localtime.o in the OBJS for asterisk, which is the
+only object file for libtime
+
+------------------------------------------------------------------------
+r34630 | russell | 2006-06-18 22:41:32 +0200 (Sun, 18 Jun 2006) | 3 lines
+
+use the CFLAGS from the main Makefile when building libdb1
+(issue #7324, with mods)
+
+------------------------------------------------------------------------
+r34631 | russell | 2006-06-18 22:51:14 +0200 (Sun, 18 Jun 2006) | 2 lines
+
+fix various coding guidelines issues (issue #7345, with additional changes)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-28 01:38:12 UTC (rev 374)
++++ trunk/Makefile	2006-06-28 01:38:49 UTC (rev 375)
+@@ -277,7 +277,7 @@
+ ASTCFLAGS+=$(MALLOC_DEBUG)$(BUSYDETECT)$(OPTIONS)
+ 
+ MOD_SUBDIRS=res channels pbx apps codecs formats cdr funcs
+-OTHER_SUBDIRS=utils stdtime agi
++OTHER_SUBDIRS=utils agi
+ SUBDIRS:=$(MOD_SUBDIRS) $(OTHER_SUBDIRS)
+ 
+ OBJS=io.o sched.o logger.o frame.o loader.o config.o channel.o \
+@@ -477,17 +477,14 @@
+ 	fi
+ 	@rm -f $@.tmp
+ 
+-stdtime/libtime.a:
+-	CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C stdtime libtime.a
+-
+-asterisk: include/asterisk/buildopts.h editline/libedit.a db1-ast/libdb1.a stdtime/libtime.a $(OBJS)
++asterisk: include/asterisk/buildopts.h editline/libedit.a db1-ast/libdb1.a $(OBJS)
+ 	build_tools/make_build_h &gt; include/asterisk/build.h.tmp
+ 	if cmp -s include/asterisk/build.h.tmp include/asterisk/build.h ; then echo ; else \
+ 		mv include/asterisk/build.h.tmp include/asterisk/build.h ; \
+ 	fi
+ 	rm -f include/asterisk/build.h.tmp
+ 	$(CC) -c -o buildinfo.o $(CFLAGS) buildinfo.c
+-	$(CC) $(DEBUG) $(ASTOBJ) $(ASTLINK) $(OBJS) buildinfo.o $(LIBEDIT) db1-ast/libdb1.a stdtime/libtime.a $(LIBS)
++	$(CC) $(DEBUG) $(ASTOBJ) $(ASTLINK) $(OBJS) buildinfo.o $(LIBEDIT) db1-ast/libdb1.a $(LIBS)
+ 
+ muted: muted.o
+ 	$(CC) $(AUDIO_LIBS) -o muted muted.o
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-06-28 01:38:12 UTC (rev 374)
++++ trunk/channels/chan_iax2.c	2006-06-28 01:38:49 UTC (rev 375)
+@@ -8353,11 +8353,7 @@
+ 		peer-&gt;peercontext[0] = '\0';
+ 		while(v) {
+ 			if (!strcasecmp(v-&gt;name, &quot;secret&quot;)) {
+-				if (!ast_strlen_zero(peer-&gt;secret)) {
+-					strncpy(peer-&gt;secret + strlen(peer-&gt;secret), &quot;;&quot;, sizeof(peer-&gt;secret)-strlen(peer-&gt;secret) - 1);
+-					strncpy(peer-&gt;secret + strlen(peer-&gt;secret), v-&gt;value, sizeof(peer-&gt;secret)-strlen(peer-&gt;secret) - 1);
+-				} else
+-					ast_copy_string(peer-&gt;secret, v-&gt;value, sizeof(peer-&gt;secret));
++				ast_copy_string(peer-&gt;secret, v-&gt;value, sizeof(peer-&gt;secret));
+ 			} else if (!strcasecmp(v-&gt;name, &quot;mailbox&quot;)) {
+ 				ast_copy_string(peer-&gt;mailbox, v-&gt;value, sizeof(peer-&gt;mailbox));
+ 			} else if (!strcasecmp(v-&gt;name, &quot;dbsecret&quot;)) {
+
+Modified: trunk/channels/chan_jingle.c
+===================================================================
+--- trunk/channels/chan_jingle.c	2006-06-28 01:38:12 UTC (rev 374)
++++ trunk/channels/chan_jingle.c	2006-06-28 01:38:49 UTC (rev 375)
+@@ -479,13 +479,10 @@
+ 	struct jingle_pvt *tmp;
+ 
+ 	ast_log(LOG_DEBUG, &quot;The client is %s\n&quot;, client-&gt;name);
+-	tmp = client-&gt;p;
+ 	/* Make sure our new call doesn't exist yet */
+-	while (tmp) {
+-		if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, GOOGLE_SID, tmp-&gt;sid)) {
++	for (tmp = client-&gt;p; tmp; tmp = tmp-&gt;next) {
++		if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, GOOGLE_SID, tmp-&gt;sid))
+ 			break;
+-		}
+-		tmp = tmp-&gt;next;
+ 	}
+ 
+ 	if (tmp) {
+@@ -502,13 +499,10 @@
+ 	struct jingle_pvt *tmp;
+ 
+ 	ast_log(LOG_DEBUG, &quot;The client is %s\n&quot;, client-&gt;name);
+-	tmp = client-&gt;p;
+ 	/* Make sure our new call doesn't exist yet */
+-	while (tmp) {
+-		if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, GOOGLE_SID, tmp-&gt;sid)) {
++	for (tmp = client-&gt;p; tmp; tmp = tmp-&gt;next) {
++		if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, GOOGLE_SID, tmp-&gt;sid))
+ 			break;
+-		}
+-		tmp = tmp-&gt;next;
+ 	}
+ 
+ 	if (tmp) {
+@@ -536,21 +530,18 @@
+ 	iq = iks_new(&quot;iq&quot;);
+ 	jingle = iks_new(GOOGLE_NODE);
+ 	candidate = iks_new(&quot;candidate&quot;);
+-	ours1 = (struct jingle_candidate *) ast_calloc(1, sizeof(struct jingle_candidate));
+-	ours2 = (struct jingle_candidate *) ast_calloc(1, sizeof(struct jingle_candidate));
+-	if (!iq || !jingle || !candidate || !ours1 || !ours2) {
+-		ast_log(LOG_WARNING, &quot;out of memory!\n&quot;);
++	if (!iq || !jingle || !candidate) {
++		ast_log(LOG_ERROR, &quot;Memory allocation error\n&quot;);
+ 		goto safeout;
+ 	}
+-
++	ours1 = ast_calloc(1, sizeof(*ours1));
++	ours2 = ast_calloc(1, sizeof(*ours2));
+ 	iks_insert_node(iq, jingle);
+ 	iks_insert_node(jingle, candidate);
+ 
+-	while (p) {
+-		if (!strcasecmp(p-&gt;sid, sid)) {
++	for (; p; p = p-&gt;next) {
++		if (!strcasecmp(p-&gt;sid, sid))
+ 			break;
+-		}
+-		p = p-&gt;next;
+ 	}
+ 
+ 	if (!p) {
+@@ -596,8 +587,7 @@
+ 	dest.sin_port = sin.sin_port;
+ 
+ 
+-	tmp = p-&gt;ourcandidates;
+-	while (tmp) {				/*send standard candidates */
++	for (tmp = p-&gt;ourcandidates; tmp; tmp = tmp-&gt;next) {
+ 		snprintf(port, sizeof(port), &quot;%d&quot;, tmp-&gt;port);
+ 		snprintf(preference, sizeof(preference), &quot;%.2f&quot;, tmp-&gt;preference);
+ 		iks_insert_attrib(iq, &quot;from&quot;, c-&gt;jid-&gt;full);
+@@ -628,7 +618,6 @@
+ 		iks_insert_attrib(candidate, &quot;network&quot;, &quot;0&quot;);
+ 		iks_insert_attrib(candidate, &quot;generation&quot;, &quot;0&quot;);
+ 		iks_send(c-&gt;p, iq);
+-		tmp = tmp-&gt;next;
+ 	}
+ 	p-&gt;laststun = 0;
+ 
+@@ -958,23 +947,18 @@
+ 	struct aji_client *c = client-&gt;connection;
+ 	struct jingle_candidate *newcandidate = NULL;
+ 	iks  *traversenodes = NULL, *receipt = NULL;
+-	newcandidate =
+-		(struct jingle_candidate *) ast_calloc(1, sizeof(struct jingle_candidate));
++	newcandidate = ast_calloc(1, sizeof(*newcandidate));
+ 	if (!newcandidate)
+ 		return 0;
+-	memset(newcandidate, 0, sizeof(struct jingle_candidate));
+-	tmp = client-&gt;p;
+-	while (tmp) {
++	for (tmp = client-&gt;p; tmp; tmp = tmp-&gt;next) {
+ 		if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, GOOGLE_SID, tmp-&gt;sid)) {
+ 			p = tmp;
+ 			break;
+ 		}
+-		tmp = tmp-&gt;next;
+ 	}
+ 
+-	if (!p) {
++	if (!p)
+ 		return -1;
+-	}
+ 
+ 	traversenodes = pak-&gt;query;
+ 	while(traversenodes) {
+@@ -983,11 +967,9 @@
+ 			continue;
+ 		}
+ 		if(!strcasecmp(iks_name(traversenodes), &quot;candidate&quot;)) {
+-			newcandidate =
+-				(struct jingle_candidate *) ast_calloc(1, sizeof(struct jingle_candidate));
++			newcandidate = ast_calloc(1, sizeof(*newcandidate));
+ 			if (!newcandidate)
+ 				return 0;
+-			memset(newcandidate, 0, sizeof(struct jingle_candidate));
+ 			ast_copy_string(newcandidate-&gt;name, iks_find_attrib(traversenodes, &quot;name&quot;),
+ 							sizeof(newcandidate-&gt;name));
+ 			ast_copy_string(newcandidate-&gt;ip, iks_find_attrib(traversenodes, &quot;address&quot;),
+
+Modified: trunk/configs/iax.conf.sample
+===================================================================
+--- trunk/configs/iax.conf.sample	2006-06-28 01:38:12 UTC (rev 374)
++++ trunk/configs/iax.conf.sample	2006-06-28 01:38:49 UTC (rev 375)
+@@ -377,7 +377,9 @@
+ ;type=friend
+ ;host=dynamic
+ ;regexten=1234
+-;secret=moofoo
++;secret=moofoo   ; Multiple secrets may be specified. For a &quot;user&quot;, all
++;secret=foomoo   ; specified entries will be accepted as valid. For a &quot;peer&quot;,
++;secret=shazbot  ; only the last specified secret will be used.
+ ;context=default
+ ;permit=0.0.0.0/0.0.0.0
+ 
+
+Modified: trunk/db1-ast/Makefile
+===================================================================
+--- trunk/db1-ast/Makefile	2006-06-28 01:38:12 UTC (rev 374)
++++ trunk/db1-ast/Makefile	2006-06-28 01:38:49 UTC (rev 375)
+@@ -51,8 +51,7 @@
+ clean:
+ 	rm -f $(LIBDB) $(LIBDBSO) $(OBJS) $(SHOBJS)
+ 
+-OORG=	-O2
+-CL=	$(CC) -Wall -c -D__DBINTERFACE_PRIVATE $(OORG) -I. -Iinclude
++CL=	$(CC) $(CFLAGS) -Wall -c -D__DBINTERFACE_PRIVATE -I. -I.. -Iinclude
+ 
+ OSTYPE=$(shell uname -s)
+ ifeq ($(OSTYPE),SunOS)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000369.html">[solid-pbx-svn] r374 - in trunk/channels: . misdn
+</A></li>
+	<LI>Next message: <A HREF="000371.html">[solid-pbx-svn] r376 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#370">[ date ]</a>
+              <a href="thread.html#370">[ thread ]</a>
+              <a href="subject.html#370">[ subject ]</a>
+              <a href="author.html#370">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

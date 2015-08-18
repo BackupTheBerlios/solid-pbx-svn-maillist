@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r344 - trunk/utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r344%20-%20trunk/utils&In-Reply-To=%3C200606280101.k5S11kcj008708%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000338.html">
+   <LINK REL="Next"  HREF="000340.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r344 - trunk/utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r344%20-%20trunk/utils&In-Reply-To=%3C200606280101.k5S11kcj008708%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r344 - trunk/utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:01:46 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000338.html">[solid-pbx-svn] r343 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000340.html">[solid-pbx-svn] r345 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#339">[ date ]</a>
+              <a href="thread.html#339">[ thread ]</a>
+              <a href="subject.html#339">[ subject ]</a>
+              <a href="author.html#339">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:01:35 +0200 (Wed, 28 Jun 2006)
+New Revision: 344
+
+Modified:
+   trunk/utils/Makefile
+Log:
+Update to Asterisk SVN trunk r33873
+
+------------------------------------------------------------------------
+r33869 | kpfleming | 2006-06-13 17:11:29 +0200 (Tue, 13 Jun 2006) | 2 lines
+
+minor fix
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/utils/Makefile
+===================================================================
+--- trunk/utils/Makefile	2006-06-28 00:58:21 UTC (rev 343)
++++ trunk/utils/Makefile	2006-06-28 01:01:35 UTC (rev 344)
+@@ -74,10 +74,10 @@
+ 	$(CC) $(CFLAGS) -o $@ $^
+ 
+ aelflex.o: ../pbx/ael/ael_lex.c ../include/asterisk/ael_structs.h ../pbx/ael/ael.tab.h
+-	$(CC) $(CFLAGS) -I../pbx/ -DSTANDALONE -c -o $@ $&lt;
++	$(CC) $(CFLAGS) -I../pbx -DSTANDALONE -c -o $@ $&lt;
+ 
+ aelbison.o: ../pbx/ael/ael.tab.c ../pbx/ael/ael.tab.h ../include/asterisk/ael_structs.h
+-	$(CC) $(CFLAGS) -I../pbx/ -c -o $@ $&lt;
++	$(CC) $(CFLAGS) -I../pbx -c -o $@ $&lt;
+ 
+ pbx_ael.o: ../pbx/pbx_ael.c
+ 	$(CC) $(CFLAGS) -c -o $@ $&lt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000338.html">[solid-pbx-svn] r343 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000340.html">[solid-pbx-svn] r345 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#339">[ date ]</a>
+              <a href="thread.html#339">[ thread ]</a>
+              <a href="subject.html#339">[ subject ]</a>
+              <a href="author.html#339">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

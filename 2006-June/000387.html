@@ -1,0 +1,200 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r392 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r392%20-%20trunk/channels&In-Reply-To=%3C200606280203.k5S23uCi020451%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000386.html">
+   <LINK REL="Next"  HREF="000388.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r392 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r392%20-%20trunk/channels&In-Reply-To=%3C200606280203.k5S23uCi020451%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r392 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:03:56 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000386.html">[solid-pbx-svn] r391 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000388.html">[solid-pbx-svn] r393 - in trunk: . stdtime
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#387">[ date ]</a>
+              <a href="thread.html#387">[ thread ]</a>
+              <a href="subject.html#387">[ subject ]</a>
+              <a href="author.html#387">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:03:52 +0200 (Wed, 28 Jun 2006)
+New Revision: 392
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r35103
+
+------------------------------------------------------------------------
+r35094 | oej | 2006-06-20 15:28:33 +0200 (Tue, 20 Jun 2006) | 2 lines
+
+parse SDP properly even when we are debugging. (Thanks fenlander!)
+
+------------------------------------------------------------------------
+r35095 | oej | 2006-06-20 15:31:42 +0200 (Tue, 20 Jun 2006) | 2 lines
+
+Don't count unknown media streams as media streams in the offer... (Fenlander reported this on irc)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-28 02:02:42 UTC (rev 391)
++++ trunk/channels/chan_sip.c	2006-06-28 02:03:52 UTC (rev 392)
+@@ -4510,7 +4510,6 @@
+ 	while ((m = get_sdp_iterate(&amp;iterator, req, &quot;m&quot;))[0] != '\0') {
+ 		int x;
+ 		int audio = FALSE;
+-		numberofmediastreams++;
+ 
+ 		if (p-&gt;vrtp)
+ 			ast_rtp_pt_clear(newvideortp);  /* Must be cleared in case no m=video line exists */
+@@ -4518,6 +4517,7 @@
+ 		if ((sscanf(m, &quot;audio %d/%d RTP/AVP %n&quot;, &amp;x, &amp;numberofports, &amp;len) == 2) ||
+ 		    (sscanf(m, &quot;audio %d RTP/AVP %n&quot;, &amp;x, &amp;len) == 1)) {
+ 			audio = TRUE;
++			numberofmediastreams++;
+ 			/* Found audio stream in this media definition */
+ 			portno = x;
+ 			/* Scan through the RTP payload types specified in a &quot;m=&quot; line: */
+@@ -4535,6 +4535,7 @@
+ 		    (sscanf(m, &quot;video %d RTP/AVP %n&quot;, &amp;x, &amp;len) == 1)) {
+ 			/* If it is not audio - is it video ? */
+ 			ast_clear_flag(&amp;p-&gt;flags[0], SIP_NOVIDEO);	
++			numberofmediastreams++;
+ 			vportno = x;
+ 			/* Scan through the RTP payload types specified in a &quot;m=&quot; line: */
+ 			for (codecs = m + len; !ast_strlen_zero(codecs); codecs = ast_skip_blanks(codecs + len)) {
+@@ -4550,6 +4551,7 @@
+ 			if (debug)
+ 				ast_verbose(&quot;Got T.38 offer in SDP in dialog %s\n&quot;, p-&gt;callid);
+ 			udptlportno = x;
++			numberofmediastreams++;
+ 			
+ 			if (p-&gt;owner &amp;&amp; p-&gt;lastinvite) {
+ 				p-&gt;t38.state = T38_PEER_REINVITE; /* T38 Offered in re-invite from remote party */
+@@ -4588,7 +4590,7 @@
+ 		return -2;
+ 
+ 	if (numberofmediastreams &gt; 2)
+-		/* We have too many media streams, fail this offer */
++		/* We have too many fax, audio and/or video media streams, fail this offer */
+ 		return -3;
+ 
+ 	/* RTP addresses and ports for audio and video */
+@@ -4635,23 +4637,19 @@
+ 	iterator = req-&gt;sdp_start;
+ 	while ((a = get_sdp_iterate(&amp;iterator, req, &quot;a&quot;))[0] != '\0') {
+ 		char* mimeSubtype = ast_strdupa(a); /* ensures we have enough space */
+-		if (!strcasecmp(a, &quot;sendonly&quot;)) {
+-			sendonly = 1;
+-			continue;
+-		}  else if (!strcasecmp(a, &quot;sendrecv&quot;)) {
+-			sendonly = 0;
+-			continue;
+-		} else if (option_debug) {
++		if (option_debug &gt; 1) {
++			int breakout = FALSE;
++		
+ 			/* If we're debugging, check for unsupported sdp options */
+ 			if (!strcasecmp(a, &quot;inactive&quot;)) {
+ 				/* Inactive media streams: Not supported */
+ 				if (debug)
+ 					ast_verbose(&quot;Got unsupported a:inactive in SDP offer \n&quot;);
+-				continue;
++				breakout = TRUE;
+ 			} else if (!strncasecmp(a, &quot;rtcp:&quot;, (size_t) 5)) {
+ 				if (debug)
+ 					ast_verbose(&quot;Got unsupported a:rtcp in SDP offer \n&quot;);
+-				continue;
++				breakout = TRUE;
+ 			} else if (!strncasecmp(a, &quot;fmtp:&quot;, (size_t) 5)) {
+ 				/* Format parameters:  Not supported */
+ 				/* Note: This is used for codec parameters, like bitrate for
+@@ -4659,27 +4657,36 @@
+ 					See RFC2327 for an example */
+ 				if (debug)
+ 					ast_verbose(&quot;Got unsupported a:fmtp in SDP offer \n&quot;);
+-				continue;
++				breakout = TRUE;
+ 			} else if (!strncasecmp(a, &quot;framerate:&quot;, (size_t) 10)) {
+ 				/* Video stuff:  Not supported */
+ 				if (debug)
+ 					ast_verbose(&quot;Got unsupported a:framerate in SDP offer \n&quot;);
+-				continue;
++				breakout = TRUE;
+ 			} else if (!strncasecmp(a, &quot;maxprate:&quot;, (size_t) 9)) {
+ 				/* Video stuff:  Not supported */
+ 				if (debug)
+ 					ast_verbose(&quot;Got unsupported a:maxprate in SDP offer \n&quot;);
+-				continue;
++				breakout = TRUE;
+ 			} else if (!strncasecmp(a, &quot;crypto:&quot;, (size_t) 7)) {
+ 				/* SRTP stuff, not yet supported */
+ 				if (debug)
+ 					ast_verbose(&quot;Got unsupported a:crypto in SDP offer \n&quot;);
+-				continue;
++				breakout = TRUE;
+ 			} else if (!strncasecmp(a, &quot;ptime:&quot;, (size_t) 6)) {
+ 				if (debug)
+ 					ast_verbose(&quot;Got unsupported a:ptime in SDP offer \n&quot;);
++				breakout = TRUE;
++			}
++			if (breakout)	/* We have a match, skip to next header */
+ 				continue;
+-			}
++		}
++		if (!strcasecmp(a, &quot;sendonly&quot;)) {
++			sendonly = 1;
++			continue;
++		}  else if (!strcasecmp(a, &quot;sendrecv&quot;)) {
++			sendonly = 0;
++			continue;
+ 		} else if (sscanf(a, &quot;rtpmap: %u %[^/]/&quot;, &amp;codec, mimeSubtype) != 2) 
+ 			continue;
+ 		/* We have a rtpmap to handle */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000386.html">[solid-pbx-svn] r391 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000388.html">[solid-pbx-svn] r393 - in trunk: . stdtime
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#387">[ date ]</a>
+              <a href="thread.html#387">[ thread ]</a>
+              <a href="subject.html#387">[ subject ]</a>
+              <a href="author.html#387">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

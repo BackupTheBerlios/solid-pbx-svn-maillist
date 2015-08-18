@@ -1,0 +1,231 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r380 - in trunk: apps cdr channels codecs formats funcs pbx res sounds
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r380%20-%20in%20trunk%3A%20apps%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res%20sounds&In-Reply-To=%3C200606280142.k5S1gbic017927%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000375.html">
+   <LINK REL="Next"  HREF="000376.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r380 - in trunk: apps cdr channels codecs formats funcs pbx res sounds</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r380%20-%20in%20trunk%3A%20apps%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res%20sounds&In-Reply-To=%3C200606280142.k5S1gbic017927%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r380 - in trunk: apps cdr channels codecs formats funcs pbx res sounds">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:42:37 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000375.html">[solid-pbx-svn] r379 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000376.html">[solid-pbx-svn] r381 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#374">[ date ]</a>
+              <a href="thread.html#374">[ thread ]</a>
+              <a href="subject.html#374">[ subject ]</a>
+              <a href="author.html#374">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:42:31 +0200 (Wed, 28 Jun 2006)
+New Revision: 380
+
+Modified:
+   trunk/apps/Makefile
+   trunk/cdr/Makefile
+   trunk/channels/Makefile
+   trunk/codecs/Makefile
+   trunk/formats/Makefile
+   trunk/funcs/Makefile
+   trunk/pbx/Makefile
+   trunk/res/Makefile
+   trunk/sounds/Makefile
+Log:
+Update to Asterisk SVN trunk r34743
+
+------------------------------------------------------------------------
+r34738 | russell | 2006-06-19 02:14:16 +0200 (Mon, 19 Jun 2006) | 3 lines
+
+don't blow up in the sub Makefiles if menuselect.makeopts is not present. This
+is valid in some cases, such as &quot;make clean&quot;.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/Makefile
+===================================================================
+--- trunk/apps/Makefile	2006-06-28 01:41:52 UTC (rev 379)
++++ trunk/apps/Makefile	2006-06-28 01:42:31 UTC (rev 380)
+@@ -11,7 +11,9 @@
+ # the GNU General Public License
+ #
+ 
+-include ../menuselect.makeopts
++ifneq ($(wildcard ../menuselect.makeopts),)
++  include ../menuselect.makeopts
++endif
+ 
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_APPS),$(patsubst %.c,%,$(wildcard app_*.c)))
+ 
+
+Modified: trunk/cdr/Makefile
+===================================================================
+--- trunk/cdr/Makefile	2006-06-28 01:41:52 UTC (rev 379)
++++ trunk/cdr/Makefile	2006-06-28 01:42:31 UTC (rev 380)
+@@ -11,7 +11,9 @@
+ # the GNU General Public License
+ #
+ 
+-include ../menuselect.makeopts
++ifneq ($(wildcard ../menuselect.makeopts),)
++  include ../menuselect.makeopts
++endif
+ 
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_CDR),$(patsubst %.c,%,$(wildcard cdr_*.c)))
+ 
+
+Modified: trunk/channels/Makefile
+===================================================================
+--- trunk/channels/Makefile	2006-06-28 01:41:52 UTC (rev 379)
++++ trunk/channels/Makefile	2006-06-28 01:42:31 UTC (rev 380)
+@@ -11,7 +11,9 @@
+ # the GNU General Public License
+ #
+ 
+-include ../menuselect.makeopts
++ifneq ($(wildcard ../menuselect.makeopts),)
++  include ../menuselect.makeopts
++endif
+ 
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_CHANNELS),$(patsubst %.c,%,$(wildcard chan_*.c)))
+ 
+
+Modified: trunk/codecs/Makefile
+===================================================================
+--- trunk/codecs/Makefile	2006-06-28 01:41:52 UTC (rev 379)
++++ trunk/codecs/Makefile	2006-06-28 01:42:31 UTC (rev 380)
+@@ -11,7 +11,9 @@
+ # the GNU General Public License
+ #
+ 
+-include ../menuselect.makeopts
++ifneq ($(wildcard ../menuselect.makeopts),)
++  include ../menuselect.makeopts
++endif
+ 
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_CODECS),$(patsubst %.c,%,$(wildcard codec_*.c)))
+ 
+
+Modified: trunk/formats/Makefile
+===================================================================
+--- trunk/formats/Makefile	2006-06-28 01:41:52 UTC (rev 379)
++++ trunk/formats/Makefile	2006-06-28 01:42:31 UTC (rev 380)
+@@ -11,7 +11,9 @@
+ # the GNU General Public License
+ #
+ 
+-include ../menuselect.makeopts
++ifneq ($(wildcard ../menuselect.makeopts),)
++  include ../menuselect.makeopts
++endif
+ 
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_FORMATS),$(patsubst %.c,%,$(wildcard format_*.c)))
+ 
+
+Modified: trunk/funcs/Makefile
+===================================================================
+--- trunk/funcs/Makefile	2006-06-28 01:41:52 UTC (rev 379)
++++ trunk/funcs/Makefile	2006-06-28 01:42:31 UTC (rev 380)
+@@ -11,7 +11,9 @@
+ # the GNU General Public License
+ #
+ 
+-include ../menuselect.makeopts
++ifneq ($(wildcard ../menuselect.makeopts),)
++  include ../menuselect.makeopts
++endif
+ 
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_FUNCS),$(patsubst %.c,%,$(wildcard func_*.c)))
+ 
+
+Modified: trunk/pbx/Makefile
+===================================================================
+--- trunk/pbx/Makefile	2006-06-28 01:41:52 UTC (rev 379)
++++ trunk/pbx/Makefile	2006-06-28 01:42:31 UTC (rev 380)
+@@ -11,7 +11,9 @@
+ # the GNU General Public License
+ #
+ 
+-include ../menuselect.makeopts
++ifneq ($(wildcard ../menuselect.makeopts),)
++  include ../menuselect.makeopts
++endif
+ 
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_PBX),$(patsubst %.c,%,$(wildcard pbx_*.c)))
+ 
+
+Modified: trunk/res/Makefile
+===================================================================
+--- trunk/res/Makefile	2006-06-28 01:41:52 UTC (rev 379)
++++ trunk/res/Makefile	2006-06-28 01:42:31 UTC (rev 380)
+@@ -11,7 +11,9 @@
+ # the GNU General Public License
+ #
+ 
+-include ../menuselect.makeopts
++ifneq ($(wildcard ../menuselect.makeopts),)
++  include ../menuselect.makeopts
++endif
+ 
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_RES),$(patsubst %.c,%,$(wildcard res_*.c)))
+ 
+
+Modified: trunk/sounds/Makefile
+===================================================================
+--- trunk/sounds/Makefile	2006-06-28 01:41:52 UTC (rev 379)
++++ trunk/sounds/Makefile	2006-06-28 01:42:31 UTC (rev 380)
+@@ -11,7 +11,9 @@
+ # the GNU General Public License
+ #
+ 
+-include ../menuselect.makeopts
++ifneq ($(wildcard ../menuselect.makeopts),)
++  include ../menuselect.makeopts
++endif
+ 
+ PWD:=$(shell pwd)
+ SOUNDS_DIR:=$(DESTDIR)$(ASTDATADIR)/sounds
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000375.html">[solid-pbx-svn] r379 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000376.html">[solid-pbx-svn] r381 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#374">[ date ]</a>
+              <a href="thread.html#374">[ thread ]</a>
+              <a href="subject.html#374">[ subject ]</a>
+              <a href="author.html#374">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

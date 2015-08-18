@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r95 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r95%20-%20trunk&In-Reply-To=%3C200605081800.k48I0rh6018990%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000091.html">
+   <LINK REL="Next"  HREF="000100.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r95 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r95%20-%20trunk&In-Reply-To=%3C200605081800.k48I0rh6018990%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r95 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  8 20:00:53 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000091.html">[solid-pbx-svn] r94 - trunk/utils
+</A></li>
+        <LI>Next message: <A HREF="000100.html">[solid-pbx-svn] r97 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#92">[ date ]</a>
+              <a href="thread.html#92">[ thread ]</a>
+              <a href="subject.html#92">[ subject ]</a>
+              <a href="author.html#92">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-08 20:00:38 +0200 (Mon, 08 May 2006)
+New Revision: 95
+
+Modified:
+   trunk/configure.ac
+Log:
+Update configure.ac from upstream
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-05-08 17:11:12 UTC (rev 94)
++++ trunk/configure.ac	2006-05-08 18:00:38 UTC (rev 95)
+@@ -171,15 +171,24 @@
+ AST_EXT_LIB([sqlite], [sqlite_exec], [sqlite.h], [SQLITE], [SQLite])
+ AST_EXT_LIB([ssl], [ssl2_connect], [openssl/ssl.h], [OPENSSL], [OpenSSL], [-lcrypto])
+ AST_EXT_LIB([tds], [tds_version], [tds.h], [FREETDS], [FreeTDS])
++AST_EXT_LIB([termcap], [tgetent], [], [TERMCAP], [Termcap])
++AST_EXT_LIB([tinfo], [tgetent], [], [TINFO], [Term Info])
+ AST_EXT_LIB([vorbis], [vorbis_info_init], [vorbis/codec.h], [VORBIS], [Vorbis], [-lm -lvorbisenc])
+ AST_EXT_LIB([z], [compress], [zlib.h], [ZLIB], [zlib])
+ 
+ EDITLINE_LIBS=&quot;&quot;
+-AC_CHECK_LIB([termcap], [tgetent], [EDITLINE_LIBS=&quot;-ltermcap &quot;], \
+-  AC_CHECK_LIB([tinfo], [tgetent], [EDITLINE_LIBS=&quot;-ltinfo &quot;], \
+-    AC_CHECK_LIB([curses], [tgetent], [EDITLINE_LIBS=&quot;-lcurses &quot;], \
+-      AC_CHECK_LIB([ncurses], [tgetent], [EDITLINE_LIBS=&quot;-lncurses &quot;], \
+-        AC_MSG_ERROR(*** termcap support not found)))))
++if test &quot;x$termcap_LIB&quot; != &quot;x&quot; ; then
++  EDITLINE_LIBS=&quot;$termcap_LIB&quot;
++elif test &quot;x$tinfo_LIB&quot; != &quot;x&quot; ; then
++  EDITLINE_LIBS=&quot;$tinfo_LIB&quot;
++elif test &quot;x$curses_LIB&quot; != &quot;x&quot; ; then
++  EDITLINE_LIBS=&quot;$curses_LIB&quot;
++elif test &quot;x$ncurses_LIB&quot; != &quot;x&quot; ; then
++  EDITLINE_LIBS=&quot;$ncurses_LIB&quot;
++else
++  echo &quot;*** termcap support not found&quot;
++  exit 1
++fi
+ AC_SUBST(EDITLINE_LIBS)
+ 
+ PBX_LIBossaudio=0
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000091.html">[solid-pbx-svn] r94 - trunk/utils
+</A></li>
+	<LI>Next message: <A HREF="000100.html">[solid-pbx-svn] r97 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#92">[ date ]</a>
+              <a href="thread.html#92">[ thread ]</a>
+              <a href="subject.html#92">[ subject ]</a>
+              <a href="author.html#92">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

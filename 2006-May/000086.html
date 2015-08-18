@@ -1,0 +1,255 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r89 - in trunk: . apps include/asterisk pbx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r89%20-%20in%20trunk%3A%20.%20apps%20include/asterisk%20pbx&In-Reply-To=%3C200605081318.k48DIik9007209%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000085.html">
+   <LINK REL="Next"  HREF="000087.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r89 - in trunk: . apps include/asterisk pbx</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r89%20-%20in%20trunk%3A%20.%20apps%20include/asterisk%20pbx&In-Reply-To=%3C200605081318.k48DIik9007209%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r89 - in trunk: . apps include/asterisk pbx">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  8 15:18:44 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000085.html">[solid-pbx-svn] r88 - in trunk: . apps include/asterisk res
+</A></li>
+        <LI>Next message: <A HREF="000087.html">[solid-pbx-svn] r90 - in trunk: apps channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#86">[ date ]</a>
+              <a href="thread.html#86">[ thread ]</a>
+              <a href="subject.html#86">[ subject ]</a>
+              <a href="author.html#86">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-08 15:18:26 +0200 (Mon, 08 May 2006)
+New Revision: 89
+
+Modified:
+   trunk/apps/app_queue.c
+   trunk/asterisk.c
+   trunk/include/asterisk/options.h
+   trunk/logger.c
+   trunk/pbx/pbx_spool.c
+Log:
+Update to Asterisk SVN trunk r25519
+
+------------------------------------------------------------------------
+r25487 | bweschke | 2006-05-08 14:30:46 +0200 (Mon, 08 May 2006) | 3 lines
+
+ Fix situation for when there is no monitor_option defined, but there is a monitor_exec defined.
+
+
+------------------------------------------------------------------------
+r25488 | bweschke | 2006-05-08 14:32:44 +0200 (Mon, 08 May 2006) | 3 lines
+
+ use pid_t instead of long for pid variables. #7099 (casper)
+
+
+------------------------------------------------------------------------
+r25519 | bweschke | 2006-05-08 15:12:39 +0200 (Mon, 08 May 2006) | 11 lines
+
+Merged revisions 25518 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r25518 | bweschke | 2006-05-08 09:11:32 -0400 (Mon, 08 May 2006) | 3 lines
+
+ Don't recheck valid_exit() after getting the result from say_position (which already checks it). Should prevent another loop if the caller hits digits during the position announcement. #6776 (tgj reporting)
+
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-05-08 12:18:30 UTC (rev 88)
++++ trunk/apps/app_queue.c	2006-05-08 13:18:26 UTC (rev 89)
+@@ -1214,7 +1214,9 @@
+ 	/* Set our last_pos indicators */
+  	qe-&gt;last_pos = now;
+ 	qe-&gt;last_pos_said = qe-&gt;pos;
+-	ast_moh_start(qe-&gt;chan, qe-&gt;moh);
++	/* Don't restart music on hold if we're about to exit the caller from the queue */
++	if (!res)
++		ast_moh_start(qe-&gt;chan, qe-&gt;moh);
+ 
+ 	return res;
+ }
+@@ -2365,13 +2367,14 @@
+ 					mixmonapp = NULL;
+ 				}
+ 
++				if (!monitor_options)
++					monitor_options = ast_strdupa(&quot;&quot;);
++
+ 				if (mixmonapp) {
+ 					if (!ast_strlen_zero(monitor_exec) &amp;&amp; !ast_strlen_zero(monitor_options)) 
+ 						snprintf(mixmonargs, sizeof(mixmonargs)-1, &quot;%s|b%s|%s&quot;, tmpid2, monitor_options, monitor_exec);
+-					else if (!ast_strlen_zero(monitor_options)) 
++					else 
+ 						snprintf(mixmonargs, sizeof(mixmonargs)-1, &quot;%s|b%s&quot;, tmpid2, monitor_options);
+-					else 
+-						snprintf(mixmonargs, sizeof(mixmonargs)-1, &quot;%s|b&quot;, tmpid2);
+ 						
+ 					if (option_debug)
+ 						ast_log(LOG_DEBUG, &quot;Arguments being passed to MixMonitor: %s\n&quot;, mixmonargs);
+@@ -3143,7 +3146,7 @@
+ 					/* Make a position announcement, if enabled */
+ 					if (qe.parent-&gt;announcefrequency &amp;&amp; !ringing)
+ 						res = say_position(&amp;qe);
+-					if (res &amp;&amp; valid_exit(&amp;qe, res)) {
++					if (res) {
+ 						 ast_queue_log(args.queuename, chan-&gt;uniqueid, &quot;NONE&quot;, &quot;EXITWITHKEY&quot;, &quot;%s|%d&quot;, qe.digits, qe.pos);
+ 						break;
+ 					}
+
+Modified: trunk/asterisk.c
+===================================================================
+--- trunk/asterisk.c	2006-05-08 12:18:30 UTC (rev 88)
++++ trunk/asterisk.c	2006-05-08 13:18:26 UTC (rev 89)
+@@ -171,7 +171,7 @@
+ 
+ static int ast_socket = -1;		/*!&lt; UNIX Socket for allowing remote control */
+ static int ast_consock = -1;		/*!&lt; UNIX Socket for controlling another asterisk */
+-int ast_mainpid;
++pid_t ast_mainpid;
+ struct console {
+ 	int fd;				/*!&lt; File descriptor */
+ 	int p[2];			/*!&lt; Pipe */
+@@ -722,7 +722,7 @@
+ 	
+ 	if (gethostname(hostname, sizeof(hostname)-1))
+ 		ast_copy_string(hostname, &quot;&lt;Unknown&gt;&quot;, sizeof(hostname));
+-	snprintf(tmp, sizeof(tmp), &quot;%s/%d/%s\n&quot;, hostname, ast_mainpid, ASTERISK_VERSION);
++	snprintf(tmp, sizeof(tmp), &quot;%s/%ld/%s\n&quot;, hostname, (long)ast_mainpid, ASTERISK_VERSION);
+ 	fdprint(con-&gt;fd, tmp);
+ 	for(;;) {
+ 		fds[0].fd = con-&gt;fd;
+@@ -2514,22 +2514,22 @@
+ 	unlink(ast_config_AST_PID);
+ 	f = fopen(ast_config_AST_PID, &quot;w&quot;);
+ 	if (f) {
+-		fprintf(f, &quot;%d\n&quot;, (int)getpid());
++		fprintf(f, &quot;%ld\n&quot;, (long)getpid());
+ 		fclose(f);
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;Unable to open pid file '%s': %s\n&quot;, ast_config_AST_PID, strerror(errno));
+ 
+ 	if (ast_opt_always_fork || !ast_opt_no_fork) {
+ 		daemon(0, 0);
++		ast_mainpid = getpid();
+ 		/* Blindly re-write pid file since we are forking */
+ 		unlink(ast_config_AST_PID);
+ 		f = fopen(ast_config_AST_PID, &quot;w&quot;);
+ 		if (f) {
+-			fprintf(f, &quot;%d\n&quot;, (int)getpid());
++			fprintf(f, &quot;%ld\n&quot;, (long)ast_mainpid);
+ 			fclose(f);
+ 		} else
+ 			ast_log(LOG_WARNING, &quot;Unable to open pid file '%s': %s\n&quot;, ast_config_AST_PID, strerror(errno));
+-		ast_mainpid = getpid();
+ 	}
+ 
+ 	/* Test recursive mutex locking. */
+@@ -2656,7 +2656,7 @@
+ 		/* Register our quit function */
+ 		char title[256];
+ 		set_icon(&quot;Asterisk&quot;);
+-		snprintf(title, sizeof(title), &quot;Asterisk Console on '%s' (pid %d)&quot;, hostname, ast_mainpid);
++		snprintf(title, sizeof(title), &quot;Asterisk Console on '%s' (pid %ld)&quot;, hostname, (long)ast_mainpid);
+ 		set_title(title);
+ 
+ 		for (;;) {
+
+Modified: trunk/include/asterisk/options.h
+===================================================================
+--- trunk/include/asterisk/options.h	2006-05-08 12:18:30 UTC (rev 88)
++++ trunk/include/asterisk/options.h	2006-05-08 13:18:26 UTC (rev 89)
+@@ -114,7 +114,7 @@
+ 
+ extern time_t ast_startuptime;
+ extern time_t ast_lastreloadtime;
+-extern int ast_mainpid;
++extern pid_t ast_mainpid;
+ 
+ extern char record_cache_dir[AST_CACHE_DIR_LEN];
+ extern char debug_filename[AST_FILENAME_MAX];
+
+Modified: trunk/logger.c
+===================================================================
+--- trunk/logger.c	2006-05-08 12:18:30 UTC (rev 88)
++++ trunk/logger.c	2006-05-08 13:18:26 UTC (rev 89)
+@@ -722,7 +722,7 @@
+ 	if (logfiles.event_log &amp;&amp; level == __LOG_EVENT) {
+ 		va_start(ap, fmt);
+ 
+-		fprintf(eventlog, &quot;%s asterisk[%d]: &quot;, date, getpid());
++		fprintf(eventlog, &quot;%s asterisk[%ld]: &quot;, date, (long)getpid());
+ 		vfprintf(eventlog, fmt, ap);
+ 		fflush(eventlog);
+ 
+
+Modified: trunk/pbx/pbx_spool.c
+===================================================================
+--- trunk/pbx/pbx_spool.c	2006-05-08 12:18:30 UTC (rev 88)
++++ trunk/pbx/pbx_spool.c	2006-05-08 13:18:26 UTC (rev 89)
+@@ -66,7 +66,7 @@
+ 	/* How long to wait for an answer */
+ 	int waittime;
+ 	/* PID which is currently calling */
+-	int callingpid;
++	long callingpid;
+ 	
+ 	/* What to connect to outgoing */
+ 	char tech[256];
+@@ -193,7 +193,7 @@
+ 				} else if (!strcasecmp(buf, &quot;retry&quot;)) {
+ 					o-&gt;retries++;
+ 				} else if (!strcasecmp(buf, &quot;startretry&quot;)) {
+-					if (sscanf(c, &quot;%d&quot;, &amp;o-&gt;callingpid) != 1) {
++					if (sscanf(c, &quot;%ld&quot;, &amp;o-&gt;callingpid) != 1) {
+ 						ast_log(LOG_WARNING, &quot;Unable to retrieve calling PID!\n&quot;);
+ 						o-&gt;callingpid = 0;
+ 					}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000085.html">[solid-pbx-svn] r88 - in trunk: . apps include/asterisk res
+</A></li>
+	<LI>Next message: <A HREF="000087.html">[solid-pbx-svn] r90 - in trunk: apps channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#86">[ date ]</a>
+              <a href="thread.html#86">[ thread ]</a>
+              <a href="subject.html#86">[ subject ]</a>
+              <a href="author.html#86">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

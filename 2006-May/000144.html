@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r149 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r149%20-%20trunk&In-Reply-To=%3C200605142019.k4EKJoHb028133%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000143.html">
+   <LINK REL="Next"  HREF="000145.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r149 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r149%20-%20trunk&In-Reply-To=%3C200605142019.k4EKJoHb028133%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r149 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun May 14 22:19:50 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000143.html">[solid-pbx-svn] r148 - in trunk: agi apps cdr channels codecs formats funcs pbx res stdtime utils
+</A></li>
+        <LI>Next message: <A HREF="000145.html">[solid-pbx-svn] r150 - in trunk: . include
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#144">[ date ]</a>
+              <a href="thread.html#144">[ thread ]</a>
+              <a href="subject.html#144">[ subject ]</a>
+              <a href="author.html#144">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-14 22:19:46 +0200 (Sun, 14 May 2006)
+New Revision: 149
+
+Modified:
+   trunk/configure.ac
+Log:
+Remove broken PWLib/OpenH323 detection
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-05-14 20:14:54 UTC (rev 148)
++++ trunk/configure.ac	2006-05-14 20:19:46 UTC (rev 149)
+@@ -341,9 +341,6 @@
+ AC_SUBST([pq_LIB])
+ AC_SUBST([PBX_LIBpq])
+ 
+-AC_CHECK_HEADER([h323.h], [PBX_H323=1], [PBX_H323=0])
+-AC_SUBST(PBX_H323)
+-
+ AC_CHECK_HEADER([linux/ixjuser.h], [PBX_IXJUSER=1], [PBX_IXJUSER=0], [
+ 				   #include &lt;linux/version.h&gt;
+ 				   #if LINUX_VERSION_CODE &gt;= KERNEL_VERSION(2,6,0)
+@@ -581,64 +578,6 @@
+ AC_SUBST(GTK_INCLUDE)
+ AC_SUBST(GTK_LIBS)
+ 
+-PLATFORM_PTLIB=&quot;ptlib_${OSTYPE}_${MACHTYPE}_r&quot;
+-
+-AC_ARG_WITH([pwlib], AC_HELP_STRING([--with-pwlib=PATH],[use PWLib files in PATH]),[
+-case ${withval} in
+-     n|no)
+-     USE_PWLIB=no
+-     ;;
+-     y|ye|yes)
+-     ;;
+-     *)
+-     PWLIB_DIR=&quot;${withval}&quot;
+-     ;;
+-esac
+-])
+-if test &quot;${USE_PWLIB}&quot; != &quot;no&quot;; then
+-	echo -n &quot;checking for existence of pwlib... &quot;
+-	
+-	saved_ldflags=&quot;${LDFLAGS}&quot;
+-	LDFLAGS=&quot;${LDFLAGS} -L${PWLIB_DIR} -l${PLATFORM_PTLIB}&quot;
+-	
+-	AC_LINK_IFELSE(
+-	[
+-	AC_LANG_PROGRAM(
+-	[#include &quot;${PWDIR_DIR}ptime.h&quot;],
+-	[int q = PTime::IsDaylightSaving();])
+-	],
+-	[	AC_MSG_RESULT(yes) 
+-		ac_cv_lib_pwlib=&quot;yes&quot; 
+-	],
+-	[	AC_MSG_RESULT(no) 
+-		ac_cv_lib_pwlib=&quot;no&quot; 
+-	]
+-	)
+-	LDFLAGS=&quot;${saved_ldflags}&quot;
+-
+-	PBX_LIBPWLIB=0
+-   
+-   if test &quot;${ac_cv_lib_pwlib}&quot; = &quot;yes&quot;; then
+-      PWLIB_LIB=&quot;-l{PLATFORM_PWLIB}&quot;
+-      if test &quot;${PWLIB_DIR}&quot; != &quot;&quot;; then
+-         PWLIB_LIB=&quot;-L${PWLIB_DIR}/lib ${PWLIB_LIB}&quot;
+-	 		PWLIB_INCLUDE=&quot;-I${PWLIB_DIR}/include&quot;
+-	 		AC_SUBST([PWLIB_INCLUDE])
+-      fi
+-   	AC_SUBST([PWLIB_LIB])
+-   	PBX_LIBPWLIB=1
+-   	AC_DEFINE([HAVE_LIBPWLIB], 1, [Define if your system has the pwlib libraries.])
+-   elif test ! -z &quot;${PWLIB_DIR}&quot;; 
+-   then
+-      echo &quot;***&quot;
+-      echo &quot;*** The PWLIB installation on this system appears to be broken.&quot;
+-      echo &quot;*** Either correct the installation, or run configure&quot;
+-      echo &quot;*** including --without-pwlib&quot;
+-      exit 1
+-   fi
+-fi
+-AC_SUBST([PBX_LIBPWLIB])
+-
+ PBX_CURL=0
+ AC_PATH_TOOL([CURL], [curl-config], No)
+ if test ! x&quot;${CURL}&quot; = xNo; then
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000143.html">[solid-pbx-svn] r148 - in trunk: agi apps cdr channels codecs formats funcs pbx res stdtime utils
+</A></li>
+	<LI>Next message: <A HREF="000145.html">[solid-pbx-svn] r150 - in trunk: . include
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#144">[ date ]</a>
+              <a href="thread.html#144">[ thread ]</a>
+              <a href="subject.html#144">[ subject ]</a>
+              <a href="author.html#144">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

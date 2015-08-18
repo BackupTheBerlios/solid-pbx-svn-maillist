@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r166 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r166%20-%20trunk/channels&In-Reply-To=%3C200605171629.k4HGTRxq027871%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000160.html">
+   <LINK REL="Next"  HREF="000162.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r166 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r166%20-%20trunk/channels&In-Reply-To=%3C200605171629.k4HGTRxq027871%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r166 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 17 18:29:27 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000160.html">[solid-pbx-svn] r165 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000162.html">[solid-pbx-svn] r167 - in trunk: apps channels configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#161">[ date ]</a>
+              <a href="thread.html#161">[ thread ]</a>
+              <a href="subject.html#161">[ subject ]</a>
+              <a href="author.html#161">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-17 18:29:26 +0200 (Wed, 17 May 2006)
+New Revision: 166
+
+Modified:
+   trunk/channels/chan_misdn.c
+Log:
+Update to Asterisk SVN trunk r27811
+
+------------------------------------------------------------------------
+r27770 | crichter | 2006-05-17 17:29:01 +0200 (Wed, 17 May 2006) | 1 line
+
+fixed bug that we've lost the orginator of the call.. now we can hear to disconnect indications again
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_misdn.c
+===================================================================
+--- trunk/channels/chan_misdn.c	2006-05-17 06:29:10 UTC (rev 165)
++++ trunk/channels/chan_misdn.c	2006-05-17 16:29:26 UTC (rev 166)
+@@ -2316,7 +2316,7 @@
+ }
+ 
+ 
+-static struct chan_list *init_chan_list(void)
++static struct chan_list *init_chan_list(int orig)
+ {
+ 	struct chan_list *cl=malloc(sizeof(struct chan_list));
+ 	
+@@ -2326,6 +2326,8 @@
+ 	}
+ 	
+ 	memset(cl,0,sizeof(struct chan_list));
++
++	cl-&gt;orginator=orig;
+ 	
+ 	return cl;
+ 	
+@@ -2342,7 +2344,7 @@
+ 	int channel=0, port=0;
+ 	struct misdn_bchannel *newbc = NULL;
+ 	
+-	struct chan_list *cl=init_chan_list();
++	struct chan_list *cl=init_chan_list(ORG_AST);
+ 	
+ 	sprintf(buf,&quot;%s/%s&quot;,misdn_type,(char*)data);
+ 	ast_copy_string(buf2,data, 128);
+@@ -3171,7 +3173,7 @@
+ 	print_bearer(bc);
+     
+ 	{
+-		struct chan_list *ch=init_chan_list();
++		struct chan_list *ch=init_chan_list(ORG_MISDN);
+ 		struct ast_channel *chan;
+ 
+ 		if (!ch) { chan_misdn_log(-1, bc-&gt;port, &quot;cb_events: malloc for chan_list failed!\n&quot;); return 0;}
+@@ -3429,6 +3431,8 @@
+ 		
+ 		send_cause2ast(ch-&gt;ast,bc);
+ 
++
++		chan_misdn_log(0,bc-&gt;port,&quot; org:%d nt:%d, inbandavail:%d state:%d\n&quot;, ch-&gt;orginator, bc-&gt;nt, misdn_inband_avail(bc), ch-&gt;state);
+ 		if ( ch-&gt;orginator==ORG_AST &amp;&amp; !bc-&gt;nt &amp;&amp; misdn_inband_avail(bc) &amp;&amp; ch-&gt;state != MISDN_CONNECTED) {
+ 			/* If there's inband information available (e.g. a
+ 			   recorded message saying what was wrong with the
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000160.html">[solid-pbx-svn] r165 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000162.html">[solid-pbx-svn] r167 - in trunk: apps channels configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#161">[ date ]</a>
+              <a href="thread.html#161">[ thread ]</a>
+              <a href="subject.html#161">[ subject ]</a>
+              <a href="author.html#161">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

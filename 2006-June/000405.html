@@ -1,0 +1,457 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r410 - in trunk: . agi apps cdr channels codecs formats funcs pbx res utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r410%20-%20in%20trunk%3A%20.%20agi%20apps%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res%20utils&In-Reply-To=%3C200606280234.k5S2YskY029990%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000404.html">
+   <LINK REL="Next"  HREF="000406.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r410 - in trunk: . agi apps cdr channels codecs formats funcs pbx res utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r410%20-%20in%20trunk%3A%20.%20agi%20apps%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res%20utils&In-Reply-To=%3C200606280234.k5S2YskY029990%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r410 - in trunk: . agi apps cdr channels codecs formats funcs pbx res utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:34:54 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000404.html">[solid-pbx-svn] r409 - in trunk: . agi apps build_tools cdr channels codecs formats funcs pbx res sounds utils
+</A></li>
+        <LI>Next message: <A HREF="000406.html">[solid-pbx-svn] r411 - in trunk: . apps configs sounds
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#405">[ date ]</a>
+              <a href="thread.html#405">[ thread ]</a>
+              <a href="subject.html#405">[ subject ]</a>
+              <a href="author.html#405">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:34:47 +0200 (Wed, 28 Jun 2006)
+New Revision: 410
+
+Modified:
+   trunk/Makefile
+   trunk/agi/Makefile
+   trunk/apps/Makefile
+   trunk/cdr/Makefile
+   trunk/channels/Makefile
+   trunk/codecs/Makefile
+   trunk/formats/Makefile
+   trunk/funcs/Makefile
+   trunk/manager.c
+   trunk/pbx/Makefile
+   trunk/res/Makefile
+   trunk/utils/Makefile
+Log:
+Update to Asterisk SVN trunk r35503
+
+------------------------------------------------------------------------
+r35501 | russell | 2006-06-22 17:08:08 +0200 (Thu, 22 Jun 2006) | 4 lines
+
+- specify that 'depend' is a .PHONY target
+- use separate targets instead of a for loop for doing 'make depend' for
+  each sub directory
+
+------------------------------------------------------------------------
+r35502 | oej | 2006-06-22 17:34:20 +0200 (Thu, 22 Jun 2006) | 2 lines
+
+Formatting fixes
+
+------------------------------------------------------------------------
+r35503 | russell | 2006-06-22 17:38:13 +0200 (Thu, 22 Jun 2006) | 7 lines
+
+- convert the 'uninstall' target to use separate targets to process each
+  subdirectory instead of a for loop
+- remove the FORCE target from the main Makefile and add the couple places
+  I used it to the .PHONY target.  .PHONY does the same thing and is a built-in
+  more efficient way of doing it.
+- add a bunch more targets to .PHONY ...
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/Makefile	2006-06-28 02:34:47 UTC (rev 410)
+@@ -13,8 +13,6 @@
+ 
+ .EXPORT_ALL_VARIABLES:
+ 
+-.PHONY: sounds clean clean-depend dist-clean all
+-
+ # Create OPTIONS variable
+ OPTIONS=
+ 
+@@ -264,12 +262,16 @@
+ 
+ ASTCFLAGS+=$(MALLOC_DEBUG)$(BUSYDETECT)$(OPTIONS)
+ 
+-MOD_SUBDIRS=res channels pbx apps codecs formats cdr funcs
+-OTHER_SUBDIRS=utils agi
++MOD_SUBDIRS:=res channels pbx apps codecs formats cdr funcs
++OTHER_SUBDIRS:=utils agi
+ SUBDIRS:=$(MOD_SUBDIRS) $(OTHER_SUBDIRS)
+ SUBDIRS_INSTALL:=$(SUBDIRS:%=%-install)
+ SUBDIRS_CLEAN:=$(SUBDIRS:%=%-clean)
+ SUBDIRS_CLEAN_DEPEND:=$(SUBDIRS:%=%-clean-depend)
++MOD_SUBDIRS_DEPEND:=$(MOD_SUBDIRS:%=%-depend)
++OTHER_SUBDIRS_DEPEND:=$(OTHER_SUBDIRS:%=%-depend)
++SUBDIRS_DEPEND:=$(MOD_SUBDIRS_DEPEND) $(OTHER_SUBDIRS_DEPEND)
++SUBDIRS_UNINSTALL:=$(SUBDIRS:%=%-uninstall)
+ 
+ OBJS=io.o sched.o logger.o frame.o loader.o config.o channel.o \
+ 	translate.o file.o pbx.o cli.o md5.o term.o \
+@@ -368,10 +370,10 @@
+ 
+ all: cleantest config.status menuselect.makeopts depend asterisk $(SUBDIRS)
+ 
+-$(MOD_SUBDIRS): FORCE
++$(MOD_SUBDIRS):
+ 	@CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C $@
+ 
+-$(OTHER_SUBDIRS): FORCE 
++$(OTHER_SUBDIRS):
+ 	@CFLAGS=&quot;$(OTHER_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C $@
+ 
+ config.status: configure
+@@ -775,10 +777,14 @@
+ 
+ valgrind: dont-optimize
+ 
+-depend: include/asterisk/version.h include/asterisk/buildopts.h .depend defaults.h 
+-	@for x in $(MOD_SUBDIRS); do CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C $$x depend || exit 1 ; done
+-	@for x in $(OTHER_SUBDIRS); do CFLAGS=&quot;$(OTHER_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C $$x depend || exit 1 ; done
++$(MOD_SUBDIRS_DEPEND):
++	@CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C $(@:-depend=) depend
+ 
++$(OTHER_SUBDIRS_DEPEND):
++	@CFLAGS=&quot;$(OTHER_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C $(@:-depend=) depend
++
++depend: include/asterisk/version.h include/asterisk/buildopts.h .depend defaults.h $(SUBDIRS_DEPEND)
++
+ .depend: include/asterisk/version.h include/asterisk/buildopts.h defaults.h
+ 	build_tools/mkdep $(CFLAGS) $(wildcard *.c)
+ 
+@@ -809,8 +815,6 @@
+ 
+ etags: TAGS
+ 
+-FORCE:
+-
+ %_env:
+ 	$(MAKE) -C $(shell echo $@ | sed &quot;s/_env//g&quot;) env
+ 
+@@ -830,7 +834,10 @@
+ 		$(MAKE) defaults.h;\
+ 	fi
+ 
+-_uninstall:
++$(SUBDIRS_UNINSTALL):
++	@$(MAKE) -C $(@:-uninstall=) uninstall
++
++_uninstall: $(SUBDIRS_UNINSTALL)
+ 	rm -f $(DESTDIR)$(MODULES_DIR)/*
+ 	rm -f $(DESTDIR)$(ASTSBINDIR)/*asterisk*
+ 	rm -f $(DESTDIR)$(ASTSBINDIR)/astgenkey
+@@ -838,7 +845,6 @@
+ 	rm -rf $(DESTDIR)$(ASTHEADERDIR)
+ 	rm -rf $(DESTDIR)$(ASTDATADIR)/firmware
+ 	rm -rf $(DESTDIR)$(ASTMANDIR)/man8
+-	for x in $(SUBDIRS); do $(MAKE) -C $$x uninstall || exit 1 ; done
+ 	$(MAKE) -C sounds uninstall
+ 
+ uninstall: _uninstall
+@@ -880,3 +886,5 @@
+ release:
+ 	cp -ar . ../solid-pbx-$(ASTERISKVERSION)
+ 	cd ../solid-pbx-$(ASTERISKVERSION) &amp;&amp; rm -rf `ls -Rd .svn */.svn */*/.svn */*/*/.svn */*/*/*/.svn` sounds
++
++.PHONY: sounds clean clean-depend dist-clean all _all depend cleantest uninstall _uninstall uninstall-all dont-optimize valgrind $(SUBDIRS_INSTALL) $(SUBDIRS_CLEAN) $(SUBDIRS_CLEAN_DEPEND) $(SUBDIRS_DEPEND) $(SUBDIRS_UNINSTALL)
+
+Modified: trunk/agi/Makefile
+===================================================================
+--- trunk/agi/Makefile	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/agi/Makefile	2006-06-28 02:34:47 UTC (rev 410)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-.PHONY: clean clean-depend all
++.PHONY: clean clean-depend all depend uninstall
+ 
+ AGIS=agi-test.agi eagi-test eagi-sphinx-test jukebox.agi
+ 
+
+Modified: trunk/apps/Makefile
+===================================================================
+--- trunk/apps/Makefile	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/apps/Makefile	2006-06-28 02:34:47 UTC (rev 410)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-.PHONY: clean clean-depend all
++.PHONY: clean clean-depend all depend uninstall
+ 
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+
+Modified: trunk/cdr/Makefile
+===================================================================
+--- trunk/cdr/Makefile	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/cdr/Makefile	2006-06-28 02:34:47 UTC (rev 410)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-.PHONY: clean clean-depend all
++.PHONY: clean clean-depend all depend uninstall
+ 
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+
+Modified: trunk/channels/Makefile
+===================================================================
+--- trunk/channels/Makefile	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/channels/Makefile	2006-06-28 02:34:47 UTC (rev 410)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-.PHONY: clean clean-depend all
++.PHONY: clean clean-depend all depend uninstall
+ 
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+
+Modified: trunk/codecs/Makefile
+===================================================================
+--- trunk/codecs/Makefile	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/codecs/Makefile	2006-06-28 02:34:47 UTC (rev 410)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-.PHONY: clean clean-depend all
++.PHONY: clean clean-depend all depend uninstall
+ 
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+
+Modified: trunk/formats/Makefile
+===================================================================
+--- trunk/formats/Makefile	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/formats/Makefile	2006-06-28 02:34:47 UTC (rev 410)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-.PHONY: clean clean-depend all
++.PHONY: clean clean-depend all depend uninstall
+ 
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+
+Modified: trunk/funcs/Makefile
+===================================================================
+--- trunk/funcs/Makefile	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/funcs/Makefile	2006-06-28 02:34:47 UTC (rev 410)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-.PHONY: clean clean-depend all
++.PHONY: clean clean-depend all depend uninstall
+ 
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+
+Modified: trunk/manager.c
+===================================================================
+--- trunk/manager.c	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/manager.c	2006-06-28 02:34:47 UTC (rev 410)
+@@ -173,7 +173,7 @@
+ static struct manager_action *first_action = NULL;
+ AST_MUTEX_DEFINE_STATIC(actionlock);
+ 
+-/*! authority_to_str: Convert authority code to string with serveral options */
++/*! \brief Convert authority code to string with serveral options */
+ static char *authority_to_str(int authority, char *res, int reslen)
+ {
+ 	int running_total = 0, i;
+@@ -422,8 +422,8 @@
+ 	return RESULT_SUCCESS;
+ }
+ 
+-/*! \brief  handle_showmancmds: CLI command */
+-/* Should change to &quot;manager show commands&quot; */
++/*! \brief  CLI command 
++	Should change to &quot;manager show commands&quot; */
+ static int handle_showmancmds(int fd, int argc, char *argv[])
+ {
+ 	struct manager_action *cur = first_action;
+@@ -442,7 +442,7 @@
+ 	return RESULT_SUCCESS;
+ }
+ 
+-/*! \brief  handle_showmanconn: CLI command show manager connected */
++/*! \brief CLI command show manager connected */
+ /* Should change to &quot;manager show connected&quot; */
+ static int handle_showmanconn(int fd, int argc, char *argv[])
+ {
+@@ -461,7 +461,7 @@
+ 	return RESULT_SUCCESS;
+ }
+ 
+-/*! \brief  handle_showmanconn: CLI command show manager connected */
++/*! \brief CLI command show manager connected */
+ /* Should change to &quot;manager show connected&quot; */
+ static int handle_showmaneventq(int fd, int argc, char *argv[])
+ {
+@@ -617,7 +617,7 @@
+ 	return head;
+ }
+ 
+-/*! NOTE:
++/*! \note NOTE:
+    Callers of astman_send_error(), astman_send_response() or astman_send_ack() must EITHER
+    hold the session lock _or_ be running in an action callback (in which case s-&gt;busy will
+    be non-zero). In either of these cases, there is no need to lock-protect the session's
+@@ -734,11 +734,10 @@
+ 	return ret;
+ }
+ 
+-/*! 
++/*! \brief
+    Rather than braindead on,off this now can also accept a specific int mask value 
+    or a ',' delim list of mask strings (the same as manager.conf) -anthm
+ */
+-
+ static int set_eventmask(struct mansession *s, char *eventmask)
+ {
+ 	int maskint = ast_strings_to_mask(eventmask);
+@@ -851,7 +850,7 @@
+ 	return -1;
+ }
+ 
+-/*! \brief PING: Manager PING */
++/*! \brief Manager PING */
+ static char mandescr_ping[] = 
+ &quot;Description: A 'Ping' action will ellicit a 'Pong' response.  Used to keep the\n&quot;
+ &quot;  manager connection open.\n&quot;
+@@ -863,7 +862,7 @@
+ 	return 0;
+ }
+ 
+-/*! \brief WAITEVENT: Manager WAITEVENT */
++/*! \brief Manager WAITEVENT */
+ static char mandescr_waitevent[] = 
+ &quot;Description: A 'WaitEvent' action will ellicit a 'Success' response.  Whenever\n&quot;
+ &quot;a manager event is queued.  Once WaitEvent has been called on an HTTP manager\n&quot;
+@@ -1127,7 +1126,7 @@
+ }
+ 
+ 
+-/*! \brief  action_status: Manager &quot;status&quot; command to show channels */
++/*! \brief Manager &quot;status&quot; command to show channels */
+ /* Needs documentation... */
+ static int action_status(struct mansession *s, struct message *m)
+ {
+@@ -1469,7 +1468,7 @@
+ 	return 0;
+ }
+ 
+-/*! 	\brief Help text for manager command mailboxstatus
++/*! \brief Help text for manager command mailboxstatus
+  */
+ static char mandescr_mailboxstatus[] = 
+ &quot;Description: Checks a voicemail account for status.\n&quot;
+@@ -2446,9 +2445,8 @@
+ 		httptimeout = newhttptimeout;
+ 
+ 	/* If not enabled, do nothing */
+-	if (!enabled) {
++	if (!enabled)
+ 		return 0;
+-	}
+ 
+ 	if (asock &lt; 0) {
+ 		asock = socket(AF_INET, SOCK_STREAM, 0);
+
+Modified: trunk/pbx/Makefile
+===================================================================
+--- trunk/pbx/Makefile	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/pbx/Makefile	2006-06-28 02:34:47 UTC (rev 410)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-.PHONY: clean clean-depend all
++.PHONY: clean clean-depend all depend uninstall
+ 
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+
+Modified: trunk/res/Makefile
+===================================================================
+--- trunk/res/Makefile	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/res/Makefile	2006-06-28 02:34:47 UTC (rev 410)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-.PHONY: clean clean-depend all
++.PHONY: clean clean-depend all depend uninstall
+ 
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+
+Modified: trunk/utils/Makefile
+===================================================================
+--- trunk/utils/Makefile	2006-06-28 02:31:36 UTC (rev 409)
++++ trunk/utils/Makefile	2006-06-28 02:34:47 UTC (rev 410)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-.PHONY: clean clean-depend all
++.PHONY: clean clean-depend all depend uninstall
+ 
+ UTILS:=astman smsq stereorize streamplayer aelparse
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000404.html">[solid-pbx-svn] r409 - in trunk: . agi apps build_tools cdr channels codecs formats funcs pbx res sounds utils
+</A></li>
+	<LI>Next message: <A HREF="000406.html">[solid-pbx-svn] r411 - in trunk: . apps configs sounds
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#405">[ date ]</a>
+              <a href="thread.html#405">[ thread ]</a>
+              <a href="subject.html#405">[ subject ]</a>
+              <a href="author.html#405">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

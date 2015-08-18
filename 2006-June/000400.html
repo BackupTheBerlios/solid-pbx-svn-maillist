@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r405 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r405%20-%20trunk&In-Reply-To=%3C200606280227.k5S2RJoa027452%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000399.html">
+   <LINK REL="Next"  HREF="000401.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r405 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r405%20-%20trunk&In-Reply-To=%3C200606280227.k5S2RJoa027452%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r405 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:27:19 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000399.html">[solid-pbx-svn] r404 - in trunk: channels doc
+</A></li>
+        <LI>Next message: <A HREF="000401.html">[solid-pbx-svn] r406 - in trunk: . agi apps build_tools cdr channels codecs formats funcs pbx res sounds utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#400">[ date ]</a>
+              <a href="thread.html#400">[ thread ]</a>
+              <a href="subject.html#400">[ subject ]</a>
+              <a href="author.html#400">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:27:01 +0200 (Wed, 28 Jun 2006)
+New Revision: 405
+
+Modified:
+   trunk/Makefile
+   trunk/configure.ac
+Log:
+Update to Asterisk SVN trunk r35393
+
+------------------------------------------------------------------------
+r35391 | russell | 2006-06-22 12:30:51 +0200 (Thu, 22 Jun 2006) | 4 lines
+
+use the AC_PREFIX_DEFAULT macro to set the default prefix instead of setting
+the variable directly, so that the configure --help information shows the
+correct default prefix
+
+------------------------------------------------------------------------
+r35392 | russell | 2006-06-22 12:36:45 +0200 (Thu, 22 Jun 2006) | 2 lines
+
+use $(BASENAME) set by configure
+
+------------------------------------------------------------------------
+r35393 | russell | 2006-06-22 12:38:45 +0200 (Thu, 22 Jun 2006) | 2 lines
+
+use $(FIND) and $(LN) from configure
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-28 02:15:09 UTC (rev 404)
++++ trunk/Makefile	2006-06-28 02:27:01 UTC (rev 405)
+@@ -559,7 +559,7 @@
+ 	mkdir -p $(DESTDIR)$(ASTSPOOLDIR)/monitor
+ 	if [ -f asterisk ]; then $(INSTALL) -m 755 asterisk $(DESTDIR)$(ASTSBINDIR)/; fi
+ 	if [ -f asterisk.dll ]; then $(INSTALL) -m 755 asterisk.dll $(DESTDIR)$(ASTSBINDIR)/; fi
+-	ln -sf asterisk $(DESTDIR)$(ASTSBINDIR)/rasterisk
++	$(LN) -sf asterisk $(DESTDIR)$(ASTSBINDIR)/rasterisk
+ 	$(INSTALL) -m 755 contrib/scripts/astgenkey $(DESTDIR)$(ASTSBINDIR)/
+ 	$(INSTALL) -m 755 contrib/scripts/autosupport $(DESTDIR)$(ASTSBINDIR)/
+ 	if [ ! -f $(DESTDIR)$(ASTSBINDIR)/safe_asterisk ]; then \
+@@ -643,26 +643,26 @@
+ 	mkdir -p $(DESTDIR)$(ASTETCDIR)
+ 	for x in configs/*.adsi; do \
+ 		if [ ! -f $(DESTDIR)$(ASTETCDIR)/$$x ]; then \
+-			$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTETCDIR)/`basename $$x` ; \
++			$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTETCDIR)/`$(BASENAME) $$x` ; \
+ 		fi ; \
+ 	done
+ 
+ samples: adsi
+ 	mkdir -p $(DESTDIR)$(ASTETCDIR)
+ 	for x in configs/*.sample; do \
+-		if [ -f $(DESTDIR)$(ASTETCDIR)/`basename $$x .sample` ]; then \
++		if [ -f $(DESTDIR)$(ASTETCDIR)/`$(BASENAME) $$x .sample` ]; then \
+ 			if [ &quot;$(OVERWRITE)&quot; = &quot;y&quot; ]; then \
+-				if cmp -s $(DESTDIR)$(ASTETCDIR)/`basename $$x .sample` $$x ; then \
++				if cmp -s $(DESTDIR)$(ASTETCDIR)/`$(BASENAME) $$x .sample` $$x ; then \
+ 					echo &quot;Config file $$x is unchanged&quot;; \
+ 					continue; \
+ 				fi ; \
+-				mv -f $(DESTDIR)$(ASTETCDIR)/`basename $$x .sample` $(DESTDIR)$(ASTETCDIR)/`basename $$x .sample`.old ; \
++				mv -f $(DESTDIR)$(ASTETCDIR)/`$(BASENAME) $$x .sample` $(DESTDIR)$(ASTETCDIR)/`$(BASENAME) $$x .sample`.old ; \
+ 			else \
+ 				echo &quot;Skipping config file $$x&quot;; \
+ 				continue; \
+ 			fi ;\
+ 		fi ; \
+-		$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTETCDIR)/`basename $$x .sample` ;\
++		$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTETCDIR)/`$(BASENAME) $$x .sample` ;\
+ 	done
+ 	if [ &quot;$(OVERWRITE)&quot; = &quot;y&quot; ] || [ ! -f $(DESTDIR)$(ASTCONFPATH) ]; then \
+ 		( \
+@@ -781,20 +781,20 @@
+ 
+ .tags-depend:
+ 	@echo -n &quot;.tags-depend: &quot; &gt; $@
+-	@find . -maxdepth 1 -name \*.c -printf &quot;\t%p \\\\\n&quot; &gt;&gt; $@
+-	@find . -maxdepth 1 -name \*.h -printf &quot;\t%p \\\\\n&quot; &gt;&gt; $@
+-	@find $(SUBDIRS) -name \*.c -printf &quot;\t%p \\\\\n&quot; &gt;&gt; $@
+-	@find $(SUBDIRS) -name \*.h -printf &quot;\t%p \\\\\n&quot; &gt;&gt; $@
+-	@find include -name \*.h -printf &quot;\t%p \\\\\n&quot; &gt;&gt; $@
++	@$(FIND) . -maxdepth 1 -name \*.c -printf &quot;\t%p \\\\\n&quot; &gt;&gt; $@
++	@$(FIND) . -maxdepth 1 -name \*.h -printf &quot;\t%p \\\\\n&quot; &gt;&gt; $@
++	@$(FIND) $(SUBDIRS) -name \*.c -printf &quot;\t%p \\\\\n&quot; &gt;&gt; $@
++	@$(FIND) $(SUBDIRS) -name \*.h -printf &quot;\t%p \\\\\n&quot; &gt;&gt; $@
++	@$(FIND) include -name \*.h -printf &quot;\t%p \\\\\n&quot; &gt;&gt; $@
+ 	@echo &gt;&gt; $@
+ 
+ .tags-sources:
+ 	@rm -f $@
+-	@find . -maxdepth 1 -name \*.c -print &gt;&gt; $@
+-	@find . -maxdepth 1 -name \*.h -print &gt;&gt; $@
+-	@find $(SUBDIRS) -name \*.c -print &gt;&gt; $@
+-	@find $(SUBDIRS) -name \*.h -print &gt;&gt; $@
+-	@find include -name \*.h -print &gt;&gt; $@
++	@$(FIND) . -maxdepth 1 -name \*.c -print &gt;&gt; $@
++	@$(FIND) . -maxdepth 1 -name \*.h -print &gt;&gt; $@
++	@$(FIND) $(SUBDIRS) -name \*.c -print &gt;&gt; $@
++	@$(FIND) $(SUBDIRS) -name \*.h -print &gt;&gt; $@
++	@$(FIND) include -name \*.h -print &gt;&gt; $@
+ 
+ tags: .tags-depend .tags-sources
+ 	ctags -L .tags-sources -o $@
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-06-28 02:15:09 UTC (rev 404)
++++ trunk/configure.ac	2006-06-28 02:27:01 UTC (rev 405)
+@@ -24,10 +24,10 @@
+ 
+ case &quot;${host}&quot; in
+      *freebsd*)
+-     ac_default_prefix=/usr/local
++     AC_PREFIX_DEFAULT(/usr/local)
+      ;;
+      *)
+-     ac_default_prefix=/usr
++     AC_PREFIX_DEFAULT(/usr)
+      if test ${sysconfdir} = '${prefix}/etc'; then
+         sysconfdir=/etc
+      fi
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000399.html">[solid-pbx-svn] r404 - in trunk: channels doc
+</A></li>
+	<LI>Next message: <A HREF="000401.html">[solid-pbx-svn] r406 - in trunk: . agi apps build_tools cdr channels codecs formats funcs pbx res sounds utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#400">[ date ]</a>
+              <a href="thread.html#400">[ thread ]</a>
+              <a href="subject.html#400">[ subject ]</a>
+              <a href="author.html#400">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

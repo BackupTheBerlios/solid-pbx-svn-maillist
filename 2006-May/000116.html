@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r120 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r120%20-%20trunk&In-Reply-To=%3C200605100828.k4A8Sp56010675%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000115.html">
+   <LINK REL="Next"  HREF="000117.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r120 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r120%20-%20trunk&In-Reply-To=%3C200605100828.k4A8Sp56010675%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r120 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 10 10:28:51 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000115.html">[solid-pbx-svn] r119 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000117.html">[solid-pbx-svn] r121 - in trunk: channels configs include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#116">[ date ]</a>
+              <a href="thread.html#116">[ thread ]</a>
+              <a href="subject.html#116">[ subject ]</a>
+              <a href="author.html#116">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-10 10:28:49 +0200 (Wed, 10 May 2006)
+New Revision: 120
+
+Modified:
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r26313
+
+------------------------------------------------------------------------
+r26283 | rizzo | 2006-05-10 09:45:14 +0200 (Wed, 10 May 2006) | 3 lines
+
+document special character interpretation.
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-10 07:28:42 UTC (rev 119)
++++ trunk/pbx.c	2006-05-10 08:28:49 UTC (rev 120)
+@@ -560,6 +560,33 @@
+ 	free(p);
+ }
+ 
++/*
++ * Special characters used in patterns:
++ *	'_'	underscore is the leading character of a pattern.
++ *		In other position it is treated as a regular char.
++ *	' ' '-'	space and '-' are separator and ignored.
++ *	.	one or more of any character. Only allowed at the end of
++ *		a pattern.
++ *	!	zero or more of anything. Also impacts the result of CANMATCH
++ *		and MATCHMORE. Only allowed at the end of a pattern.
++ *	/	should not appear as it is considered the separator of the CID info.
++ *		XXX at the moment we may stop on this char.
++ *
++ *	X Z N	match ranges 0-9, 1-9, 2-9 respectively.
++ *	[	denotes the start of a set of character. Everything inside
++ *		is considered literally. We can have ranges a-d and individual
++ *		characters. A '[' and '-' can be considered literally if they
++ *		are just before ']'.
++ *		XXX currently there is no way to specify ']' in a range, nor \ is
++ *		considered specially.
++ *
++ * When we compare a pattern with a specific extension, all characters in the extension
++ * itself are considered literally with the only exception of '-' which is considered
++ * as a separator and thus ignored.
++ * XXX do we want to consider space as a separator as well ?
++ * XXX do we want to consider the separators in non-patterns as well ?
++ */
++
+ /*!
+  * \brief helper functions to sort extensions and patterns in the desired way,
+  * so that more specific patterns appear first.
+@@ -722,6 +749,10 @@
+ 			return 0;
+ 	}
+ 	pattern++; /* skip leading _ */
++	/*
++	 * XXX below we stop at '/' which is a separator for the CID info. However we should
++	 * not store '/' in the pattern at all. When we insure it, we can remove the checks.
++	 */
+ 	while (*data &amp;&amp; *pattern &amp;&amp; *pattern != '/') {
+ 		const char *end;
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000115.html">[solid-pbx-svn] r119 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000117.html">[solid-pbx-svn] r121 - in trunk: channels configs include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#116">[ date ]</a>
+              <a href="thread.html#116">[ thread ]</a>
+              <a href="subject.html#116">[ subject ]</a>
+              <a href="author.html#116">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

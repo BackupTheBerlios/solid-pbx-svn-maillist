@@ -1,0 +1,250 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r75 - trunk/funcs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r75%20-%20trunk/funcs&In-Reply-To=%3C200605061813.k46IDYI4031649%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000071.html">
+   <LINK REL="Next"  HREF="000073.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r75 - trunk/funcs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r75%20-%20trunk/funcs&In-Reply-To=%3C200605061813.k46IDYI4031649%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r75 - trunk/funcs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat May  6 20:13:34 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000071.html">[solid-pbx-svn] r74 - trunk/build_tools
+</A></li>
+        <LI>Next message: <A HREF="000073.html">[solid-pbx-svn] r76 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#72">[ date ]</a>
+              <a href="thread.html#72">[ thread ]</a>
+              <a href="subject.html#72">[ subject ]</a>
+              <a href="author.html#72">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-06 20:13:31 +0200 (Sat, 06 May 2006)
+New Revision: 75
+
+Added:
+   trunk/funcs/func_realtime.c
+Log:
+Add func_realtime.c to the list
+
+Added: trunk/funcs/func_realtime.c
+===================================================================
+--- trunk/funcs/func_realtime.c	2006-05-06 18:12:48 UTC (rev 74)
++++ trunk/funcs/func_realtime.c	2006-05-06 18:13:31 UTC (rev 75)
+@@ -0,0 +1,174 @@
++/*
++ * Asterisk -- An open source telephony toolkit.
++ *
++ * Copyright (C) 2005-2006, BJ Weschke. All rights reserved.
++ * 
++ * BJ Weschke &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">bweschke at btwtech.com</A>&gt;
++ * 
++ * This code is released by the author with no restrictions on usage. 
++ *
++ * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
++ * the Asterisk project. Please do not directly contact
++ * any of the maintainers of this project for assistance;
++ * the project provides a web site, mailing lists and IRC
++ * channels for your use.
++ *
++ */
++
++/*! \file
++ *
++ * \brief REALTIME dialplan function
++ * 
++ * \author BJ Weschke &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">bweschke at btwtech.com</A>&gt;
++ * 
++ * \ingroup functions
++ */
++
++#include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;string.h&gt;
++#include &lt;sys/types.h&gt;
++
++#include &quot;asterisk.h&quot;
++
++/* ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;) */
++
++#include &quot;asterisk/file.h&quot;
++#include &quot;asterisk/channel.h&quot;
++#include &quot;asterisk/pbx.h&quot;
++#include &quot;asterisk/options.h&quot;
++#include &quot;asterisk/config.h&quot;
++#include &quot;asterisk/module.h&quot;
++#include &quot;asterisk/lock.h&quot;
++#include &quot;asterisk/logger.h&quot;
++#include &quot;asterisk/utils.h&quot;
++#include &quot;asterisk/module.h&quot;
++#include &quot;asterisk/app.h&quot;
++
++LOCAL_USER_DECL;
++
++static char *tdesc = &quot;Read/Write values from a RealTime repository&quot;;
++
++static int function_realtime_read(struct ast_channel *chan, char *cmd, char *data, char *buf, size_t len) 
++{
++	struct ast_variable *var, *head;
++        struct localuser *u;
++	char *results;
++	size_t resultslen = 0;
++
++	AST_DECLARE_APP_ARGS(args,
++		AST_APP_ARG(family);
++		AST_APP_ARG(fieldmatch);
++		AST_APP_ARG(value);
++		AST_APP_ARG(delim1);
++		AST_APP_ARG(delim2);
++	);
++
++
++	if (ast_strlen_zero(data)) {
++		ast_log(LOG_WARNING, &quot;Syntax: REALTIME(family|fieldmatch[|value[|delim1[|delim2]]]) - missing argument!\n&quot;);
++		return -1;
++	}
++	LOCAL_USER_ADD(u);
++	AST_STANDARD_APP_ARGS(args, data);
++
++	if (!args.delim1)
++		args.delim1 = &quot;|&quot;;
++	if (!args.delim2)
++		args.delim2 = &quot;=&quot;;
++
++	head = ast_load_realtime(args.family, args.fieldmatch, args.value, NULL);
++
++	if (!head) {
++		LOCAL_USER_REMOVE(u);
++		return -1;
++	}
++	for (var = head; var; var = var-&gt;next)
++		resultslen += strlen(var-&gt;name) + strlen(var-&gt;value) + 2;
++
++	results = alloca(resultslen);
++	for (var = head; var; var = var-&gt;next)
++		ast_build_string(&amp;results, &amp;resultslen, &quot;%s%s%s%s&quot;, var-&gt;name, args.delim2, var-&gt;value, args.delim1);
++	ast_copy_string(buf, results, len);
++
++	LOCAL_USER_REMOVE(u);
++	return 0;
++}
++
++static int function_realtime_write(struct ast_channel *chan, char *cmd, char *data, const char *value)
++{
++        struct localuser *u;
++	int res = 0;
++
++
++	AST_DECLARE_APP_ARGS(args,
++		AST_APP_ARG(family);
++		AST_APP_ARG(fieldmatch);
++		AST_APP_ARG(value);
++		AST_APP_ARG(field);
++	);
++
++	if (ast_strlen_zero(data)) {
++		ast_log(LOG_WARNING, &quot;Syntax: REALTIME(family|fieldmatch|value|newcol) - missing argument!\n&quot;);
++		return -1;
++	}
++
++	LOCAL_USER_ADD(u);
++	AST_STANDARD_APP_ARGS(args, data);
++
++	res = ast_update_realtime(args.family, args.fieldmatch, args.value, args.field, (char *)value, NULL);
++
++	if (res &lt; 0) {
++		ast_log(LOG_WARNING, &quot;Failed to update. Check the debug log for possible data repository related entries.\n&quot;);
++	}
++
++	LOCAL_USER_REMOVE(u);
++	return 0;
++}
++
++struct ast_custom_function realtime_function = {
++	.name = &quot;REALTIME&quot;,
++	.synopsis = &quot;RealTime Read/Write Functions&quot;,
++	.syntax = &quot;REALTIME(family|fieldmatch[|value[|delim1[|delim2]]]) on read\n&quot;
++		  &quot;REALTIME(family|fieldmatch|value|field) on write\n&quot;,
++	.desc = &quot;This function will read or write values from/to a RealTime repository.\n&quot;
++		&quot;REALTIME(....) will read names/values from the repository, and \n&quot;
++		&quot;REALTIME(....)= will write a new value/field to the repository. On a\n&quot;
++		&quot;read, this function returns a delimited text string. The name/value \n&quot;
++		&quot;pairs are delimited by delim1, and the name and value are delimited \n&quot;
++		&quot;between each other with delim2. The default for delim1 is '=' and   \n&quot;
++		&quot;the default for delim2 is '|'. If there is no match, NULL will be   \n&quot;
++		&quot;returned by the function. On a write, this function will always     \n&quot;
++		&quot;return NULL. \n&quot;,
++	.read = function_realtime_read,
++	.write = function_realtime_write,
++};
++
++static int unload_module(void *mod)
++{
++        int res = ast_custom_function_unregister(&amp;realtime_function);
++
++	STANDARD_HANGUP_LOCALUSERS;
++
++        return res;
++}
++
++static int load_module(void *mod)
++{
++        int res = ast_custom_function_register(&amp;realtime_function);
++
++        return res;
++}
++
++static const char *description(void)
++{
++        return tdesc;
++}
++
++static const char *key(void)
++{
++        return ASTERISK_GPL_KEY;
++}
++
++STD_MOD(MOD_1, NULL, NULL, NULL);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000071.html">[solid-pbx-svn] r74 - trunk/build_tools
+</A></li>
+	<LI>Next message: <A HREF="000073.html">[solid-pbx-svn] r76 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#72">[ date ]</a>
+              <a href="thread.html#72">[ thread ]</a>
+              <a href="subject.html#72">[ subject ]</a>
+              <a href="author.html#72">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

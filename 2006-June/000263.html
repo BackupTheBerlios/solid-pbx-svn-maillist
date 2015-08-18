@@ -1,0 +1,433 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r268 - in trunk: apps build_tools cdr channels codecs formats funcs pbx res utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r268%20-%20in%20trunk%3A%20apps%20build_tools%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res%20utils&In-Reply-To=%3C200606182041.k5IKfGar010285%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000262.html">
+   <LINK REL="Next"  HREF="000264.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r268 - in trunk: apps build_tools cdr channels codecs formats funcs pbx res utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r268%20-%20in%20trunk%3A%20apps%20build_tools%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res%20utils&In-Reply-To=%3C200606182041.k5IKfGar010285%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r268 - in trunk: apps build_tools cdr channels codecs formats funcs pbx res utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 22:41:16 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000262.html">[solid-pbx-svn] r267 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000264.html">[solid-pbx-svn] r269 - in trunk: . build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#263">[ date ]</a>
+              <a href="thread.html#263">[ thread ]</a>
+              <a href="subject.html#263">[ subject ]</a>
+              <a href="author.html#263">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 22:41:11 +0200 (Sun, 18 Jun 2006)
+New Revision: 268
+
+Modified:
+   trunk/apps/Makefile
+   trunk/build_tools/prep_moduledeps
+   trunk/build_tools/sounds.xml
+   trunk/cdr/Makefile
+   trunk/channels/Makefile
+   trunk/codecs/Makefile
+   trunk/codecs/codec_g723_1.c
+   trunk/formats/Makefile
+   trunk/funcs/Makefile
+   trunk/pbx/Makefile
+   trunk/res/Makefile
+   trunk/res/res_snmp.c
+   trunk/utils/Makefile
+Log:
+Update to Asterisk SVN trunk r32413
+
+------------------------------------------------------------------------
+r32407 | kpfleming | 2006-06-05 22:46:27 +0200 (Mon, 05 Jun 2006) | 3 lines
+
+use module names, not file names, in menuselect
+work around XML parsing bug in menuselect for default sounds package
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/Makefile
+===================================================================
+--- trunk/apps/Makefile	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/apps/Makefile	2006-06-18 20:41:11 UTC (rev 268)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-MODS:=$(filter-out $(MENUSELECT_APPS),$(patsubst %.c,%.so,$(wildcard app_*.c)))
++SELECTED_MODS:=$(filter-out $(MENUSELECT_APPS),$(patsubst %.c,%,$(wildcard app_*.c)))
+ 
+ # If you have UnixODBC you can use ODBC voicemail
+ # storage
+@@ -22,6 +22,8 @@
+ #CFLAGS+=-DEXTENDED_ODBC_STORAGE
+ # See doc/README.odbcstorage for more information
+ 
++MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
++
+ all: $(MODS)
+ 
+ clean-depend:
+
+Modified: trunk/build_tools/prep_moduledeps
+===================================================================
+--- trunk/build_tools/prep_moduledeps	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/build_tools/prep_moduledeps	2006-06-18 20:41:11 UTC (rev 268)
+@@ -38,7 +38,7 @@
+ 		fname=${file##${dir}/}
+ 		get_description ${file}
+ 		desc=${TDESC}
+-		echo -e &quot;\t\t&lt;member name=\&quot;${fname%%.c}.so\&quot; displayname=\&quot;${desc}\&quot;&gt;&quot;
++		echo -e &quot;\t\t&lt;member name=\&quot;${fname%%.c}\&quot; displayname=\&quot;${desc}\&quot;&gt;&quot;
+ 		awk -f build_tools/get_moduledeps ${file}
+ 		echo -e &quot;\t\t&lt;/member&gt;&quot;
+ 	done
+
+Modified: trunk/build_tools/sounds.xml
+===================================================================
+--- trunk/build_tools/sounds.xml	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/build_tools/sounds.xml	2006-06-18 20:41:11 UTC (rev 268)
+@@ -1,19 +1,33 @@
+ 	&lt;category name=&quot;MENUSELECT_SOUNDS&quot; displayname=&quot;Sound Packages&quot; positive_output=&quot;yes&quot;&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_EN_WAV&quot; displayname=&quot;Core Sounds - English, WAV format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_EN_ULAW&quot; displayname=&quot;Core Sounds - English, mu-Law format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_EN_ALAW&quot; displayname=&quot;Core Sounds - English, a-Law format&quot; /&gt;
++		&lt;member name=&quot;CORE_SOUNDS_EN_WAV&quot; displayname=&quot;Core Sounds - English, WAV format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_EN_ULAW&quot; displayname=&quot;Core Sounds - English, mu-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_EN_ALAW&quot; displayname=&quot;Core Sounds - English, a-Law format&quot;&gt;
++		&lt;/member&gt;
+ 		&lt;member name=&quot;CORE_SOUNDS_EN_GSM&quot; displayname=&quot;Core Sounds - English, GSM format&quot; &gt;
+ 			&lt;defaultenabled&gt;yes&lt;/defaultenabled&gt;
+ 		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_EN_G729&quot; displayname=&quot;Core Sounds - English, G.729 format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_ES_WAV&quot; displayname=&quot;Core Sounds - Spanish, WAV format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_ES_ULAW&quot; displayname=&quot;Core Sounds - Spanish, mu-Law format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_ES_ALAW&quot; displayname=&quot;Core Sounds - Spanish, a-Law format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_ES_GSM&quot; displayname=&quot;Core Sounds - Spanish, GSM format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_ES_G729&quot; displayname=&quot;Core Sounds - Spanish, G.729 format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_FR_WAV&quot; displayname=&quot;Core Sounds - French, WAV format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_FR_ULAW&quot; displayname=&quot;Core Sounds - French, mu-Law format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_FR_ALAW&quot; displayname=&quot;Core Sounds - French, a-Law format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_FR_GSM&quot; displayname=&quot;Core Sounds - French, GSM format&quot; /&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_FR_G729&quot; displayname=&quot;Core Sounds - French, G.729 format&quot; /&gt;
++		&lt;member name=&quot;CORE_SOUNDS_EN_G729&quot; displayname=&quot;Core Sounds - English, G.729 format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_ES_WAV&quot; displayname=&quot;Core Sounds - Spanish, WAV format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_ES_ULAW&quot; displayname=&quot;Core Sounds - Spanish, mu-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_ES_ALAW&quot; displayname=&quot;Core Sounds - Spanish, a-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_ES_GSM&quot; displayname=&quot;Core Sounds - Spanish, GSM format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_ES_G729&quot; displayname=&quot;Core Sounds - Spanish, G.729 format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_FR_WAV&quot; displayname=&quot;Core Sounds - French, WAV format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_FR_ULAW&quot; displayname=&quot;Core Sounds - French, mu-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_FR_ALAW&quot; displayname=&quot;Core Sounds - French, a-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_FR_GSM&quot; displayname=&quot;Core Sounds - French, GSM format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE_SOUNDS_FR_G729&quot; displayname=&quot;Core Sounds - French, G.729 format&quot;&gt;
++		&lt;/member&gt;
+ 	&lt;/category&gt;
+
+Modified: trunk/cdr/Makefile
+===================================================================
+--- trunk/cdr/Makefile	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/cdr/Makefile	2006-06-18 20:41:11 UTC (rev 268)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-MODS:=$(filter-out $(MENUSELECT_CDR),$(patsubst %.c,%.so,$(wildcard cdr_*.c)))
++SELECTED_MODS:=$(filter-out $(MENUSELECT_CDR),$(patsubst %.c,%,$(wildcard cdr_*.c)))
+ 
+ #The problem with sparc is the best stuff is in newer versions of gcc (post 3.0) only.
+ #This works for even old (2.96) versions of gcc and provides a small boost either way.
+@@ -35,6 +35,8 @@
+   endif
+ endif
+ 
++MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
++
+ all: depend $(MODS)
+ 
+ install: all
+
+Modified: trunk/channels/Makefile
+===================================================================
+--- trunk/channels/Makefile	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/channels/Makefile	2006-06-18 20:41:11 UTC (rev 268)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-MODS:=$(filter-out $(MENUSELECT_CHANNELS),$(patsubst %.c,%.so,$(wildcard chan_*.c)))
++SELECTED_MODS:=$(filter-out $(MENUSELECT_CHANNELS),$(patsubst %.c,%,$(wildcard chan_*.c)))
+ 
+ ifeq ($(PROC),sparc64)
+   PROC=ultrasparc
+@@ -23,11 +23,13 @@
+ endif
+ 
+ ifeq ($(wildcard $(CROSS_COMPILE_TARGET)/usr/include/mISDNuser/mISDNlib.h),)
+-  MODS:=$(filter-out chan_misdn.so,$(MODS))
++  SELECTED_MODS:=$(filter-out chan_misdn.so,$(SELECTED_MODS))
+ else
+   CFLAGS+=-Imisdn 
+ endif
+ 
++MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
++
+ all: depend $(MODS) 
+ 
+ clean-depend:
+
+Modified: trunk/codecs/Makefile
+===================================================================
+--- trunk/codecs/Makefile	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/codecs/Makefile	2006-06-18 20:41:11 UTC (rev 268)
+@@ -11,27 +11,18 @@
+ # the GNU General Public License
+ #
+ 
+-MODS:=$(filter-out $(MENUSELECT_CODECS),$(patsubst %.c,%.so,$(wildcard codec_*.c)))
++SELECTED_MODS:=$(filter-out $(MENUSELECT_CODECS),$(patsubst %.c,%,$(wildcard codec_*.c)))
+ 
+-ifeq ($(wildcard g723.1/coder.c),)
+-  MODS:=$(filter-out codec_g723_1.so,$(MODS))
+-else
+-  LIBG723=g723.1/libg723.a
+-endif
+-
+-ifneq ($(wildcard g723.1b/coder2.c),)
+-  MODS+=codec_g723_1b.so
+-  LIBG723B=g723.1b/libg723b.a
+-endif
+-
+ ifeq ($(wildcard ilbc/iLBC_decode.h),)
+-  MODS:=$(filter-out codec_ilbc.so,$(MODS))
++  MODS:=$(filter-out codec_ilbc,$(MODS))
+ else
+   LIBILBC=ilbc/libilbc.a
+ endif
+ 
+ LIBLPC10=lpc10/liblpc10.a
+ 
++MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
++
+ all: depend $(MODS)
+ 
+ clean-depend:
+
+Modified: trunk/codecs/codec_g723_1.c
+===================================================================
+--- trunk/codecs/codec_g723_1.c	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/codecs/codec_g723_1.c	2006-06-18 20:41:11 UTC (rev 268)
+@@ -27,6 +27,10 @@
+  * \ingroup codecs
+  */
+ 
++/*** MODULEINFO
++	&lt;defaultenabled&gt;no&lt;/defaultenabled&gt;
++ ***/
++
+ #define TYPE_HIGH	 0x0
+ #define TYPE_LOW	 0x1
+ #define TYPE_SILENCE	 0x2
+
+Modified: trunk/formats/Makefile
+===================================================================
+--- trunk/formats/Makefile	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/formats/Makefile	2006-06-18 20:41:11 UTC (rev 268)
+@@ -11,10 +11,12 @@
+ # the GNU General Public License
+ #
+ 
+-MODS:=$(filter-out $(MENUSELECT_FORMATS),$(patsubst %.c,%.so,$(wildcard format_*.c)))
++SELECTED_MODS:=$(filter-out $(MENUSELECT_FORMATS),$(patsubst %.c,%,$(wildcard format_*.c)))
+ 
+ GSMLIB=../codecs/gsm/lib/libgsm.a
+ 
++MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
++
+ all: depend $(MODS)
+ 
+ clean-depend:
+
+Modified: trunk/funcs/Makefile
+===================================================================
+--- trunk/funcs/Makefile	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/funcs/Makefile	2006-06-18 20:41:11 UTC (rev 268)
+@@ -11,19 +11,21 @@
+ # the GNU General Public License
+ #
+ 
+-MODS:=$(filter-out $(MENUSELECT_FUNCS),$(patsubst %.c,%.so,$(wildcard func_*.c)))
++SELECTED_MODS:=$(filter-out $(MENUSELECT_FUNCS),$(patsubst %.c,%,$(wildcard func_*.c)))
+ 
+ # TODO This check needs to be handled with autoconf
+ ifeq ($(OSARCH),SunOS)
+   ifeq ($(shell if [ 0x`$(CROSS_COMPILE_BIN)curl-config --vernum` -ge 0x70907 ]; then echo &quot;OK&quot; ; fi),)
+-    MODS:=$(filter-out func_curl.so,$(MODS))
++    MODS:=$(filter-out func_curl,$(MODS))
+   endif
+ else
+   ifeq ($(shell if [[ 0x`$(CROSS_COMPILE_BIN)curl-config --vernum` -ge 0x70907 ]]; then echo &quot;OK&quot; ; fi),)
+-    MODS:=$(filter-out func_curl.so,$(MODS)) 
++    MODS:=$(filter-out func_curl,$(MODS)) 
+   endif
+ endif
+ 
++MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
++
+ all: $(MODS)
+ 
+ clean-depend:
+
+Modified: trunk/pbx/Makefile
+===================================================================
+--- trunk/pbx/Makefile	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/pbx/Makefile	2006-06-18 20:41:11 UTC (rev 268)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-MODS:=$(filter-out $(MENUSELECT_PBX),$(patsubst %.c,%.so,$(wildcard pbx_*.c)))
++SELECTED_MODS:=$(filter-out $(MENUSELECT_PBX),$(patsubst %.c,%,$(wildcard pbx_*.c)))
+ 
+ MOC=$(QTDIR)/bin/moc
+ KDE_FLAGS=-I$(KDEDIR)/include -I$(KDEDIR)/include/kde -I$(QTDIR)/include
+@@ -19,6 +19,8 @@
+ 
+ KDE_CONSOLE_OBJS=pbx_kdeconsole_main.o pbx_kdeconsole.o 
+ 
++MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
++
+ all: depend $(MODS)
+ 
+ clean-depend:
+
+Modified: trunk/res/Makefile
+===================================================================
+--- trunk/res/Makefile	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/res/Makefile	2006-06-18 20:41:11 UTC (rev 268)
+@@ -11,29 +11,31 @@
+ # the GNU General Public License
+ #
+ 
+-MODS:=$(filter-out $(MENUSELECT_RES),$(patsubst %.c,%.so,$(wildcard res_*.c)))
++SELECTED_MODS:=$(filter-out $(MENUSELECT_RES),$(patsubst %.c,%,$(wildcard res_*.c)))
+ 
+ ifeq ($(OSARCH),FreeBSD)
+-  MODS:=$(filter-out $(shell if test ${BSDVERSION} -lt 500000 ; then echo &quot;res_config_odbc.so&quot;; fi),$(MODS))
++  SELECTED_MODS:=$(filter-out $(shell if test ${BSDVERSION} -lt 500000 ; then echo &quot;res_config_odbc&quot;; fi),$(SELECTED_MODS))
+ endif
+ 
+ # NETsnmp has some difficulties on some platforms (conflict with unload_module)
+ # Until we figure out if the collission is version-specific or what to do
+ # we have disabled res_snmp on OS/X and *BSD
+ ifeq ($(OSARCH),Darwin)
+-  MODS:=$(filter-out res_snmp.so,$(MODS))
++  SELECTED_MODS:=$(filter-out res_snmp,$(SELECTED_MODS))
+ else
+   ifeq ($(findstring BSD,$(OSARCH)),BSD)
+-    MODS:=$(filter-out res_snmp.so,$(MODS))
++    SELECTED_MODS:=$(filter-out res_snmp,$(SELECTED_MODS))
+   endif
+ endif
+ 
+ ifeq ($(wildcard $(CROSS_COMPILE_TARGET)/usr/include/net-snmp/net-snmp-config.h),)
+-  MODS:=$(filter-out res_snmp.so,$(MODS))
++  SELECTED_MODS:=$(filter-out res_snmp,$(SELECTED_MODS))
+ else
+   SNMP_LDLIBS+=$(shell net-snmp-config --agent-libs)
+ endif
+ 
++MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
++
+ all: depend $(MODS)
+ 
+ install: all
+
+Modified: trunk/res/res_snmp.c
+===================================================================
+--- trunk/res/res_snmp.c	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/res/res_snmp.c	2006-06-18 20:41:11 UTC (rev 268)
+@@ -141,13 +141,3 @@
+ {
+     return MODULE_DESCRIPTION;
+ }
+-
+-/*
+- * Local Variables:
+- * c-file-style: gnu
+- * c-basic-offset: 4
+- * c-file-offsets: ((case-label . 0))
+- * tab-width: 4
+- * indent-tabs-mode: t
+- * End:
+- */
+
+Modified: trunk/utils/Makefile
+===================================================================
+--- trunk/utils/Makefile	2006-06-18 20:36:58 UTC (rev 267)
++++ trunk/utils/Makefile	2006-06-18 20:41:11 UTC (rev 268)
+@@ -26,7 +26,7 @@
+   UTILS:=$(filter-out astman,$(UTILS))
+ endif
+ 
+-ifneq ($(filter pbx_ael.so,$(MENUSELECT_PBX)),)
++ifneq ($(filter pbx_ael,$(MENUSELECT_PBX)),)
+   UTILS:=$(filter-out aelparse,$(UTILS))
+ endif
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000262.html">[solid-pbx-svn] r267 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000264.html">[solid-pbx-svn] r269 - in trunk: . build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#263">[ date ]</a>
+              <a href="thread.html#263">[ thread ]</a>
+              <a href="subject.html#263">[ subject ]</a>
+              <a href="author.html#263">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

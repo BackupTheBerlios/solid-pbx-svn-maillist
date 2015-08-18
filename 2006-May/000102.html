@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r106 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r106%20-%20trunk/channels&In-Reply-To=%3C200605091018.k49AIlnx001089%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000101.html">
+   <LINK REL="Next"  HREF="000103.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r106 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r106%20-%20trunk/channels&In-Reply-To=%3C200605091018.k49AIlnx001089%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r106 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  9 12:18:47 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000101.html">[solid-pbx-svn] r105 - in trunk: . apps build_tools channels
+</A></li>
+        <LI>Next message: <A HREF="000103.html">[solid-pbx-svn] r107 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#102">[ date ]</a>
+              <a href="thread.html#102">[ thread ]</a>
+              <a href="subject.html#102">[ subject ]</a>
+              <a href="author.html#102">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-09 12:18:44 +0200 (Tue, 09 May 2006)
+New Revision: 106
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r25988
+
+------------------------------------------------------------------------
+r25959 | markster | 2006-05-09 11:47:22 +0200 (Tue, 09 May 2006) | 2 lines
+
+Make sure we update parameters correctly with reinvite
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-09 09:18:38 UTC (rev 105)
++++ trunk/channels/chan_sip.c	2006-05-09 10:18:44 UTC (rev 106)
+@@ -1167,8 +1167,7 @@
+ static void initialize_initreq(struct sip_pvt *p, struct sip_request *req)
+ {
+ 	if (p-&gt;initreq.headers) {
+-		ast_log(LOG_WARNING, &quot;Initializing already initialized SIP dialog??? %s\n&quot;, p-&gt;callid);
+-		return;
++		ast_log(LOG_DEBUG, &quot;Initializing already initialized SIP dialog %s (presumably reinvite)\n&quot;, p-&gt;callid);
+ 	}
+ 	/* Use this as the basis */
+ 	copy_request(&amp;p-&gt;initreq, req);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000101.html">[solid-pbx-svn] r105 - in trunk: . apps build_tools channels
+</A></li>
+	<LI>Next message: <A HREF="000103.html">[solid-pbx-svn] r107 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#102">[ date ]</a>
+              <a href="thread.html#102">[ thread ]</a>
+              <a href="subject.html#102">[ subject ]</a>
+              <a href="author.html#102">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

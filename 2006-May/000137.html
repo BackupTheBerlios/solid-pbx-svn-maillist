@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r137 - in trunk: . channels configs doc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r137%20-%20in%20trunk%3A%20.%20channels%20configs%20doc&In-Reply-To=%3C200605111430.k4BEUcX2019198%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000132.html">
+   <LINK REL="Next"  HREF="000136.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r137 - in trunk: . channels configs doc</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r137%20-%20in%20trunk%3A%20.%20channels%20configs%20doc&In-Reply-To=%3C200605111430.k4BEUcX2019198%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r137 - in trunk: . channels configs doc">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May 11 16:30:38 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000132.html">[solid-pbx-svn] r136 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000136.html">[solid-pbx-svn] r139 - in trunk: . include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#137">[ date ]</a>
+              <a href="thread.html#137">[ thread ]</a>
+              <a href="subject.html#137">[ subject ]</a>
+              <a href="author.html#137">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-11 16:30:33 +0200 (Thu, 11 May 2006)
+New Revision: 137
+
+Modified:
+   trunk/asterisk.c
+   trunk/channels/chan_sip.c
+   trunk/configs/manager.conf.sample
+   trunk/configs/sip.conf.sample
+   trunk/doc/cliprompt.txt
+   trunk/manager.c
+Log:
+Update to Asterisk SVN trunk r26914
+
+------------------------------------------------------------------------
+r26884 | oej | 2006-05-11 15:54:00 +0200 (Thu, 11 May 2006) | 4 lines
+
+- Use systemname for realm in sip, if we have no configuration for realm
+- Optionally send systemname in manager (cool when you have a manager proxy)
+- Use systemname in CLI prompt
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/asterisk.c
+===================================================================
+--- trunk/asterisk.c	2006-05-11 13:28:42 UTC (rev 136)
++++ trunk/asterisk.c	2006-05-11 14:30:33 UTC (rev 137)
+@@ -1644,6 +1644,9 @@
+ 					}
+ 					break;
+ #endif
++				case 's': /* Asterisk system name (from asterisk.conf) */
++					strncat(p, ast_config_AST_SYSTEM_NAME, sizeof(prompt) - strlen(prompt) - 1);
++					break;
+ 				case 't': /* time */
+ 					memset(&amp;tm, 0, sizeof(tm));
+ 					time(&amp;ts);
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-11 13:28:42 UTC (rev 136)
++++ trunk/channels/chan_sip.c	2006-05-11 14:30:33 UTC (rev 137)
+@@ -13260,7 +13260,10 @@
+ 	global_allowsubscribe = FALSE;
+ 	ast_copy_string(global_useragent, DEFAULT_USERAGENT, sizeof(global_useragent));
+ 	ast_copy_string(default_notifymime, DEFAULT_NOTIFYMIME, sizeof(default_notifymime));
+-	ast_copy_string(global_realm, DEFAULT_REALM, sizeof(global_realm));
++	if (ast_strlen_zero(ast_config_AST_SYSTEM_NAME))
++		ast_copy_string(global_realm, DEFAULT_REALM, sizeof(global_realm));
++	else
++		ast_copy_string(global_realm, ast_config_AST_SYSTEM_NAME, sizeof(global_realm));
+ 	ast_copy_string(default_callerid, DEFAULT_CALLERID, sizeof(default_callerid));
+ 	compactheaders = DEFAULT_COMPACTHEADERS;
+ 	global_reg_timeout = DEFAULT_REGISTRATION_TIMEOUT;
+
+Modified: trunk/configs/manager.conf.sample
+===================================================================
+--- trunk/configs/manager.conf.sample	2006-05-11 13:28:42 UTC (rev 136)
++++ trunk/configs/manager.conf.sample	2006-05-11 14:30:33 UTC (rev 137)
+@@ -21,6 +21,7 @@
+ ; default is 60 seconds.
+ ;
+ [general]
++displaysystemname = yes
+ enabled = no
+ ;webenabled = yes
+ port = 5038
+
+Modified: trunk/configs/sip.conf.sample
+===================================================================
+--- trunk/configs/sip.conf.sample	2006-05-11 13:28:42 UTC (rev 136)
++++ trunk/configs/sip.conf.sample	2006-05-11 14:30:33 UTC (rev 137)
+@@ -32,7 +32,8 @@
+ ;allowtransfer=no		; Disable all transfers (unless enabled in peers or users)
+ 				; Default is enabled
+ ;realm=mydomain.tld		; Realm for digest authentication
+-				; defaults to &quot;asterisk&quot;
++				; defaults to &quot;asterisk&quot;. If you set a system name in
++				; asterisk.conf, it defaults to that system name
+ 				; Realms MUST be globally unique according to RFC 3261
+ 				; Set this to your host name or domain name
+ bindport=5060			; UDP Port to bind to (SIP standard port is 5060)
+
+Modified: trunk/doc/cliprompt.txt
+===================================================================
+--- trunk/doc/cliprompt.txt	2006-05-11 13:28:42 UTC (rev 136)
++++ trunk/doc/cliprompt.txt	2006-05-11 14:30:33 UTC (rev 137)
+@@ -8,6 +8,7 @@
+ the current value by Asterisk:
+ 
+ %d	Date (year-month-date)
++%s	Asterisk system name (from asterisk.conf)
+ %h	Full hostname
+ %H	Short hostname
+ %t	Time
+
+Modified: trunk/manager.c
+===================================================================
+--- trunk/manager.c	2006-05-11 13:28:42 UTC (rev 136)
++++ trunk/manager.c	2006-05-11 14:30:33 UTC (rev 137)
+@@ -158,6 +158,7 @@
+ 	char inbuf[AST_MAX_MANHEADER_LEN];
+ 	int inlen;
+ 	int send_events;
++	int displaysystemname;		/*!&lt; Add system name to manager responses and events */
+ 	/* Queued events that we've not had the ability to send yet */
+ 	struct eventqent *eventq;
+ 	/* Timeout for ast_carefulwrite() */
+@@ -772,6 +773,14 @@
+ 				while (v) {
+ 					if (!strcasecmp(v-&gt;name, &quot;secret&quot;)) {
+ 						password = v-&gt;value;
++					} else if (!strcasecmp(v-&gt;name, &quot;displaysystemname&quot;)) {
++						if (ast_true(v-&gt;value)) {
++							if (ast_strlen_zero(ast_config_AST_SYSTEM_NAME)) {
++								s-&gt;displaysystemname = 1;
++							} else {
++								ast_log(LOG_ERROR, &quot;Can't enable displaysystemname in manager.conf - no system name configured in asterisk.conf\n&quot;);
++							}
++						}
+ 					} else if (!strcasecmp(v-&gt;name, &quot;permit&quot;) ||
+ 						   !strcasecmp(v-&gt;name, &quot;deny&quot;)) {
+ 						ha = ast_append_ha(v-&gt;name, v-&gt;value, ha);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000132.html">[solid-pbx-svn] r136 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000136.html">[solid-pbx-svn] r139 - in trunk: . include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#137">[ date ]</a>
+              <a href="thread.html#137">[ thread ]</a>
+              <a href="subject.html#137">[ subject ]</a>
+              <a href="author.html#137">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r282 - in trunk: include/asterisk res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r282%20-%20in%20trunk%3A%20include/asterisk%20res&In-Reply-To=%3C200606182229.k5IMTRtm019446%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000276.html">
+   <LINK REL="Next"  HREF="000278.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r282 - in trunk: include/asterisk res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r282%20-%20in%20trunk%3A%20include/asterisk%20res&In-Reply-To=%3C200606182229.k5IMTRtm019446%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r282 - in trunk: include/asterisk res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon Jun 19 00:29:27 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000276.html">[solid-pbx-svn] r281 - trunk/res
+</A></li>
+        <LI>Next message: <A HREF="000278.html">[solid-pbx-svn] r283 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#277">[ date ]</a>
+              <a href="thread.html#277">[ thread ]</a>
+              <a href="subject.html#277">[ subject ]</a>
+              <a href="author.html#277">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-19 00:29:25 +0200 (Mon, 19 Jun 2006)
+New Revision: 282
+
+Modified:
+   trunk/include/asterisk/jabber.h
+   trunk/res/res_jabber.c
+Log:
+Update to Asterisk SVN trunk r32683
+
+------------------------------------------------------------------------
+r32674 | mogorman | 2006-06-06 21:18:44 +0200 (Tue, 06 Jun 2006) | 2 lines
+
+fix a potential segfault
+
+------------------------------------------------------------------------
+r32675 | mogorman | 2006-06-06 21:51:26 +0200 (Tue, 06 Jun 2006) | 3 lines
+
+fixes some issues with description loggin on presence
+as well as some typos.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/include/asterisk/jabber.h
+===================================================================
+--- trunk/include/asterisk/jabber.h	2006-06-18 22:27:42 UTC (rev 281)
++++ trunk/include/asterisk/jabber.h	2006-06-18 22:29:25 UTC (rev 282)
+@@ -23,7 +23,7 @@
+ #include &quot;asterisk/astobj.h&quot;
+ 
+ enum aji_state {
+-	AJI_DISCONNECTED=0,
++	AJI_DISCONNECTED = 0,
+ 	AJI_CONNECTING,
+ 	AJI_CONNECTED
+ };
+@@ -60,7 +60,7 @@
+ struct aji_resource {
+ 	int status;
+ 	char resource[80];
+-	char description[1000];
++	char *description;
+ 	struct aji_version *cap;
+ 	int priority;
+ 	struct aji_resource *next;
+
+Modified: trunk/res/res_jabber.c
+===================================================================
+--- trunk/res/res_jabber.c	2006-06-18 22:27:42 UTC (rev 281)
++++ trunk/res/res_jabber.c	2006-06-18 22:29:25 UTC (rev 282)
+@@ -104,7 +104,7 @@
+ 
+ static char test_usage[] = 
+ &quot;Usage: JABBER test [client]\n&quot; 
+-&quot;       Sends test massage for debugging purposes.  A specific client\n&quot;
++&quot;       Sends test message for debugging purposes.  A specific client\n&quot;
+ &quot;       as configured in jabber.conf can be optionally specified.\n&quot;;
+ 
+ static struct ast_cli_entry aji_cli[] = {
+@@ -169,6 +169,7 @@
+ 
+ 	while ((tmp = obj-&gt;resources)) {
+ 		obj-&gt;resources = obj-&gt;resources-&gt;next;
++		free(tmp-&gt;description);
+ 		free(tmp);
+ 	}
+ 
+@@ -811,7 +812,11 @@
+ 	buddy = ASTOBJ_CONTAINER_FIND(&amp;client-&gt;buddies, pak-&gt;from-&gt;partial);
+ 
+ 	resource = aji_find_resource(buddy, pak-&gt;from-&gt;resource);
+-
++	if (!resource) {
++		ast_log(LOG_NOTICE,&quot;JABBER: Received client info from %s when not requested.\n&quot;, pak-&gt;from-&gt;full);
++		ASTOBJ_UNREF(client, aji_client_destroy);
++		return IKS_FILTER_EAT;
++	}	
+ 	if (pak-&gt;subtype == IKS_TYPE_RESULT) {
+ 		if (iks_find_with_attrib(pak-&gt;query, &quot;feature&quot;, &quot;var&quot;, &quot;<A HREF="http://www.google.com/xmpp/protocol/voice/v1">http://www.google.com/xmpp/protocol/voice/v1</A>&quot;)) {
+ 			resource-&gt;cap-&gt;jingle = 1;
+@@ -837,8 +842,8 @@
+ 			iks_insert_attrib(google, &quot;var&quot;, &quot;<A HREF="http://www.google.com/xmpp/protocol/voice/v1">http://www.google.com/xmpp/protocol/voice/v1</A>&quot;);
+ 			iks_insert_node(iq, query);
+ 			iks_insert_node(query, ident);
++			iks_insert_node(query, google);
+ 			iks_insert_node(query, disco);
+-			iks_insert_node(query, google);
+ 			iks_send(client-&gt;p, iq);
+ 		} else
+ 			ast_log(LOG_ERROR, &quot;Out of Memory.\n&quot;);
+@@ -1011,7 +1016,7 @@
+ 	int status, priority;
+ 	struct aji_buddy *buddy = NULL;
+ 	struct aji_resource *tmp = NULL, *last = NULL, *found = NULL;
+-	char *ver, *node;
++	char *ver, *node, *descrip;
+ 	
+ 	if(client-&gt;state != AJI_CONNECTED) {
+ 		buddy = (struct aji_buddy *) malloc(sizeof(struct aji_buddy));
+@@ -1044,10 +1049,13 @@
+ 	status = (pak-&gt;show) ? pak-&gt;show : 6;
+ 	priority = atoi((iks_find_cdata(pak-&gt;x, &quot;priority&quot;)) ? iks_find_cdata(pak-&gt;x, &quot;priority&quot;) : &quot;0&quot;);
+ 	tmp = buddy-&gt;resources;
++	descrip = ast_strdup(iks_find_cdata(pak-&gt;x,&quot;status&quot;));
+ 
+ 	while (tmp) {
+ 		if (!strcasecmp(tmp-&gt;resource, pak-&gt;from-&gt;resource)) {
+ 			tmp-&gt;status = status;
++			if (tmp-&gt;description) free(tmp-&gt;description);
++			tmp-&gt;description = descrip;
+ 			found = tmp;
+ 			if (status == 6) {	/* Sign off Destroy resource */
+ 				if (last &amp;&amp; found-&gt;next) {
+@@ -1110,6 +1118,7 @@
+ 		}
+ 		ast_copy_string(found-&gt;resource, pak-&gt;from-&gt;resource, sizeof(found-&gt;resource));
+ 		found-&gt;status = status;
++		found-&gt;description = descrip;
+ 		found-&gt;priority = priority;
+ 		found-&gt;next = NULL;
+ 		last = NULL;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000276.html">[solid-pbx-svn] r281 - trunk/res
+</A></li>
+	<LI>Next message: <A HREF="000278.html">[solid-pbx-svn] r283 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#277">[ date ]</a>
+              <a href="thread.html#277">[ thread ]</a>
+              <a href="subject.html#277">[ subject ]</a>
+              <a href="author.html#277">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

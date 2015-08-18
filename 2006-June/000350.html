@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r355 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r355%20-%20trunk/channels&In-Reply-To=%3C200606280124.k5S1Oo66013188%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000349.html">
+   <LINK REL="Next"  HREF="000351.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r355 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r355%20-%20trunk/channels&In-Reply-To=%3C200606280124.k5S1Oo66013188%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r355 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:24:50 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000349.html">[solid-pbx-svn] r354 - in trunk: . apps channels include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000351.html">[solid-pbx-svn] r356 - in trunk: apps channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#350">[ date ]</a>
+              <a href="thread.html#350">[ thread ]</a>
+              <a href="subject.html#350">[ subject ]</a>
+              <a href="author.html#350">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:24:19 +0200 (Wed, 28 Jun 2006)
+New Revision: 355
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r34133
+
+------------------------------------------------------------------------
+r34126 | oej | 2006-06-14 17:15:29 +0200 (Wed, 14 Jun 2006) | 2 lines
+
+Add some debug logging
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-28 01:23:32 UTC (rev 354)
++++ trunk/channels/chan_sip.c	2006-06-28 01:24:19 UTC (rev 355)
+@@ -11631,7 +11631,8 @@
+ 					if (!p-&gt;refer) {
+ 						ast_log(LOG_WARNING, &quot;Notify answer on an owned channel? - %s\n&quot;, p-&gt;owner-&gt;name);
+ 						ast_queue_hangup(p-&gt;owner);
+-					}
++					} else if (option_debug &gt; 3) 
++						ast_log(LOG_DEBUG, &quot;Got OK on REFER Notify message\n&quot;);
+ 				} else {
+ 					if (p-&gt;subscribed == NONE) 
+ 						ast_set_flag(&amp;p-&gt;flags[0], SIP_NEEDDESTROY); 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000349.html">[solid-pbx-svn] r354 - in trunk: . apps channels include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000351.html">[solid-pbx-svn] r356 - in trunk: apps channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#350">[ date ]</a>
+              <a href="thread.html#350">[ thread ]</a>
+              <a href="subject.html#350">[ subject ]</a>
+              <a href="author.html#350">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

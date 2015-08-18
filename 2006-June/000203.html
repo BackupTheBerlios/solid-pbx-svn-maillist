@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r208 - trunk/res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r208%20-%20trunk/res&In-Reply-To=%3C200606010925.k519PPu2007269%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000202.html">
+   <LINK REL="Next"  HREF="000204.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r208 - trunk/res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r208%20-%20trunk/res&In-Reply-To=%3C200606010925.k519PPu2007269%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r208 - trunk/res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu Jun  1 11:25:25 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000202.html">[solid-pbx-svn] r207 - in trunk: channels configs include/asterisk res
+</A></li>
+        <LI>Next message: <A HREF="000204.html">[solid-pbx-svn] r209 - in trunk: channels channels/misdn configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#203">[ date ]</a>
+              <a href="thread.html#203">[ thread ]</a>
+              <a href="subject.html#203">[ subject ]</a>
+              <a href="author.html#203">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-01 11:25:25 +0200 (Thu, 01 Jun 2006)
+New Revision: 208
+
+Modified:
+   trunk/res/res_jabber.c
+Log:
+Update to Asterisk SVN trunk r31318
+
+------------------------------------------------------------------------
+r31298 | mogorman | 2006-06-01 10:22:44 +0200 (Thu, 01 Jun 2006) | 3 lines
+
+solves bug where reload deleted things it shouldnt have
+and adds check into jabberstatus so it cant segfault.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/res/res_jabber.c
+===================================================================
+--- trunk/res/res_jabber.c	2006-06-01 08:25:34 UTC (rev 207)
++++ trunk/res/res_jabber.c	2006-06-01 09:25:25 UTC (rev 208)
+@@ -332,7 +332,11 @@
+ 		ast_log(LOG_WARNING, &quot;Could not find Connection.\n&quot;);
+ 		return -1;
+ 	}
+-
++	
++	if(!&amp;client-&gt;buddies) {
++		ast_log(LOG_WARNING, &quot;No buddies for connection.\n&quot;);
++		return -1;
++	}
+ 	ASTOBJ_CONTAINER_TRAVERSE(&amp;client-&gt;buddies, 1, {
+ 		ASTOBJ_RDLOCK(iterator); 
+ 		if (!strcasecmp(iterator-&gt;user, screenname)) {
+@@ -2057,6 +2061,7 @@
+ 		}
+ 	}
+ 	ASTOBJ_UNLOCK(buddy);
++	ASTOBJ_UNMARK(buddy);
+ 	ASTOBJ_CONTAINER_LINK(&amp;client-&gt;buddies, buddy);
+ 	return 0;
+ }
+@@ -2088,8 +2093,10 @@
+ 	ASTOBJ_UNLOCK(buddy);
+ 	if(flag)
+ 		ASTOBJ_CONTAINER_LINK(&amp;client-&gt;buddies, buddy);
+-	else
++	else {
++		ASTOBJ_UNMARK(buddy);
+ 		ASTOBJ_UNREF(buddy, aji_buddy_destroy);
++	}
+ 	return 1;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000202.html">[solid-pbx-svn] r207 - in trunk: channels configs include/asterisk res
+</A></li>
+	<LI>Next message: <A HREF="000204.html">[solid-pbx-svn] r209 - in trunk: channels channels/misdn configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#203">[ date ]</a>
+              <a href="thread.html#203">[ thread ]</a>
+              <a href="subject.html#203">[ subject ]</a>
+              <a href="author.html#203">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

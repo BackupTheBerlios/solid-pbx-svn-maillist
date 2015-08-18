@@ -1,0 +1,360 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r308 - in trunk: . channels include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r308%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200606240222.k5O2MLr3027548%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000302.html">
+   <LINK REL="Next"  HREF="000304.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r308 - in trunk: . channels include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r308%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200606240222.k5O2MLr3027548%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r308 - in trunk: . channels include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 24 04:22:21 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000302.html">[solid-pbx-svn] r307 - in trunk: build_tools include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000304.html">[solid-pbx-svn] r309 - trunk/include
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#303">[ date ]</a>
+              <a href="thread.html#303">[ thread ]</a>
+              <a href="subject.html#303">[ subject ]</a>
+              <a href="author.html#303">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-24 04:22:09 +0200 (Sat, 24 Jun 2006)
+New Revision: 308
+
+Modified:
+   trunk/channels/chan_sip.c
+   trunk/include/asterisk/rtp.h
+   trunk/rtp.c
+Log:
+Update to Asterisk SVN trunk r33133
+
+------------------------------------------------------------------------
+r33133 | kpfleming | 2006-06-09 01:10:45 +0200 (Fri, 09 Jun 2006) | 2 lines
+
+move 'struct ast_rtp' back to rtp.c where it belongs
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-24 02:21:24 UTC (rev 307)
++++ trunk/channels/chan_sip.c	2006-06-24 02:22:09 UTC (rev 308)
+@@ -4116,7 +4116,7 @@
+ 	int sendonly = 0;
+ 	int numberofports;
+ 	struct ast_channel *bridgepeer = NULL;
+-	struct ast_rtp newaudiortp, newvideortp;	/* Buffers for codec handling */
++	struct ast_rtp *newaudiortp, *newvideortp;	/* Buffers for codec handling */
+ 	int newjointcapability;				/* Negotiated capability */
+ 	int newpeercapability;
+ 	int newnoncodeccapability;
+@@ -4129,11 +4129,14 @@
+ 	}
+ 
+ 	/* Initialize the temporary RTP structures we use to evaluate the offer from the peer */
+-	memset(&amp;newaudiortp, 0, sizeof(newaudiortp));
+-	memset(&amp;newvideortp, 0, sizeof(newvideortp));
+-	ast_rtp_pt_default(&amp;newaudiortp);
+-	ast_rtp_pt_default(&amp;newvideortp);
++	newaudiortp = alloca(ast_rtp_alloc_size());
++	memset(newaudiortp, 0, ast_rtp_alloc_size());
++	ast_rtp_pt_default(newaudiortp);
+ 
++	newvideortp = alloca(ast_rtp_alloc_size());
++	memset(newvideortp, 0, ast_rtp_alloc_size());
++	ast_rtp_pt_default(newvideortp);
++
+ 	/* Update our last rtprx when we receive an SDP, too */
+ 	p-&gt;lastrtprx = p-&gt;lastrtptx = time(NULL); /* XXX why both ? */
+ 
+@@ -4172,7 +4175,7 @@
+ 		numberofmediastreams++;
+ 
+ 		if (p-&gt;vrtp)
+-			ast_rtp_pt_clear(&amp;newvideortp);  /* Must be cleared in case no m=video line exists */
++			ast_rtp_pt_clear(newvideortp);  /* Must be cleared in case no m=video line exists */
+ 		numberofports = 1;
+ 		if ((sscanf(m, &quot;audio %d/%d RTP/AVP %n&quot;, &amp;x, &amp;numberofports, &amp;len) == 2) ||
+ 		    (sscanf(m, &quot;audio %d RTP/AVP %n&quot;, &amp;x, &amp;len) == 1)) {
+@@ -4180,7 +4183,7 @@
+ 			/* Found audio stream in this media definition */
+ 			portno = x;
+ 			/* Scan through the RTP payload types specified in a &quot;m=&quot; line: */
+-			ast_rtp_pt_clear(&amp;newaudiortp);
++			ast_rtp_pt_clear(newaudiortp);
+ 			for (codecs = m + len; !ast_strlen_zero(codecs); codecs = ast_skip_blanks(codecs + len)) {
+ 				if (sscanf(codecs, &quot;%d%n&quot;, &amp;codec, &amp;len) != 1) {
+ 					ast_log(LOG_WARNING, &quot;Error in codec string '%s'\n&quot;, codecs);
+@@ -4188,7 +4191,7 @@
+ 				}
+ 				if (debug)
+ 					ast_verbose(&quot;Found RTP audio format %d\n&quot;, codec);
+-				ast_rtp_set_m_type(&amp;newaudiortp, codec);
++				ast_rtp_set_m_type(newaudiortp, codec);
+ 			}
+ 		} else if ((sscanf(m, &quot;video %d/%d RTP/AVP %n&quot;, &amp;x, &amp;numberofports, &amp;len) == 2) ||
+ 		    (sscanf(m, &quot;video %d RTP/AVP %n&quot;, &amp;x, &amp;len) == 1)) {
+@@ -4203,7 +4206,7 @@
+ 				}
+ 				if (debug)
+ 					ast_verbose(&quot;Found RTP video format %d\n&quot;, codec);
+-				ast_rtp_set_m_type(&amp;newvideortp, codec);
++				ast_rtp_set_m_type(newvideortp, codec);
+ 			}
+ 		} else 
+ 			ast_log(LOG_WARNING, &quot;Unsupported SDP media type in offer: %s\n&quot;, m);
+@@ -4309,14 +4312,14 @@
+ 			ast_verbose(&quot;Found description format %s for ID %d\n&quot;, mimeSubtype, codec);
+ 
+ 		/* Note: should really look at the 'freq' and '#chans' params too */
+-		ast_rtp_set_rtpmap_type(&amp;newaudiortp, codec, &quot;audio&quot;, mimeSubtype);
++		ast_rtp_set_rtpmap_type(newaudiortp, codec, &quot;audio&quot;, mimeSubtype);
+ 		if (p-&gt;vrtp)
+-			ast_rtp_set_rtpmap_type(&amp;newvideortp, codec, &quot;video&quot;, mimeSubtype);
++			ast_rtp_set_rtpmap_type(newvideortp, codec, &quot;video&quot;, mimeSubtype);
+ 	}
+ 
+ 	/* Now gather all of the codecs that we are asked for: */
+-	ast_rtp_get_current_formats(&amp;newaudiortp, &amp;peercapability, &amp;peernoncodeccapability);
+-	ast_rtp_get_current_formats(&amp;newvideortp, &amp;vpeercapability, &amp;vpeernoncodeccapability);
++	ast_rtp_get_current_formats(newaudiortp, &amp;peercapability, &amp;peernoncodeccapability);
++	ast_rtp_get_current_formats(newvideortp, &amp;vpeercapability, &amp;vpeernoncodeccapability);
+ 
+ 	newjointcapability = p-&gt;capability &amp; (peercapability | vpeercapability);
+ 	newpeercapability = (peercapability | vpeercapability);
+@@ -4350,15 +4353,9 @@
+ 	p-&gt;peercapability = newpeercapability;		/* The other sides capability in latest offer */
+ 	p-&gt;noncodeccapability = newnoncodeccapability;	/* DTMF capabilities */
+ 
+-	{
+-		int i;
+-		/* Copy payload types from source to destination */
+-		for (i=0; i &lt; MAX_RTP_PT; ++i) {
+-			p-&gt;rtp-&gt;current_RTP_PT[i]= newaudiortp.current_RTP_PT[i];
+-			if (p-&gt;vrtp) 
+-				p-&gt;vrtp-&gt;current_RTP_PT[i]= newvideortp.current_RTP_PT[i];
+-		}
+-	}
++	ast_rtp_pt_copy(p-&gt;rtp, newaudiortp);
++	if (p-&gt;vrtp)
++		ast_rtp_pt_copy(p-&gt;vrtp, newvideortp);
+ 
+ 	if (ast_test_flag(&amp;p-&gt;flags[0], SIP_DTMF) == SIP_DTMF_AUTO) {
+ 		ast_clear_flag(&amp;p-&gt;flags[0], SIP_DTMF);
+
+Modified: trunk/include/asterisk/rtp.h
+===================================================================
+--- trunk/include/asterisk/rtp.h	2006-06-24 02:21:24 UTC (rev 307)
++++ trunk/include/asterisk/rtp.h	2006-06-24 02:22:09 UTC (rev 308)
+@@ -80,59 +80,11 @@
+ 	int code;
+ };
+ 
+-/*! \brief RTP session description */
+-struct ast_rtp {
+-	int s;
+-	char resp;
+-	struct ast_frame f;
+-	unsigned char rawdata[8192 + AST_FRIENDLY_OFFSET];
+-	unsigned int ssrc;		/*!&lt; Synchronization source, RFC 3550, page 10. */
+-	unsigned int themssrc;		/*!&lt; Their SSRC */
+-	unsigned int rxssrc;
+-	unsigned int lastts;
+-	unsigned int lastdigitts;
+-	unsigned int lastrxts;
+-	unsigned int lastividtimestamp;
+-	unsigned int lastovidtimestamp;
+-	unsigned int lasteventseqn;
+-	int lastrxseqno;                /*!&lt; Last received sequence number */
+-	unsigned short seedrxseqno;     /*!&lt; What sequence number did they start with?*/
+-	unsigned int seedrxts;          /*!&lt; What RTP timestamp did they start with? */
+-	unsigned int rxcount;           /*!&lt; How many packets have we received? */
+-	unsigned int rxoctetcount;      /*!&lt; How many octets have we received? should be rxcount *160*/
+-	unsigned int txcount;           /*!&lt; How many packets have we sent? */
+-	unsigned int txoctetcount;      /*!&lt; How many octets have we sent? (txcount*160)*/
+-	unsigned int cycles;            /*!&lt; Shifted count of sequence number cycles */
+-	double rxjitter;                /*!&lt; Interarrival jitter at the moment */
+-	double rxtransit;               /*!&lt; Relative transit time for previous packet */
+-	unsigned int lasteventendseqn;
+-	int lasttxformat;
+-	int lastrxformat;
+-	int dtmfcount;
+-	unsigned int dtmfduration;
+-	int nat;
+-	unsigned int flags;
+-	struct sockaddr_in us;		/*!&lt; Socket representation of the local endpoint. */
+-	struct sockaddr_in them;	/*!&lt; Socket representation of the remote endpoint. */
+-	struct timeval rxcore;
+-	struct timeval txcore;
+-	double drxcore;                 /*!&lt; The double representation of the first received packet */
+-	struct timeval lastrx;          /*!&lt; timeval when we last received a packet */
+-	struct timeval dtmfmute;
+-	struct ast_smoother *smoother;
+-	int *ioid;
+-	unsigned short seqno;		/*!&lt; Sequence number, RFC 3550, page 13. */
+-	unsigned short rxseqno;
+-	struct sched_context *sched;
+-	struct io_context *io;
+-	void *data;
+-	ast_rtp_callback callback;
+-	struct rtpPayloadType current_RTP_PT[MAX_RTP_PT];
+-	int rtp_lookup_code_cache_isAstFormat; /*!&lt; a cache for the result of rtp_lookup_code(): */
+-	int rtp_lookup_code_cache_code;
+-	int rtp_lookup_code_cache_result;
+-	struct ast_rtcp *rtcp;
+-};
++/*!
++ * \brief Get the amount of space required to hold an RTP session
++ * \return number of bytes required
++ */
++size_t ast_rtp_alloc_size(void);
+ 
+ /*!
+  * \brief Initializate a RTP session.
+@@ -196,6 +148,10 @@
+ void ast_rtp_pt_clear(struct ast_rtp* rtp);
+ /*! \brief Set payload types to defaults */
+ void ast_rtp_pt_default(struct ast_rtp* rtp);
++
++/*! \brief Copy payload types between RTP structures */
++void ast_rtp_pt_copy(struct ast_rtp *dest, const struct ast_rtp *src);
++
+ void ast_rtp_set_m_type(struct ast_rtp* rtp, int pt);
+ void ast_rtp_set_rtpmap_type(struct ast_rtp* rtp, int pt,
+ 			 char* mimeType, char* mimeSubtype);
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-06-24 02:21:24 UTC (rev 307)
++++ trunk/rtp.c	2006-06-24 02:22:09 UTC (rev 308)
+@@ -94,6 +94,60 @@
+ static int nochecksums = 0;
+ #endif
+ 
++/*! \brief RTP session description */
++struct ast_rtp {
++	int s;
++	char resp;
++	struct ast_frame f;
++	unsigned char rawdata[8192 + AST_FRIENDLY_OFFSET];
++	unsigned int ssrc;		/*!&lt; Synchronization source, RFC 3550, page 10. */
++	unsigned int themssrc;		/*!&lt; Their SSRC */
++	unsigned int rxssrc;
++	unsigned int lastts;
++	unsigned int lastdigitts;
++	unsigned int lastrxts;
++	unsigned int lastividtimestamp;
++	unsigned int lastovidtimestamp;
++	unsigned int lasteventseqn;
++	int lastrxseqno;                /*!&lt; Last received sequence number */
++	unsigned short seedrxseqno;     /*!&lt; What sequence number did they start with?*/
++	unsigned int seedrxts;          /*!&lt; What RTP timestamp did they start with? */
++	unsigned int rxcount;           /*!&lt; How many packets have we received? */
++	unsigned int rxoctetcount;      /*!&lt; How many octets have we received? should be rxcount *160*/
++	unsigned int txcount;           /*!&lt; How many packets have we sent? */
++	unsigned int txoctetcount;      /*!&lt; How many octets have we sent? (txcount*160)*/
++	unsigned int cycles;            /*!&lt; Shifted count of sequence number cycles */
++	double rxjitter;                /*!&lt; Interarrival jitter at the moment */
++	double rxtransit;               /*!&lt; Relative transit time for previous packet */
++	unsigned int lasteventendseqn;
++	int lasttxformat;
++	int lastrxformat;
++	int dtmfcount;
++	unsigned int dtmfduration;
++	int nat;
++	unsigned int flags;
++	struct sockaddr_in us;		/*!&lt; Socket representation of the local endpoint. */
++	struct sockaddr_in them;	/*!&lt; Socket representation of the remote endpoint. */
++	struct timeval rxcore;
++	struct timeval txcore;
++	double drxcore;                 /*!&lt; The double representation of the first received packet */
++	struct timeval lastrx;          /*!&lt; timeval when we last received a packet */
++	struct timeval dtmfmute;
++	struct ast_smoother *smoother;
++	int *ioid;
++	unsigned short seqno;		/*!&lt; Sequence number, RFC 3550, page 13. */
++	unsigned short rxseqno;
++	struct sched_context *sched;
++	struct io_context *io;
++	void *data;
++	ast_rtp_callback callback;
++	struct rtpPayloadType current_RTP_PT[MAX_RTP_PT];
++	int rtp_lookup_code_cache_isAstFormat; /*!&lt; a cache for the result of rtp_lookup_code(): */
++	int rtp_lookup_code_cache_code;
++	int rtp_lookup_code_cache_result;
++	struct ast_rtcp *rtcp;
++};
++
+ /* Forward declarations */
+ static int ast_rtcp_write(void *data);
+ static void timeval2ntp(struct timeval tv, unsigned int *msw, unsigned int *lsw);
+@@ -307,6 +361,11 @@
+ 		req-&gt;id.id[x] = ast_random();
+ }
+ 
++size_t ast_rtp_alloc_size(void)
++{
++	return sizeof(struct ast_rtp);
++}
++
+ void ast_rtp_stun_request(struct ast_rtp *rtp, struct sockaddr_in *suggestion, const char *username)
+ {
+ 	struct stun_header *req;
+@@ -1189,10 +1248,10 @@
+ 	rtp-&gt;rtp_lookup_code_cache_result = 0;
+ }
+ 
+-static void ast_rtp_pt_copy(struct ast_rtp *dest, struct ast_rtp *src)
++void ast_rtp_pt_copy(struct ast_rtp *dest, const struct ast_rtp *src)
+ {
+-	int i;
+-	/* Copy payload types from source to destination */
++	unsigned int i;
++
+ 	for (i=0; i &lt; MAX_RTP_PT; ++i) {
+ 		dest-&gt;current_RTP_PT[i].isAstFormat = 
+ 			src-&gt;current_RTP_PT[i].isAstFormat;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000302.html">[solid-pbx-svn] r307 - in trunk: build_tools include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000304.html">[solid-pbx-svn] r309 - trunk/include
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#303">[ date ]</a>
+              <a href="thread.html#303">[ thread ]</a>
+              <a href="subject.html#303">[ subject ]</a>
+              <a href="author.html#303">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,323 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r313 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r313%20-%20trunk/channels&In-Reply-To=%3C200606240231.k5O2VqKk009726%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000307.html">
+   <LINK REL="Next"  HREF="000309.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r313 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r313%20-%20trunk/channels&In-Reply-To=%3C200606240231.k5O2VqKk009726%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r313 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 24 04:31:52 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000307.html">[solid-pbx-svn] r312 - trunk/channels/misdn
+</A></li>
+        <LI>Next message: <A HREF="000309.html">[solid-pbx-svn] r314 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#308">[ date ]</a>
+              <a href="thread.html#308">[ thread ]</a>
+              <a href="subject.html#308">[ subject ]</a>
+              <a href="author.html#308">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-24 04:31:50 +0200 (Sat, 24 Jun 2006)
+New Revision: 313
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r33223
+
+------------------------------------------------------------------------
+r33215 | oej | 2006-06-09 15:35:41 +0200 (Fri, 09 Jun 2006) | 2 lines
+
+Remove the return value from functions that return something that is never checked anywhere.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-24 02:28:47 UTC (rev 312)
++++ trunk/channels/chan_sip.c	2006-06-24 02:31:50 UTC (rev 313)
+@@ -235,6 +235,11 @@
+ };
+ 
+ 
++enum sip_result {
++	AST_SUCCESS = 0,
++	AST_FAILURE = -1,
++};
++
+ /* Do _NOT_ make any changes to this enum, or the array following it;
+    if you think you are doing the right thing, you are probably
+    not doing the right thing. If you think there are changes
+@@ -1101,12 +1106,12 @@
+ static struct sip_pvt *sip_alloc(ast_string_field callid, struct sockaddr_in *sin,
+ 				 int useglobal_nat, const int intended_method);
+ static int __sip_autodestruct(void *data);
+-static int sip_scheddestroy(struct sip_pvt *p, int ms);
+-static int sip_cancel_destroy(struct sip_pvt *p);
++static void sip_scheddestroy(struct sip_pvt *p, int ms);
++static void sip_cancel_destroy(struct sip_pvt *p);
+ static void sip_destroy(struct sip_pvt *p);
+ static void __sip_destroy(struct sip_pvt *p, int lockowner);
+-static int __sip_ack(struct sip_pvt *p, int seqno, int resp, int sipmethod, int reset);
+-static int __sip_pretend_ack(struct sip_pvt *p);
++static void __sip_ack(struct sip_pvt *p, int seqno, int resp, int sipmethod, int reset);
++static void __sip_pretend_ack(struct sip_pvt *p);
+ static int __sip_semi_ack(struct sip_pvt *p, int seqno, int resp, int sipmethod);
+ static int auto_congest(void *nothing);
+ static int update_call_counter(struct sip_pvt *fup, int event);
+@@ -1152,7 +1157,6 @@
+ static int restart_monitor(void);
+ static int sip_send_mwi_to_peer(struct sip_peer *peer);
+ static void sip_destroy(struct sip_pvt *p);
+-static int sip_scheddestroy(struct sip_pvt *p, int ms);
+ static int sip_addrcmp(char *name, struct sockaddr_in *sin);	/* Support for peer matching */
+ 
+ /*--- CLI and manager command helpers */
+@@ -1162,7 +1166,7 @@
+ static void sip_dump_history(struct sip_pvt *dialog);	/* Dump history to LOG_DEBUG at end of dialog, before destroying data */
+ static inline int sip_debug_test_addr(const struct sockaddr_in *addr);
+ static inline int sip_debug_test_pvt(struct sip_pvt *p);
+-static int append_history_full(struct sip_pvt *p, const char *fmt, ...);
++static void append_history_full(struct sip_pvt *p, const char *fmt, ...);
+ 
+ /*--- Device object handling */
+ static struct sip_peer *temp_peer(const char *name);
+@@ -1463,7 +1467,7 @@
+ 
+ /*! \brief NAT fix - decide which IP address to use for ASterisk server?
+  * Only used for outbound registrations */
+-static int ast_sip_ouraddrfor(struct in_addr *them, struct in_addr *us)
++static enum sip_result ast_sip_ouraddrfor(struct in_addr *them, struct in_addr *us)
+ {
+ 	/*
+ 	 * Using the localaddr structure built up with localnet statements
+@@ -1499,14 +1503,14 @@
+ 		}
+ 	} else if (bindaddr.sin_addr.s_addr)
+ 		*us = bindaddr.sin_addr;
+-	return 0;
++	return AST_FAILURE;
+ }
+ 
+ /*! \brief Append to SIP dialog history 
+ 	\return Always returns 0 */
+ #define append_history(p, event, fmt , args... )	append_history_full(p, &quot;%-15s &quot; fmt, event, ## args)
+ 
+-static int append_history_full(struct sip_pvt *p, const char *fmt, ...)
++static void append_history_full(struct sip_pvt *p, const char *fmt, ...)
+ 	__attribute__ ((format (printf, 2, 3)));
+ 
+ /*! \brief Append to SIP dialog history with arg list  */
+@@ -1530,17 +1534,17 @@
+ }
+ 
+ /*! \brief Append to SIP dialog history with arg list  */
+-static int append_history_full(struct sip_pvt *p, const char *fmt, ...)
++static void append_history_full(struct sip_pvt *p, const char *fmt, ...)
+ {
+ 	va_list ap;
+ 
+ 	if (!recordhistory || !p)
+-		return 0;
++		return;
+ 	va_start(ap, fmt);
+ 	append_history_va(p, fmt, ap);
+ 	va_end(ap);
+ 
+-	return 0;
++	return;
+ }
+ 
+ /*! \brief Retransmit SIP message if no answer (Called from scheduler) */
+@@ -1643,13 +1647,13 @@
+ /*! \brief Transmit packet with retransmits 
+ 	\return 0 on success, -1 on failure to allocate packet 
+ */
+-static int __sip_reliable_xmit(struct sip_pvt *p, int seqno, int resp, char *data, int len, int fatal, int sipmethod)
++static enum sip_result __sip_reliable_xmit(struct sip_pvt *p, int seqno, int resp, char *data, int len, int fatal, int sipmethod)
+ {
+ 	struct sip_pkt *pkt;
+ 	int siptimer_a = DEFAULT_RETRANS;
+ 
+ 	if (!(pkt = ast_calloc(1, sizeof(*pkt) + len + 1)))
+-		return -1;
++		return AST_FAILURE;
+ 	memcpy(pkt-&gt;data, data, len);
+ 	pkt-&gt;method = sipmethod;
+ 	pkt-&gt;packetlen = len;
+@@ -1676,7 +1680,7 @@
+ 		/* Note this is a pending invite */
+ 		p-&gt;pendinginvite = seqno;
+ 	}
+-	return 0;
++	return AST_SUCCESS;
+ }
+ 
+ /*! \brief Kill a SIP dialog (called by scheduler) */
+@@ -1711,7 +1715,7 @@
+ }
+ 
+ /*! \brief Schedule destruction of SIP call */
+-static int sip_scheddestroy(struct sip_pvt *p, int ms)
++static void sip_scheddestroy(struct sip_pvt *p, int ms)
+ {
+ 	if (sip_debug_test_pvt(p))
+ 		ast_verbose(&quot;Scheduling destruction of SIP dialog '%s' in %d ms (Method: %s)\n&quot;, p-&gt;callid, ms, sip_methods[p-&gt;method].text);
+@@ -1721,28 +1725,26 @@
+ 	if (p-&gt;autokillid &gt; -1)
+ 		ast_sched_del(sched, p-&gt;autokillid);
+ 	p-&gt;autokillid = ast_sched_add(sched, ms, __sip_autodestruct, p);
+-	return 0;
+ }
+ 
+ /*! \brief Cancel destruction of SIP dialog */
+-static int sip_cancel_destroy(struct sip_pvt *p)
++static void sip_cancel_destroy(struct sip_pvt *p)
+ {
+ 	if (p-&gt;autokillid &gt; -1) {
+ 		ast_sched_del(sched, p-&gt;autokillid);
+ 		append_history(p, &quot;CancelDestroy&quot;, &quot;&quot;);
+ 		p-&gt;autokillid = -1;
+ 	}
+-	return 0;
+ }
+ 
+ /*! \brief Acknowledges receipt of a packet and stops retransmission */
+-static int __sip_ack(struct sip_pvt *p, int seqno, int resp, int sipmethod, int reset)
++static void __sip_ack(struct sip_pvt *p, int seqno, int resp, int sipmethod, int reset)
+ {
+ 	struct sip_pkt *cur, *prev = NULL;
+-	int res = -1;
+ 
+ 	/* Just in case... */
+ 	char *msg;
++	int res = FALSE;
+ 
+ 	msg = sip_methods[sipmethod].text;
+ 
+@@ -1756,6 +1758,7 @@
+ 				p-&gt;pendinginvite = 0;
+ 			}
+ 			/* this is our baby */
++			res = TRUE;
+ 			UNLINK(cur, p-&gt;packets, prev);
+ 			if (cur-&gt;retransid &gt; -1) {
+ 				if (sipdebug &amp;&amp; option_debug &gt; 3)
+@@ -1764,19 +1767,17 @@
+ 			}
+ 			if (!reset)
+ 				free(cur);
+-			res = 0;
+ 			break;
+ 		}
+ 	}
+ 	ast_mutex_unlock(&amp;p-&gt;lock);
+ 	if (option_debug)
+ 		ast_log(LOG_DEBUG, &quot;Stopping retransmission on '%s' of %s %d: Match %s\n&quot;, p-&gt;callid, resp ? &quot;Response&quot; : &quot;Request&quot;, seqno, res ? &quot;Not Found&quot; : &quot;Found&quot;);
+-	return res;
+ }
+ 
+-/*! \brief Pretend to ack all packets */
+-/* maybe the lock on p is not strictly necessary but there might be a race */
+-static int __sip_pretend_ack(struct sip_pvt *p)
++/*! \brief Pretend to ack all packets
++ * maybe the lock on p is not strictly necessary but there might be a race */
++static void __sip_pretend_ack(struct sip_pvt *p)
+ {
+ 	struct sip_pkt *cur = NULL;
+ 
+@@ -1784,13 +1785,12 @@
+ 		int method;
+ 		if (cur == p-&gt;packets) {
+ 			ast_log(LOG_WARNING, &quot;Have a packet that doesn't want to give up! %s\n&quot;, sip_methods[cur-&gt;method].text);
+-			return -1;
++			return;
+ 		}
+ 		cur = p-&gt;packets;
+ 		method = (cur-&gt;method) ? cur-&gt;method : find_sip_method(cur-&gt;data);
+ 		__sip_ack(p, cur-&gt;seqno, ast_test_flag(cur, FLAG_RESPONSE), method, FALSE);
+ 	}
+-	return 0;
+ }
+ 
+ /*! \brief Acks receipt of packet, keep it around (used for provisional responses) */
+@@ -7675,7 +7675,7 @@
+ 	return -1;
+ }
+ /*! \brief check Via: header for hostname, port and rport request/answer */
+-static int check_via(struct sip_pvt *p, struct sip_request *req)
++static void check_via(struct sip_pvt *p, struct sip_request *req)
+ {
+ 	char via[256];
+ 	char iabuf[INET_ADDRSTRLEN];
+@@ -7700,7 +7700,7 @@
+ 		c = ast_skip_blanks(c+1);
+ 		if (strcasecmp(via, &quot;SIP/2.0/UDP&quot;)) {
+ 			ast_log(LOG_WARNING, &quot;Don't know how to respond via '%s'\n&quot;, via);
+-			return -1;
++			return;
+ 		}
+ 		pt = strchr(c, ':');
+ 		if (pt)
+@@ -7708,7 +7708,7 @@
+ 		hp = ast_gethostbyname(c, &amp;ahp);
+ 		if (!hp) {
+ 			ast_log(LOG_WARNING, &quot;'%s' is not a valid host\n&quot;, c);
+-			return -1;
++			return;
+ 		}
+ 		memset(&amp;p-&gt;sa, 0, sizeof(p-&gt;sa));
+ 		p-&gt;sa.sin_family = AF_INET;
+@@ -7720,7 +7720,6 @@
+ 			ast_verbose(&quot;Sending to %s : %d (%s)\n&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), dst-&gt;sin_addr), ntohs(dst-&gt;sin_port), sip_nat_mode(p));
+ 		}
+ 	}
+-	return 0;
+ }
+ 
+ /*! \brief  Get caller id name from SIP headers */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000307.html">[solid-pbx-svn] r312 - trunk/channels/misdn
+</A></li>
+	<LI>Next message: <A HREF="000309.html">[solid-pbx-svn] r314 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#308">[ date ]</a>
+              <a href="thread.html#308">[ thread ]</a>
+              <a href="subject.html#308">[ subject ]</a>
+              <a href="author.html#308">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,274 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r329 - trunk/build_tools
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r329%20-%20trunk/build_tools&In-Reply-To=%3C200606280029.k5S0TxrE002625%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000323.html">
+   <LINK REL="Next"  HREF="000325.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r329 - trunk/build_tools</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r329%20-%20trunk/build_tools&In-Reply-To=%3C200606280029.k5S0TxrE002625%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r329 - trunk/build_tools">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 02:29:59 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000323.html">[solid-pbx-svn] r328 - in trunk: . apps include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000325.html">[solid-pbx-svn] r330 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#324">[ date ]</a>
+              <a href="thread.html#324">[ thread ]</a>
+              <a href="subject.html#324">[ subject ]</a>
+              <a href="author.html#324">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 02:29:55 +0200 (Wed, 28 Jun 2006)
+New Revision: 329
+
+Modified:
+   trunk/build_tools/menuselect_curses.c
+Log:
+Update to Asterisk SVN trunk r33583
+
+------------------------------------------------------------------------
+r33576 | russell | 2006-06-12 00:11:38 +0200 (Mon, 12 Jun 2006) | 4 lines
+
+optimize the display of the module selection menus by only clearing the screen
+and starting over if a selection has changed or the menu needs to be scrolled.
+For moving the cursor up and down the menu, it works a lot faster now.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/build_tools/menuselect_curses.c
+===================================================================
+--- trunk/build_tools/menuselect_curses.c	2006-06-28 00:29:07 UTC (rev 328)
++++ trunk/build_tools/menuselect_curses.c	2006-06-28 00:29:55 UTC (rev 329)
+@@ -67,7 +67,7 @@
+ void winch_handler(int sig);
+ void show_help(WINDOW *win);
+ void draw_main_menu(WINDOW *menu, int curopt);
+-void draw_category_menu(WINDOW *menu, struct category *cat, int start, int end, int curopt);
++void draw_category_menu(WINDOW *menu, struct category *cat, int start, int end, int curopt, int changed);
+ int run_category_menu(WINDOW *menu, int cat_num);
+ int run_category_menu(WINDOW *menu, int cat_num);
+ void draw_title_window(WINDOW *title);
+@@ -122,18 +122,72 @@
+ 	wrefresh(menu);
+ }
+ 
+-void draw_category_menu(WINDOW *menu, struct category *cat, int start, int end, int curopt)
++void display_mem_info(WINDOW *menu, struct member *mem, int start, int end)
+ {
++	char buf[64];
++	struct depend *dep;
++	struct conflict *con;
++
++	wmove(menu, end - start + 2, max_x / 2 - 16);
++	wclrtoeol(menu);
++	wmove(menu, end - start + 3, max_x / 2 - 16);
++	wclrtoeol(menu);
++	wmove(menu, end - start + 4, max_x / 2 - 16);
++	wclrtoeol(menu);
++
++	if (mem-&gt;displayname) {
++		wmove(menu, end - start + 2, max_x / 2 - 16);
++		waddstr(menu, mem-&gt;displayname);
++	}
++	if (!AST_LIST_EMPTY(&amp;mem-&gt;deps)) {
++		wmove(menu, end - start + 3, max_x / 2 - 16);
++		strcpy(buf, &quot;Depends on: &quot;);
++		AST_LIST_TRAVERSE(&amp;mem-&gt;deps, dep, list) {
++			strncat(buf, dep-&gt;name, sizeof(buf) - strlen(buf) - 1);
++			if (AST_LIST_NEXT(dep, list))
++				strncat(buf, &quot;, &quot;, sizeof(buf) - strlen(buf) - 1);
++		}
++		waddstr(menu, buf);
++	}
++	if (!AST_LIST_EMPTY(&amp;mem-&gt;conflicts)) {
++		wmove(menu, end - start + 4, max_x / 2 - 16);
++		strcpy(buf, &quot;Conflicts with: &quot;);
++		AST_LIST_TRAVERSE(&amp;mem-&gt;conflicts, con, list) {
++			strncat(buf, con-&gt;name, sizeof(buf) - strlen(buf) - 1);
++			if (AST_LIST_NEXT(con, list))
++				strncat(buf, &quot;, &quot;, sizeof(buf) - strlen(buf) - 1);
++		}
++		waddstr(menu, buf);
++	}
++
++}
++
++void draw_category_menu(WINDOW *menu, struct category *cat, int start, int end, int curopt, int changed)
++{
+ 	int i = 0;
+ 	int j = 0;
+-	struct member *mem, *curmem = NULL;
+-	struct depend *dep;
+-	struct conflict *con;
++	struct member *mem;
+ 	char buf[64];
+ 	const char *desc = NULL;
+ 
++	if (!changed) {
++		/* If all we have to do is move the cursor, 
++		 * then don't clear the screen and start over */
++		AST_LIST_TRAVERSE(&amp;cat-&gt;members, mem, list) {
++			i++;
++			if (curopt + 1 == i) {
++				display_mem_info(menu, mem, start, end);
++				break;
++			}
++		}
++		wmove(menu, curopt - start, max_x / 2 - 9);
++		wrefresh(menu);
++		return;
++	}
++
+ 	wclear(menu);
+ 
++	i = 0;
+ 	AST_LIST_TRAVERSE(&amp;cat-&gt;members, mem, list) {
+ 		if (i &lt; start) {
+ 			i++;
+@@ -148,38 +202,13 @@
+ 		waddstr(menu, buf);
+ 		
+ 		if (curopt + 1 == i)
+-			curmem = mem;
++			display_mem_info(menu, mem, start, end);
+ 
+ 		if (i == end)
+ 			break;
+ 	}
+ 
+-	if (curmem-&gt;displayname) {
+-		wmove(menu, end - start + 2, max_x / 2 - 16);
+-		waddstr(menu, curmem-&gt;displayname);
+-	}
+-	if (!AST_LIST_EMPTY(&amp;curmem-&gt;deps)) {
+-		wmove(menu, end - start + 3, max_x / 2 - 16);
+-		strcpy(buf, &quot;Depends on: &quot;);
+-		AST_LIST_TRAVERSE(&amp;curmem-&gt;deps, dep, list) {
+-			strncat(buf, dep-&gt;name, sizeof(buf) - strlen(buf) - 1);
+-			if (AST_LIST_NEXT(dep, list))
+-				strncat(buf, &quot;, &quot;, sizeof(buf) - strlen(buf) - 1);
+-		}
+-		waddstr(menu, buf);
+-	}
+-	if (!AST_LIST_EMPTY(&amp;curmem-&gt;conflicts)) {
+-		wmove(menu, end - start + 4, max_x / 2 - 16);
+-		strcpy(buf, &quot;Conflicts with: &quot;);
+-		AST_LIST_TRAVERSE(&amp;curmem-&gt;conflicts, con, list) {
+-			strncat(buf, con-&gt;name, sizeof(buf) - strlen(buf) - 1);
+-			if (AST_LIST_NEXT(con, list))
+-				strncat(buf, &quot;, &quot;, sizeof(buf) - strlen(buf) - 1);
+-		}
+-		waddstr(menu, buf);
+-	}
+ 	wmove(menu, curopt - start, max_x / 2 - 9);
+-
+ 	wrefresh(menu);
+ }
+ 
+@@ -192,6 +221,7 @@
+ 	int c;
+ 	int curopt = 0;
+ 	int maxopt;
++	int changed = 1;
+ 
+ 	AST_LIST_TRAVERSE(&amp;categories, cat, list) {
+ 		if (i++ == cat_num)
+@@ -202,9 +232,10 @@
+ 
+ 	maxopt = count_members(cat) - 1;
+ 
+-	draw_category_menu(menu, cat, start, end, curopt);
++	draw_category_menu(menu, cat, start, end, curopt, changed);
+ 
+ 	while ((c = getch())) {
++		changed = 0;
+ 		switch (c) {
+ 		case KEY_UP:
+ 			if (curopt &gt; 0) {
+@@ -212,6 +243,7 @@
+ 				if (curopt &lt; start) {
+ 					start--;
+ 					end--;
++					changed = 1;
+ 				}
+ 			}
+ 			break;
+@@ -221,6 +253,7 @@
+ 				if (curopt &gt; end - 1) {
+ 					start++;
+ 					end++;
++					changed = 1;
+ 				}
+ 			}
+ 			break;
+@@ -238,6 +271,7 @@
+ 		case '\n':
+ 		case ' ':
+ 			toggle_enabled(cat, curopt);
++			changed = 1;
+ 			break;
+ 		case 'h':
+ 		case 'H':
+@@ -245,15 +279,17 @@
+ 			break;
+ 		case KEY_F(7):
+ 			set_all(cat, 0);
++			changed = 1;
+ 			break;
+ 		case KEY_F(8):
+ 			set_all(cat, 1);
++			changed = 1;
+ 		default:
+ 			break;	
+ 		}
+ 		if (c == 'x' || c == 'X' || c == 'Q' || c == 'q')
+ 			break;	
+-		draw_category_menu(menu, cat, start, end, curopt);
++		draw_category_menu(menu, cat, start, end, curopt, changed);
+ 	}
+ 
+ 	wrefresh(menu);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000323.html">[solid-pbx-svn] r328 - in trunk: . apps include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000325.html">[solid-pbx-svn] r330 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#324">[ date ]</a>
+              <a href="thread.html#324">[ thread ]</a>
+              <a href="subject.html#324">[ subject ]</a>
+              <a href="author.html#324">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

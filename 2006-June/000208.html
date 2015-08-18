@@ -1,0 +1,649 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r213 - in trunk: . channels channels/misdn configs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r213%20-%20in%20trunk%3A%20.%20channels%20channels/misdn%20configs&In-Reply-To=%3C200606170247.k5H2llHn007749%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000207.html">
+   <LINK REL="Next"  HREF="000209.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r213 - in trunk: . channels channels/misdn configs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r213%20-%20in%20trunk%3A%20.%20channels%20channels/misdn%20configs&In-Reply-To=%3C200606170247.k5H2llHn007749%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r213 - in trunk: . channels channels/misdn configs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 17 04:47:47 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000207.html">[solid-pbx-svn] r212 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000209.html">[solid-pbx-svn] r214 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#208">[ date ]</a>
+              <a href="thread.html#208">[ thread ]</a>
+              <a href="subject.html#208">[ subject ]</a>
+              <a href="author.html#208">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-17 04:46:45 +0200 (Sat, 17 Jun 2006)
+New Revision: 213
+
+Modified:
+   trunk/.cleancount
+   trunk/channels/chan_jingle.c
+   trunk/channels/chan_mgcp.c
+   trunk/channels/chan_oss.c
+   trunk/channels/chan_sip.c
+   trunk/channels/chan_skinny.c
+   trunk/channels/chan_zap.c
+   trunk/channels/misdn/isdn_lib.c
+   trunk/channels/misdn/isdn_lib.h
+   trunk/configs/alsa.conf.sample
+   trunk/configs/mgcp.conf.sample
+   trunk/configs/oss.conf.sample
+   trunk/configs/sip.conf.sample
+   trunk/configs/skinny.conf.sample
+   trunk/configs/zapata.conf.sample
+Log:
+Update to Asterisk SVN trunk r31442
+
+------------------------------------------------------------------------
+r31409 | crichter | 2006-06-01 18:25:04 +0200 (Thu, 01 Jun 2006) | 1 line
+
+unified the PH_CONTROL Interface for the mISDN_dsp interface to int
+------------------------------------------------------------------------
+r31411 | crichter | 2006-06-01 18:41:07 +0200 (Thu, 01 Jun 2006) | 1 line
+
+the interface needs to be changed as well..
+------------------------------------------------------------------------
+r31412 | russell | 2006-06-01 18:42:38 +0200 (Thu, 01 Jun 2006) | 2 lines
+
+my last changes to the jitterbuffer files need a forced make clean
+
+------------------------------------------------------------------------
+r31413 | russell | 2006-06-01 18:47:28 +0200 (Thu, 01 Jun 2006) | 8 lines
+
+- add the ability to configure forced jitterbuffers on h323, jingle,
+  and mgcp channels
+- remove the jitterbuffer configuration from the pvt structures in
+  the sip, zap, and skinny channel drivers, as copying the same global
+  configuration into each pvt structure has no benefit.
+- update and fix some typos in jitterbuffer related documentation
+(issue #7257, north, with additional updates and modifications)
+
+------------------------------------------------------------------------
+r31414 | oej | 2006-06-01 18:58:06 +0200 (Thu, 01 Jun 2006) | 2 lines
+
+Issue #7103 take two. Thanks Mikael!
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/.cleancount
+===================================================================
+--- trunk/.cleancount	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/.cleancount	2006-06-17 02:46:45 UTC (rev 213)
+@@ -1 +1 @@
+-18
++19
+
+Modified: trunk/channels/chan_jingle.c
+===================================================================
+--- trunk/channels/chan_jingle.c	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/channels/chan_jingle.c	2006-06-17 02:46:45 UTC (rev 213)
+@@ -69,11 +69,22 @@
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/causes.h&quot;
+ #include &quot;asterisk/astobj.h&quot;
++#include &quot;asterisk/abstract_jb.h&quot;
+ #include &quot;asterisk/jabber.h&quot;
+ #include &quot;asterisk/jingle.h&quot;
+ 
+ #define JINGLE_CONFIG &quot;jingle.conf&quot;
+ 
++/*! Global jitterbuffer configuration - by default, jb is disabled */
++static struct ast_jb_conf default_jbconf =
++{
++	.flags = 0,
++	.max_size = -1,
++	.resync_threshold = -1,
++	.impl = &quot;&quot;
++};
++static struct ast_jb_conf global_jbconf;
++
+ enum jingle_protocol {
+ 	AJI_PROTOCOL_UDP = 1,
+ 	AJI_PROTOCOL_SSLTCP = 2,
+@@ -773,6 +784,11 @@
+ 		ast_hangup(tmp);
+ 		tmp = NULL;
+ 	}
++
++	/* Configure the new channel jb */
++	if (tmp &amp;&amp; i &amp;&amp; i-&gt;rtp)
++		ast_jb_configure(tmp, &amp;global_jbconf);
++
+ 	return tmp;
+ }
+ 
+@@ -1453,8 +1469,15 @@
+ 		return 0;
+ 	}
+ 
++	/* Copy the default jb config over global_jbconf */
++	memcpy(&amp;global_jbconf, &amp;default_jbconf, sizeof(struct ast_jb_conf));
++
+ 	cat = ast_category_browse(cfg, NULL);
+ 	for (var = ast_variable_browse(cfg, &quot;general&quot;); var; var = var-&gt;next) {
++		/* handle jb conf */
++		if (!ast_jb_read_conf(&amp;global_jbconf, var-&gt;name, var-&gt;value))
++			continue;
++
+ 		if (!strcasecmp(var-&gt;name, &quot;allowguest&quot;))
+ 			allowguest =
+ 				(ast_true(ast_variable_retrieve(cfg, &quot;general&quot;, &quot;allowguest&quot;))) ? 1 : 0;
+
+Modified: trunk/channels/chan_mgcp.c
+===================================================================
+--- trunk/channels/chan_mgcp.c	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/channels/chan_mgcp.c	2006-06-17 02:46:45 UTC (rev 213)
+@@ -117,6 +117,7 @@
+ #include &quot;asterisk/dsp.h&quot;
+ #include &quot;asterisk/devicestate.h&quot;
+ #include &quot;asterisk/stringfields.h&quot;
++#include &quot;asterisk/abstract_jb.h&quot;
+ 
+ #ifndef IPTOS_MINCOST
+ #define IPTOS_MINCOST 0x02
+@@ -137,6 +138,16 @@
+ #define INADDR_NONE (in_addr_t)(-1)
+ #endif
+ 
++/*! Global jitterbuffer configuration - by default, jb is disabled */
++static struct ast_jb_conf default_jbconf =
++{
++	.flags = 0,
++	.max_size = -1,
++	.resync_threshold = -1,
++	.impl = &quot;&quot;
++};
++static struct ast_jb_conf global_jbconf;
++
+ static const char tdesc[] = &quot;Media Gateway Control Protocol (MGCP)&quot;;
+ static const char config[] = &quot;mgcp.conf&quot;;
+ 
+@@ -353,10 +364,6 @@
+ 			This should be obsoleted */
+ 	char cxident[80];
+ 	char callid[80];
+-/* SC: obsolete
+-	time_t lastouttime;
+-	int lastout;
+-*/
+ 	int cxmode;
+ 	struct mgcp_request *cx_queue; /*!&lt; SC: pending CX commands */
+ 	ast_mutex_t cx_queue_lock;     /*!&lt; SC: CX queue lock */
+@@ -364,10 +371,6 @@
+ 	int iseq; /* Not used? RTP? */
+ 	int outgoing;
+ 	int alreadygone;
+-/* SC: obsolete
+-	int messagepending;
+-	struct mgcp_message *msgs;
+-*/
+ 	struct mgcp_subchannel *next; /* for out circular linked list */
+ };
+ 
+@@ -1499,6 +1502,10 @@
+ 			ast_verbose(VERBOSE_PREFIX_3 &quot;MGCP mgcp_new(%s) created in state: %s\n&quot;,
+ 				tmp-&gt;name, ast_state2str(state));
+ 		}
++
++		/* Configure the new channel jb */
++		if (tmp &amp;&amp; sub &amp;&amp; sub-&gt;rtp)
++			ast_jb_configure(tmp, &amp;global_jbconf);
+ 	} else {
+ 		ast_log(LOG_WARNING, &quot;Unable to allocate channel structure\n&quot;);
+ 	}
+@@ -4165,8 +4172,18 @@
+ 	}
+ 	memset(&amp;bindaddr, 0, sizeof(bindaddr));
+ 	dtmfmode = 0;
++
++	/* Copy the default jb config over global_jbconf */
++	memcpy(&amp;global_jbconf, &amp;default_jbconf, sizeof(struct ast_jb_conf));
++
+ 	v = ast_variable_browse(cfg, &quot;general&quot;);
+-	while(v) {
++	while (v) {
++		/* handle jb conf */
++		if (!ast_jb_read_conf(&amp;global_jbconf, v-&gt;name, v-&gt;value)) {
++			v = v-&gt;next;
++			continue;
++		}
++
+ 		/* Create the interface list */
+ 		if (!strcasecmp(v-&gt;name, &quot;bindaddr&quot;)) {
+ 			if (!(hp = ast_gethostbyname(v-&gt;value, &amp;ahp))) {
+
+Modified: trunk/channels/chan_oss.c
+===================================================================
+--- trunk/channels/chan_oss.c	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/channels/chan_oss.c	2006-06-17 02:46:45 UTC (rev 213)
+@@ -156,14 +156,10 @@
+     ; jbenable = yes              ; Enables the use of a jitterbuffer on the receiving side of an
+                                   ; OSS channel. Defaults to &quot;no&quot;. An enabled jitterbuffer will
+                                   ; be used only if the sending side can create and the receiving
+-                                  ; side can not accept jitter. The ZAP channel can't accept jitter,
+-                                  ; thus an enabled jitterbuffer on the receive ZAP side will always
+-                                  ; be used if the sending side can create jitter or if ZAP jb is
+-                                  ; forced.
++                                  ; side can not accept jitter. The OSS channel can't accept jitter,
++                                  ; thus an enabled jitterbuffer on the receive OSS side will always
++                                  ; be used if the sending side can create jitter.
+ 
+-    ; jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a ZAP
+-                                  ; channel. Defaults to &quot;no&quot;.
+-
+     ; jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
+ 
+     ; jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
+@@ -171,8 +167,8 @@
+                                   ; big jumps in/broken timestamps, usualy sent from exotic devices
+                                   ; and programs. Defaults to 1000.
+ 
+-    ; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a SIP
+-                                  ; channel. Two implementation are currenlty available - &quot;fixed&quot;
++    ; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of an OSS
++                                  ; channel. Two implementations are currenlty available - &quot;fixed&quot;
+                                   ; (with size always equals to jbmax-size) and &quot;adaptive&quot; (with
+                                   ; variable size, actually the new jb of IAX2). Defaults to fixed.
+ 
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/channels/chan_sip.c	2006-06-17 02:46:45 UTC (rev 213)
+@@ -857,7 +857,6 @@
+ 	struct ast_variable *chanvars;		/*!&lt; Channel variables to set for inbound call */
+ 	struct sip_pvt *next;			/*!&lt; Next dialog in chain */
+ 	struct sip_invite_param *options;	/*!&lt; Options for INVITE */
+-	struct ast_jb_conf jbconf;
+ } *iflist = NULL;
+ 
+ #define FLAG_RESPONSE (1 &lt;&lt; 0)
+@@ -1367,7 +1366,7 @@
+ 	unsigned int profile = 0;
+ 	int i, found;
+ 
+-	if (!pvt || ast_strlen_zero(supported) )
++	if (ast_strlen_zero(supported) )
+ 		return 0;
+ 
+ 	if (option_debug &gt; 2 &amp;&amp; sipdebug)
+@@ -1393,7 +1392,8 @@
+ 			ast_log(LOG_DEBUG, &quot;Found no match for SIP option: %s (Please file bug report!)\n&quot;, next);
+ 	}
+ 
+-	pvt-&gt;sipoptions = profile;
++	if (pvt)
++		pvt-&gt;sipoptions = profile;
+ 	return profile;
+ }
+ 
+@@ -3357,7 +3357,7 @@
+ 
+ 	/* Configure the new channel jb */
+ 	if (tmp &amp;&amp; i &amp;&amp; i-&gt;rtp)
+-		ast_jb_configure(tmp, &amp;i-&gt;jbconf);
++		ast_jb_configure(tmp, &amp;global_jbconf);
+ 
+ 	return tmp;
+ }
+@@ -3693,9 +3693,6 @@
+ 		p-&gt;noncodeccapability |= AST_RTP_DTMF;
+ 	ast_string_field_set(p, context, default_context);
+ 
+-	/* Assign default jb conf to the new sip_pvt */
+-	memcpy(&amp;p-&gt;jbconf, &amp;global_jbconf, sizeof(struct ast_jb_conf));
+-
+ 	/* Add to active dialog list */
+ 	ast_mutex_lock(&amp;iflock);
+ 	p-&gt;next = iflist;
+
+Modified: trunk/channels/chan_skinny.c
+===================================================================
+--- trunk/channels/chan_skinny.c	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/channels/chan_skinny.c	2006-06-17 02:46:45 UTC (rev 213)
+@@ -826,8 +826,6 @@
+ 	int nat;
+ 	int outgoing;
+ 	int alreadygone;
+-	struct ast_jb_conf jbconf;
+-
+ 	struct skinny_subchannel *next;
+ };
+ 
+@@ -1615,10 +1613,6 @@
+ 							callnums++;
+ 							sub-&gt;cxmode = SKINNY_CX_INACTIVE;
+ 							sub-&gt;nat = nat;
+-
+-							/* Assign default jb conf to the new skinny_subchannel */
+-							memcpy(&amp;sub-&gt;jbconf, &amp;global_jbconf, sizeof(struct ast_jb_conf));
+-
+ 							sub-&gt;next = l-&gt;sub;
+ 							l-&gt;sub = sub;
+ 						} else {
+@@ -2311,7 +2305,7 @@
+ 
+ 		/* Configure the new channel jb */
+ 		if (tmp &amp;&amp; sub &amp;&amp; sub-&gt;rtp)
+-			ast_jb_configure(tmp, &amp;sub-&gt;jbconf);
++			ast_jb_configure(tmp, &amp;global_jbconf);
+ 	} else {
+ 		ast_log(LOG_WARNING, &quot;Unable to allocate channel structure\n&quot;);
+ 	}
+@@ -3121,7 +3115,7 @@
+ 
+ 	/* load the general section */
+ 	v = ast_variable_browse(cfg, &quot;general&quot;);
+-	while(v) {
++	while (v) {
+ 		/* handle jb conf */
+ 		if (!ast_jb_read_conf(&amp;global_jbconf, v-&gt;name, v-&gt;value)) {
+ 			v = v-&gt;next;
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/channels/chan_zap.c	2006-06-17 02:46:45 UTC (rev 213)
+@@ -698,8 +698,6 @@
+ #endif	
+ 	int polarity;
+ 	int dsp_features;
+-	struct ast_jb_conf jbconf;
+-
+ } *iflist = NULL, *ifend = NULL;
+ 
+ static struct ast_channel *zt_request(const char *type, int format, void *data, int *cause);
+@@ -5215,7 +5213,7 @@
+ 		ast_log(LOG_WARNING, &quot;Unable to allocate channel structure\n&quot;);
+ 	/* Configure the new channel jb */
+ 	if (tmp &amp;&amp; i)
+-		ast_jb_configure(tmp, &amp;i-&gt;jbconf);
++		ast_jb_configure(tmp, &amp;global_jbconf);
+ 	return tmp;
+ }
+ 
+@@ -7011,8 +7009,6 @@
+ 		for (x = 0; x &lt; 3; x++)
+ 			tmp-&gt;subs[x].zfd = -1;
+ 		tmp-&gt;channel = channel;
+-		/* Assign default jb conf to the new zt_pvt */
+-		memcpy(&amp;tmp-&gt;jbconf, &amp;global_jbconf, sizeof(struct ast_jb_conf));
+ 	}
+ 
+ 	if (tmp) {
+
+Modified: trunk/channels/misdn/isdn_lib.c
+===================================================================
+--- trunk/channels/misdn/isdn_lib.c	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/channels/misdn/isdn_lib.c	2006-06-17 02:46:45 UTC (rev 213)
+@@ -166,7 +166,7 @@
+ void te_lib_destroy(int midev) ;
+ struct misdn_bchannel *manager_find_bc_by_pid(int pid);
+ struct misdn_bchannel *manager_find_bc_holded(struct misdn_bchannel* bc);
+-void manager_ph_control_block(struct misdn_bchannel *bc, long c1, void *c2, int c2_len);
++void manager_ph_control_block(struct misdn_bchannel *bc, int c1, void *c2, int c2_len);
+ void manager_clean_bc(struct misdn_bchannel *bc );
+ void manager_bchannel_setup (struct misdn_bchannel *bc);
+ void manager_bchannel_cleanup (struct misdn_bchannel *bc);
+@@ -3677,17 +3677,17 @@
+ /*
+  * send control information to the channel (dsp-module)
+  */
+-void manager_ph_control(struct misdn_bchannel *bc, long c1, long c2)
++void manager_ph_control(struct misdn_bchannel *bc, int c1, int c2)
+ {
+-	unsigned char buffer[mISDN_HEADER_LEN+2*sizeof(long)];
++	unsigned char buffer[mISDN_HEADER_LEN+2*sizeof(int)];
+ 	iframe_t *ctrl = (iframe_t *)buffer; /* preload data */
+-	unsigned long *d = (unsigned long *)&amp;ctrl-&gt;data.p;
++	unsigned int *d = (unsigned int*)&amp;ctrl-&gt;data.p;
+ 	struct misdn_stack *stack=get_stack_by_bc(bc);
+ 	
+ 	ctrl-&gt;prim = PH_CONTROL | REQUEST;
+ 	ctrl-&gt;addr = bc-&gt;addr | FLG_MSG_DOWN;
+ 	ctrl-&gt;dinfo = 0;
+-	ctrl-&gt;len = sizeof(unsigned long)*2;
++	ctrl-&gt;len = sizeof(unsigned int)*2;
+ 	*d++ = c1;
+ 	*d++ = c2;
+ 	mISDN_write(stack-&gt;midev, ctrl, mISDN_HEADER_LEN+ctrl-&gt;len, TIMEOUT_1SEC);
+@@ -3696,17 +3696,17 @@
+ /*
+  * send control information to the channel (dsp-module)
+  */
+-void manager_ph_control_block(struct misdn_bchannel *bc, long c1, void *c2, int c2_len)
++void manager_ph_control_block(struct misdn_bchannel *bc, int c1, void *c2, int c2_len)
+ {
+-	unsigned char buffer[mISDN_HEADER_LEN+sizeof(long)+c2_len];
++	unsigned char buffer[mISDN_HEADER_LEN+sizeof(int)+c2_len];
+ 	iframe_t *ctrl = (iframe_t *)buffer;
+-	unsigned long *d = (unsigned long *)&amp;ctrl-&gt;data.p;
++	unsigned int *d = (unsigned int *)&amp;ctrl-&gt;data.p;
+ 	struct misdn_stack *stack=get_stack_by_bc(bc);
+ 	
+ 	ctrl-&gt;prim = PH_CONTROL | REQUEST;
+ 	ctrl-&gt;addr = bc-&gt;addr | FLG_MSG_DOWN;
+ 	ctrl-&gt;dinfo = 0;
+-	ctrl-&gt;len = sizeof(unsigned long) + c2_len;
++	ctrl-&gt;len = sizeof(unsigned int) + c2_len;
+ 	*d++ = c1;
+ 	memcpy(d, c2, c2_len);
+ 	mISDN_write(stack-&gt;midev, ctrl, mISDN_HEADER_LEN+ctrl-&gt;len, TIMEOUT_1SEC);
+
+Modified: trunk/channels/misdn/isdn_lib.h
+===================================================================
+--- trunk/channels/misdn/isdn_lib.h	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/channels/misdn/isdn_lib.h	2006-06-17 02:46:45 UTC (rev 213)
+@@ -350,7 +350,7 @@
+ 
+ int misdn_lib_tx2misdn_frm(struct misdn_bchannel *bc, void *data, int len);
+ 
+-void manager_ph_control(struct misdn_bchannel *bc, long c1, long c2);
++void manager_ph_control(struct misdn_bchannel *bc, int c1, int c2);
+ 
+ 
+ int misdn_lib_port_restart(int port);
+
+Modified: trunk/configs/alsa.conf.sample
+===================================================================
+--- trunk/configs/alsa.conf.sample	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/configs/alsa.conf.sample	2006-06-17 02:46:45 UTC (rev 213)
+@@ -34,14 +34,10 @@
+ ; jbenable = yes              ; Enables the use of a jitterbuffer on the receiving side of an
+                               ; ALSA channel. Defaults to &quot;no&quot;. An enabled jitterbuffer will
+                               ; be used only if the sending side can create and the receiving
+-                              ; side can not accept jitter. The ZAP channel can't accept jitter,
+-                              ; thus an enabled jitterbuffer on the receive ZAP side will always
+-                              ; be used if the sending side can create jitter or if ZAP jb is
+-                              ; forced.
++                              ; side can not accept jitter. The ALSA channel can't accept jitter,
++                              ; thus an enabled jitterbuffer on the receive ALSA side will always
++                              ; be used if the sending side can create jitter.
+ 
+-; jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a ZAP
+-                              ; channel. Defaults to &quot;no&quot;.
+-
+ ; jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
+ 
+ ; jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
+
+Modified: trunk/configs/mgcp.conf.sample
+===================================================================
+--- trunk/configs/mgcp.conf.sample	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/configs/mgcp.conf.sample	2006-06-17 02:46:45 UTC (rev 213)
+@@ -5,6 +5,33 @@
+ ;port = 2427
+ ;bindaddr = 0.0.0.0
+ 
++;------------------------------ JITTER BUFFER CONFIGURATION --------------------------
++; jbenable = yes              ; Enables the use of a jitterbuffer on the receiving side of a
++                              ; MGCP channel. Defaults to &quot;no&quot;. An enabled jitterbuffer will
++                              ; be used only if the sending side can create and the receiving
++                              ; side can not accept jitter. The MGCP channel can accept jitter,
++                              ; thus an enabled jitterbuffer on the receive MGCP side will only
++                              ; be used if the sending side can create jitter and jbforce is
++                              ; also set to yes.
++
++; jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a MGCP
++                              ; channel. Defaults to &quot;no&quot;.
++
++; jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
++
++; jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
++                              ; resynchronized. Useful to improve the quality of the voice, with
++                              ; big jumps in/broken timestamps, usualy sent from exotic devices
++                              ; and programs. Defaults to 1000.
++
++; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a MGCP
++                              ; channel. Two implementations are currenlty available - &quot;fixed&quot;
++                              ; (with size always equals to jbmax-size) and &quot;adaptive&quot; (with
++                              ; variable size, actually the new jb of IAX2). Defaults to fixed.
++
++; jblog = no                  ; Enables jitterbuffer frame logging. Defaults to &quot;no&quot;.
++;-----------------------------------------------------------------------------------
++
+ ;[dlinkgw]
+ ;host = 192.168.0.64
+ ;context = default
+
+Modified: trunk/configs/oss.conf.sample
+===================================================================
+--- trunk/configs/oss.conf.sample	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/configs/oss.conf.sample	2006-06-17 02:46:45 UTC (rev 213)
+@@ -50,14 +50,10 @@
+     ; jbenable = yes              ; Enables the use of a jitterbuffer on the receiving side of an
+                                   ; OSS channel. Defaults to &quot;no&quot;. An enabled jitterbuffer will
+                                   ; be used only if the sending side can create and the receiving
+-                                  ; side can not accept jitter. The ZAP channel can't accept jitter,
+-                                  ; thus an enabled jitterbuffer on the receive ZAP side will always
+-                                  ; be used if the sending side can create jitter or if ZAP jb is
+-                                  ; forced.
++                                  ; side can not accept jitter. The OSS channel can't accept jitter,
++                                  ; thus an enabled jitterbuffer on the receive OSS side will always
++                                  ; be used if the sending side can create jitter.
+ 
+-    ; jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a ZAP
+-                                  ; channel. Defaults to &quot;no&quot;.
+-
+     ; jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
+ 
+     ; jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
+@@ -65,8 +61,8 @@
+                                   ; big jumps in/broken timestamps, usualy sent from exotic devices
+                                   ; and programs. Defaults to 1000.
+ 
+-    ; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a SIP
+-                                  ; channel. Two implementation are currenlty available - &quot;fixed&quot;
++    ; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of an OSS
++                                  ; channel. Two implementations are currenlty available - &quot;fixed&quot;
+                                   ; (with size always equals to jbmax-size) and &quot;adaptive&quot; (with
+                                   ; variable size, actually the new jb of IAX2). Defaults to fixed.
+ 
+
+Modified: trunk/configs/sip.conf.sample
+===================================================================
+--- trunk/configs/sip.conf.sample	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/configs/sip.conf.sample	2006-06-17 02:46:45 UTC (rev 213)
+@@ -321,7 +321,7 @@
+                               ; and programs. Defaults to 1000.
+ 
+ ; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a SIP
+-                              ; channel. Two implementation are currenlty available - &quot;fixed&quot;
++                              ; channel. Two implementations are currenlty available - &quot;fixed&quot;
+                               ; (with size always equals to jbmaxsize) and &quot;adaptive&quot; (with
+                               ; variable size, actually the new jb of IAX2). Defaults to fixed.
+ 
+
+Modified: trunk/configs/skinny.conf.sample
+===================================================================
+--- trunk/configs/skinny.conf.sample	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/configs/skinny.conf.sample	2006-06-17 02:46:45 UTC (rev 213)
+@@ -29,7 +29,7 @@
+                              ; and programs. Defaults to 1000.
+ 
+ ;jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a
+-                             ; skinny channel. Two implementation are currently available
++                             ; skinny channel. Two implementations are currently available
+                              ; - &quot;fixed&quot; (with size always equals to jbmaxsize)
+                              ; - &quot;adaptive&quot; (with variable size, actually the new jb of IAX2).
+                              ; Defaults to fixed.
+
+Modified: trunk/configs/zapata.conf.sample
+===================================================================
+--- trunk/configs/zapata.conf.sample	2006-06-01 16:25:25 UTC (rev 212)
++++ trunk/configs/zapata.conf.sample	2006-06-17 02:46:45 UTC (rev 213)
+@@ -501,12 +501,8 @@
+                               ; be used only if the sending side can create and the receiving
+                               ; side can not accept jitter. The ZAP channel can't accept jitter,
+                               ; thus an enabled jitterbuffer on the receive ZAP side will always
+-                              ; be used if the sending side can create jitter or if ZAP jb is
+-                              ; forced.
++                              ; be used if the sending side can create jitter.
+ 
+-; jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a ZAP
+-                              ; channel. Defaults to &quot;no&quot;.
+-
+ ; jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
+ 
+ ; jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
+@@ -514,8 +510,8 @@
+                               ; big jumps in/broken timestamps, usualy sent from exotic devices
+                               ; and programs. Defaults to 1000.
+ 
+-; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a SIP
+-                              ; channel. Two implementation are currenlty available - &quot;fixed&quot;
++; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a ZAP
++                              ; channel. Two implementations are currenlty available - &quot;fixed&quot;
+                               ; (with size always equals to jbmax-size) and &quot;adaptive&quot; (with
+                               ; variable size, actually the new jb of IAX2). Defaults to fixed.
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000207.html">[solid-pbx-svn] r212 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000209.html">[solid-pbx-svn] r214 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#208">[ date ]</a>
+              <a href="thread.html#208">[ thread ]</a>
+              <a href="subject.html#208">[ subject ]</a>
+              <a href="author.html#208">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

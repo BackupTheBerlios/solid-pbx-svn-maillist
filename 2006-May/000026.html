@@ -1,0 +1,301 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r29 - in trunk: . apps pbx res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r29%20-%20in%20trunk%3A%20.%20apps%20pbx%20res&In-Reply-To=%3C200605012224.k41MOMkH015615%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000025.html">
+   <LINK REL="Next"  HREF="000027.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r29 - in trunk: . apps pbx res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r29%20-%20in%20trunk%3A%20.%20apps%20pbx%20res&In-Reply-To=%3C200605012224.k41MOMkH015615%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r29 - in trunk: . apps pbx res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  2 00:24:22 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000025.html">[solid-pbx-svn] r28 - trunk/utils
+</A></li>
+        <LI>Next message: <A HREF="000027.html">[solid-pbx-svn] r30 - in trunk: apps pbx/ael utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#26">[ date ]</a>
+              <a href="thread.html#26">[ thread ]</a>
+              <a href="subject.html#26">[ subject ]</a>
+              <a href="author.html#26">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-02 00:24:03 +0200 (Tue, 02 May 2006)
+New Revision: 29
+
+Modified:
+   trunk/apps/app_externalivr.c
+   trunk/apps/app_festival.c
+   trunk/apps/app_ices.c
+   trunk/apps/app_mp3.c
+   trunk/apps/app_nbscat.c
+   trunk/apps/app_zapras.c
+   trunk/asterisk.c
+   trunk/pbx/pbx_ael.c
+   trunk/res/res_musiconhold.c
+Log:
+Update to Asterisk SVN trunk r24075
+
+------------------------------------------------------------------------
+r24053 | tilghman | 2006-05-01 23:48:30 +0200 (Mon, 01 May 2006) | 10 lines
+
+Merged revisions 24019 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r24019 | tilghman | 2006-05-01 15:44:24 -0500 (Mon, 01 May 2006) | 2 lines
+
+Bug 6864 - drop realtime priority on ALL external processes
+
+.......
+
+------------------------------------------------------------------------
+r24075 | tilghman | 2006-05-02 00:07:18 +0200 (Tue, 02 May 2006) | 2 lines
+
+Bug 7062 - Rename ael2 CLI commands to ael
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_externalivr.c
+===================================================================
+--- trunk/apps/app_externalivr.c	2006-05-01 21:18:19 UTC (rev 28)
++++ trunk/apps/app_externalivr.c	2006-05-01 22:24:03 UTC (rev 29)
+@@ -50,6 +50,7 @@
+ #include &quot;asterisk/linkedlists.h&quot;
+ #include &quot;asterisk/app.h&quot;
+ #include &quot;asterisk/utils.h&quot;
++#include &quot;asterisk/options.h&quot;
+ 
+ 
+ static const char *app = &quot;ExternalIVR&quot;;
+@@ -316,6 +317,9 @@
+ 		/* child process */
+ 		int i;
+ 
++		if (ast_opt_high_priority)
++			ast_set_priority(0);
++
+ 		dup2(child_stdin[0], STDIN_FILENO);
+ 		dup2(child_stdout[1], STDOUT_FILENO);
+ 		dup2(child_stderr[1], STDERR_FILENO);
+
+Modified: trunk/apps/app_festival.c
+===================================================================
+--- trunk/apps/app_festival.c	2006-05-01 21:18:19 UTC (rev 28)
++++ trunk/apps/app_festival.c	2006-05-01 22:24:03 UTC (rev 29)
+@@ -55,6 +55,7 @@
+ #include &quot;asterisk/config.h&quot;
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/lock.h&quot;
++#include &quot;asterisk/options.h&quot;
+ 
+ #define FESTIVAL_CONFIG &quot;festival.conf&quot;
+ 
+@@ -140,6 +141,9 @@
+                 if (x != fd)
+                         close(x);
+         }
++	if (ast_opt_high_priority)
++		ast_set_priority(0);
++
+ /*IAS */
+ #ifdef __PPC__  
+ 	for( x=0; x&lt;length; x+=2)
+
+Modified: trunk/apps/app_ices.c
+===================================================================
+--- trunk/apps/app_ices.c	2006-05-01 21:18:19 UTC (rev 28)
++++ trunk/apps/app_ices.c	2006-05-01 22:24:03 UTC (rev 29)
+@@ -46,6 +46,7 @@
+ #include &quot;asterisk/pbx.h&quot;
+ #include &quot;asterisk/module.h&quot;
+ #include &quot;asterisk/translate.h&quot;
++#include &quot;asterisk/options.h&quot;
+ 
+ #define ICES &quot;/usr/bin/ices&quot;
+ #define LOCAL_ICES &quot;/usr/local/bin/ices&quot;
+@@ -70,6 +71,8 @@
+ 		ast_log(LOG_WARNING, &quot;Fork failed\n&quot;);
+ 	if (res)
+ 		return res;
++	if (ast_opt_high_priority)
++		ast_set_priority(0);
+ 	dup2(fd, STDIN_FILENO);
+ 	for (x=STDERR_FILENO + 1;x&lt;256;x++) {
+ 		if ((x != STDIN_FILENO) &amp;&amp; (x != STDOUT_FILENO))
+
+Modified: trunk/apps/app_mp3.c
+===================================================================
+--- trunk/apps/app_mp3.c	2006-05-01 21:18:19 UTC (rev 28)
++++ trunk/apps/app_mp3.c	2006-05-01 22:24:03 UTC (rev 29)
+@@ -45,6 +45,7 @@
+ #include &quot;asterisk/pbx.h&quot;
+ #include &quot;asterisk/module.h&quot;
+ #include &quot;asterisk/translate.h&quot;
++#include &quot;asterisk/options.h&quot;
+ 
+ #define LOCAL_MPG_123 &quot;/usr/local/bin/mpg123&quot;
+ #define MPG_123 &quot;/usr/bin/mpg123&quot;
+@@ -71,6 +72,8 @@
+ 		ast_log(LOG_WARNING, &quot;Fork failed\n&quot;);
+ 	if (res)
+ 		return res;
++	if (ast_opt_high_priority)
++		ast_set_priority(0);
+ 	dup2(fd, STDOUT_FILENO);
+ 	for (x=0;x&lt;256;x++) {
+ 		if (x != STDOUT_FILENO)
+
+Modified: trunk/apps/app_nbscat.c
+===================================================================
+--- trunk/apps/app_nbscat.c	2006-05-01 21:18:19 UTC (rev 28)
++++ trunk/apps/app_nbscat.c	2006-05-01 22:24:03 UTC (rev 29)
+@@ -46,6 +46,7 @@
+ #include &quot;asterisk/pbx.h&quot;
+ #include &quot;asterisk/module.h&quot;
+ #include &quot;asterisk/translate.h&quot;
++#include &quot;asterisk/options.h&quot;
+ 
+ #define LOCAL_NBSCAT &quot;/usr/local/bin/nbscat8k&quot;
+ #define NBSCAT &quot;/usr/bin/nbscat8k&quot;
+@@ -75,6 +76,9 @@
+ 		ast_log(LOG_WARNING, &quot;Fork failed\n&quot;);
+ 	if (res)
+ 		return res;
++	if (ast_opt_high_priority)
++		ast_set_priority(0);
++
+ 	dup2(fd, STDOUT_FILENO);
+ 	for (x=0;x&lt;256;x++) {
+ 		if (x != STDOUT_FILENO)
+
+Modified: trunk/apps/app_zapras.c
+===================================================================
+--- trunk/apps/app_zapras.c	2006-05-01 21:18:19 UTC (rev 28)
++++ trunk/apps/app_zapras.c	2006-05-01 22:24:03 UTC (rev 29)
+@@ -100,6 +100,10 @@
+ 	/* Execute RAS on File handles */
+ 	dup2(chan-&gt;fds[0], STDIN_FILENO);
+ 
++	/* Drop high priority */
++	if (ast_opt_high_priority)
++		ast_set_priority(0);
++
+ 	/* Close other file descriptors */
+ 	for (x=STDERR_FILENO + 1;x&lt;1024;x++) 
+ 		close(x);
+
+Modified: trunk/asterisk.c
+===================================================================
+--- trunk/asterisk.c	2006-05-01 21:18:19 UTC (rev 28)
++++ trunk/asterisk.c	2006-05-01 22:24:03 UTC (rev 29)
+@@ -635,6 +635,8 @@
+ 	pid = fork();
+ 
+ 	if (pid == 0) {
++		if (ast_opt_high_priority)
++			ast_set_priority(0);
+ 		/* Close file descriptors and launch system command */
+ 		for (x = STDERR_FILENO + 1; x &lt; 4096; x++)
+ 			close(x);
+
+Modified: trunk/pbx/pbx_ael.c
+===================================================================
+--- trunk/pbx/pbx_ael.c	2006-05-01 21:18:19 UTC (rev 28)
++++ trunk/pbx/pbx_ael.c	2006-05-01 22:24:03 UTC (rev 29)
+@@ -3504,13 +3504,13 @@
+ 	return (pbx_load_module());
+ }
+ 
+-static struct ast_cli_entry  ael2_cli[] = {
+-	{ { &quot;ael2&quot;, &quot;reload&quot;, NULL }, ael2_reload, &quot;Reload AEL configuration&quot;},
+-	{ { &quot;ael2&quot;, &quot;debug&quot;, &quot;read&quot;, NULL }, ael2_debug_read, &quot;Enable AEL read debug (does nothing)&quot;},
+-	{ { &quot;ael2&quot;, &quot;debug&quot;, &quot;tokens&quot;, NULL }, ael2_debug_tokens, &quot;Enable AEL tokens debug (does nothing)&quot;},
+-	{ { &quot;ael2&quot;, &quot;debug&quot;, &quot;macros&quot;, NULL }, ael2_debug_macros, &quot;Enable AEL macros debug (does nothing)&quot;},
+-	{ { &quot;ael2&quot;, &quot;debug&quot;, &quot;contexts&quot;, NULL }, ael2_debug_contexts, &quot;Enable AEL contexts debug (does nothing)&quot;},
+-	{ { &quot;ael2&quot;, &quot;no&quot;, &quot;debug&quot;, NULL }, ael2_no_debug, &quot;Disable AEL debug messages&quot;},
++static struct ast_cli_entry  ael_cli[] = {
++	{ { &quot;ael&quot;, &quot;reload&quot;, NULL }, ael2_reload, &quot;Reload AEL configuration&quot;},
++	{ { &quot;ael&quot;, &quot;debug&quot;, &quot;read&quot;, NULL }, ael2_debug_read, &quot;Enable AEL read debug (does nothing)&quot;},
++	{ { &quot;ael&quot;, &quot;debug&quot;, &quot;tokens&quot;, NULL }, ael2_debug_tokens, &quot;Enable AEL tokens debug (does nothing)&quot;},
++	{ { &quot;ael&quot;, &quot;debug&quot;, &quot;macros&quot;, NULL }, ael2_debug_macros, &quot;Enable AEL macros debug (does nothing)&quot;},
++	{ { &quot;ael&quot;, &quot;debug&quot;, &quot;contexts&quot;, NULL }, ael2_debug_contexts, &quot;Enable AEL contexts debug (does nothing)&quot;},
++	{ { &quot;ael&quot;, &quot;no&quot;, &quot;debug&quot;, NULL }, ael2_no_debug, &quot;Disable AEL debug messages&quot;},
+ };
+ 
+ /*
+@@ -3519,14 +3519,14 @@
+ static int unload_module(void *mod)
+ {
+ 	ast_context_destroy(NULL, registrar);
+-	ast_cli_unregister_multiple(ael2_cli, sizeof(ael2_cli)/ sizeof(ael2_cli[0]));
++	ast_cli_unregister_multiple(ael_cli, sizeof(ael_cli)/ sizeof(ael_cli[0]));
+ 	return 0;
+ }
+ 
+ 
+ static int load_module(void *mod)
+ {
+-	ast_cli_register_multiple(ael2_cli, sizeof(ael2_cli)/ sizeof(ael2_cli[0]));
++	ast_cli_register_multiple(ael_cli, sizeof(ael_cli)/ sizeof(ael_cli[0]));
+ 	return (pbx_load_module());
+ }
+ 
+
+Modified: trunk/res/res_musiconhold.c
+===================================================================
+--- trunk/res/res_musiconhold.c	2006-05-01 21:18:19 UTC (rev 28)
++++ trunk/res/res_musiconhold.c	2006-05-01 22:24:03 UTC (rev 29)
+@@ -436,6 +436,10 @@
+ 	}
+ 	if (!class-&gt;pid) {
+ 		int x;
++
++		if (ast_opt_high_priority)
++			ast_set_priority(0);
++
+ 		close(fds[0]);
+ 		/* Stdout goes to pipe */
+ 		dup2(fds[1], STDOUT_FILENO);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000025.html">[solid-pbx-svn] r28 - trunk/utils
+</A></li>
+	<LI>Next message: <A HREF="000027.html">[solid-pbx-svn] r30 - in trunk: apps pbx/ael utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#26">[ date ]</a>
+              <a href="thread.html#26">[ thread ]</a>
+              <a href="subject.html#26">[ subject ]</a>
+              <a href="author.html#26">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

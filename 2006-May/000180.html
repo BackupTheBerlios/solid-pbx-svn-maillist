@@ -1,0 +1,425 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r185 - in trunk: . apps channels funcs include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r185%20-%20in%20trunk%3A%20.%20apps%20channels%20funcs%20include/asterisk&In-Reply-To=%3C200605291403.k4TE37PZ026098%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000179.html">
+   <LINK REL="Next"  HREF="000181.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r185 - in trunk: . apps channels funcs include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r185%20-%20in%20trunk%3A%20.%20apps%20channels%20funcs%20include/asterisk&In-Reply-To=%3C200605291403.k4TE37PZ026098%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r185 - in trunk: . apps channels funcs include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May 29 16:03:07 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000179.html">[solid-pbx-svn] r184 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000181.html">[solid-pbx-svn] r186 - trunk/channels/h323
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#180">[ date ]</a>
+              <a href="thread.html#180">[ thread ]</a>
+              <a href="subject.html#180">[ subject ]</a>
+              <a href="author.html#180">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-29 16:03:03 +0200 (Mon, 29 May 2006)
+New Revision: 185
+
+Modified:
+   trunk/UPGRADE.txt
+   trunk/apps/app_playback.c
+   trunk/asterisk.8
+   trunk/asterisk.c
+   trunk/channels/chan_jingle.c
+   trunk/cli.c
+   trunk/funcs/func_odbc.c
+   trunk/include/asterisk/logger.h
+   trunk/include/asterisk/options.h
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r30722
+
+------------------------------------------------------------------------
+r30630 | russell | 2006-05-26 23:47:52 +0200 (Fri, 26 May 2006) | 17 lines
+
+Fix various problems in the addition of the ability to mute log/verbose
+output to remove consoles. The prototypes added to logger.h still need
+doxygen documentation, as well.
+
+- Add the new command line option to the man page
+- make the mute option a flag instead of an int since it is only a binary
+  option
+- remove useless extern keywords for prototypes added to logger.h
+- rename ast_console_mute() to ast_console_toggle_mute() since that is what
+  it actually does
+- actually apply the mute option to newly created remote consoles instead of
+  only working when the CLI command is used
+- don't imply the NO_FORK option if the mute command line option is provided
+- place the new CLI command in the correct place in the list which has to be
+  in alphabetical order
+- Finally, clean up a few spacing issues to conform to the coding guidelines
+
+------------------------------------------------------------------------
+r30653 | tilghman | 2006-05-27 20:19:16 +0200 (Sat, 27 May 2006) | 2 lines
+
+Should use the named handle, not one hardcoded
+
+------------------------------------------------------------------------
+r30654 | tilghman | 2006-05-27 20:45:15 +0200 (Sat, 27 May 2006) | 2 lines
+
+Notate that QUEUEAGENTCOUNT is deprecated, so it can be removed post-1.4
+
+------------------------------------------------------------------------
+r30655 | russell | 2006-05-27 20:47:44 +0200 (Sat, 27 May 2006) | 1 line
+
+make some variables static ... committed from xcode :)
+------------------------------------------------------------------------
+r30677 | tilghman | 2006-05-28 17:10:19 +0200 (Sun, 28 May 2006) | 2 lines
+
+Deprecate SetGlobalVar, replacing it with a dialplan function
+
+------------------------------------------------------------------------
+r30699 | rizzo | 2006-05-29 07:13:13 +0200 (Mon, 29 May 2006) | 3 lines
+
+this file contained the body twice, so remove the second instance.
+
+
+------------------------------------------------------------------------
+r30700 | rizzo | 2006-05-29 07:14:52 +0200 (Mon, 29 May 2006) | 4 lines
+
+remove an explicit constant;
+add a comment on the need to sort patterns in the standard way.
+
+
+------------------------------------------------------------------------
+r30701 | rizzo | 2006-05-29 07:23:59 +0200 (Mon, 29 May 2006) | 3 lines
+
+remove unused include
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/UPGRADE.txt
+===================================================================
+--- trunk/UPGRADE.txt	2006-05-26 21:44:42 UTC (rev 184)
++++ trunk/UPGRADE.txt	2006-05-29 14:03:03 UTC (rev 185)
+@@ -75,6 +75,12 @@
+   been removed in this version.  You should use the equivalent dialplan
+   function in places where you have previously used one of these applications.
+ 
++* The application SetGlobalVar has been deprecated.  You should replace uses
++  of this application with the following combination of Set and GLOBAL():
++  Set(GLOBAL(name)=value).  You may also access global variables exclusively by
++  using the GLOBAL() dialplan function, instead of relying on variable
++  interpolation falling back to globals when no channel variable is set.
++
+ * The application SetVar has been renamed to Set.  The syntax SetVar was marked
+   deprecated in version 1.2 and is no longer recognized in this version.
+ 
+@@ -215,6 +221,9 @@
+   completely with the version 1.6 release so please take the time between
+   releases to make any necessary changes
+ 
++* The QUEUEAGENTCOUNT() function has been deprecated in favor of
++  QUEUE_MEMBER_COUNT().
++
+ The IAX2 channel:
+ 
+ * The &quot;mailboxdetail&quot; option has been deprecated.  Previously, if this option
+
+Modified: trunk/apps/app_playback.c
+===================================================================
+--- trunk/apps/app_playback.c	2006-05-26 21:44:42 UTC (rev 184)
++++ trunk/apps/app_playback.c	2006-05-29 14:03:03 UTC (rev 185)
+@@ -223,7 +223,7 @@
+ 		}
+ 		/* prefix:fmt:data */
+ 		for (p = fmt; p &lt; data &amp;&amp; ret &lt;= 0; p++) {
+-			char fn2[128];
++			char fn2[sizeof(fn)];
+ 			if (*p == ' ' || *p == '\t')	/* skip blanks */
+ 				continue;
+ 			if (*p == '\'') {/* file name - we trim them */
+@@ -458,6 +458,10 @@
+ 		ast_log(LOG_NOTICE, &quot;Reloading say.conf\n&quot;);
+ 	}
+ 	say_cfg = ast_config_load(&quot;say.conf&quot;);
++	/*
++	 * XXX here we should sort rules according to the same order
++	 * we have in pbx.c so we have the same matching behaviour.
++	 */
+ 	return 0;
+ }
+ 
+
+Modified: trunk/asterisk.8
+===================================================================
+--- trunk/asterisk.8	2006-05-26 21:44:42 UTC (rev 184)
++++ trunk/asterisk.8	2006-05-29 14:03:03 UTC (rev 185)
+@@ -85,6 +85,9 @@
+ be useful to prevent a system from being brought down by terminating
+ too many simultaneous calls.
+ .TP
++\fB-m\fR
++Disable log and verbose output to remote (-r) consoles.
++.TP
+ \fB-M \fIvalue\fB\fR
+ Limits the maximum number of calls to the specified value.  This can
+ be useful to prevent a system from being brought down by terminating
+
+Modified: trunk/asterisk.c
+===================================================================
+--- trunk/asterisk.c	2006-05-26 21:44:42 UTC (rev 184)
++++ trunk/asterisk.c	2006-05-29 14:03:03 UTC (rev 185)
+@@ -101,7 +101,6 @@
+ #include &quot;asterisk/ulaw.h&quot;
+ #include &quot;asterisk/alaw.h&quot;
+ #include &quot;asterisk/callerid.h&quot;
+-// XXX #include &quot;asterisk/module.h&quot;
+ #include &quot;asterisk/image.h&quot;
+ #include &quot;asterisk/tdd.h&quot;
+ #include &quot;asterisk/term.h&quot;
+@@ -160,7 +159,6 @@
+ 
+ int option_verbose = 0;				/*!&lt; Verbosity level */
+ int option_debug = 0;				/*!&lt; Debug level */
+-int option_mute = 0;				/*!&lt; Mute console */
+ 
+ double option_maxload = 0.0;			/*!&lt; Max load avg on system */
+ int option_maxcalls = 0;			/*!&lt; Max number of active calls */
+@@ -685,15 +683,15 @@
+ /*!
+  * mute or unmute a console from logging
+  */
+-void ast_console_mute(int fd) {
++void ast_console_toggle_mute(int fd) {
+ 	int x;
+-	for (x=0;x&lt;AST_MAX_CONNECTS; x++) {
++	for (x = 0;x &lt; AST_MAX_CONNECTS; x++) {
+ 		if (fd == consoles[x].fd) {
+ 			if (consoles[x].mute) {
+-				consoles[x].mute=0;
++				consoles[x].mute = 0;
+ 				ast_cli(fd, &quot;Console is not muted anymore.\n&quot;);
+ 			} else {
+-				consoles[x].mute=1;
++				consoles[x].mute = 1;
+ 				ast_cli(fd, &quot;Console is muted.\n&quot;);
+ 			}
+ 			return;
+@@ -708,9 +706,9 @@
+ static void ast_network_puts_mutable(const char *string)
+ {
+ 	int x;
+-	for (x=0;x &lt; AST_MAX_CONNECTS; x++) {
++	for (x = 0;x &lt; AST_MAX_CONNECTS; x++) {
+ 		if (consoles[x].mute)
+-			continue;;
++			continue;
+ 		if (consoles[x].fd &gt; -1) 
+ 			fdprint(consoles[x].p[1], string);
+ 	}
+@@ -866,7 +864,7 @@
+ 					flags = fcntl(consoles[x].p[1], F_GETFL);
+ 					fcntl(consoles[x].p[1], F_SETFL, flags | O_NONBLOCK);
+ 					consoles[x].fd = s;
+-					consoles[x].mute = 0;
++					consoles[x].mute = ast_opt_mute;
+ 					if (ast_pthread_create(&amp;consoles[x].t, &amp;attr, netconsole, &amp;consoles[x])) {
+ 						ast_log(LOG_ERROR, &quot;Unable to spawn thread to handle connection: %s\n&quot;, strerror(errno));
+ 						close(consoles[x].p[0]);
+@@ -2073,8 +2071,8 @@
+ 	fdprint(ast_consock, tmp);
+ 	snprintf(tmp, sizeof(tmp), &quot;set debug atleast %d&quot;, option_debug);
+ 	fdprint(ast_consock, tmp);
+-	if (option_mute) {
+-		snprintf(tmp, sizeof(tmp), &quot;logger mute&quot;);
++	if (ast_opt_mute) {
++		snprintf(tmp, sizeof(tmp), &quot;log and verbose output currently muted ('logger unmute' to unmute)&quot;);
+ 		fdprint(ast_consock, tmp);
+ 	}
+ 	ast_verbose(&quot;Connected to Asterisk %s currently running on %s (pid = %d)\n&quot;, version, hostname, pid);
+@@ -2396,8 +2394,7 @@
+ 			ast_set_flag(&amp;ast_options, AST_OPT_FLAG_NO_FORK);
+ 			break;
+ 		case 'm':
+-			option_mute++;
+-			ast_set_flag(&amp;ast_options, AST_OPT_FLAG_NO_FORK);
++			ast_set_flag(&amp;ast_options, AST_OPT_FLAG_MUTE);
+ 			break;
+ 		case 'M':
+ 			if ((sscanf(optarg, &quot;%d&quot;, &amp;option_maxcalls) != 1) || (option_maxcalls &lt; 0))
+
+Modified: trunk/channels/chan_jingle.c
+===================================================================
+--- trunk/channels/chan_jingle.c	2006-05-26 21:44:42 UTC (rev 184)
++++ trunk/channels/chan_jingle.c	2006-05-29 14:03:03 UTC (rev 185)
+@@ -159,9 +159,9 @@
+ static int global_capability = AST_FORMAT_ULAW | AST_FORMAT_ALAW | AST_FORMAT_GSM | AST_FORMAT_H263;
+ 
+ /* Protect the interface list (of sip_pvt's) */
+-AST_MUTEX_DEFINE_STATIC(jinglelock);
++static AST_MUTEX_DEFINE_STATIC(jinglelock);
+ 
+-AST_MUTEX_DEFINE_STATIC(rand_lock);	/*!&lt; Lock for thread-safe random generator */
++static AST_MUTEX_DEFINE_STATIC(rand_lock);	/*!&lt; Lock for thread-safe random generator */
+ 
+ 
+ static struct ast_channel *jingle_request(const char *type, int format, void *data, int *cause);
+@@ -214,9 +214,9 @@
+ 	get_codec: jingle_get_codec,
+ };
+ 
+-char externip[16];
++static char externip[16];
+ 
+-struct jingle_container jingles;
++static struct jingle_container jingles;
+ 
+ static void jingle_member_destroy(struct jingle *obj)
+ {
+
+Modified: trunk/cli.c
+===================================================================
+--- trunk/cli.c	2006-05-26 21:44:42 UTC (rev 184)
++++ trunk/cli.c	2006-05-29 14:03:03 UTC (rev 185)
+@@ -222,7 +222,7 @@
+ {
+ 	if (argc != 2)
+ 		return RESULT_SHOWUSAGE;
+-	ast_console_mute(fd);
++	ast_console_toggle_mute(fd);
+ 	return RESULT_SUCCESS;
+ }
+ 
+@@ -928,11 +928,11 @@
+ 	{ { &quot;group&quot;, &quot;show&quot;, &quot;channels&quot;, NULL }, group_show_channels, &quot;Show active channels with group(s)&quot;, group_show_channels_help},
+ 	{ { &quot;help&quot;, NULL }, handle_help, &quot;Display help list, or specific help on a command&quot;, help_help, complete_help },
+ 	{ { &quot;load&quot;, NULL }, handle_load, &quot;Load a dynamic module by name&quot;, load_help, complete_fn },
++	{ { &quot;logger&quot;, &quot;mute&quot;, NULL }, handle_logger_mute, &quot;Toggle logging output to a console&quot;, logger_mute_help },
+ 	{ { &quot;no&quot;, &quot;debug&quot;, &quot;channel&quot;, NULL }, handle_nodebugchan, &quot;Disable debugging on a channel&quot;, nodebugchan_help, complete_ch_4 },
+ 	{ { &quot;reload&quot;, NULL }, handle_reload, &quot;Reload configuration&quot;, reload_help, complete_mod_2 },
+ 	{ { &quot;set&quot;, &quot;debug&quot;, NULL }, handle_set_debug, &quot;Set level of debug chattiness&quot;, set_debug_help },
+ 	{ { &quot;set&quot;, &quot;verbose&quot;, NULL }, handle_set_verbose, &quot;Set level of verboseness&quot;, set_verbose_help },
+-	{ { &quot;logger&quot;, &quot;mute&quot;, NULL }, handle_logger_mute, &quot;Disable logging output to a console&quot;, logger_mute_help },
+ 	{ { &quot;show&quot;, &quot;channel&quot;, NULL }, handle_showchan, &quot;Display information on a specific channel&quot;, showchan_help, complete_ch_3 },
+ 	{ { &quot;show&quot;, &quot;channels&quot;, NULL }, handle_chanlist, &quot;Display information on channels&quot;, chanlist_help, complete_show_channels },
+ 	{ { &quot;show&quot;, &quot;modules&quot;, NULL }, handle_modlist, &quot;List modules and info&quot;, modlist_help },
+
+Modified: trunk/funcs/func_odbc.c
+===================================================================
+--- trunk/funcs/func_odbc.c	2006-05-26 21:44:42 UTC (rev 184)
++++ trunk/funcs/func_odbc.c	2006-05-29 14:03:03 UTC (rev 185)
+@@ -203,7 +203,7 @@
+ 		SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+ 		odbc_release_obj(obj);
+ 		/* All handles are now invalid (after a disconnect), so we gotta redo all handles */
+-		obj = odbc_request_obj(&quot;asterisk&quot;, 1);
++		obj = odbc_request_obj(query-&gt;dsn, 1);
+ 		if (!retry) {
+ 			retry = 1;
+ 			goto retry_write;
+
+Modified: trunk/include/asterisk/logger.h
+===================================================================
+--- trunk/include/asterisk/logger.h	2006-05-26 21:44:42 UTC (rev 184)
++++ trunk/include/asterisk/logger.h	2006-05-29 14:03:03 UTC (rev 185)
+@@ -82,8 +82,8 @@
+ int ast_verbose_dmesg(void (*verboser)(const char *string, int opos, int replacelast, int complete));
+ void ast_console_puts(const char *string);
+ 
+-extern void ast_console_puts_mutable(const char *string);
+-extern void ast_console_mute(int fd);
++void ast_console_puts_mutable(const char *string);
++void ast_console_toggle_mute(int fd);
+ 
+ #define _A_ __FILE__, __LINE__, __PRETTY_FUNCTION__
+ 
+
+Modified: trunk/include/asterisk/options.h
+===================================================================
+--- trunk/include/asterisk/options.h	2006-05-26 21:44:42 UTC (rev 184)
++++ trunk/include/asterisk/options.h	2006-05-29 14:03:03 UTC (rev 185)
+@@ -76,6 +76,8 @@
+ 	AST_OPT_FLAG_INTERNAL_TIMING = (1 &lt;&lt; 20),
+ 	/*! Always fork, even if verbose or debug settings are non-zero */
+ 	AST_OPT_FLAG_ALWAYS_FORK = (1 &lt;&lt; 21),
++	/*! Disable log/verbose output to remote consoles */
++	AST_OPT_FLAG_MUTE = (1 &lt;&lt; 22)
+ };
+ 
+ /*! These are the options that set by default when Asterisk starts */
+@@ -103,6 +105,7 @@
+ #define ast_opt_end_cdr_before_h_exten	ast_test_flag(&amp;ast_options, AST_OPT_FLAG_END_CDR_BEFORE_H_EXTEN)
+ #define ast_opt_internal_timing		ast_test_flag(&amp;ast_options, AST_OPT_FLAG_INTERNAL_TIMING)
+ #define ast_opt_always_fork		ast_test_flag(&amp;ast_options, AST_OPT_FLAG_ALWAYS_FORK)
++#define ast_opt_mute			ast_test_flag(&amp;ast_options, AST_OPT_FLAG_MUTE)
+ 
+ extern struct ast_flags ast_options;
+ 
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-26 21:44:42 UTC (rev 184)
++++ trunk/pbx.c	2006-05-29 14:03:03 UTC (rev 185)
+@@ -5473,6 +5473,7 @@
+ {
+ 	char *name;
+ 	char *stringp = data;
++	static int dep_warning = 0;
+ 
+ 	if (ast_strlen_zero(data)) {
+ 		ast_log(LOG_WARNING, &quot;Ignoring, since there is no variable to set\n&quot;);
+@@ -5480,6 +5481,12 @@
+ 	}
+ 
+ 	name = strsep(&amp;stringp, &quot;=&quot;);
++
++	if (!dep_warning) {
++		dep_warning = 1;
++		ast_log(LOG_WARNING, &quot;SetGlobalVar is deprecated.  Please use Set(GLOBAL(%s)=%s) instead.\n&quot;, name, stringp);
++	}
++
+ 	/*! \todo XXX watch out, leading whitespace ? */
+ 	pbx_builtin_setvar_helper(NULL, name, stringp);
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000179.html">[solid-pbx-svn] r184 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000181.html">[solid-pbx-svn] r186 - trunk/channels/h323
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#180">[ date ]</a>
+              <a href="thread.html#180">[ thread ]</a>
+              <a href="subject.html#180">[ subject ]</a>
+              <a href="author.html#180">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

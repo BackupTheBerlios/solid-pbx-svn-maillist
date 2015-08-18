@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r139 - in trunk: . include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r139%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200605111628.k4BGSvOL002246%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000137.html">
+   <LINK REL="Next"  HREF="000134.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r139 - in trunk: . include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r139%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200605111628.k4BGSvOL002246%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r139 - in trunk: . include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May 11 18:28:57 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000137.html">[solid-pbx-svn] r137 - in trunk: . channels configs doc
+</A></li>
+        <LI>Next message: <A HREF="000134.html">[solid-pbx-svn] r140 - in trunk: . apps channels include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#136">[ date ]</a>
+              <a href="thread.html#136">[ thread ]</a>
+              <a href="subject.html#136">[ subject ]</a>
+              <a href="author.html#136">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-11 18:28:54 +0200 (Thu, 11 May 2006)
+New Revision: 139
+
+Modified:
+   trunk/include/asterisk/linkedlists.h
+   trunk/loader.c
+   trunk/rtp.c
+Log:
+Update to Asterisk SVN trunk r26979
+
+------------------------------------------------------------------------
+r26952 | rizzo | 2006-05-11 17:25:21 +0200 (Thu, 11 May 2006) | 3 lines
+
+cast sockaddr_in to sockaddr because we need that.
+
+
+------------------------------------------------------------------------
+r26954 | rizzo | 2006-05-11 17:50:25 +0200 (Thu, 11 May 2006) | 4 lines
+
+properly initialize non-static locks.
+(Thanks Dinesh for tracking the bug and fixing it)
+
+
+------------------------------------------------------------------------
+r26955 | rizzo | 2006-05-11 17:51:43 +0200 (Thu, 11 May 2006) | 3 lines
+
+remove a now useless debugging message about loading new-style modules.
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/include/asterisk/linkedlists.h
+===================================================================
+--- trunk/include/asterisk/linkedlists.h	2006-05-11 15:29:07 UTC (rev 138)
++++ trunk/include/asterisk/linkedlists.h	2006-05-11 16:28:54 UTC (rev 139)
+@@ -363,6 +363,7 @@
+ #define AST_LIST_HEAD_INIT(head) {					\
+ 	(head)-&gt;first = NULL;						\
+ 	(head)-&gt;last = NULL;						\
++	(head)-&gt;lock = AST_MUTEX_INIT_VALUE;				\
+ 	ast_mutex_init(&amp;(head)-&gt;lock);					\
+ }
+ 
+
+Modified: trunk/loader.c
+===================================================================
+--- trunk/loader.c	2006-05-11 15:29:07 UTC (rev 138)
++++ trunk/loader.c	2006-05-11 16:28:54 UTC (rev 139)
+@@ -722,8 +722,6 @@
+ 	if (m == NULL)	/* MOD_0 modules may still have a mod_data entry */
+ 		m = find_symbol(cur, &quot;mod_data&quot;, 0);
+ 	if (m != NULL) {	/* new style module */
+-		ast_log(LOG_WARNING, &quot;new style %s (0x%x) loaded RTLD_LOCAL\n&quot;,
+-			resource_name, m-&gt;flags);
+ 		cur-&gt;cb = m;	/* use the mod_data from the module itself */
+ 		errors = check_exported(cur);
+ 	} else {
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-05-11 15:29:07 UTC (rev 138)
++++ trunk/rtp.c	2006-05-11 16:28:54 UTC (rev 139)
+@@ -296,7 +296,8 @@
+ 
+ static int stun_send(int s, struct sockaddr_in *dst, struct stun_header *resp)
+ {
+-	return sendto(s, resp, ntohs(resp-&gt;msglen) + sizeof(*resp), 0, dst, sizeof(*dst));
++	return sendto(s, resp, ntohs(resp-&gt;msglen) + sizeof(*resp), 0,
++		(struct sockaddr *)dst, sizeof(*dst));
+ }
+ 
+ static void stun_req_id(struct stun_header *req)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000137.html">[solid-pbx-svn] r137 - in trunk: . channels configs doc
+</A></li>
+	<LI>Next message: <A HREF="000134.html">[solid-pbx-svn] r140 - in trunk: . apps channels include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#136">[ date ]</a>
+              <a href="thread.html#136">[ thread ]</a>
+              <a href="subject.html#136">[ subject ]</a>
+              <a href="author.html#136">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

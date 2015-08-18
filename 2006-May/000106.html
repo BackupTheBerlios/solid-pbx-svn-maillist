@@ -1,0 +1,1149 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r110 - in trunk: . apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r110%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605091428.k49EStD7000653%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000105.html">
+   <LINK REL="Next"  HREF="000107.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r110 - in trunk: . apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r110%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605091428.k49EStD7000653%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r110 - in trunk: . apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  9 16:28:55 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000105.html">[solid-pbx-svn] r109 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000107.html">[solid-pbx-svn] r111 - in trunk: . channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#106">[ date ]</a>
+              <a href="thread.html#106">[ thread ]</a>
+              <a href="subject.html#106">[ subject ]</a>
+              <a href="author.html#106">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-09 16:28:52 +0200 (Tue, 09 May 2006)
+New Revision: 110
+
+Modified:
+   trunk/aclocal.m4
+   trunk/apps/app_voicemail.c
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r26091
+
+------------------------------------------------------------------------
+r26049 | kpfleming | 2006-05-09 15:26:50 +0200 (Tue, 09 May 2006) | 2 lines
+
+use aclocal version 1.9 instead of 1.4 :-)
+
+------------------------------------------------------------------------
+r26051 | bweschke | 2006-05-09 15:33:54 +0200 (Tue, 09 May 2006) | 11 lines
+
+Merged revisions 26050 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r26050 | bweschke | 2006-05-09 08:28:39 -0500 (Tue, 09 May 2006) | 3 lines
+
+ Correct memory leak in find_user_realtime #7118 (fnordian)
+
+
+.......
+
+------------------------------------------------------------------------
+r26054 | rizzo | 2006-05-09 15:52:01 +0200 (Tue, 09 May 2006) | 3 lines
+
+normalize code, remove some useless casts
+
+
+------------------------------------------------------------------------
+r26055 | rizzo | 2006-05-09 15:55:33 +0200 (Tue, 09 May 2006) | 3 lines
+
+remove duplicate atof() invokation
+
+
+------------------------------------------------------------------------
+r26091 | bweschke | 2006-05-09 16:21:33 +0200 (Tue, 09 May 2006) | 3 lines
+
+ This app is deprecated in /trunk, and thus, the change should not come forward.
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/aclocal.m4
+===================================================================
+--- trunk/aclocal.m4	2006-05-09 13:28:53 UTC (rev 109)
++++ trunk/aclocal.m4	2006-05-09 14:28:52 UTC (rev 110)
+@@ -1,922 +1,14 @@
+-dnl aclocal.m4 generated automatically by aclocal 1.4-p6
++# generated automatically by aclocal 1.9.6 -*- Autoconf -*-
+ 
+-dnl Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
+-dnl This file is free software; the Free Software Foundation
+-dnl gives unlimited permission to copy and/or distribute it,
+-dnl with or without modifications, as long as this notice is preserved.
++# Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
++# 2005  Free Software Foundation, Inc.
++# This file is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
+ 
+-dnl This program is distributed in the hope that it will be useful,
+-dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+-dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+-dnl PARTICULAR PURPOSE.
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
++# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
++# PARTICULAR PURPOSE.
+ 
+-# AST_EXT_LIB([NAME], [FUNCTION], [package header], [package symbol name], [package friendly name], [additional LIB data])
+-
+-AC_DEFUN([AST_EXT_LIB],
+-[
+-AC_ARG_WITH([$1], AC_HELP_STRING([--with-$1=PATH],[use $5 files in PATH]),[
+-case ${withval} in
+-     n|no)
+-     USE_$1=no
+-     ;;
+-     y|ye|yes)
+-     $1_MANDATORY=&quot;yes&quot;
+-     ;;
+-     *)
+-     $1_DIR=&quot;${withval}&quot;
+-     $1_MANDATORY=&quot;yes&quot;
+-     ;;
+-esac
+-])
+-
+-PBX_LIB$1=0
+-
+-if test &quot;${USE_$1}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
+-   if test &quot;x${$1_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${$1_DIR}/lib&quot;
+-   fi
+-   AC_CHECK_LIB([$1], [$2], [:], [], ${libdir} $6)
+-
+-   if test &quot;${ac_cv_lib_$1_$2}&quot; = &quot;yes&quot;; then
+-      $1_LIB=&quot;-l$1 $6&quot;
+-      $4_HEADER_FOUND=&quot;1&quot;
+-      if test &quot;x${$1_DIR}&quot; != &quot;x&quot;; then
+-         $1_LIB=&quot;${libdir} ${$1_LIB}&quot;
+-	 $1_INCLUDE=&quot;-I${$1_DIR}/include&quot;
+-	 if test &quot;x$3&quot; != &quot;x&quot; ; then
+-	    AC_CHECK_HEADER([${$1_DIR}/include/$3], [$4_HEADER_FOUND=1], [$4_HEADER_FOUND=0] )
+-	 fi
+-      else
+-	 if test &quot;x$3&quot; != &quot;x&quot; ; then
+-            AC_CHECK_HEADER([$3], [$4_HEADER_FOUND=1], [$4_HEADER_FOUND=0] )
+-	 fi
+-      fi
+-      if test &quot;x${$4_HEADER_FOUND}&quot; = &quot;x0&quot; ; then
+-         if test ! -z &quot;${$1_MANDATORY}&quot; ;
+-         then
+-            echo &quot; ***&quot;
+-            echo &quot; *** It appears that you do not have the $1 development package installed.&quot;
+-            echo &quot; *** Please install it to include $5 support, or re-run configure&quot;
+-            echo &quot; *** without explicitly specifying --with-$1&quot;
+-            exit 1
+-         fi
+-         $1_LIB=&quot;&quot;
+-         $1_INCLUDE=&quot;&quot;
+-         PBX_LIB$1=0
+-      else
+-         PBX_LIB$1=1
+-         AC_DEFINE_UNQUOTED([HAVE_$4], 1, [Define to indicate the $5 library])
+-      fi
+-   elif test ! -z &quot;${$1_MANDATORY}&quot;;
+-   then
+-      echo &quot;***&quot;
+-      echo &quot;*** The $5 installation on this system appears to be broken.&quot;
+-      echo &quot;*** Either correct the installation, or run configure&quot;
+-      echo &quot;*** without explicity specifying --with-$1&quot;
+-      exit 1
+-   fi
+-fi
+-AC_SUBST([$1_LIB])
+-AC_SUBST([$1_INCLUDE])
+-AC_SUBST([PBX_LIB$1])
+-])
+-
+-
+-AC_DEFUN(
+-[AST_CHECK_GNU_MAKE], [AC_CACHE_CHECK(for GNU make, GNU_MAKE,
+-   GNU_MAKE='Not Found' ;
+-   for a in make gmake gnumake ; do
+-      if test -z &quot;$a&quot; ; then continue ; fi ;
+-      if ( sh -c &quot;$a --version&quot; 2&gt; /dev/null | grep GNU  2&gt;&amp;1 &gt; /dev/null ) ;  then
+-         GNU_MAKE=$a ;
+-         break;
+-      fi
+-   done ;
+-) ;
+-if test  &quot;x$GNU_MAKE&quot; = &quot;xNot Found&quot;  ; then
+-   echo &quot; *** Please install GNU make.  It is required to build Asterisk!&quot;
+-   exit 1
+-fi
+-AC_SUBST([GNU_MAKE])
+-])
+-
+-# lib-prefix.m4 serial 4 (gettext-0.14.2)
+-dnl Copyright (C) 2001-2005 Free Software Foundation, Inc.
+-dnl This file is free software; the Free Software Foundation
+-dnl gives unlimited permission to copy and/or distribute it,
+-dnl with or without modifications, as long as this notice is preserved.
+-
+-dnl From Bruno Haible.
+-
+-dnl AC_LIB_ARG_WITH is synonymous to AC_ARG_WITH in autoconf-2.13, and
+-dnl similar to AC_ARG_WITH in autoconf 2.52...2.57 except that is doesn't
+-dnl require excessive bracketing.
+-ifdef([AC_HELP_STRING],
+-[AC_DEFUN([AC_LIB_ARG_WITH], [AC_ARG_WITH([$1],[[$2]],[$3],[$4])])],
+-[AC_DEFUN([AC_][LIB_ARG_WITH], [AC_ARG_WITH([$1],[$2],[$3],[$4])])])
+-
+-dnl AC_LIB_PREFIX adds to the CPPFLAGS and LDFLAGS the flags that are needed
+-dnl to access previously installed libraries. The basic assumption is that
+-dnl a user will want packages to use other packages he previously installed
+-dnl with the same --prefix option.
+-dnl This macro is not needed if only AC_LIB_LINKFLAGS is used to locate
+-dnl libraries, but is otherwise very convenient.
+-AC_DEFUN([AC_LIB_PREFIX],
+-[
+-  AC_BEFORE([$0], [AC_LIB_LINKFLAGS])
+-  AC_REQUIRE([AC_PROG_CC])
+-  AC_REQUIRE([AC_CANONICAL_HOST])
+-  AC_REQUIRE([AC_LIB_PREPARE_PREFIX])
+-  dnl By default, look in $includedir and $libdir.
+-  use_additional=yes
+-  AC_LIB_WITH_FINAL_PREFIX([
+-    eval additional_includedir=\&quot;$includedir\&quot;
+-    eval additional_libdir=\&quot;$libdir\&quot;
+-  ])
+-  AC_LIB_ARG_WITH([lib-prefix],
+-[  --with-lib-prefix[=DIR] search for libraries in DIR/include and DIR/lib
+-  --without-lib-prefix    don't search for libraries in includedir and libdir],
+-[
+-    if test &quot;X$withval&quot; = &quot;Xno&quot;; then
+-      use_additional=no
+-    else
+-      if test &quot;X$withval&quot; = &quot;X&quot;; then
+-        AC_LIB_WITH_FINAL_PREFIX([
+-          eval additional_includedir=\&quot;$includedir\&quot;
+-          eval additional_libdir=\&quot;$libdir\&quot;
+-        ])
+-      else
+-        additional_includedir=&quot;$withval/include&quot;
+-        additional_libdir=&quot;$withval/lib&quot;
+-      fi
+-    fi
+-])
+-  if test $use_additional = yes; then
+-    dnl Potentially add $additional_includedir to $CPPFLAGS.
+-    dnl But don't add it
+-    dnl   1. if it's the standard /usr/include,
+-    dnl   2. if it's already present in $CPPFLAGS,
+-    dnl   3. if it's /usr/local/include and we are using GCC on Linux,
+-    dnl   4. if it doesn't exist as a directory.
+-    if test &quot;X$additional_includedir&quot; != &quot;X/usr/include&quot;; then
+-      haveit=
+-      for x in $CPPFLAGS; do
+-        AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-        if test &quot;X$x&quot; = &quot;X-I$additional_includedir&quot;; then
+-          haveit=yes
+-          break
+-        fi
+-      done
+-      if test -z &quot;$haveit&quot;; then
+-        if test &quot;X$additional_includedir&quot; = &quot;X/usr/local/include&quot;; then
+-          if test -n &quot;$GCC&quot;; then
+-            case $host_os in
+-              linux* | gnu* | k*bsd*-gnu) haveit=yes;;
+-            esac
+-          fi
+-        fi
+-        if test -z &quot;$haveit&quot;; then
+-          if test -d &quot;$additional_includedir&quot;; then
+-            dnl Really add $additional_includedir to $CPPFLAGS.
+-            CPPFLAGS=&quot;${CPPFLAGS}${CPPFLAGS:+ }-I$additional_includedir&quot;
+-          fi
+-        fi
+-      fi
+-    fi
+-    dnl Potentially add $additional_libdir to $LDFLAGS.
+-    dnl But don't add it
+-    dnl   1. if it's the standard /usr/lib,
+-    dnl   2. if it's already present in $LDFLAGS,
+-    dnl   3. if it's /usr/local/lib and we are using GCC on Linux,
+-    dnl   4. if it doesn't exist as a directory.
+-    if test &quot;X$additional_libdir&quot; != &quot;X/usr/lib&quot;; then
+-      haveit=
+-      for x in $LDFLAGS; do
+-        AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-        if test &quot;X$x&quot; = &quot;X-L$additional_libdir&quot;; then
+-          haveit=yes
+-          break
+-        fi
+-      done
+-      if test -z &quot;$haveit&quot;; then
+-        if test &quot;X$additional_libdir&quot; = &quot;X/usr/local/lib&quot;; then
+-          if test -n &quot;$GCC&quot;; then
+-            case $host_os in
+-              linux*) haveit=yes;;
+-            esac
+-          fi
+-        fi
+-        if test -z &quot;$haveit&quot;; then
+-          if test -d &quot;$additional_libdir&quot;; then
+-            dnl Really add $additional_libdir to $LDFLAGS.
+-            LDFLAGS=&quot;${LDFLAGS}${LDFLAGS:+ }-L$additional_libdir&quot;
+-          fi
+-        fi
+-      fi
+-    fi
+-  fi
+-])
+-
+-dnl AC_LIB_PREPARE_PREFIX creates variables acl_final_prefix,
+-dnl acl_final_exec_prefix, containing the values to which $prefix and
+-dnl $exec_prefix will expand at the end of the configure script.
+-AC_DEFUN([AC_LIB_PREPARE_PREFIX],
+-[
+-  dnl Unfortunately, prefix and exec_prefix get only finally determined
+-  dnl at the end of configure.
+-  if test &quot;X$prefix&quot; = &quot;XNONE&quot;; then
+-    acl_final_prefix=&quot;$ac_default_prefix&quot;
+-  else
+-    acl_final_prefix=&quot;$prefix&quot;
+-  fi
+-  if test &quot;X$exec_prefix&quot; = &quot;XNONE&quot;; then
+-    acl_final_exec_prefix='${prefix}'
+-  else
+-    acl_final_exec_prefix=&quot;$exec_prefix&quot;
+-  fi
+-  acl_save_prefix=&quot;$prefix&quot;
+-  prefix=&quot;$acl_final_prefix&quot;
+-  eval acl_final_exec_prefix=\&quot;$acl_final_exec_prefix\&quot;
+-  prefix=&quot;$acl_save_prefix&quot;
+-])
+-
+-dnl AC_LIB_WITH_FINAL_PREFIX([statement]) evaluates statement, with the
+-dnl variables prefix and exec_prefix bound to the values they will have
+-dnl at the end of the configure script.
+-AC_DEFUN([AC_LIB_WITH_FINAL_PREFIX],
+-[
+-  acl_save_prefix=&quot;$prefix&quot;
+-  prefix=&quot;$acl_final_prefix&quot;
+-  acl_save_exec_prefix=&quot;$exec_prefix&quot;
+-  exec_prefix=&quot;$acl_final_exec_prefix&quot;
+-  $1
+-  exec_prefix=&quot;$acl_save_exec_prefix&quot;
+-  prefix=&quot;$acl_save_prefix&quot;
+-])
+-
+-# lib-link.m4 serial 6 (gettext-0.14.3)
+-dnl Copyright (C) 2001-2005 Free Software Foundation, Inc.
+-dnl This file is free software; the Free Software Foundation
+-dnl gives unlimited permission to copy and/or distribute it,
+-dnl with or without modifications, as long as this notice is preserved.
+-
+-dnl From Bruno Haible.
+-
+-AC_PREREQ(2.50)
+-
+-dnl AC_LIB_LINKFLAGS(name [, dependencies]) searches for libname and
+-dnl the libraries corresponding to explicit and implicit dependencies.
+-dnl Sets and AC_SUBSTs the LIB${NAME} and LTLIB${NAME} variables and
+-dnl augments the CPPFLAGS variable.
+-AC_DEFUN([AC_LIB_LINKFLAGS],
+-[
+-  AC_REQUIRE([AC_LIB_PREPARE_PREFIX])
+-  AC_REQUIRE([AC_LIB_RPATH])
+-  define([Name],[translit([$1],[./-], [___])])
+-  define([NAME],[translit([$1],[abcdefghijklmnopqrstuvwxyz./-],
+-                               [ABCDEFGHIJKLMNOPQRSTUVWXYZ___])])
+-  AC_CACHE_CHECK([how to link with lib[]$1], [ac_cv_lib[]Name[]_libs], [
+-    AC_LIB_LINKFLAGS_BODY([$1], [$2])
+-    ac_cv_lib[]Name[]_libs=&quot;$LIB[]NAME&quot;
+-    ac_cv_lib[]Name[]_ltlibs=&quot;$LTLIB[]NAME&quot;
+-    ac_cv_lib[]Name[]_cppflags=&quot;$INC[]NAME&quot;
+-  ])
+-  LIB[]NAME=&quot;$ac_cv_lib[]Name[]_libs&quot;
+-  LTLIB[]NAME=&quot;$ac_cv_lib[]Name[]_ltlibs&quot;
+-  INC[]NAME=&quot;$ac_cv_lib[]Name[]_cppflags&quot;
+-  AC_LIB_APPENDTOVAR([CPPFLAGS], [$INC]NAME)
+-  AC_SUBST([LIB]NAME)
+-  AC_SUBST([LTLIB]NAME)
+-  dnl Also set HAVE_LIB[]NAME so that AC_LIB_HAVE_LINKFLAGS can reuse the
+-  dnl results of this search when this library appears as a dependency.
+-  HAVE_LIB[]NAME=yes
+-  undefine([Name])
+-  undefine([NAME])
+-])
+-
+-dnl AC_LIB_HAVE_LINKFLAGS(name, dependencies, includes, testcode)
+-dnl searches for libname and the libraries corresponding to explicit and
+-dnl implicit dependencies, together with the specified include files and
+-dnl the ability to compile and link the specified testcode. If found, it
+-dnl sets and AC_SUBSTs HAVE_LIB${NAME}=yes and the LIB${NAME} and
+-dnl LTLIB${NAME} variables and augments the CPPFLAGS variable, and
+-dnl #defines HAVE_LIB${NAME} to 1. Otherwise, it sets and AC_SUBSTs
+-dnl HAVE_LIB${NAME}=no and LIB${NAME} and LTLIB${NAME} to empty.
+-AC_DEFUN([AC_LIB_HAVE_LINKFLAGS],
+-[
+-  AC_REQUIRE([AC_LIB_PREPARE_PREFIX])
+-  AC_REQUIRE([AC_LIB_RPATH])
+-  define([Name],[translit([$1],[./-], [___])])
+-  define([NAME],[translit([$1],[abcdefghijklmnopqrstuvwxyz./-],
+-                               [ABCDEFGHIJKLMNOPQRSTUVWXYZ___])])
+-
+-  dnl Search for lib[]Name and define LIB[]NAME, LTLIB[]NAME and INC[]NAME
+-  dnl accordingly.
+-  AC_LIB_LINKFLAGS_BODY([$1], [$2])
+-
+-  dnl Add $INC[]NAME to CPPFLAGS before performing the following checks,
+-  dnl because if the user has installed lib[]Name and not disabled its use
+-  dnl via --without-lib[]Name-prefix, he wants to use it.
+-  ac_save_CPPFLAGS=&quot;$CPPFLAGS&quot;
+-  AC_LIB_APPENDTOVAR([CPPFLAGS], [$INC]NAME)
+-
+-  AC_CACHE_CHECK([for lib[]$1], [ac_cv_lib[]Name], [
+-    ac_save_LIBS=&quot;$LIBS&quot;
+-    LIBS=&quot;$LIBS $LIB[]NAME&quot;
+-    AC_TRY_LINK([$3], [$4], [ac_cv_lib[]Name=yes], [ac_cv_lib[]Name=no])
+-    LIBS=&quot;$ac_save_LIBS&quot;
+-  ])
+-  if test &quot;$ac_cv_lib[]Name&quot; = yes; then
+-    HAVE_LIB[]NAME=yes
+-    AC_DEFINE([HAVE_LIB]NAME, 1, [Define if you have the $1 library.])
+-    AC_MSG_CHECKING([how to link with lib[]$1])
+-    AC_MSG_RESULT([$LIB[]NAME])
+-  else
+-    HAVE_LIB[]NAME=no
+-    dnl If $LIB[]NAME didn't lead to a usable library, we don't need
+-    dnl $INC[]NAME either.
+-    CPPFLAGS=&quot;$ac_save_CPPFLAGS&quot;
+-    LIB[]NAME=
+-    LTLIB[]NAME=
+-  fi
+-  AC_SUBST([HAVE_LIB]NAME)
+-  AC_SUBST([LIB]NAME)
+-  AC_SUBST([LTLIB]NAME)
+-  undefine([Name])
+-  undefine([NAME])
+-])
+-
+-dnl Determine the platform dependent parameters needed to use rpath:
+-dnl libext, shlibext, hardcode_libdir_flag_spec, hardcode_libdir_separator,
+-dnl hardcode_direct, hardcode_minus_L.
+-AC_DEFUN([AC_LIB_RPATH],
+-[
+-  dnl Tell automake &gt;= 1.10 to complain if config.rpath is missing.
+-  m4_ifdef([AC_REQUIRE_AUX_FILE], [AC_REQUIRE_AUX_FILE([config.rpath])])
+-  AC_REQUIRE([AC_PROG_CC])                dnl we use $CC, $GCC, $LDFLAGS
+-  AC_REQUIRE([AC_LIB_PROG_LD])            dnl we use $LD, $with_gnu_ld
+-  AC_REQUIRE([AC_CANONICAL_HOST])         dnl we use $host
+-  AC_REQUIRE([AC_CONFIG_AUX_DIR_DEFAULT]) dnl we use $ac_aux_dir
+-  AC_CACHE_CHECK([for shared library run path origin], acl_cv_rpath, [
+-    CC=&quot;$CC&quot; GCC=&quot;$GCC&quot; LDFLAGS=&quot;$LDFLAGS&quot; LD=&quot;$LD&quot; with_gnu_ld=&quot;$with_gnu_ld&quot; \
+-    ${CONFIG_SHELL-/bin/sh} &quot;$ac_aux_dir/config.rpath&quot; &quot;$host&quot; &gt; conftest.sh
+-    . ./conftest.sh
+-    rm -f ./conftest.sh
+-    acl_cv_rpath=done
+-  ])
+-  wl=&quot;$acl_cv_wl&quot;
+-  libext=&quot;$acl_cv_libext&quot;
+-  shlibext=&quot;$acl_cv_shlibext&quot;
+-  hardcode_libdir_flag_spec=&quot;$acl_cv_hardcode_libdir_flag_spec&quot;
+-  hardcode_libdir_separator=&quot;$acl_cv_hardcode_libdir_separator&quot;
+-  hardcode_direct=&quot;$acl_cv_hardcode_direct&quot;
+-  hardcode_minus_L=&quot;$acl_cv_hardcode_minus_L&quot;
+-  dnl Determine whether the user wants rpath handling at all.
+-  AC_ARG_ENABLE(rpath,
+-    [  --disable-rpath         do not hardcode runtime library paths],
+-    :, enable_rpath=yes)
+-])
+-
+-dnl AC_LIB_LINKFLAGS_BODY(name [, dependencies]) searches for libname and
+-dnl the libraries corresponding to explicit and implicit dependencies.
+-dnl Sets the LIB${NAME}, LTLIB${NAME} and INC${NAME} variables.
+-AC_DEFUN([AC_LIB_LINKFLAGS_BODY],
+-[
+-  define([NAME],[translit([$1],[abcdefghijklmnopqrstuvwxyz./-],
+-                               [ABCDEFGHIJKLMNOPQRSTUVWXYZ___])])
+-  dnl By default, look in $includedir and $libdir.
+-  use_additional=yes
+-  AC_LIB_WITH_FINAL_PREFIX([
+-    eval additional_includedir=\&quot;$includedir\&quot;
+-    eval additional_libdir=\&quot;$libdir\&quot;
+-  ])
+-  AC_LIB_ARG_WITH([lib$1-prefix],
+-[  --with-lib$1-prefix[=DIR]  search for lib$1 in DIR/include and DIR/lib
+-  --without-lib$1-prefix     don't search for lib$1 in includedir and libdir],
+-[
+-    if test &quot;X$withval&quot; = &quot;Xno&quot;; then
+-      use_additional=no
+-    else
+-      if test &quot;X$withval&quot; = &quot;X&quot;; then
+-        AC_LIB_WITH_FINAL_PREFIX([
+-          eval additional_includedir=\&quot;$includedir\&quot;
+-          eval additional_libdir=\&quot;$libdir\&quot;
+-        ])
+-      else
+-        additional_includedir=&quot;$withval/include&quot;
+-        additional_libdir=&quot;$withval/lib&quot;
+-      fi
+-    fi
+-])
+-  dnl Search the library and its dependencies in $additional_libdir and
+-  dnl $LDFLAGS. Using breadth-first-seach.
+-  LIB[]NAME=
+-  LTLIB[]NAME=
+-  INC[]NAME=
+-  rpathdirs=
+-  ltrpathdirs=
+-  names_already_handled=
+-  names_next_round='$1 $2'
+-  while test -n &quot;$names_next_round&quot;; do
+-    names_this_round=&quot;$names_next_round&quot;
+-    names_next_round=
+-    for name in $names_this_round; do
+-      already_handled=
+-      for n in $names_already_handled; do
+-        if test &quot;$n&quot; = &quot;$name&quot;; then
+-          already_handled=yes
+-          break
+-        fi
+-      done
+-      if test -z &quot;$already_handled&quot;; then
+-        names_already_handled=&quot;$names_already_handled $name&quot;
+-        dnl See if it was already located by an earlier AC_LIB_LINKFLAGS
+-        dnl or AC_LIB_HAVE_LINKFLAGS call.
+-        uppername=`echo &quot;$name&quot; | sed -e 'y|abcdefghijklmnopqrstuvwxyz./-|ABCDEFGHIJKLMNOPQRSTUVWXYZ___|'`
+-        eval value=\&quot;\$HAVE_LIB$uppername\&quot;
+-        if test -n &quot;$value&quot;; then
+-          if test &quot;$value&quot; = yes; then
+-            eval value=\&quot;\$LIB$uppername\&quot;
+-            test -z &quot;$value&quot; || LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$value&quot;
+-            eval value=\&quot;\$LTLIB$uppername\&quot;
+-            test -z &quot;$value&quot; || LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }$value&quot;
+-          else
+-            dnl An earlier call to AC_LIB_HAVE_LINKFLAGS has determined
+-            dnl that this library doesn't exist. So just drop it.
+-            :
+-          fi
+-        else
+-          dnl Search the library lib$name in $additional_libdir and $LDFLAGS
+-          dnl and the already constructed $LIBNAME/$LTLIBNAME.
+-          found_dir=
+-          found_la=
+-          found_so=
+-          found_a=
+-          if test $use_additional = yes; then
+-            if test -n &quot;$shlibext&quot; &amp;&amp; test -f &quot;$additional_libdir/lib$name.$shlibext&quot;; then
+-              found_dir=&quot;$additional_libdir&quot;
+-              found_so=&quot;$additional_libdir/lib$name.$shlibext&quot;
+-              if test -f &quot;$additional_libdir/lib$name.la&quot;; then
+-                found_la=&quot;$additional_libdir/lib$name.la&quot;
+-              fi
+-            else
+-              if test -f &quot;$additional_libdir/lib$name.$libext&quot;; then
+-                found_dir=&quot;$additional_libdir&quot;
+-                found_a=&quot;$additional_libdir/lib$name.$libext&quot;
+-                if test -f &quot;$additional_libdir/lib$name.la&quot;; then
+-                  found_la=&quot;$additional_libdir/lib$name.la&quot;
+-                fi
+-              fi
+-            fi
+-          fi
+-          if test &quot;X$found_dir&quot; = &quot;X&quot;; then
+-            for x in $LDFLAGS $LTLIB[]NAME; do
+-              AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-              case &quot;$x&quot; in
+-                -L*)
+-                  dir=`echo &quot;X$x&quot; | sed -e 's/^X-L//'`
+-                  if test -n &quot;$shlibext&quot; &amp;&amp; test -f &quot;$dir/lib$name.$shlibext&quot;; then
+-                    found_dir=&quot;$dir&quot;
+-                    found_so=&quot;$dir/lib$name.$shlibext&quot;
+-                    if test -f &quot;$dir/lib$name.la&quot;; then
+-                      found_la=&quot;$dir/lib$name.la&quot;
+-                    fi
+-                  else
+-                    if test -f &quot;$dir/lib$name.$libext&quot;; then
+-                      found_dir=&quot;$dir&quot;
+-                      found_a=&quot;$dir/lib$name.$libext&quot;
+-                      if test -f &quot;$dir/lib$name.la&quot;; then
+-                        found_la=&quot;$dir/lib$name.la&quot;
+-                      fi
+-                    fi
+-                  fi
+-                  ;;
+-              esac
+-              if test &quot;X$found_dir&quot; != &quot;X&quot;; then
+-                break
+-              fi
+-            done
+-          fi
+-          if test &quot;X$found_dir&quot; != &quot;X&quot;; then
+-            dnl Found the library.
+-            LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }-L$found_dir -l$name&quot;
+-            if test &quot;X$found_so&quot; != &quot;X&quot;; then
+-              dnl Linking with a shared library. We attempt to hardcode its
+-              dnl directory into the executable's runpath, unless it's the
+-              dnl standard /usr/lib.
+-              if test &quot;$enable_rpath&quot; = no || test &quot;X$found_dir&quot; = &quot;X/usr/lib&quot;; then
+-                dnl No hardcoding is needed.
+-                LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$found_so&quot;
+-              else
+-                dnl Use an explicit option to hardcode DIR into the resulting
+-                dnl binary.
+-                dnl Potentially add DIR to ltrpathdirs.
+-                dnl The ltrpathdirs will be appended to $LTLIBNAME at the end.
+-                haveit=
+-                for x in $ltrpathdirs; do
+-                  if test &quot;X$x&quot; = &quot;X$found_dir&quot;; then
+-                    haveit=yes
+-                    break
+-                  fi
+-                done
+-                if test -z &quot;$haveit&quot;; then
+-                  ltrpathdirs=&quot;$ltrpathdirs $found_dir&quot;
+-                fi
+-                dnl The hardcoding into $LIBNAME is system dependent.
+-                if test &quot;$hardcode_direct&quot; = yes; then
+-                  dnl Using DIR/libNAME.so during linking hardcodes DIR into the
+-                  dnl resulting binary.
+-                  LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$found_so&quot;
+-                else
+-                  if test -n &quot;$hardcode_libdir_flag_spec&quot; &amp;&amp; test &quot;$hardcode_minus_L&quot; = no; then
+-                    dnl Use an explicit option to hardcode DIR into the resulting
+-                    dnl binary.
+-                    LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$found_so&quot;
+-                    dnl Potentially add DIR to rpathdirs.
+-                    dnl The rpathdirs will be appended to $LIBNAME at the end.
+-                    haveit=
+-                    for x in $rpathdirs; do
+-                      if test &quot;X$x&quot; = &quot;X$found_dir&quot;; then
+-                        haveit=yes
+-                        break
+-                      fi
+-                    done
+-                    if test -z &quot;$haveit&quot;; then
+-                      rpathdirs=&quot;$rpathdirs $found_dir&quot;
+-                    fi
+-                  else
+-                    dnl Rely on &quot;-L$found_dir&quot;.
+-                    dnl But don't add it if it's already contained in the LDFLAGS
+-                    dnl or the already constructed $LIBNAME
+-                    haveit=
+-                    for x in $LDFLAGS $LIB[]NAME; do
+-                      AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-                      if test &quot;X$x&quot; = &quot;X-L$found_dir&quot;; then
+-                        haveit=yes
+-                        break
+-                      fi
+-                    done
+-                    if test -z &quot;$haveit&quot;; then
+-                      LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }-L$found_dir&quot;
+-                    fi
+-                    if test &quot;$hardcode_minus_L&quot; != no; then
+-                      dnl FIXME: Not sure whether we should use
+-                      dnl &quot;-L$found_dir -l$name&quot; or &quot;-L$found_dir $found_so&quot;
+-                      dnl here.
+-                      LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$found_so&quot;
+-                    else
+-                      dnl We cannot use $hardcode_runpath_var and LD_RUN_PATH
+-                      dnl here, because this doesn't fit in flags passed to the
+-                      dnl compiler. So give up. No hardcoding. This affects only
+-                      dnl very old systems.
+-                      dnl FIXME: Not sure whether we should use
+-                      dnl &quot;-L$found_dir -l$name&quot; or &quot;-L$found_dir $found_so&quot;
+-                      dnl here.
+-                      LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }-l$name&quot;
+-                    fi
+-                  fi
+-                fi
+-              fi
+-            else
+-              if test &quot;X$found_a&quot; != &quot;X&quot;; then
+-                dnl Linking with a static library.
+-                LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$found_a&quot;
+-              else
+-                dnl We shouldn't come here, but anyway it's good to have a
+-                dnl fallback.
+-                LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }-L$found_dir -l$name&quot;
+-              fi
+-            fi
+-            dnl Assume the include files are nearby.
+-            additional_includedir=
+-            case &quot;$found_dir&quot; in
+-              */lib | */lib/)
+-                basedir=`echo &quot;X$found_dir&quot; | sed -e 's,^X,,' -e 's,/lib/*$,,'`
+-                additional_includedir=&quot;$basedir/include&quot;
+-                ;;
+-            esac
+-            if test &quot;X$additional_includedir&quot; != &quot;X&quot;; then
+-              dnl Potentially add $additional_includedir to $INCNAME.
+-              dnl But don't add it
+-              dnl   1. if it's the standard /usr/include,
+-              dnl   2. if it's /usr/local/include and we are using GCC on Linux,
+-              dnl   3. if it's already present in $CPPFLAGS or the already
+-              dnl      constructed $INCNAME,
+-              dnl   4. if it doesn't exist as a directory.
+-              if test &quot;X$additional_includedir&quot; != &quot;X/usr/include&quot;; then
+-                haveit=
+-                if test &quot;X$additional_includedir&quot; = &quot;X/usr/local/include&quot;; then
+-                  if test -n &quot;$GCC&quot;; then
+-                    case $host_os in
+-                      linux* | gnu* | k*bsd*-gnu) haveit=yes;;
+-                    esac
+-                  fi
+-                fi
+-                if test -z &quot;$haveit&quot;; then
+-                  for x in $CPPFLAGS $INC[]NAME; do
+-                    AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-                    if test &quot;X$x&quot; = &quot;X-I$additional_includedir&quot;; then
+-                      haveit=yes
+-                      break
+-                    fi
+-                  done
+-                  if test -z &quot;$haveit&quot;; then
+-                    if test -d &quot;$additional_includedir&quot;; then
+-                      dnl Really add $additional_includedir to $INCNAME.
+-                      INC[]NAME=&quot;${INC[]NAME}${INC[]NAME:+ }-I$additional_includedir&quot;
+-                    fi
+-                  fi
+-                fi
+-              fi
+-            fi
+-            dnl Look for dependencies.
+-            if test -n &quot;$found_la&quot;; then
+-              dnl Read the .la file. It defines the variables
+-              dnl dlname, library_names, old_library, dependency_libs, current,
+-              dnl age, revision, installed, dlopen, dlpreopen, libdir.
+-              save_libdir=&quot;$libdir&quot;
+-              case &quot;$found_la&quot; in
+-                */* | *\\*) . &quot;$found_la&quot; ;;
+-                *) . &quot;./$found_la&quot; ;;
+-              esac
+-              libdir=&quot;$save_libdir&quot;
+-              dnl We use only dependency_libs.
+-              for dep in $dependency_libs; do
+-                case &quot;$dep&quot; in
+-                  -L*)
+-                    additional_libdir=`echo &quot;X$dep&quot; | sed -e 's/^X-L//'`
+-                    dnl Potentially add $additional_libdir to $LIBNAME and $LTLIBNAME.
+-                    dnl But don't add it
+-                    dnl   1. if it's the standard /usr/lib,
+-                    dnl   2. if it's /usr/local/lib and we are using GCC on Linux,
+-                    dnl   3. if it's already present in $LDFLAGS or the already
+-                    dnl      constructed $LIBNAME,
+-                    dnl   4. if it doesn't exist as a directory.
+-                    if test &quot;X$additional_libdir&quot; != &quot;X/usr/lib&quot;; then
+-                      haveit=
+-                      if test &quot;X$additional_libdir&quot; = &quot;X/usr/local/lib&quot;; then
+-                        if test -n &quot;$GCC&quot;; then
+-                          case $host_os in
+-                            linux* | gnu* | k*bsd*-gnu) haveit=yes;;
+-                          esac
+-                        fi
+-                      fi
+-                      if test -z &quot;$haveit&quot;; then
+-                        haveit=
+-                        for x in $LDFLAGS $LIB[]NAME; do
+-                          AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-                          if test &quot;X$x&quot; = &quot;X-L$additional_libdir&quot;; then
+-                            haveit=yes
+-                            break
+-                          fi
+-                        done
+-                        if test -z &quot;$haveit&quot;; then
+-                          if test -d &quot;$additional_libdir&quot;; then
+-                            dnl Really add $additional_libdir to $LIBNAME.
+-                            LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }-L$additional_libdir&quot;
+-                          fi
+-                        fi
+-                        haveit=
+-                        for x in $LDFLAGS $LTLIB[]NAME; do
+-                          AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-                          if test &quot;X$x&quot; = &quot;X-L$additional_libdir&quot;; then
+-                            haveit=yes
+-                            break
+-                          fi
+-                        done
+-                        if test -z &quot;$haveit&quot;; then
+-                          if test -d &quot;$additional_libdir&quot;; then
+-                            dnl Really add $additional_libdir to $LTLIBNAME.
+-                            LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }-L$additional_libdir&quot;
+-                          fi
+-                        fi
+-                      fi
+-                    fi
+-                    ;;
+-                  -R*)
+-                    dir=`echo &quot;X$dep&quot; | sed -e 's/^X-R//'`
+-                    if test &quot;$enable_rpath&quot; != no; then
+-                      dnl Potentially add DIR to rpathdirs.
+-                      dnl The rpathdirs will be appended to $LIBNAME at the end.
+-                      haveit=
+-                      for x in $rpathdirs; do
+-                        if test &quot;X$x&quot; = &quot;X$dir&quot;; then
+-                          haveit=yes
+-                          break
+-                        fi
+-                      done
+-                      if test -z &quot;$haveit&quot;; then
+-                        rpathdirs=&quot;$rpathdirs $dir&quot;
+-                      fi
+-                      dnl Potentially add DIR to ltrpathdirs.
+-                      dnl The ltrpathdirs will be appended to $LTLIBNAME at the end.
+-                      haveit=
+-                      for x in $ltrpathdirs; do
+-                        if test &quot;X$x&quot; = &quot;X$dir&quot;; then
+-                          haveit=yes
+-                          break
+-                        fi
+-                      done
+-                      if test -z &quot;$haveit&quot;; then
+-                        ltrpathdirs=&quot;$ltrpathdirs $dir&quot;
+-                      fi
+-                    fi
+-                    ;;
+-                  -l*)
+-                    dnl Handle this in the next round.
+-                    names_next_round=&quot;$names_next_round &quot;`echo &quot;X$dep&quot; | sed -e 's/^X-l//'`
+-                    ;;
+-                  *.la)
+-                    dnl Handle this in the next round. Throw away the .la's
+-                    dnl directory; it is already contained in a preceding -L
+-                    dnl option.
+-                    names_next_round=&quot;$names_next_round &quot;`echo &quot;X$dep&quot; | sed -e 's,^X.*/,,' -e 's,^lib,,' -e 's,\.la$,,'`
+-                    ;;
+-                  *)
+-                    dnl Most likely an immediate library name.
+-                    LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$dep&quot;
+-                    LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }$dep&quot;
+-                    ;;
+-                esac
+-              done
+-            fi
+-          else
+-            dnl Didn't find the library; assume it is in the system directories
+-            dnl known to the linker and runtime loader. (All the system
+-            dnl directories known to the linker should also be known to the
+-            dnl runtime loader, otherwise the system is severely misconfigured.)
+-            LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }-l$name&quot;
+-            LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }-l$name&quot;
+-          fi
+-        fi
+-      fi
+-    done
+-  done
+-  if test &quot;X$rpathdirs&quot; != &quot;X&quot;; then
+-    if test -n &quot;$hardcode_libdir_separator&quot;; then
+-      dnl Weird platform: only the last -rpath option counts, the user must
+-      dnl pass all path elements in one option. We can arrange that for a
+-      dnl single library, but not when more than one $LIBNAMEs are used.
+-      alldirs=
+-      for found_dir in $rpathdirs; do
+-        alldirs=&quot;${alldirs}${alldirs:+$hardcode_libdir_separator}$found_dir&quot;
+-      done
+-      dnl Note: hardcode_libdir_flag_spec uses $libdir and $wl.
+-      acl_save_libdir=&quot;$libdir&quot;
+-      libdir=&quot;$alldirs&quot;
+-      eval flag=\&quot;$hardcode_libdir_flag_spec\&quot;
+-      libdir=&quot;$acl_save_libdir&quot;
+-      LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$flag&quot;
+-    else
+-      dnl The -rpath options are cumulative.
+-      for found_dir in $rpathdirs; do
+-        acl_save_libdir=&quot;$libdir&quot;
+-        libdir=&quot;$found_dir&quot;
+-        eval flag=\&quot;$hardcode_libdir_flag_spec\&quot;
+-        libdir=&quot;$acl_save_libdir&quot;
+-        LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$flag&quot;
+-      done
+-    fi
+-  fi
+-  if test &quot;X$ltrpathdirs&quot; != &quot;X&quot;; then
+-    dnl When using libtool, the option that works for both libraries and
+-    dnl executables is -R. The -R options are cumulative.
+-    for found_dir in $ltrpathdirs; do
+-      LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }-R$found_dir&quot;
+-    done
+-  fi
+-])
+-
+-dnl AC_LIB_APPENDTOVAR(VAR, CONTENTS) appends the elements of CONTENTS to VAR,
+-dnl unless already present in VAR.
+-dnl Works only for CPPFLAGS, not for LIB* variables because that sometimes
+-dnl contains two or three consecutive elements that belong together.
+-AC_DEFUN([AC_LIB_APPENDTOVAR],
+-[
+-  for element in [$2]; do
+-    haveit=
+-    for x in $[$1]; do
+-      AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-      if test &quot;X$x&quot; = &quot;X$element&quot;; then
+-        haveit=yes
+-        break
+-      fi
+-    done
+-    if test -z &quot;$haveit&quot;; then
+-      [$1]=&quot;${[$1]}${[$1]:+ }$element&quot;
+-    fi
+-  done
+-])
+-
+-# lib-ld.m4 serial 3 (gettext-0.13)
+-dnl Copyright (C) 1996-2003 Free Software Foundation, Inc.
+-dnl This file is free software; the Free Software Foundation
+-dnl gives unlimited permission to copy and/or distribute it,
+-dnl with or without modifications, as long as this notice is preserved.
+-
+-dnl Subroutines of libtool.m4,
+-dnl with replacements s/AC_/AC_LIB/ and s/lt_cv/acl_cv/ to avoid collision
+-dnl with libtool.m4.
+-
+-dnl From libtool-1.4. Sets the variable with_gnu_ld to yes or no.
+-AC_DEFUN([AC_LIB_PROG_LD_GNU],
+-[AC_CACHE_CHECK([if the linker ($LD) is GNU ld], acl_cv_prog_gnu_ld,
+-[# I'd rather use --version here, but apparently some GNU ld's only accept -v.
+-case `$LD -v 2&gt;&amp;1 &lt;/dev/null` in
+-*GNU* | *'with BFD'*)
+-  acl_cv_prog_gnu_ld=yes ;;
+-*)
+-  acl_cv_prog_gnu_ld=no ;;
+-esac])
+-with_gnu_ld=$acl_cv_prog_gnu_ld
+-])
+-
+-dnl From libtool-1.4. Sets the variable LD.
+-AC_DEFUN([AC_LIB_PROG_LD],
+-[AC_ARG_WITH(gnu-ld,
+-[  --with-gnu-ld           assume the C compiler uses GNU ld [default=no]],
+-test &quot;$withval&quot; = no || with_gnu_ld=yes, with_gnu_ld=no)
+-AC_REQUIRE([AC_PROG_CC])dnl
+-AC_REQUIRE([AC_CANONICAL_HOST])dnl
+-# Prepare PATH_SEPARATOR.
+-# The user is always right.
+-if test &quot;${PATH_SEPARATOR+set}&quot; != set; then
+-  echo &quot;#! /bin/sh&quot; &gt;conf$$.sh
+-  echo  &quot;exit 0&quot;   &gt;&gt;conf$$.sh
+-  chmod +x conf$$.sh
+-  if (PATH=&quot;/nonexistent;.&quot;; conf$$.sh) &gt;/dev/null 2&gt;&amp;1; then
+-    PATH_SEPARATOR=';'
+-  else
+-    PATH_SEPARATOR=:
+-  fi
+-  rm -f conf$$.sh
+-fi
+-ac_prog=ld
+-if test &quot;$GCC&quot; = yes; then
+-  # Check if gcc -print-prog-name=ld gives a path.
+-  AC_MSG_CHECKING([for ld used by GCC])
+-  case $host in
+-  *-*-mingw*)
+-    # gcc leaves a trailing carriage return which upsets mingw
+-    ac_prog=`($CC -print-prog-name=ld) 2&gt;&amp;5 | tr -d '\015'` ;;
+-  *)
+-    ac_prog=`($CC -print-prog-name=ld) 2&gt;&amp;5` ;;
+-  esac
+-  case $ac_prog in
+-    # Accept absolute paths.
+-    [[\\/]* | [A-Za-z]:[\\/]*)]
+-      [re_direlt='/[^/][^/]*/\.\./']
+-      # Canonicalize the path of ld
+-      ac_prog=`echo $ac_prog| sed 's%\\\\%/%g'`
+-      while echo $ac_prog | grep &quot;$re_direlt&quot; &gt; /dev/null 2&gt;&amp;1; do
+-	ac_prog=`echo $ac_prog| sed &quot;s%$re_direlt%/%&quot;`
+-      done
+-      test -z &quot;$LD&quot; &amp;&amp; LD=&quot;$ac_prog&quot;
+-      ;;
+-  &quot;&quot;)
+-    # If it fails, then pretend we aren't using GCC.
+-    ac_prog=ld
+-    ;;
+-  *)
+-    # If it is relative, then search for the first ld in PATH.
+-    with_gnu_ld=unknown
+-    ;;
+-  esac
+-elif test &quot;$with_gnu_ld&quot; = yes; then
+-  AC_MSG_CHECKING([for GNU ld])
+-else
+-  AC_MSG_CHECKING([for non-GNU ld])
+-fi
+-AC_CACHE_VAL(acl_cv_path_LD,
+-[if test -z &quot;$LD&quot;; then
+-  IFS=&quot;${IFS= 	}&quot;; ac_save_ifs=&quot;$IFS&quot;; IFS=&quot;${IFS}${PATH_SEPARATOR-:}&quot;
+-  for ac_dir in $PATH; do
+-    test -z &quot;$ac_dir&quot; &amp;&amp; ac_dir=.
+-    if test -f &quot;$ac_dir/$ac_prog&quot; || test -f &quot;$ac_dir/$ac_prog$ac_exeext&quot;; then
+-      acl_cv_path_LD=&quot;$ac_dir/$ac_prog&quot;
+-      # Check to see if the program is GNU ld.  I'd rather use --version,
+-      # but apparently some GNU ld's only accept -v.
+-      # Break only if it was the GNU/non-GNU ld that we prefer.
+-      case `&quot;$acl_cv_path_LD&quot; -v 2&gt;&amp;1 &lt; /dev/null` in
+-      *GNU* | *'with BFD'*)
+-	test &quot;$with_gnu_ld&quot; != no &amp;&amp; break ;;
+-      *)
+-	test &quot;$with_gnu_ld&quot; != yes &amp;&amp; break ;;
+-      esac
+-    fi
+-  done
+-  IFS=&quot;$ac_save_ifs&quot;
+-else
+-  acl_cv_path_LD=&quot;$LD&quot; # Let the user override the test with a path.
+-fi])
+-LD=&quot;$acl_cv_path_LD&quot;
+-if test -n &quot;$LD&quot;; then
+-  AC_MSG_RESULT($LD)
+-else
+-  AC_MSG_RESULT(no)
+-fi
+-test -z &quot;$LD&quot; &amp;&amp; AC_MSG_ERROR([no acceptable ld found in \$PATH])
+-AC_LIB_PROG_LD_GNU
+-])
+-
++m4_include([acinclude.m4])
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-09 13:28:53 UTC (rev 109)
++++ trunk/apps/app_voicemail.c	2006-05-09 14:28:52 UTC (rev 110)
+@@ -586,6 +586,7 @@
+ 					apply_option(retval, tmp-&gt;name, tmp-&gt;value);
+ 				tmp = tmp-&gt;next;
+ 			} 
++			ast_variables_destroy(var);
+ 		} else { 
+ 			if (!ivm) 
+ 				free(retval);
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-09 13:28:53 UTC (rev 109)
++++ trunk/pbx.c	2006-05-09 14:28:52 UTC (rev 110)
+@@ -701,15 +701,12 @@
+ 
+ struct ast_context *ast_context_find(const char *name)
+ {
+-	struct ast_context *tmp;
++	struct ast_context *tmp = NULL;
+ 	ast_mutex_lock(&amp;conlock);
+-	if (name) {
+-		for (tmp = contexts; tmp; tmp = tmp-&gt;next) {
+-			if (!strcasecmp(name, tmp-&gt;name))
+-				break;
+-		}
+-	} else
+-		tmp = contexts;
++	while ( (tmp = ast_walk_contexts(tmp)) ) {
++		if (!name || !strcasecmp(name, tmp-&gt;name))
++			break;
++	}
+ 	ast_mutex_unlock(&amp;conlock);
+ 	return tmp;
+ }
+@@ -780,7 +777,8 @@
+ 	if (bypass)	/* bypass means we only look there */
+ 		tmp = bypass;
+ 	else {	/* look in contexts */
+-		for (tmp = contexts; tmp; tmp = tmp-&gt;next) {
++		tmp = NULL;
++		while ((tmp = ast_walk_contexts(tmp)) ) {
+ 			if (!strcmp(tmp-&gt;name, context))
+ 				break;
+ 		}
+@@ -4952,8 +4950,8 @@
+ 	int ms;
+ 
+ 	/* Wait for &quot;n&quot; seconds */
+-	if (data &amp;&amp; atof((char *)data)) {
+-		ms = atof((char *)data) * 1000;
++	if (data &amp;&amp; (ms = atof(data)) &gt; 0) {
++		ms *= 1000;
+ 		return ast_safe_sleep(chan, ms);
+ 	}
+ 	return 0;
+@@ -4987,8 +4985,8 @@
+ 		ast_moh_start(chan, opts[0]);
+ 
+ 	/* Wait for &quot;n&quot; seconds */
+-	if (args.timeout &amp;&amp; atof(args.timeout))
+-		 ms = atof(args.timeout) * 1000;
++	if (args.timeout &amp;&amp; (ms = atof(args.timeout)) &gt; 0)
++		 ms *= 1000;
+ 	else if (chan-&gt;pbx)
+ 		ms = chan-&gt;pbx-&gt;rtimeout * 1000;
+ 	else
+@@ -5398,7 +5396,7 @@
+ 	int res = 0;
+ 
+ 	if (data)
+-		res = ast_say_digit_str(chan, (char *)data, &quot;&quot;, chan-&gt;language);
++		res = ast_say_digit_str(chan, data, &quot;&quot;, chan-&gt;language);
+ 	return res;
+ }
+ 
+@@ -5407,7 +5405,7 @@
+ 	int res = 0;
+ 
+ 	if (data)
+-		res = ast_say_character_str(chan, (char *)data, &quot;&quot;, chan-&gt;language);
++		res = ast_say_character_str(chan, data, &quot;&quot;, chan-&gt;language);
+ 	return res;
+ }
+ 
+@@ -5416,7 +5414,7 @@
+ 	int res = 0;
+ 
+ 	if (data)
+-		res = ast_say_phonetic_str(chan, (char *)data, &quot;&quot;, chan-&gt;language);
++		res = ast_say_phonetic_str(chan, data, &quot;&quot;, chan-&gt;language);
+ 	return res;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000105.html">[solid-pbx-svn] r109 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000107.html">[solid-pbx-svn] r111 - in trunk: . channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#106">[ date ]</a>
+              <a href="thread.html#106">[ thread ]</a>
+              <a href="subject.html#106">[ subject ]</a>
+              <a href="author.html#106">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

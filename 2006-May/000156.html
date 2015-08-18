@@ -1,0 +1,229 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r161 - trunk/funcs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r161%20-%20trunk/funcs&In-Reply-To=%3C200605162129.k4GLTEqU008503%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000155.html">
+   <LINK REL="Next"  HREF="000157.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r161 - trunk/funcs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r161%20-%20trunk/funcs&In-Reply-To=%3C200605162129.k4GLTEqU008503%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r161 - trunk/funcs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May 16 23:29:14 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000155.html">[solid-pbx-svn] r160 - in trunk: . apps channels
+</A></li>
+        <LI>Next message: <A HREF="000157.html">[solid-pbx-svn] r162 - in trunk: . channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#156">[ date ]</a>
+              <a href="thread.html#156">[ thread ]</a>
+              <a href="subject.html#156">[ subject ]</a>
+              <a href="author.html#156">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-16 23:29:12 +0200 (Tue, 16 May 2006)
+New Revision: 161
+
+Modified:
+   trunk/funcs/func_odbc.c
+Log:
+Update to Asterisk SVN trunk r27522
+
+------------------------------------------------------------------------
+r27522 | tilghman | 2006-05-16 23:14:01 +0200 (Tue, 16 May 2006) | 2 lines
+
+Argument macro janitor for func_odbc, fixes #7171
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/funcs/func_odbc.c
+===================================================================
+--- trunk/funcs/func_odbc.c	2006-05-16 20:31:23 UTC (rev 160)
++++ trunk/funcs/func_odbc.c	2006-05-16 21:29:12 UTC (rev 161)
+@@ -81,9 +81,14 @@
+ {
+ 	struct odbc_obj *obj;
+ 	struct acf_odbc_query *query;
+-	char *t, *arg, buf[2048]=&quot;&quot;, varname[15];
+-	int res, argcount=0, valcount=0, i, retry=0;
+-	struct ast_channel *ast;
++	char *t, buf[2048]=&quot;&quot;, varname[15];
++	int res, i, retry=0;
++	AST_DECLARE_APP_ARGS(values,
++		AST_APP_ARG(field)[100];
++	);
++	AST_DECLARE_APP_ARGS(args,
++		AST_APP_ARG(field)[100];
++	);
+ 	SQLHSTMT stmt;
+ 	SQLINTEGER nativeerror=0, numfields=0, rows=0;
+ 	SQLSMALLINT diagbytes=0;
+@@ -123,52 +128,37 @@
+ 		return -1;
+ 	}
+ 
+-	/* XXX You might be tempted to change this section into using
+-	 * pbx_builtin_pushvar_helper().  However, note that if you try
+-	 * to set a NULL (like for VALUE), then nothing gets set, and the
+-	 * value doesn't get masked out.  Even worse, when you subsequently
+-	 * try to remove the value you just set, you'll wind up unsetting
+-	 * the previous value (which is wholly undesireable).  Hence, this
+-	 * has to remain the way it is done here. XXX
+-	 */
+-
+-	/* Save old arguments as variables in a fake channel */
+-	ast = ast_channel_alloc(0);
+-	while ((arg = strsep(&amp;s, &quot;|&quot;))) {
+-		argcount++;
+-		snprintf(varname, sizeof(varname), &quot;ARG%d&quot;, argcount);
+-		pbx_builtin_setvar_helper(ast, varname, pbx_builtin_getvar_helper(chan, varname));
+-		pbx_builtin_setvar_helper(chan, varname, arg);
++	AST_STANDARD_APP_ARGS(args, s);
++	for (i = 0; i &lt; args.argc; i++) {
++		snprintf(varname, sizeof(varname), &quot;ARG%d&quot;, i + 1);
++		pbx_builtin_pushvar_helper(chan, varname, args.field[i]);
+ 	}
+ 
+ 	/* Parse values, just like arguments */
+-	while ((arg = strsep(&amp;t, &quot;|&quot;))) {
+-		valcount++;
+-		snprintf(varname, sizeof(varname), &quot;VAL%d&quot;, valcount);
+-		pbx_builtin_setvar_helper(ast, varname, pbx_builtin_getvar_helper(chan, varname));
+-		pbx_builtin_setvar_helper(chan, varname, arg);
++	/* Can't use the pipe, because app Set removes them */
++	AST_NONSTANDARD_APP_ARGS(values, t, ',');
++	for (i = 0; i &lt; values.argc; i++) {
++		snprintf(varname, sizeof(varname), &quot;VAL%d&quot;, i + 1);
++		pbx_builtin_pushvar_helper(chan, varname, values.field[i]);
+ 	}
+ 
+-	/* Additionally set the value as a whole */
+-	/* Note that pbx_builtin_setvar_helper will quite happily take a NULL for the 3rd argument */
+-	pbx_builtin_setvar_helper(ast, &quot;VALUE&quot;, pbx_builtin_getvar_helper(chan, &quot;VALUE&quot;));
+-	pbx_builtin_setvar_helper(chan, &quot;VALUE&quot;, value);
++	/* Additionally set the value as a whole (but push an empty string if value is NULL) */
++	pbx_builtin_pushvar_helper(chan, &quot;VALUE&quot;, value ? value : &quot;&quot;);
+ 
+ 	pbx_substitute_variables_helper(chan, query-&gt;sql_write, buf, sizeof(buf) - 1);
+ 
+ 	/* Restore prior values */
+-	for (i=1; i&lt;=argcount; i++) {
+-		snprintf(varname, sizeof(varname), &quot;ARG%d&quot;, argcount);
+-		pbx_builtin_setvar_helper(chan, varname, pbx_builtin_getvar_helper(ast, varname));
++	for (i = 0; i &lt; args.argc; i++) {
++		snprintf(varname, sizeof(varname), &quot;ARG%d&quot;, i + 1);
++		pbx_builtin_setvar_helper(chan, varname, NULL);
+ 	}
+ 
+-	for (i=1; i&lt;=valcount; i++) {
+-		snprintf(varname, sizeof(varname), &quot;VAL%d&quot;, argcount);
+-		pbx_builtin_setvar_helper(chan, varname, pbx_builtin_getvar_helper(ast, varname));
++	for (i = 0; i &lt; values.argc; i++) {
++		snprintf(varname, sizeof(varname), &quot;VAL%d&quot;, i + 1);
++		pbx_builtin_setvar_helper(chan, varname, NULL);
+ 	}
+-	pbx_builtin_setvar_helper(chan, &quot;VALUE&quot;, pbx_builtin_getvar_helper(ast, &quot;VALUE&quot;));
++	pbx_builtin_setvar_helper(chan, &quot;VALUE&quot;, NULL);
+ 
+-	ast_channel_free(ast);
+ 	AST_LIST_UNLOCK(&amp;queries);
+ 
+ retry_write:
+@@ -239,8 +229,11 @@
+ {
+ 	struct odbc_obj *obj;
+ 	struct acf_odbc_query *query;
+-	char *arg, sql[2048] = &quot;&quot;, varname[15];
+-	int count=0, res, x, buflen = 0;
++	char sql[2048] = &quot;&quot;, varname[15];
++	int res, x, buflen = 0;
++	AST_DECLARE_APP_ARGS(args,
++		AST_APP_ARG(field)[100];
++	);
+ 	SQLHSTMT stmt;
+ 	SQLSMALLINT colcount=0;
+ 	SQLINTEGER indicator;
+@@ -275,18 +268,17 @@
+ 	SQLSetConnectAttr(obj-&gt;con, SQL_ATTR_TRACEFILE, tracefile, strlen(tracefile));
+ #endif
+ 
+-	while ((arg = strsep(&amp;s, &quot;|&quot;))) {
+-		count++;
+-		snprintf(varname, sizeof(varname), &quot;ARG%d&quot;, count);
+-		/* arg is by definition non-NULL, so this works, here */
+-		pbx_builtin_pushvar_helper(chan, varname, arg);
++	AST_STANDARD_APP_ARGS(args, s);
++	for (x = 0; x &lt; args.argc; x++) {
++		snprintf(varname, sizeof(varname), &quot;ARG%d&quot;, x + 1);
++		pbx_builtin_pushvar_helper(chan, varname, args.field[x]);
+ 	}
+ 
+ 	pbx_substitute_variables_helper(chan, query-&gt;sql_read, sql, sizeof(sql) - 1);
+ 
+ 	/* Restore prior values */
+-	for (x = 1; x &lt;= count; x++) {
+-		snprintf(varname, sizeof(varname), &quot;ARG%d&quot;, x);
++	for (x = 0; x &lt; args.argc; x++) {
++		snprintf(varname, sizeof(varname), &quot;ARG%d&quot;, x + 1);
+ 		pbx_builtin_setvar_helper(chan, varname, NULL);
+ 	}
+ 
+@@ -330,7 +322,8 @@
+ 		} else if (option_verbose &gt; 3) {
+ 			ast_log(LOG_WARNING, &quot;Error %d in FETCH [%s]\n&quot;, res, sql);
+ 		}
+-		goto acf_out;
++		SQLFreeHandle(SQL_HANDLE_STMT, stmt);
++		return 0;
+ 	}
+ 
+ 	for (x = 0; x &lt; colcount; x++) {
+@@ -369,7 +362,6 @@
+ 	/* Trim trailing comma */
+ 	buf[buflen - 1] = '\0';
+ 
+-acf_out:
+ 	SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+ 	return 0;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000155.html">[solid-pbx-svn] r160 - in trunk: . apps channels
+</A></li>
+	<LI>Next message: <A HREF="000157.html">[solid-pbx-svn] r162 - in trunk: . channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#156">[ date ]</a>
+              <a href="thread.html#156">[ thread ]</a>
+              <a href="subject.html#156">[ subject ]</a>
+              <a href="author.html#156">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,235 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r415 - in trunk: . apps build_tools funcs res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r415%20-%20in%20trunk%3A%20.%20apps%20build_tools%20funcs%20res&In-Reply-To=%3C200606280246.k5S2kS0e000561%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000409.html">
+   <LINK REL="Next"  HREF="000411.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r415 - in trunk: . apps build_tools funcs res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r415%20-%20in%20trunk%3A%20.%20apps%20build_tools%20funcs%20res&In-Reply-To=%3C200606280246.k5S2kS0e000561%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r415 - in trunk: . apps build_tools funcs res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:46:28 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000409.html">[solid-pbx-svn] r414 - in trunk: . channels
+</A></li>
+        <LI>Next message: <A HREF="000411.html">[solid-pbx-svn] r416 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#410">[ date ]</a>
+              <a href="thread.html#410">[ thread ]</a>
+              <a href="subject.html#410">[ subject ]</a>
+              <a href="author.html#410">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:45:27 +0200 (Wed, 28 Jun 2006)
+New Revision: 415
+
+Modified:
+   trunk/apps/Makefile
+   trunk/build_tools/menuselect-deps.in
+   trunk/configure.ac
+   trunk/funcs/Makefile
+   trunk/makeopts.in
+   trunk/res/Makefile
+   trunk/res/res_snmp.c
+Log:
+Update to Asterisk SVN trunk r35613
+
+------------------------------------------------------------------------
+r35605 | russell | 2006-06-23 03:29:41 +0200 (Fri, 23 Jun 2006) | 5 lines
+
+remove various commands that remove old modules since they have been there a
+sufficient amount of time.  Even if they happen to be still present, the main
+Makefile will spit out a huge warning telling the user that modules not
+installed by that run of &quot;make install&quot; are present in the modules directory.
+
+------------------------------------------------------------------------
+r35607 | russell | 2006-06-23 03:50:55 +0200 (Fri, 23 Jun 2006) | 2 lines
+
+add basic autoconf support for res_snmp
+
+------------------------------------------------------------------------
+r35608 | russell | 2006-06-23 03:54:07 +0200 (Fri, 23 Jun 2006) | 2 lines
+
+delete snmp/agent.o on make clean
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/Makefile
+===================================================================
+--- trunk/apps/Makefile	2006-06-28 02:39:58 UTC (rev 414)
++++ trunk/apps/Makefile	2006-06-28 02:45:27 UTC (rev 415)
+@@ -42,9 +42,6 @@
+ 
+ install: all
+ 	for x in $(MODS); do $(INSTALL) -m 755 $$x $(DESTDIR)$(MODULES_DIR) ; done
+-	rm -f $(DESTDIR)$(MODULES_DIR)/app_cut.so
+-	rm -f $(DESTDIR)$(MODULES_DIR)/app_datetime.so
+-	rm -f $(DESTDIR)$(MODULES_DIR)/app_qcall.so
+ 
+ uninstall:
+ 
+
+Modified: trunk/build_tools/menuselect-deps.in
+===================================================================
+--- trunk/build_tools/menuselect-deps.in	2006-06-28 02:39:58 UTC (rev 414)
++++ trunk/build_tools/menuselect-deps.in	2006-06-28 02:45:27 UTC (rev 415)
+@@ -26,3 +26,4 @@
+ LIBGSM=@PBX_LIBgsm@
+ IKSEMEL=@PBX_LIBIKSEMEL@
+ IXJUSER=@PBX_IXJUSER@
++NETSNMP=@PBX_NETSNMP@
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-06-28 02:39:58 UTC (rev 414)
++++ trunk/configure.ac	2006-06-28 02:45:27 UTC (rev 415)
+@@ -367,6 +367,16 @@
+ AC_SUBST([pq_LIB])
+ AC_SUBST([PBX_LIBpq])
+ 
++NETSNMP_LIBS=
++PBX_NETSNMP=0
++AC_PATH_TOOL([NET_SNMP_CONFIG], [net-snmp-config], No)
++if test &quot;x${NET_SNMP_CONFIG}&quot; != &quot;xNo&quot; ; then
++  NETSNMP_LIBS=`${NET_SNMP_CONFIG} --agent-libs`
++  PBX_NETSNMP=1
++fi
++AC_SUBST([NETSNMP_LIBS])
++AC_SUBST([PBX_NETSNMP])
++
+ AC_CHECK_HEADER([linux/ixjuser.h], [PBX_IXJUSER=1], [PBX_IXJUSER=0], [
+ 				   #include &lt;linux/version.h&gt;
+ 				   #if LINUX_VERSION_CODE &gt;= KERNEL_VERSION(2,6,0)
+
+Modified: trunk/funcs/Makefile
+===================================================================
+--- trunk/funcs/Makefile	2006-06-28 02:39:58 UTC (rev 414)
++++ trunk/funcs/Makefile	2006-06-28 02:45:27 UTC (rev 415)
+@@ -57,7 +57,6 @@
+ 
+ install: all
+ 	for x in $(MODS); do $(INSTALL) -m 755 $$x $(DESTDIR)$(MODULES_DIR) ; done
+-	rm -f $(DESTDIR)$(MODULES_DIR)/pbx_functions.so
+ 
+ uninstall:
+ 
+
+Modified: trunk/makeopts.in
+===================================================================
+--- trunk/makeopts.in	2006-06-28 02:39:58 UTC (rev 414)
++++ trunk/makeopts.in	2006-06-28 02:45:27 UTC (rev 415)
+@@ -123,3 +123,5 @@
+ 
+ RADIUSCLIENT_LIB=@RADIUSCLIENT_LIB@
+ RADIUSCLIENT_INCLUDE=@RADIUSCLIENT_INCLUDE@
++
++NETSNMP_LIBS=@NETSNMP_LIBS@
+
+Modified: trunk/res/Makefile
+===================================================================
+--- trunk/res/Makefile	2006-06-28 02:39:58 UTC (rev 414)
++++ trunk/res/Makefile	2006-06-28 02:45:27 UTC (rev 415)
+@@ -23,31 +23,11 @@
+   SELECTED_MODS:=$(filter-out $(shell if test ${BSDVERSION} -lt 500000 ; then echo &quot;res_config_odbc&quot;; fi),$(SELECTED_MODS))
+ endif
+ 
+-# NETsnmp has some difficulties on some platforms (conflict with unload_module)
+-# Until we figure out if the collission is version-specific or what to do
+-# we have disabled res_snmp on OS/X and *BSD
+-ifeq ($(OSARCH),Darwin)
+-  SELECTED_MODS:=$(filter-out res_snmp,$(SELECTED_MODS))
+-else
+-  ifeq ($(findstring BSD,$(OSARCH)),BSD)
+-    SELECTED_MODS:=$(filter-out res_snmp,$(SELECTED_MODS))
+-  endif
+-endif
+-
+-ifeq ($(wildcard $(CROSS_COMPILE_TARGET)/usr/include/net-snmp/net-snmp-config.h),)
+-  SELECTED_MODS:=$(filter-out res_snmp,$(SELECTED_MODS))
+-else
+-  SNMP_LDLIBS+=$(shell net-snmp-config --agent-libs)
+-endif
+-
+ MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
+ 
+ all: $(MODS)
+ 
+ install: all
+-	rm -f $(DESTDIR)$(ASTHEADERDIR)/parking.h
+-	rm -f $(DESTDIR)$(MODULES_DIR)/app_agi.so 
+-	rm -f $(DESTDIR)$(MODULES_DIR)/res_parking.so
+ 	for x in $(MODS); do $(INSTALL) -m 755 $$x $(DESTDIR)$(MODULES_DIR) ; done
+ 	@if [ x`which mpg123 2&gt;/dev/null | grep -v '^no'` != x ] ; then \
+ 	  if mpg123 --longhelp 2&gt;&amp;1 | grep -q .59r 2&gt;&amp;1 &gt;/dev/null ; then echo ; else \
+@@ -74,6 +54,7 @@
+ 
+ clean: clean-depend
+ 	rm -f *.so *.o
++	rm -f snmp/*.o
+ 
+ res_odbc.so: res_odbc.o
+ 	$(CC) $(SOLINK) -o $@ $&lt; $(ODBC_LIB) 
+@@ -100,7 +81,7 @@
+ 	$(CC) -c -o $@ $(CFLAGS) $(ODBC_INCLUDE) $&lt;
+ 
+ res_snmp.so: res_snmp.o snmp/agent.o
+-	$(CC) $(SOLINK) $(SNMP_LDFLAGS) -o $@ $&lt; snmp/agent.o $(SNMP_LDLIBS)
++	$(CC) $(SOLINK) -o $@ $&lt; snmp/agent.o $(NETSNMP_LIBS)
+ 
+ res_config_pgsql.so: res_config_pgsql.o
+ 	$(CC) $(SOLINK) -o $@ $&lt; $(PGSQL_LIB)
+
+Modified: trunk/res/res_snmp.c
+===================================================================
+--- trunk/res/res_snmp.c	2006-06-28 02:39:58 UTC (rev 414)
++++ trunk/res/res_snmp.c	2006-06-28 02:45:27 UTC (rev 415)
+@@ -15,6 +15,7 @@
+  */
+ 
+ /*** MODULEINFO
++	&lt;depend&gt;netsnmp&lt;/depend&gt;
+ 	&lt;defaultenabled&gt;no&lt;/defaultenabled&gt;
+  ***/
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000409.html">[solid-pbx-svn] r414 - in trunk: . channels
+</A></li>
+	<LI>Next message: <A HREF="000411.html">[solid-pbx-svn] r416 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#410">[ date ]</a>
+              <a href="thread.html#410">[ thread ]</a>
+              <a href="subject.html#410">[ subject ]</a>
+              <a href="author.html#410">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

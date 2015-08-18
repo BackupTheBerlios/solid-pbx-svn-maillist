@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r27 - in trunk: apps utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r27%20-%20in%20trunk%3A%20apps%20utils&In-Reply-To=%3C200605012018.k41KIBjC000543%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000023.html">
+   <LINK REL="Next"  HREF="000025.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r27 - in trunk: apps utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r27%20-%20in%20trunk%3A%20apps%20utils&In-Reply-To=%3C200605012018.k41KIBjC000543%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r27 - in trunk: apps utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  1 22:18:11 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000023.html">[solid-pbx-svn] r26 - in trunk: . apps include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000025.html">[solid-pbx-svn] r28 - trunk/utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-01 22:18:09 +0200 (Mon, 01 May 2006)
+New Revision: 27
+
+Modified:
+   trunk/apps/app_voicemail.c
+   trunk/utils/ael_main.c
+Log:
+Update to Asterisk SVN trunk r24018
+
+------------------------------------------------------------------------
+r23984 | russell | 2006-05-01 21:23:43 +0200 (Mon, 01 May 2006) | 3 lines
+
+make sure non-inlined versions of ast_copy_string and _ast_calloc are available
+in the cases where they are needed (issue #7054)
+
+------------------------------------------------------------------------
+r23987 | bweschke | 2006-05-01 21:32:47 +0200 (Mon, 01 May 2006) | 11 lines
+
+Merged revisions 23985 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r23985 | bweschke | 2006-05-01 14:26:43 -0500 (Mon, 01 May 2006) | 3 lines
+
+ Make sure that when someone 0's out while recording a msg and then chooses to DELETE the recorded file, the .txt file isn't left around by itself to cause problems later. #7061 (dimitripietro reporting, blitzrage confirmed)
+
+
+.......
+
+------------------------------------------------------------------------
+r23989 | bweschke | 2006-05-01 21:35:53 +0200 (Mon, 01 May 2006) | 11 lines
+
+Merged revisions 23988 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r23988 | bweschke | 2006-05-01 14:34:29 -0500 (Mon, 01 May 2006) | 3 lines
+
+ Correct a condition from the prior patch that could happen in rare circumstances and cause a core dump. Thanks Qwell! 
+
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-01 15:18:24 UTC (rev 26)
++++ trunk/apps/app_voicemail.c	2006-05-01 20:18:09 UTC (rev 27)
+@@ -2565,9 +2565,14 @@
+ 				ast_log(LOG_WARNING, &quot;Error opening text file for output\n&quot;);
+ 			res = play_record_review(chan, NULL, fn, vmmaxmessage, fmt, 1, vmu, &amp;duration, dir, options-&gt;record_gain);
+ 			if (res == '0') {
+-				if (txt) {
++				if (txt &amp;&amp; EXISTS(dir,msgnum,fn,chan-&gt;language)) {
+ 					fclose(txt);
+ 					rename(tmptxtfile, txtfile);
++				} else if (txt &amp;&amp; !EXISTS(dir,msgnum,fn,chan-&gt;language)) {
++					if (option_debug) 
++						ast_log(LOG_DEBUG, &quot;The recorded media file is gone, so we should remove the .txt file too!\n&quot;);
++					fclose(txt);
++					unlink(tmptxtfile);	
+ 				}
+ 				goto transfer;
+ 			}
+
+Modified: trunk/utils/ael_main.c
+===================================================================
+--- trunk/utils/ael_main.c	2006-05-01 15:18:24 UTC (rev 26)
++++ trunk/utils/ael_main.c	2006-05-01 20:18:09 UTC (rev 27)
+@@ -10,12 +10,22 @@
+ #include &lt;errno.h&gt;
+ #include &lt;regex.h&gt;
+ #include &lt;limits.h&gt;
++
++/* ast_copy_string */
++#define AST_API_MODULE
++#include &quot;asterisk/strings.h&quot;
++
++/* ensure that _ast_calloc works */
++#define AST_API_MODULE 
++#include &quot;asterisk/utils.h&quot;
++
+ #include &quot;asterisk/ast_expr.h&quot;
+ #include &quot;asterisk/logger.h&quot;
+ #include &quot;asterisk/module.h&quot;
+ #include &quot;asterisk/channel.h&quot;
+ #include &quot;asterisk/app.h&quot;
+ #include &quot;asterisk/ael_structs.h&quot;
++
+ #define AST_CONFIG_MAX_PATH 255
+ 
+ int conts=0, extens=0, priors=0;
+@@ -53,18 +63,6 @@
+ 	return (struct ast_app*)1; /* so as not to trigger an error */
+ }
+ 
+-
+-void ast_copy_string(char *dst, const char *src, size_t size)
+-{
+-        while (*src &amp;&amp; size) {
+-                *dst++ = *src++;
+-                size--;
+-        }
+-        if (__builtin_expect(!size, 0))
+-                dst--;
+-        *dst = '\0';
+-}
+-
+ void ast_cli_register_multiple(void)
+ {
+ 	if(!no_comp)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000023.html">[solid-pbx-svn] r26 - in trunk: . apps include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000025.html">[solid-pbx-svn] r28 - trunk/utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

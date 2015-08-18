@@ -1,0 +1,588 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r422 - in trunk: . configs formats pbx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r422%20-%20in%20trunk%3A%20.%20configs%20formats%20pbx&In-Reply-To=%3C200606281125.k5SBPol0011196%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000416.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r422 - in trunk: . configs formats pbx</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r422%20-%20in%20trunk%3A%20.%20configs%20formats%20pbx&In-Reply-To=%3C200606281125.k5SBPol0011196%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r422 - in trunk: . configs formats pbx">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 13:25:50 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000416.html">[solid-pbx-svn] r421 - in trunk: . apps channels codecs codecs/gsm configs formats
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#417">[ date ]</a>
+              <a href="thread.html#417">[ thread ]</a>
+              <a href="subject.html#417">[ subject ]</a>
+              <a href="author.html#417">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 13:25:38 +0200 (Wed, 28 Jun 2006)
+New Revision: 422
+
+Modified:
+   trunk/CREDITS
+   trunk/Makefile
+   trunk/configs/voicemail.conf.sample
+   trunk/formats/Makefile
+   trunk/logger.c
+   trunk/pbx/Makefile
+Log:
+Update to Asterisk SVN trunk r100
+
+------------------------------------------------------------------------
+r91 | markster | 1999-12-05 08:16:40 +0100 (Sun, 05 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r92 | markster | 1999-12-05 08:28:29 +0100 (Sun, 05 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r94 | markster | 1999-12-05 21:52:10 +0100 (Sun, 05 Dec 1999) | 2 lines
+
+Version 0.1.1 from FTP
+
+------------------------------------------------------------------------
+r95 | markster | 1999-12-07 06:45:48 +0100 (Tue, 07 Dec 1999) | 2 lines
+
+Version 0.1.1 from FTP
+
+------------------------------------------------------------------------
+r96 | markster | 1999-12-07 06:45:50 +0100 (Tue, 07 Dec 1999) | 2 lines
+
+Version 0.1.2 from FTP
+
+------------------------------------------------------------------------
+r97 | markster | 1999-12-07 06:45:50 +0100 (Tue, 07 Dec 1999) | 2 lines
+
+Version 0.1.3 from FTP
+
+------------------------------------------------------------------------
+r98 | markster | 1999-12-07 06:45:51 +0100 (Tue, 07 Dec 1999) | 2 lines
+
+Version 0.1.3 from FTP
+
+------------------------------------------------------------------------
+r99 | markster | 1999-12-07 06:45:52 +0100 (Tue, 07 Dec 1999) | 2 lines
+
+Version 0.1.4 from FTP
+
+------------------------------------------------------------------------
+r100 | markster | 1999-12-07 06:45:53 +0100 (Tue, 07 Dec 1999) | 2 lines
+
+Version 0.1.5 from FTP
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/CREDITS
+===================================================================
+--- trunk/CREDITS	2006-06-28 10:25:31 UTC (rev 421)
++++ trunk/CREDITS	2006-06-28 11:25:38 UTC (rev 422)
+@@ -1,4 +1,56 @@
++=== HARDWARE DONORS === 
+ 
++* Special thanks to Adtran, Inc, for their donation of an Adtran Atlas,
++and TSU 120e to the project. (<A HREF="http://www.adtran.com">http://www.adtran.com</A>)
++
++* Thanks to QuickNet Technologies for their donation of an Internet
++PhoneJack card to the project.  (<A HREF="http://www.quicknet.net">http://www.quicknet.net</A>)
++
++=== OTHER SOURCE CODE IN ASTERISK ===
++
++I did not implement the codecs in asterisk.  Here is the copyright on the
++GSM source:
++
++Copyright 1992, 1993, 1994 by Jutta Degener and Carsten Bormann,
++Technische Universitaet Berlin
++
++Any use of this software is permitted provided that this notice is not
++removed and that neither the authors nor the Technische Universitaet Berlin
++are deemed to have made any representations as to the suitability of this
++software for any purpose nor are held responsible for any defects of
++this software.  THERE IS ABSOLUTELY NO WARRANTY FOR THIS SOFTWARE.
++
++As a matter of courtesy, the authors request to be informed about uses
++this software has found, about bugs in this software, and about any
++improvements that may be of general interest.
++
++Berlin, 28.11.1994
++Jutta Degener
++Carsten Bormann
++
++And the copyright on the ADPCM source:
++
++Copyright 1992 by Stichting Mathematisch Centrum, Amsterdam, The
++Netherlands.
++
++                        All Rights Reserved
++
++Permission to use, copy, modify, and distribute this software and its
++documentation for any purpose and without fee is hereby granted,
++provided that the above copyright notice appear in all copies and that
++both that copyright notice and this permission notice appear in
++supporting documentation, and that the names of Stichting Mathematisch
++Centrum or CWI not be used in advertising or publicity pertaining to
++distribution of the software without specific, written prior permission.
++
++STICHTING MATHEMATISCH CENTRUM DISCLAIMS ALL WARRANTIES WITH REGARD TO
++THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
++FITNESS, IN NO EVENT SHALL STICHTING MATHEMATISCH CENTRUM BE LIABLE
++FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
++ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
++OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++
+ === DEVELOPMENT SUPPORT ===
+ We'd like to thank the following companies for helping fund development of
+ Asterisk:
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-28 10:25:31 UTC (rev 421)
++++ trunk/Makefile	2006-06-28 11:25:38 UTC (rev 422)
+@@ -3,6 +3,51 @@
+ # 
+ # Top level Makefile
+ #
++# Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++#
++# Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++#
++# This program is free software, distributed under the terms of
++# the GNU General Public License
++#
++
++
++.EXPORT_ALL_VARIABLES:
++
++MODULES_DIR=/usr/lib/asterisk/modules
++
++DEBUG=-g #-pg
++INCLUDE=-Iinclude -I../include
++CFLAGS=-Wall -Werror -O6 $(DEBUG) $(INCLUDE) -D_REENTRANT
++CFLAGS+=$(shell if $(CC) -march=i686 -S -o /dev/null -xc /dev/null &gt;/dev/null 2&gt;&amp;1; then echo &quot;-march=i686&quot;; fi)
++SUBDIRS=channels pbx apps codecs formats
++LIBS=-ldl -lpthread #-lefence
++OBJS=io.o sched.o logger.o frame.o loader.o config.o channel.o translate.o file.o say.o pbx.o asterisk.o
++CC=gcc
++INSTALL=install
++
++all: asterisk subdirs
++
++asterisk: $(OBJS)
++	gcc -o asterisk -rdynamic $(OBJS) $(LIBS)
++
++subdirs: 
++	for x in $(SUBDIRS); do $(MAKE) -C $$x || exit 1 ; done
++
++clean:
++	for x in $(SUBDIRS); do $(MAKE) -C $$x clean || exit 1 ; done
++	rm -f *.o *.so asterisk
++
++install: all
++	mkdir -p $(MODULES_DIR)
++	for x in $(SUBDIRS); do $(MAKE) -C $$x install || exit 1 ; done
++	install -d /usr/include/asterisk
++	install include/asterisk/*.h /usr/include/asterisk
++#
++# Asterisk -- A telephony toolkit for Linux.
++# 
++# Top level Makefile
++#
+ # Copyright (C) 1999-2006, Digium, Inc.
+ #
+ # Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt;
+
+Modified: trunk/configs/voicemail.conf.sample
+===================================================================
+--- trunk/configs/voicemail.conf.sample	2006-06-28 10:25:31 UTC (rev 421)
++++ trunk/configs/voicemail.conf.sample	2006-06-28 11:25:38 UTC (rev 422)
+@@ -4,7 +4,7 @@
+ [general]
+ ; Default format for writing Voicemail
+ ; format=g723sf|rawgsm|mp3|wav
+-format=g723sf|wav
++format=g723sf|wav49|wav
+ 
+ [default]
+ 4200=2345,Mark <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">Spencer,markster at linux-support.net</A>
+
+Modified: trunk/formats/Makefile
+===================================================================
+--- trunk/formats/Makefile	2006-06-28 10:25:31 UTC (rev 421)
++++ trunk/formats/Makefile	2006-06-28 11:25:38 UTC (rev 422)
+@@ -3,6 +3,41 @@
+ # 
+ # Makefile for file format modules
+ #
++# Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++#
++# Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++#
++# This program is free software, distributed under the terms of
++# the GNU General Public License
++#
++
++FORMAT_LIBS=format_g723.so format_wav.so format_mp3.so # format_wav_gsm.so
++
++GSMLIB=../codecs/gsm/lib/libgsm.a
++
++CFLAGS+=
++
++all: $(FORMAT_LIBS)
++
++clean:
++	rm -f *.so *.o
++
++%.so : %.o
++	$(CC) -shared -Xlinker -x -o $@ $&lt;
++
++format_wav.so : format_wav.o
++	$(CC) -shared -Xlinker -x -o $@ $&lt; -laudiofile
++
++format_wav_gsm.so : format_wav_gsm.o
++	$(CC) -shared -Xlinker -x -o $@ $&lt; $(LIBGSM)
++
++install: all
++	for x in $(FORMAT_LIBS); do $(INSTALL) -m 755 $$x $(MODULES_DIR) ; done
++#
++# Asterisk -- A telephony toolkit for Linux.
++# 
++# Makefile for file format modules
++#
+ # Copyright (C) 1999-2006, Digium, Inc.
+ #
+ # Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt;
+
+Modified: trunk/logger.c
+===================================================================
+--- trunk/logger.c	2006-06-28 10:25:31 UTC (rev 421)
++++ trunk/logger.c	2006-06-28 11:25:38 UTC (rev 422)
+@@ -1,4 +1,208 @@
+ /*
++ * Cheops Next Generation
++ * 
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at marko.net</A>&gt;
++ *
++ * Copyright(C) 1999, Adtran, Inc.
++ * 
++ * Distributed under the terms of the GNU General Public License (GPL) Version 2
++ *
++ * Logging routines
++ *
++ */
++
++#include &lt;stdarg.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;time.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;asterisk/options.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;pthread.h&gt;
++#include &lt;sys/stat.h&gt;
++#include &quot;asterisk.h&quot;
++
++#define AST_EVENT_LOG AST_LOG_DIR &quot;/&quot; EVENTLOG
++
++#define MAX_MSG_QUEUE 200
++
++static pthread_mutex_t msglist_lock = PTHREAD_MUTEX_INITIALIZER;
++
++static struct msglist {
++	char *msg;
++	struct msglist *next;
++} *list = NULL, *last = NULL;
++
++static int msgcnt = 0;
++
++static FILE *eventlog = NULL;
++
++static char *levels[] = {
++	&quot;DEBUG&quot;,
++	&quot;EVENT&quot;,
++	&quot;NOTICE&quot;,
++	&quot;WARNING&quot;,
++	&quot;ERROR&quot;
++};
++
++static struct verb {
++	void (*verboser)(char *string, int opos, int replacelast, int complete);
++	struct verb *next;
++} *verboser = NULL;
++
++int init_logger(void)
++{
++
++	mkdir(AST_LOG_DIR, 0755);
++	eventlog = fopen(AST_EVENT_LOG, &quot;a&quot;);
++	if (eventlog) {
++		ast_log(LOG_EVENT, &quot;Started Asterisk Event Logger\n&quot;);
++		if (option_verbose)
++			ast_verbose(&quot;Asterisk Event Logger Started\n&quot;);
++		return 0;
++	} else 
++		ast_log(LOG_ERROR, &quot;Unable to create event log: %s\n&quot;, strerror(errno));
++	return -1;
++}
++
++extern void ast_log(int level, char *file, int line, char *function, char *fmt, ...)
++{
++	char date[256];
++	time_t t;
++	struct tm *tm;
++
++	va_list ap;
++	va_start(ap, fmt);
++
++	if (level == 1 /* Event */) {
++		time(&amp;t);
++		tm = localtime(&amp;t);
++		if (tm) {
++			/* Log events into the event log file, with a different format */
++			strftime(date, sizeof(date), &quot;%b %e %T&quot;, tm);
++			fprintf(eventlog, &quot;%s asterisk[%d]: &quot;, date, getpid());
++			vfprintf(eventlog, fmt, ap);
++			fflush(eventlog);
++		} else
++			ast_log(LOG_WARNING, &quot;Unable to retrieve local time?\n&quot;);
++	} else {
++		fprintf(stdout, &quot;%s: File %s, Line %d (%s): &quot;, levels[level], file, line, function);
++		vfprintf(stdout, fmt, ap);
++		fflush(stdout);
++	}
++	va_end(ap);
++}
++
++extern void ast_verbose(char *fmt, ...)
++{
++	static char stuff[256];
++	static int pos = 0, opos;
++	static int replacelast = 0, complete;
++	struct msglist *m;
++	struct verb *v;
++	va_list ap;
++	va_start(ap, fmt);
++	pthread_mutex_lock(&amp;msglist_lock);
++	vsnprintf(stuff + pos, sizeof(stuff) - pos, fmt, ap);
++	opos = pos;
++	pos = strlen(stuff);
++	if (fmt[strlen(fmt)-1] == '\n') 
++		complete = 1;
++	else
++		complete=0;
++	if (complete) {
++		if (msgcnt &lt; MAX_MSG_QUEUE) {
++			/* Allocate new structure */
++			m = malloc(sizeof(struct msglist));
++			msgcnt++;
++		} else {
++			/* Recycle the oldest entry */
++			m = list;
++			list = list-&gt;next;
++			free(m-&gt;msg);
++		}
++		if (m) {
++			m-&gt;msg = strdup(stuff);
++			if (m-&gt;msg) {
++				if (last)
++					last-&gt;next = m;
++				else
++					list = m;
++				m-&gt;next = NULL;
++				last = m;
++			} else {
++				msgcnt--;
++				ast_log(LOG_DEBUG, &quot;Out of memory\n&quot;);
++				free(m);
++			}
++		}
++	}
++	if (verboser) {
++		v = verboser;
++		while(v) {
++			v-&gt;verboser(stuff, opos, replacelast, complete);
++			v = v-&gt;next;
++		}
++	} else
++		fprintf(stdout, stuff + opos);
++
++	if (fmt[strlen(fmt)-1] != '\n') 
++		replacelast = 1;
++	else 
++		replacelast = pos = 0;
++	
++	va_end(ap);
++	pthread_mutex_unlock(&amp;msglist_lock);
++}
++
++
++int ast_register_verbose(void (*v)(char *string, int opos, int replacelast, int complete)) 
++{
++	struct msglist *m;
++	struct verb *tmp;
++	/* XXX Should be more flexible here, taking &gt; 1 verboser XXX */
++	if ((tmp = malloc(sizeof (struct verb)))) {
++		tmp-&gt;verboser = v;
++		pthread_mutex_lock(&amp;msglist_lock);
++		tmp-&gt;next = verboser;
++		verboser = tmp;
++		m = list;
++		while(m) {
++			/* Send all the existing entries that we have queued (i.e. they're likely to have missed) */
++			v(m-&gt;msg, 0, 0, 1);
++			m = m-&gt;next;
++		}
++		pthread_mutex_unlock(&amp;msglist_lock);
++		return 0;
++	}
++	return -1;
++}
++
++int ast_unregister_verbose(void (*v)(char *string, int opos, int replacelast, int complete))
++{
++	int res = -1;
++	struct verb *tmp, *tmpl=NULL;
++	pthread_mutex_lock(&amp;msglist_lock);
++	tmp = verboser;
++	while(tmp) {
++		if (tmp-&gt;verboser == v)	{
++			if (tmpl)
++				tmpl-&gt;next = tmp-&gt;next;
++			else
++				verboser = tmp-&gt;next;
++			break;
++		}
++		tmpl = tmp;
++		tmp = tmp-&gt;next;
++	}
++	if (tmp)
++		res = 0;
++	pthread_mutex_unlock(&amp;msglist_lock);
++	return res;
++}
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2006, Digium, Inc.
+
+Modified: trunk/pbx/Makefile
+===================================================================
+--- trunk/pbx/Makefile	2006-06-28 10:25:31 UTC (rev 421)
++++ trunk/pbx/Makefile	2006-06-28 11:25:38 UTC (rev 422)
+@@ -1,6 +1,67 @@
+ #
+ # Asterisk -- A telephony toolkit for Linux.
+ # 
++# Makefile for PBX frontends (dynamically loaded)
++#
++# Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++#
++# Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++#
++# This program is free software, distributed under the terms of
++# the GNU General Public License
++#
++
++
++
++PBX_LIBS=pbx_config.so             # pbx_gtkconsole.so pbx_kdeconsole.so
++
++# Add GTK console if appropriate
++PBX_LIBS+=$(shell gtk-config --cflags &gt;&amp;/dev/null &amp;&amp; echo &quot;pbx_gtkconsole.so&quot;)
++# Add KDE Console if appropriate
++PBX_LIBS+=$(shell [ &quot;$$QTDIR&quot; != &quot;&quot; ] &amp;&amp; echo &quot;pbx_kdeconsole.so&quot;)
++
++
++GTK_FLAGS=`gtk-config --cflags gthread`
++GTK_LIBS=`gtk-config --libs gthread`
++#CXX=egcs
++MOC=$(QTDIR)/bin/moc
++KDE_FLAGS=-I$(KDEDIR)/include -I$(KDEDIR)/include/kde -I$(QTDIR)/include
++KDE_LIBS=-L$(KDEDIR)/lib -L$(QTDIR)/lib -lqt -lkdecore -lkdeui
++CFLAGS+=
++
++KDE_CONSOLE_OBJS=pbx_kdeconsole_main.o pbx_kdeconsole.o 
++
++all: $(PBX_LIBS)
++
++clean:
++	rm -f *.so *.o
++
++pbx_gtkconsole.o: pbx_gtkconsole.c
++	$(CC) $(CFLAGS) $(GTK_FLAGS) -c -o $@ $&lt;
++
++pbx_gtkconsole.so: pbx_gtkconsole.o
++	$(CC) -shared -Xlinker -x -o $@ $&lt; $(GTK_LIBS)
++
++pbx_kdeconsole.o: pbx_kdeconsole.cc pbx_kdeconsole.moc
++	$(CXX) $(CFLAGS) $(KDE_FLAGS) -c -o $@ $&lt;
++
++pbx_kdeconsole_main.o: pbx_kdeconsole_main.cc pbx_kdeconsole.h
++	$(CXX) $(CFLAGS) $(KDE_FLAGS) -c -o $@ $&lt;
++
++pbx_kdeconsole.so: $(KDE_CONSOLE_OBJS)
++	$(CC) -shared -Xlinker -x -o $@ $(KDE_CONSOLE_OBJS) $(KDE_LIBS)
++
++%.moc : %.h
++	$(MOC) $&lt; -o $@
++
++%.so : %.o
++	$(CC) -shared -Xlinker -x -o $@ $&lt;
++
++install: all
++	for x in $(PBX_LIBS); do $(INSTALL) -m 755 $$x $(MODULES_DIR) ; done
++#
++# Asterisk -- A telephony toolkit for Linux.
++# 
+ # Makefile for PBX modules
+ #
+ # Copyright (C) 1999-2006, Digium, Inc.
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000416.html">[solid-pbx-svn] r421 - in trunk: . apps channels codecs codecs/gsm configs formats
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#417">[ date ]</a>
+              <a href="thread.html#417">[ thread ]</a>
+              <a href="subject.html#417">[ subject ]</a>
+              <a href="author.html#417">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

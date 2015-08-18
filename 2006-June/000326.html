@@ -1,0 +1,375 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r331 - in trunk: channels res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r331%20-%20in%20trunk%3A%20channels%20res&In-Reply-To=%3C200606280032.k5S0WjWU003421%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000325.html">
+   <LINK REL="Next"  HREF="000327.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r331 - in trunk: channels res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r331%20-%20in%20trunk%3A%20channels%20res&In-Reply-To=%3C200606280032.k5S0WjWU003421%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r331 - in trunk: channels res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 02:32:45 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000325.html">[solid-pbx-svn] r330 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000327.html">[solid-pbx-svn] r332 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#326">[ date ]</a>
+              <a href="thread.html#326">[ thread ]</a>
+              <a href="subject.html#326">[ subject ]</a>
+              <a href="author.html#326">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 02:32:39 +0200 (Wed, 28 Jun 2006)
+New Revision: 331
+
+Modified:
+   trunk/channels/chan_sip.c
+   trunk/res/res_agi.c
+Log:
+Update to Asterisk SVN trunk r33623
+
+------------------------------------------------------------------------
+r33614 | oej | 2006-06-12 17:17:18 +0200 (Mon, 12 Jun 2006) | 7 lines
+
+- Remove redundant forward declaration
+- Change variable name to make register_verify more readable (p -&gt; peer not pvt in this function)
+- Get Contact: header only once instead of twice
+- Add some comments to register_verify
+
+Caused by issue #7327... :-)
+
+------------------------------------------------------------------------
+r33616 | tilghman | 2006-06-12 17:30:32 +0200 (Mon, 12 Jun 2006) | 12 lines
+
+Merged revisions 33615 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r33615 | tilghman | 2006-06-12 10:27:18 -0500 (Mon, 12 Jun 2006) | 4 lines
+
+Move set priority up, because at this point in the code, stdout is no longer
+the console.  If we're unable to set priority, the error goes to Asterisk as
+if it were an AGI command (issue 7335).
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-28 00:31:36 UTC (rev 330)
++++ trunk/channels/chan_sip.c	2006-06-28 00:32:39 UTC (rev 331)
+@@ -1144,9 +1144,6 @@
+ static void free_old_route(struct sip_route *route);
+ static void list_route(struct sip_route *route);
+ static void build_route(struct sip_pvt *p, struct sip_request *req, int backwards);
+-static enum check_auth_result check_auth(struct sip_pvt *p, struct sip_request *req, const char *username,
+-					 const char *secret, const char *md5secret, int sipmethod,
+-					 char *uri, enum xmittype reliable, int ignore);
+ static enum check_auth_result register_verify(struct sip_pvt *p, struct sockaddr_in *sin,
+ 					      struct sip_request *req, char *uri);
+ static struct sip_pvt *get_sip_pvt_byid_locked(const char *callid, const char *totag, const char *fromtag);
+@@ -6802,26 +6799,28 @@
+ }
+ 
+ 
+-/*! \brief Parse contact header and save registration */
+-static enum parse_register_result parse_register_contact(struct sip_pvt *pvt, struct sip_peer *p, struct sip_request *req)
++/*! \brief Parse contact header and save registration (peer registration) */
++static enum parse_register_result parse_register_contact(struct sip_pvt *pvt, struct sip_peer *peer, struct sip_request *req)
+ {
+ 	char contact[BUFSIZ]; 
+ 	char data[BUFSIZ];
+ 	char iabuf[INET_ADDRSTRLEN];
+ 	const char *expires = get_header(req, &quot;Expires&quot;);
+ 	int expiry = atoi(expires);
+-	char *c, *n, *pt;
++	char *curi, *n, *pt;
+ 	int port;
+ 	const char *useragent;
+ 	struct hostent *hp;
+ 	struct ast_hostent ahp;
+ 	struct sockaddr_in oldsin;
+ 
++	ast_copy_string(contact, get_header(req, &quot;Contact&quot;), sizeof(contact));
++
+ 	if (ast_strlen_zero(expires)) {	/* No expires header */
+-		expires = strcasestr(get_header(req, &quot;Contact&quot;), &quot;;expires=&quot;);
++		expires = strcasestr(contact, &quot;;expires=&quot;);
+ 		if (expires) {
+ 			/* XXX bug here, we overwrite the string */
+-			expires = strsep((char **)&amp;expires, &quot;;&quot;); /* trim ; and beyond */
++			expires = strsep((char **) &amp;expires, &quot;;&quot;); /* trim ; and beyond */
+ 			if (sscanf(expires + 9, &quot;%d&quot;, &amp;expiry) != 1)
+ 				expiry = default_expiry;
+ 		} else {
+@@ -6829,57 +6828,61 @@
+ 			expiry = default_expiry;
+ 		}
+ 	}
++
+ 	/* Look for brackets */
+-	ast_copy_string(contact, get_header(req, &quot;Contact&quot;), sizeof(contact));
+-	c = contact;
++	curi = contact;
+ 	if (strchr(contact, '&lt;') == NULL)	/* No &lt;, check for ; and strip it */
+-		strsep(&amp;c, &quot;;&quot;);	/* This is Header options, not URI options */
+-	c = get_in_brackets(contact);
++		strsep(&amp;curi, &quot;;&quot;);	/* This is Header options, not URI options */
++	curi = get_in_brackets(contact);
+ 
+ 	/* if they did not specify Contact: or Expires:, they are querying
+ 	   what we currently have stored as their contact address, so return
+ 	   it
+ 	*/
+-	if (ast_strlen_zero(c) &amp;&amp; ast_strlen_zero(expires)) {
++	if (ast_strlen_zero(curi) &amp;&amp; ast_strlen_zero(expires)) {
+ 		/* If we have an active registration, tell them when the registration is going to expire */
+-		if (p-&gt;expire &gt; -1 &amp;&amp; !ast_strlen_zero(p-&gt;fullcontact))
+-			pvt-&gt;expiry = ast_sched_when(sched, p-&gt;expire);
++		if (peer-&gt;expire &gt; -1 &amp;&amp; !ast_strlen_zero(peer-&gt;fullcontact))
++			pvt-&gt;expiry = ast_sched_when(sched, peer-&gt;expire);
+ 		return PARSE_REGISTER_QUERY;
+-	} else if (!strcasecmp(c, &quot;*&quot;) || !expiry) {	/* Unregister this peer */
++	} else if (!strcasecmp(curi, &quot;*&quot;) || !expiry) {	/* Unregister this peer */
+ 		/* This means remove all registrations and return OK */
+-		memset(&amp;p-&gt;addr, 0, sizeof(p-&gt;addr));
+-		if (p-&gt;expire &gt; -1)
+-			ast_sched_del(sched, p-&gt;expire);
+-		p-&gt;expire = -1;
++		memset(&amp;peer-&gt;addr, 0, sizeof(peer-&gt;addr));
++		if (peer-&gt;expire &gt; -1)
++			ast_sched_del(sched, peer-&gt;expire);
++		peer-&gt;expire = -1;
+ 
+-		destroy_association(p);
++		destroy_association(peer);
+ 		
+-		register_peer_exten(p, 0);
+-		p-&gt;fullcontact[0] = '\0';
+-		p-&gt;useragent[0] = '\0';
+-		p-&gt;sipoptions = 0;
+-		p-&gt;lastms = 0;
++		register_peer_exten(peer, 0);	/* Add extension from regexten= setting in sip.conf */
++		peer-&gt;fullcontact[0] = '\0';
++		peer-&gt;useragent[0] = '\0';
++		peer-&gt;sipoptions = 0;
++		peer-&gt;lastms = 0;
+ 
+ 		if (option_verbose &gt; 2)
+-			ast_verbose(VERBOSE_PREFIX_3 &quot;Unregistered SIP '%s'\n&quot;, p-&gt;name);
+-			manager_event(EVENT_FLAG_SYSTEM, &quot;PeerStatus&quot;, &quot;Peer: SIP/%s\r\nPeerStatus: Unregistered\r\n&quot;, p-&gt;name);
++			ast_verbose(VERBOSE_PREFIX_3 &quot;Unregistered SIP '%s'\n&quot;, peer-&gt;name);
++			manager_event(EVENT_FLAG_SYSTEM, &quot;PeerStatus&quot;, &quot;Peer: SIP/%s\r\nPeerStatus: Unregistered\r\n&quot;, peer-&gt;name);
+ 		return PARSE_REGISTER_UPDATE;
+ 	}
+-	ast_copy_string(p-&gt;fullcontact, c, sizeof(p-&gt;fullcontact));
++
++	/* Store whatever we got as a contact from the client */
++	ast_copy_string(peer-&gt;fullcontact, curi, sizeof(peer-&gt;fullcontact));
++
+ 	/* For the 200 OK, we should use the received contact */
+-	ast_string_field_build(pvt, our_contact, &quot;&lt;%s&gt;&quot;, c);
++	ast_string_field_build(pvt, our_contact, &quot;&lt;%s&gt;&quot;, curi);
++
+ 	/* Make sure it's a SIP URL */
+-	if (strncasecmp(c, &quot;sip:&quot;, 4)) {
+-		ast_log(LOG_NOTICE, &quot;'%s' is not a valid SIP contact (missing sip:) trying to use anyway\n&quot;, c);
++	if (strncasecmp(curi, &quot;sip:&quot;, 4)) {
++		ast_log(LOG_NOTICE, &quot;'%s' is not a valid SIP contact (missing sip:) trying to use anyway\n&quot;, curi);
+ 	} else
+-		c += 4;
++		curi += 4;
+ 	/* Ditch q */
+-	c = strsep(&amp;c, &quot;;&quot;);
++	curi = strsep(&amp;curi, &quot;;&quot;);
+ 	/* Grab host */
+-	n = strchr(c, '@');
++	n = strchr(curi, '@');
+ 	if (!n) {
+-		n = c;
+-		c = NULL;
++		n = curi;
++		curi = NULL;
+ 	} else
+ 		*n++ = '\0';
+ 	pt = strchr(n, ':');
+@@ -6888,60 +6891,59 @@
+ 		port = atoi(pt);
+ 	} else
+ 		port = DEFAULT_SIP_PORT;
+-	oldsin = p-&gt;addr;
+-	if (!ast_test_flag(&amp;p-&gt;flags[0], SIP_NAT_ROUTE)) {
++	oldsin = peer-&gt;addr;
++	if (!ast_test_flag(&amp;peer-&gt;flags[0], SIP_NAT_ROUTE)) {
+ 		/* XXX This could block for a long time XXX */
+ 		hp = ast_gethostbyname(n, &amp;ahp);
+ 		if (!hp)  {
+ 			ast_log(LOG_WARNING, &quot;Invalid host '%s'\n&quot;, n);
+ 			return PARSE_REGISTER_FAILED;
+ 		}
+-		p-&gt;addr.sin_family = AF_INET;
+-		memcpy(&amp;p-&gt;addr.sin_addr, hp-&gt;h_addr, sizeof(p-&gt;addr.sin_addr));
+-		p-&gt;addr.sin_port = htons(port);
++		peer-&gt;addr.sin_family = AF_INET;
++		memcpy(&amp;peer-&gt;addr.sin_addr, hp-&gt;h_addr, sizeof(peer-&gt;addr.sin_addr));
++		peer-&gt;addr.sin_port = htons(port);
+ 	} else {
+ 		/* Don't trust the contact field.  Just use what they came to us
+ 		   with */
+-		p-&gt;addr = pvt-&gt;recv;
++		peer-&gt;addr = pvt-&gt;recv;
+ 	}
+ 
+ 	/* Save SIP options profile */
+-	p-&gt;sipoptions = pvt-&gt;sipoptions;
++	peer-&gt;sipoptions = pvt-&gt;sipoptions;
+ 
+-	if (c)	/* Overwrite the default username from config at registration */
+-		ast_copy_string(p-&gt;username, c, sizeof(p-&gt;username));
++	if (curi)	/* Overwrite the default username from config at registration */
++		ast_copy_string(peer-&gt;username, curi, sizeof(peer-&gt;username));
+ 	else
+-		p-&gt;username[0] = '\0';
++		peer-&gt;username[0] = '\0';
+ 
+-	if (p-&gt;expire &gt; -1)
+-		ast_sched_del(sched, p-&gt;expire);
++	if (peer-&gt;expire &gt; -1)
++		ast_sched_del(sched, peer-&gt;expire);
+ 	if (expiry &gt; max_expiry)
+ 		expiry = max_expiry;
+ 	if (expiry &lt; min_expiry)
+ 		expiry = min_expiry;
+-	p-&gt;expire = ast_test_flag(&amp;p-&gt;flags[0], SIP_REALTIME) ? -1 :
+-		ast_sched_add(sched, (expiry + 10) * 1000, expire_register, p);
++	peer-&gt;expire = ast_test_flag(&amp;peer-&gt;flags[0], SIP_REALTIME) ? -1 :
++		ast_sched_add(sched, (expiry + 10) * 1000, expire_register, peer);
+ 	pvt-&gt;expiry = expiry;
+-	snprintf(data, sizeof(data), &quot;%s:%d:%d:%s:%s&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), p-&gt;addr.sin_addr), ntohs(p-&gt;addr.sin_port), expiry, p-&gt;username, p-&gt;fullcontact);
+-	if (!ast_test_flag(&amp;p-&gt;flags[1], SIP_PAGE2_RT_FROMCONTACT)) 
+-		ast_db_put(&quot;SIP/Registry&quot;, p-&gt;name, data);
+-	manager_event(EVENT_FLAG_SYSTEM, &quot;PeerStatus&quot;, &quot;Peer: SIP/%s\r\nPeerStatus: Registered\r\n&quot;, p-&gt;name);
+-	if (inaddrcmp(&amp;p-&gt;addr, &amp;oldsin)) {
+-		sip_poke_peer(p);
++	snprintf(data, sizeof(data), &quot;%s:%d:%d:%s:%s&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), peer-&gt;addr.sin_addr), ntohs(peer-&gt;addr.sin_port), expiry, peer-&gt;username, peer-&gt;fullcontact);
++	if (!ast_test_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_RT_FROMCONTACT)) 
++		ast_db_put(&quot;SIP/Registry&quot;, peer-&gt;name, data);
++	manager_event(EVENT_FLAG_SYSTEM, &quot;PeerStatus&quot;, &quot;Peer: SIP/%s\r\nPeerStatus: Registered\r\n&quot;, peer-&gt;name);
++
++	/* Is this a new IP address for us? */
++	if (inaddrcmp(&amp;peer-&gt;addr, &amp;oldsin)) {
++		sip_poke_peer(peer);
+ 		if (option_verbose &gt; 2)
+-			ast_verbose(VERBOSE_PREFIX_3 &quot;Registered SIP '%s' at %s port %d expires %d\n&quot;, p-&gt;name, ast_inet_ntoa(iabuf, sizeof(iabuf), p-&gt;addr.sin_addr), ntohs(p-&gt;addr.sin_port), expiry);
+-		register_peer_exten(p, 1);
++			ast_verbose(VERBOSE_PREFIX_3 &quot;Registered SIP '%s' at %s port %d expires %d\n&quot;, peer-&gt;name, ast_inet_ntoa(iabuf, sizeof(iabuf), peer-&gt;addr.sin_addr), ntohs(peer-&gt;addr.sin_port), expiry);
++		register_peer_exten(peer, 1);
+ 	}
+ 	
+-	/* Save SIP options profile */
+-	p-&gt;sipoptions = pvt-&gt;sipoptions;
+-
+ 	/* Save User agent */
+ 	useragent = get_header(req, &quot;User-Agent&quot;);
+-	if (useragent &amp;&amp; strcasecmp(useragent, p-&gt;useragent)) {
+-		ast_copy_string(p-&gt;useragent, useragent, sizeof(p-&gt;useragent));
++	if (useragent &amp;&amp; strcasecmp(useragent, peer-&gt;useragent)) {
++		ast_copy_string(peer-&gt;useragent, useragent, sizeof(peer-&gt;useragent));
+ 		if (option_verbose &gt; 3)
+-			ast_verbose(VERBOSE_PREFIX_3 &quot;Saved useragent \&quot;%s\&quot; for peer %s\n&quot;,p-&gt;useragent,p-&gt;name);  
++			ast_verbose(VERBOSE_PREFIX_3 &quot;Saved useragent \&quot;%s\&quot; for peer %s\n&quot;, peer-&gt;useragent, peer-&gt;name);  
+ 	}
+ 	return PARSE_REGISTER_UPDATE;
+ }
+@@ -7270,7 +7272,11 @@
+ 	transmit_response_with_auth(p, &quot;401 Unauthorized&quot;, req, p-&gt;randdata, reliable, &quot;WWW-Authenticate&quot;, 0);
+ }
+ 
+-/*! \brief Verify registration of user */
++/*! \brief Verify registration of user 
++	- Registration is done in several steps, first a REGISTER without auth
++	  to get a challenge (nonce) then a second one with auth
++	- Registration requests are only matched with peers that are marked as &quot;dynamic&quot;
++ */
+ static enum check_auth_result register_verify(struct sip_pvt *p, struct sockaddr_in *sin,
+ 					      struct sip_request *req, char *uri)
+ {
+@@ -7331,6 +7337,9 @@
+ 			transmit_response(p, &quot;100 Trying&quot;, req);
+ 			if (!(res = check_auth(p, req, peer-&gt;name, peer-&gt;secret, peer-&gt;md5secret, SIP_REGISTER, uri, XMIT_UNRELIABLE, ast_test_flag(req, SIP_PKT_IGNORE)))) {
+ 				sip_cancel_destroy(p);
++
++				/* We have a succesful registration attemp with proper authentication,
++				   now, update the peer */
+ 				switch (parse_register_contact(p, peer, req)) {
+ 				case PARSE_REGISTER_FAILED:
+ 					ast_log(LOG_WARNING, &quot;Failed to parse contact info\n&quot;);
+
+Modified: trunk/res/res_agi.c
+===================================================================
+--- trunk/res/res_agi.c	2006-06-28 00:31:36 UTC (rev 330)
++++ trunk/res/res_agi.c	2006-06-28 00:32:39 UTC (rev 331)
+@@ -309,6 +309,9 @@
+ 		setenv(&quot;AST_KEY_DIR&quot;, ast_config_AST_KEY_DIR, 1);
+ 		setenv(&quot;AST_RUN_DIR&quot;, ast_config_AST_RUN_DIR, 1);
+ 
++		/* Don't run AGI scripts with realtime priority -- it causes audio stutter */
++		ast_set_priority(0);
++
+ 		/* Redirect stdin and out, provide enhanced audio channel if desired */
+ 		dup2(fromast[0], STDIN_FILENO);
+ 		dup2(toast[1], STDOUT_FILENO);
+@@ -328,9 +331,6 @@
+ 		for (x=STDERR_FILENO + 2;x&lt;1024;x++) 
+ 			close(x);
+ 
+-		/* Don't run AGI scripts with realtime priority -- it causes audio stutter */
+-		ast_set_priority(0);
+-
+ 		/* Execute script */
+ 		execv(script, argv);
+ 		/* Can't use ast_log since FD's are closed */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000325.html">[solid-pbx-svn] r330 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000327.html">[solid-pbx-svn] r332 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#326">[ date ]</a>
+              <a href="thread.html#326">[ thread ]</a>
+              <a href="subject.html#326">[ subject ]</a>
+              <a href="author.html#326">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

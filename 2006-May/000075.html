@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r78 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r78%20-%20trunk&In-Reply-To=%3C200605061853.k46IrUQ9015853%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000074.html">
+   <LINK REL="Next"  HREF="000076.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r78 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r78%20-%20trunk&In-Reply-To=%3C200605061853.k46IrUQ9015853%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r78 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat May  6 20:53:30 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000074.html">[solid-pbx-svn] r77 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000076.html">[solid-pbx-svn] r79 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#75">[ date ]</a>
+              <a href="thread.html#75">[ thread ]</a>
+              <a href="subject.html#75">[ subject ]</a>
+              <a href="author.html#75">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-06 20:53:06 +0200 (Sat, 06 May 2006)
+New Revision: 78
+
+Modified:
+   trunk/Makefile
+Log:
+Update release target in Makefile again
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-06 18:47:35 UTC (rev 77)
++++ trunk/Makefile	2006-05-06 18:53:06 UTC (rev 78)
+@@ -1012,4 +1012,5 @@
+ 
+ release:
+ 	cp -ar . ../solid-pbx-$(ASTERISKVERSION)
+-	rm -rf `ls -Rd .svn */.svn */*/.svn */*/*/.svn`
++	cd ../solid-pbx-$(ASTERISKVERSION)
++	rm -rf `ls -Rd .svn */.svn */*/.svn */*/*/.svn */*/*/*/.svn`
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000074.html">[solid-pbx-svn] r77 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000076.html">[solid-pbx-svn] r79 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#75">[ date ]</a>
+              <a href="thread.html#75">[ thread ]</a>
+              <a href="subject.html#75">[ subject ]</a>
+              <a href="author.html#75">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

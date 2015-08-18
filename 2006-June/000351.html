@@ -1,0 +1,419 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r356 - in trunk: apps channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r356%20-%20in%20trunk%3A%20apps%20channels&In-Reply-To=%3C200606280125.k5S1Pmg4013245%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000350.html">
+   <LINK REL="Next"  HREF="000352.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r356 - in trunk: apps channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r356%20-%20in%20trunk%3A%20apps%20channels&In-Reply-To=%3C200606280125.k5S1Pmg4013245%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r356 - in trunk: apps channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:25:48 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000350.html">[solid-pbx-svn] r355 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000352.html">[solid-pbx-svn] r357 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#351">[ date ]</a>
+              <a href="thread.html#351">[ thread ]</a>
+              <a href="subject.html#351">[ subject ]</a>
+              <a href="author.html#351">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:25:41 +0200 (Wed, 28 Jun 2006)
+New Revision: 356
+
+Modified:
+   trunk/apps/app_queue.c
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_local.c
+Log:
+Update to Asterisk SVN trunk r34163
+
+------------------------------------------------------------------------
+r34161 | kpfleming | 2006-06-15 00:35:49 +0200 (Thu, 15 Jun 2006) | 15 lines
+
+Merged revisions 34159-34160 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r34159 | kpfleming | 2006-06-14 17:17:37 -0500 (Wed, 14 Jun 2006) | 2 lines
+
+use existing dial string parser for strings supplied to iax2_devicestate, because they can be complete dial strings, not just device names
+
+.......
+r34160 | kpfleming | 2006-06-14 17:22:21 -0500 (Wed, 14 Jun 2006) | 2 lines
+
+coding style cleanups on queue interface handling code that was committed for the last release
+
+.......
+
+------------------------------------------------------------------------
+r34162 | kpfleming | 2006-06-15 00:39:19 +0200 (Thu, 15 Jun 2006) | 2 lines
+
+make Local channel return sensible device state values
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-06-28 01:24:19 UTC (rev 355)
++++ trunk/apps/app_queue.c	2006-06-28 01:25:41 UTC (rev 356)
+@@ -510,8 +510,7 @@
+ 	technology = ast_strdupa(sc-&gt;dev);
+ 	loc = strchr(technology, '/');
+ 	if (loc) {
+-		*loc = '\0';
+-		loc++;
++		*loc++ = '\0';
+ 	} else {
+ 		free(sc);
+ 		return NULL;
+@@ -524,43 +523,44 @@
+ 	}
+ 	AST_LIST_UNLOCK(&amp;interfaces);
+ 
+-	if (curint) {
++	if (!curint) {
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Device '%s/%s' changed to state '%d' (%s) but we don't care because they're not a member of any queue.\n&quot;, technology, loc, sc-&gt;state, devstate2str(sc-&gt;state));
++		free(sc);
++		return NULL;
++        }
+ 
+-		if (option_debug)
+-			ast_log(LOG_DEBUG, &quot;Device '%s/%s' changed to state '%d' (%s)\n&quot;, technology, loc, sc-&gt;state, devstate2str(sc-&gt;state));
+-		AST_LIST_LOCK(&amp;queues);
+-		AST_LIST_TRAVERSE(&amp;queues, q, list) {
+-			ast_mutex_lock(&amp;q-&gt;lock);
+-			cur = q-&gt;members;
+-			while(cur) {
+-				if (!strcasecmp(sc-&gt;dev, cur-&gt;interface)) {
+-					if (cur-&gt;status != sc-&gt;state) {
+-						cur-&gt;status = sc-&gt;state;
+-						if (!q-&gt;maskmemberstatus) {
+-							manager_event(EVENT_FLAG_AGENT, &quot;QueueMemberStatus&quot;,
+-								&quot;Queue: %s\r\n&quot;
+-								&quot;Location: %s\r\n&quot;
+-								&quot;Membership: %s\r\n&quot;
+-								&quot;Penalty: %d\r\n&quot;
+-								&quot;CallsTaken: %d\r\n&quot;
+-								&quot;LastCall: %d\r\n&quot;
+-								&quot;Status: %d\r\n&quot;
+-								&quot;Paused: %d\r\n&quot;,
+-							q-&gt;name, cur-&gt;interface, cur-&gt;dynamic ? &quot;dynamic&quot; : &quot;static&quot;,
+-							cur-&gt;penalty, cur-&gt;calls, (int)cur-&gt;lastcall, cur-&gt;status, cur-&gt;paused);
+-						}
+-					}
+-				}
+-				cur = cur-&gt;next;
++	if (option_debug)
++		ast_log(LOG_DEBUG, &quot;Device '%s/%s' changed to state '%d' (%s)\n&quot;, technology, loc, sc-&gt;state, devstate2str(sc-&gt;state));
++	AST_LIST_LOCK(&amp;queues);
++	AST_LIST_TRAVERSE(&amp;queues, q, list) {
++		ast_mutex_lock(&amp;q-&gt;lock);
++		for (cur = q-&gt;members; cur; cur = cur-&gt;next) {
++			if (strcasecmp(sc-&gt;dev, cur-&gt;interface))
++				continue;
++
++			if (cur-&gt;status != sc-&gt;state) {
++				cur-&gt;status = sc-&gt;state;
++				if (q-&gt;maskmemberstatus)
++					continue;
++
++				manager_event(EVENT_FLAG_AGENT, &quot;QueueMemberStatus&quot;,
++					      &quot;Queue: %s\r\n&quot;
++					      &quot;Location: %s\r\n&quot;
++					      &quot;Membership: %s\r\n&quot;
++					      &quot;Penalty: %d\r\n&quot;
++					      &quot;CallsTaken: %d\r\n&quot;
++					      &quot;LastCall: %d\r\n&quot;
++					      &quot;Status: %d\r\n&quot;
++					      &quot;Paused: %d\r\n&quot;,
++					      q-&gt;name, cur-&gt;interface, cur-&gt;dynamic ? &quot;dynamic&quot; : &quot;static&quot;,
++					      cur-&gt;penalty, cur-&gt;calls, (int)cur-&gt;lastcall, cur-&gt;status, cur-&gt;paused);
+ 			}
+-			ast_mutex_unlock(&amp;q-&gt;lock);
+ 		}
+-		AST_LIST_UNLOCK(&amp;queues);
+-	} else {
+-		if (option_debug)
+-			ast_log(LOG_DEBUG, &quot;Device '%s/%s' changed to state '%d' (%s) but we don't care because they're not a member of any queue.\n&quot;, technology, loc, sc-&gt;state, devstate2str(sc-&gt;state));
++		ast_mutex_unlock(&amp;q-&gt;lock);
+ 	}
+-	free(sc);
++	AST_LIST_UNLOCK(&amp;queues);
++
+ 	return NULL;
+ }
+ 
+@@ -571,17 +571,19 @@
+ 	struct statechange *sc;
+ 	pthread_t t;
+ 	pthread_attr_t attr;
+-	
+-	if ((sc = ast_calloc(1, sizeof(*sc) + strlen(dev) + 1))) {
+-		sc-&gt;state = state;
+-		strcpy(sc-&gt;dev, dev);
+-		pthread_attr_init(&amp;attr);
+-		pthread_attr_setdetachstate(&amp;attr, PTHREAD_CREATE_DETACHED);
+-		if (ast_pthread_create(&amp;t, &amp;attr, changethread, sc)) {
+-			ast_log(LOG_WARNING, &quot;Failed to create update thread!\n&quot;);
+-			free(sc);
+-		}
++
++	if (!(sc = ast_calloc(1, sizeof(*sc) + strlen(dev) + 1)))
++		return 0;
++
++	sc-&gt;state = state;
++	strcpy(sc-&gt;dev, dev);
++	pthread_attr_init(&amp;attr);
++	pthread_attr_setdetachstate(&amp;attr, PTHREAD_CREATE_DETACHED);
++	if (ast_pthread_create(&amp;t, &amp;attr, changethread, sc)) {
++		ast_log(LOG_WARNING, &quot;Failed to create update thread!\n&quot;);
++		free(sc);
+ 	}
++
+ 	return 0;
+ }
+ 
+@@ -660,7 +662,7 @@
+ 
+ static int add_to_interfaces(char *interface) 
+ {
+-	struct ast_member_interfaces *curint, *newint;
++	struct ast_member_interfaces *curint;
+ 
+ 	AST_LIST_LOCK(&amp;interfaces);
+ 	AST_LIST_TRAVERSE(&amp;interfaces, curint, list) {
+@@ -668,18 +670,21 @@
+ 			break; 
+ 	}
+ 
+-	if (!curint) {
+-		if (option_debug)
+-			ast_log(LOG_DEBUG, &quot;Adding %s to the list of interfaces that make up all of our queue members.\n&quot;, interface);
++	if (curint) {
++		AST_LIST_UNLOCK(&amp;interfaces);
++		return 0;
++	}
+ 
+-	        if ((newint = ast_calloc(1, sizeof(*newint)))) {
+-			ast_copy_string(newint-&gt;interface, interface, sizeof(newint-&gt;interface));
+-			AST_LIST_INSERT_HEAD(&amp;interfaces, newint, list);
+-		}
++	if (option_debug)
++		ast_log(LOG_DEBUG, &quot;Adding %s to the list of interfaces that make up all of our queue members.\n&quot;, interface);
++	
++	if ((curint = ast_calloc(1, sizeof(*curint)))) {
++		ast_copy_string(curint-&gt;interface, interface, sizeof(curint-&gt;interface));
++		AST_LIST_INSERT_HEAD(&amp;interfaces, curint, list);
+ 	}
+ 	AST_LIST_UNLOCK(&amp;interfaces);
+ 
+- return 0;
++	return 0;
+ }
+ 
+ static int interface_exists_global(char *interface)
+@@ -691,31 +696,33 @@
+ 	AST_LIST_LOCK(&amp;queues);
+ 	AST_LIST_TRAVERSE(&amp;queues, q, list) {
+ 		ast_mutex_lock(&amp;q-&gt;lock);
+-		for (mem = q-&gt;members; mem; mem = mem-&gt;next)
+-			if (!strcasecmp(interface, mem-&gt;interface)) {
+-				ast_mutex_unlock(&amp;q-&gt;lock);
++		for (mem = q-&gt;members; mem &amp;&amp; !ret; mem = mem-&gt;next) {
++			if (!strcasecmp(interface, mem-&gt;interface))
+ 				ret = 1;
+-				break;
+-			}
++		}
+ 		ast_mutex_unlock(&amp;q-&gt;lock);
++		if (ret)
++			break;
+ 	}
+ 	AST_LIST_UNLOCK(&amp;queues);
+ 
+ 	return ret;
+ }
+ 
+-
+ static int remove_from_interfaces(char *interface)
+ {
+ 	struct ast_member_interfaces *curint;
+ 
+ 	AST_LIST_LOCK(&amp;interfaces);
+ 	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;interfaces, curint, list) {
+-		if (!strcasecmp(curint-&gt;interface, interface) &amp;&amp; !interface_exists_global(interface)) {
+-			if (option_debug)
+-				ast_log(LOG_DEBUG, &quot;Removing %s from the list of interfaces that make up all of our queue members.\n&quot;, interface);
+-			AST_LIST_REMOVE_CURRENT(&amp;interfaces, list);
+-			free(curint);
++		if (!strcasecmp(curint-&gt;interface, interface)) {
++			if (!interface_exists_global(interface)) {
++				if (option_debug)
++					ast_log(LOG_DEBUG, &quot;Removing %s from the list of interfaces that make up all of our queue members.\n&quot;, interface);
++				AST_LIST_REMOVE_CURRENT(&amp;interfaces, list);
++				free(curint);
++			}
++			break;
+ 		}
+ 	}
+ 	AST_LIST_TRAVERSE_SAFE_END;
+@@ -729,14 +736,9 @@
+ 	struct ast_member_interfaces *curint;
+ 
+ 	AST_LIST_LOCK(&amp;interfaces);
+-	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;interfaces, curint, list) {
+-		AST_LIST_REMOVE_CURRENT(&amp;interfaces, list);
++	while ((curint = AST_LIST_REMOVE_HEAD(&amp;interfaces, list)))
+ 		free(curint);
+-	}
+-	AST_LIST_TRAVERSE_SAFE_END;
+ 	AST_LIST_UNLOCK(&amp;interfaces);
+-
+- 	return;
+ }
+ 
+ /*! \brief Configure a queue parameter.
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-06-28 01:24:19 UTC (rev 355)
++++ trunk/channels/chan_iax2.c	2006-06-28 01:25:41 UTC (rev 356)
+@@ -9511,51 +9511,39 @@
+ /*! \brief Part of the device state notification system ---*/
+ static int iax2_devicestate(void *data) 
+ {
+-	char *dest = (char *) data;
++	struct parsed_dial_string pds;
++	char *tmp = ast_strdupa(data);
+ 	struct iax2_peer *p;
+-	int found = 0;
+-	char *ext, *host;
+-	char tmp[256];
+ 	int res = AST_DEVICE_INVALID;
+ 
+-	ast_copy_string(tmp, dest, sizeof(tmp));
+-	host = strchr(tmp, '@');
+-	if (host) {
+-		*host = '\0';
+-		host++;
+-		ext = tmp;
+-	} else {
+-		host = tmp;
+-		ext = NULL;
+-	}
+-
++	parse_dial_string(tmp, &amp;pds);
++	if (ast_strlen_zero(pds.peer))
++		return res;
++	
+ 	if (option_debug &gt; 2)
+-		ast_log(LOG_DEBUG, &quot;Checking device state for device %s\n&quot;, dest);
++		ast_log(LOG_DEBUG, &quot;Checking device state for device %s\n&quot;, pds.peer);
+ 
+ 	/* SLD: FIXME: second call to find_peer during registration */
+-	p = find_peer(host, 1);
+-	if (p) {
+-		found++;
+-		res = AST_DEVICE_UNAVAILABLE;
+-		if (option_debug &gt; 2) 
+-			ast_log(LOG_DEBUG, &quot;iax2_devicestate(%s): Found peer. What's device state of %s? addr=%d, defaddr=%d maxms=%d, lastms=%d\n&quot;,
+-				host, dest, p-&gt;addr.sin_addr.s_addr, p-&gt;defaddr.sin_addr.s_addr, p-&gt;maxms, p-&gt;lastms);
++	if (!(p = find_peer(pds.peer, 1)))
++		return res;
+ 
+-		if ((p-&gt;addr.sin_addr.s_addr || p-&gt;defaddr.sin_addr.s_addr) &amp;&amp;
+-		    (!p-&gt;maxms || ((p-&gt;lastms &gt; -1) &amp;&amp; (p-&gt;historicms &lt;= p-&gt;maxms)))) {
+-			/* Peer is registered, or have default IP address
+-			   and a valid registration */
+-			if (p-&gt;historicms == 0 || p-&gt;historicms &lt;= p-&gt;maxms)
+-				/* let the core figure out whether it is in use or not */
+-				res = AST_DEVICE_UNKNOWN;	
+-		}
+-	} else {
+-		if (option_debug &gt; 2) 
+-			ast_log(LOG_DEBUG, &quot;Devicestate: Can't find peer %s.\n&quot;, host);
+-	}
++	res = AST_DEVICE_UNAVAILABLE;
++	if (option_debug &gt; 2) 
++		ast_log(LOG_DEBUG, &quot;iax2_devicestate: Found peer. What's device state of %s? addr=%d, defaddr=%d maxms=%d, lastms=%d\n&quot;,
++			pds.peer, p-&gt;addr.sin_addr.s_addr, p-&gt;defaddr.sin_addr.s_addr, p-&gt;maxms, p-&gt;lastms);
+ 	
+-	if (p &amp;&amp; ast_test_flag(p, IAX_TEMPONLY))
++	if ((p-&gt;addr.sin_addr.s_addr || p-&gt;defaddr.sin_addr.s_addr) &amp;&amp;
++	    (!p-&gt;maxms || ((p-&gt;lastms &gt; -1) &amp;&amp; (p-&gt;historicms &lt;= p-&gt;maxms)))) {
++		/* Peer is registered, or have default IP address
++		   and a valid registration */
++		if (p-&gt;historicms == 0 || p-&gt;historicms &lt;= p-&gt;maxms)
++			/* let the core figure out whether it is in use or not */
++			res = AST_DEVICE_UNKNOWN;	
++	}
++
++	if (ast_test_flag(p, IAX_TEMPONLY))
+ 		destroy_peer(p);
++
+ 	return res;
+ }
+ 
+
+Modified: trunk/channels/chan_local.c
+===================================================================
+--- trunk/channels/chan_local.c	2006-06-28 01:24:19 UTC (rev 355)
++++ trunk/channels/chan_local.c	2006-06-28 01:25:41 UTC (rev 356)
+@@ -138,9 +138,9 @@
+ 		ast_log(LOG_DEBUG, &quot;Checking if extension %s@%s exists (devicestate)\n&quot;, exten, context);
+ 	res = ast_exists_extension(NULL, context, exten, 1, NULL);
+ 	if (!res)
+-		return AST_DEVICE_NOT_INUSE;
++		return AST_DEVICE_INVALID;
+ 	else
+-		return AST_DEVICE_INUSE;
++		return AST_DEVICE_UNKNOWN;
+ }
+ 
+ static int local_queue_frame(struct local_pvt *p, int isoutbound, struct ast_frame *f, struct ast_channel *us)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000350.html">[solid-pbx-svn] r355 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000352.html">[solid-pbx-svn] r357 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#351">[ date ]</a>
+              <a href="thread.html#351">[ thread ]</a>
+              <a href="subject.html#351">[ subject ]</a>
+              <a href="author.html#351">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

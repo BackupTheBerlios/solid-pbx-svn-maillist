@@ -1,0 +1,200 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r197 - in trunk: . apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r197%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605311625.k4VGPUfH015446%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000191.html">
+   <LINK REL="Next"  HREF="000193.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r197 - in trunk: . apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r197%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605311625.k4VGPUfH015446%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r197 - in trunk: . apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 31 18:25:30 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000191.html">[solid-pbx-svn] r196 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000193.html">[solid-pbx-svn] r198 - in trunk: . channels configs include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#192">[ date ]</a>
+              <a href="thread.html#192">[ thread ]</a>
+              <a href="subject.html#192">[ subject ]</a>
+              <a href="author.html#192">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-31 18:25:28 +0200 (Wed, 31 May 2006)
+New Revision: 197
+
+Modified:
+   trunk/apps/app_dial.c
+   trunk/channel.c
+Log:
+Update to Asterisk SVN trunk r31049
+
+------------------------------------------------------------------------
+r31023 | bweschke | 2006-05-31 17:52:32 +0200 (Wed, 31 May 2006) | 3 lines
+
+ Add an option to app_dial, 'i', to instruct the application ignore any requests from peers to forward calls elsewhere. #5657 (johnlange w/some minor mods)
+
+
+------------------------------------------------------------------------
+r31044 | kpfleming | 2006-05-31 18:04:49 +0200 (Wed, 31 May 2006) | 2 lines
+
+a few more control frame types that don't need to generate useless notices in the log
+
+------------------------------------------------------------------------
+r31049 | kpfleming | 2006-05-31 18:11:55 +0200 (Wed, 31 May 2006) | 2 lines
+
+cleanups for commit from issue #5657... set a cause code for a rejected forward request, and actually set tmp-&gt;chan to NULL when we reject the forward request
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_dial.c
+===================================================================
+--- trunk/apps/app_dial.c	2006-05-31 15:25:31 UTC (rev 196)
++++ trunk/apps/app_dial.c	2006-05-31 16:25:28 UTC (rev 197)
+@@ -117,6 +117,8 @@
+ &quot;           action post answer options in conjunction with this option.\n&quot; 
+ &quot;    h    - Allow the called party to hang up by sending the '*' DTMF digit.\n&quot;
+ &quot;    H    - Allow the calling party to hang up by hitting the '*' DTMF digit.\n&quot;
++&quot;    i    - Asterisk will ignore any forwarding requests it may receive on this\n&quot;
++&quot;           dial attempt.\n&quot;
+ &quot;    j    - Jump to priority n+101 if all of the requested channels were busy.\n&quot;
+ &quot;    L(x[:y][:z]) - Limit the call to 'x' ms. Play a warning when 'y' ms are\n&quot;
+ &quot;           left. Repeat the warning every 'z' ms. The following special\n&quot;
+@@ -233,6 +235,7 @@
+ 	OPT_OPERMODE = 		(1 &lt;&lt; 24),
+ 	OPT_CALLEE_PARK =	(1 &lt;&lt; 25),
+ 	OPT_CALLER_PARK =	(1 &lt;&lt; 26),
++	OPT_IGNORE_FORWARDING = (1 &lt;&lt; 27),
+ } dial_exec_option_flags;
+ 
+ #define DIAL_STILLGOING			(1 &lt;&lt; 30)
+@@ -262,6 +265,7 @@
+ 	AST_APP_OPTION_ARG('G', OPT_GOTO, OPT_ARG_GOTO),
+ 	AST_APP_OPTION('h', OPT_CALLEE_HANGUP),
+ 	AST_APP_OPTION('H', OPT_CALLER_HANGUP),
++	AST_APP_OPTION('i', OPT_IGNORE_FORWARDING),
+ 	AST_APP_OPTION('j', OPT_PRIORITY_JUMP),
+ 	AST_APP_OPTION_ARG('L', OPT_DURATION_LIMIT, OPT_ARG_DURATION_LIMIT),
+ 	AST_APP_OPTION_ARG('m', OPT_MUSICBACK, OPT_ARG_MUSICBACK),
+@@ -479,10 +483,20 @@
+ 						ast_verbose(VERBOSE_PREFIX_3 &quot;Now forwarding %s to '%s/%s' (thanks to %s)\n&quot;, in-&gt;name, tech, stuff, c-&gt;name);
+ 					/* Setup parameters */
+ 					c = o-&gt;chan = ast_request(tech, in-&gt;nativeformats, stuff, &amp;cause);
+-					if (!c)
+-						ast_log(LOG_NOTICE, &quot;Unable to create local channel for call forward to '%s/%s' (cause = %d)\n&quot;, tech, stuff, cause);
+-					else
+-						ast_channel_inherit_variables(in, o-&gt;chan);
++					/* If we have been told to ignore forwards, just set this channel to null and continue processing extensions normally */
++					if (ast_test_flag(peerflags, OPT_IGNORE_FORWARDING)) {
++						if (option_verbose &gt; 2)
++							ast_verbose(VERBOSE_PREFIX_3 &quot;Forwarding %s to '%s/%s' prevented.\n&quot;, in-&gt;name, tech, stuff);
++						c = o-&gt;chan = NULL;
++						cause = AST_CAUSE_BUSY;
++					} else {
++						/* Setup parameters */
++						c = o-&gt;chan = ast_request(tech, in-&gt;nativeformats, stuff, &amp;cause);
++						if (!c)
++							ast_log(LOG_NOTICE, &quot;Unable to create local channel for call forward to '%s/%s' (cause = %d)\n&quot;, tech, stuff, cause);
++						else
++							ast_channel_inherit_variables(in, o-&gt;chan);
++					}
+ 				} else {
+ 					if (option_verbose &gt; 2)
+ 						ast_verbose(VERBOSE_PREFIX_3 &quot;Too many forwards from %s\n&quot;, c-&gt;name);
+@@ -819,7 +833,7 @@
+ 		if (option_verbose &gt; 2)
+ 			ast_verbose(VERBOSE_PREFIX_3 &quot;Setting operator services mode to %d.\n&quot;, opermode);
+ 	}
+-
++	
+ 	if (ast_test_flag(&amp;opts, OPT_DURATION_STOP) &amp;&amp; !ast_strlen_zero(opt_args[OPT_ARG_DURATION_STOP])) {
+ 		calldurationlimit = atoi(opt_args[OPT_ARG_DURATION_STOP]);
+ 		if (!calldurationlimit) {
+@@ -1015,7 +1029,7 @@
+ 	/* If a channel group has been specified, get it for use when we create peer channels */
+ 	outbound_group = pbx_builtin_getvar_helper(chan, &quot;OUTBOUND_GROUP&quot;);
+ 
+-	ast_copy_flags(peerflags, &amp;opts, OPT_DTMF_EXIT | OPT_GO_ON | OPT_ORIGINAL_CLID | OPT_CALLER_HANGUP);
++	ast_copy_flags(peerflags, &amp;opts, OPT_DTMF_EXIT | OPT_GO_ON | OPT_ORIGINAL_CLID | OPT_CALLER_HANGUP | OPT_IGNORE_FORWARDING);
+ 	/* loop through the list of dial destinations */
+ 	rest = args.peers;
+ 	while ((cur = strsep(&amp;rest, &quot;&amp;&quot;)) ) {
+@@ -1068,8 +1082,15 @@
+ 				if (option_verbose &gt; 2)
+ 					ast_verbose(VERBOSE_PREFIX_3 &quot;Now forwarding %s to '%s/%s' (thanks to %s)\n&quot;, chan-&gt;name, tech, stuff, tmp-&gt;chan-&gt;name);
+ 				ast_hangup(tmp-&gt;chan);
+-				/* Setup parameters */
+-				tmp-&gt;chan = ast_request(tech, chan-&gt;nativeformats, stuff, &amp;cause);
++				/* If we have been told to ignore forwards, just set this channel to null and continue processing extensions normally */
++				if (ast_test_flag(&amp;opts, OPT_IGNORE_FORWARDING)) {
++					tmp-&gt;chan = NULL;
++					cause = AST_CAUSE_BUSY;
++					if (option_verbose &gt; 2)
++						ast_verbose(VERBOSE_PREFIX_3 &quot;Forwarding %s to '%s/%s' prevented.\n&quot;, chan-&gt;name, tech, stuff);
++				} else {
++					tmp-&gt;chan = ast_request(tech, chan-&gt;nativeformats, stuff, &amp;cause);
++				}
+ 				if (!tmp-&gt;chan)
+ 					ast_log(LOG_NOTICE, &quot;Unable to create local channel for call forward to '%s/%s' (cause = %d)\n&quot;, tech, stuff, cause);
+ 				else
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-05-31 15:25:31 UTC (rev 196)
++++ trunk/channel.c	2006-05-31 16:25:28 UTC (rev 197)
+@@ -2547,7 +2547,12 @@
+ 					timeout = 0;		/* trick to force exit from the while() */
+ 					break;
+ 
+-				case AST_CONTROL_PROGRESS:	/* Ignore */
++				/* Ignore these */
++				case AST_CONTROL_PROGRESS:
++				case AST_CONTROL_PROCEEDING:
++				case AST_CONTROL_HOLD:
++				case AST_CONTROL_UNHOLD:
++				case AST_CONTROL_VIDUPDATE:
+ 				case -1:			/* Ignore -- just stopping indications */
+ 					break;
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000191.html">[solid-pbx-svn] r196 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000193.html">[solid-pbx-svn] r198 - in trunk: . channels configs include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#192">[ date ]</a>
+              <a href="thread.html#192">[ thread ]</a>
+              <a href="subject.html#192">[ subject ]</a>
+              <a href="author.html#192">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

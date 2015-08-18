@@ -1,0 +1,777 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r51 - in trunk: . apps doc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r51%20-%20in%20trunk%3A%20.%20apps%20doc&In-Reply-To=%3C200605032319.k43NJAYg004307%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000047.html">
+   <LINK REL="Next"  HREF="000049.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r51 - in trunk: . apps doc</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r51%20-%20in%20trunk%3A%20.%20apps%20doc&In-Reply-To=%3C200605032319.k43NJAYg004307%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r51 - in trunk: . apps doc">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May  4 01:19:10 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000047.html">[solid-pbx-svn] r50 - in trunk: apps channels funcs res
+</A></li>
+        <LI>Next message: <A HREF="000049.html">[solid-pbx-svn] r52 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#48">[ date ]</a>
+              <a href="thread.html#48">[ thread ]</a>
+              <a href="subject.html#48">[ subject ]</a>
+              <a href="author.html#48">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-04 01:18:25 +0200 (Thu, 04 May 2006)
+New Revision: 51
+
+Modified:
+   trunk/apps/app_chanspy.c
+   trunk/apps/app_page.c
+   trunk/apps/app_voicemail.c
+   trunk/doc/channelvariables.txt
+   trunk/say.c
+Log:
+Update to Asterisk SVN trunk r24668
+
+------------------------------------------------------------------------
+r24636 | bweschke | 2006-05-04 00:25:08 +0200 (Thu, 04 May 2006) | 4 lines
+
+Allow channels in ChanSpy to belong to mutiple spygroups #7072 (anthm)
+
+
+
+------------------------------------------------------------------------
+r24638 | bweschke | 2006-05-04 00:38:56 +0200 (Thu, 04 May 2006) | 3 lines
+
+ Optionally record audio of the page command for re-pages/playback. #6827 (JeffSaxe)
+
+
+------------------------------------------------------------------------
+r24639 | bweschke | 2006-05-04 00:40:42 +0200 (Thu, 04 May 2006) | 3 lines
+
+ Documentation / whitespace fix.
+
+
+------------------------------------------------------------------------
+r24640 | bweschke | 2006-05-04 00:53:38 +0200 (Thu, 04 May 2006) | 3 lines
+
+ Fix &quot;o'clock&quot; from being said twice in French. #6900 (casper)
+
+
+------------------------------------------------------------------------
+r24641 | tilghman | 2006-05-04 00:54:02 +0200 (Thu, 04 May 2006) | 2 lines
+
+Bug 6989 - updates to the ODBC storage mechanism for compatibility with the new res_odbc
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_chanspy.c
+===================================================================
+--- trunk/apps/app_chanspy.c	2006-05-03 22:23:00 UTC (rev 50)
++++ trunk/apps/app_chanspy.c	2006-05-03 23:18:25 UTC (rev 51)
+@@ -73,7 +73,7 @@
+ &quot;  Options:\n&quot;
+ &quot;    b - Only spy on channels involved in a bridged call.\n&quot;
+ &quot;    g(grp) - Match only channels where their ${SPYGROUP} variable is set to\n&quot;
+-&quot;             'grp'.\n&quot;
++&quot;             contain 'grp' in an optional : delimited list.\n&quot;
+ &quot;    q - Don't play a beep when beginning to spy on a channel.\n&quot;
+ &quot;    r[(basename)] - Record the session to the monitor spool directory. An\n&quot;
+ &quot;                    optional base for the filename may be specified. The\n&quot;
+@@ -414,7 +414,7 @@
+ 			spec = NULL;
+ 		}
+ 	}
+-	
++
+ 	if (options) {
+ 		char *opts[OPT_ARG_ARRAY_SIZE];
+ 		ast_app_parse_options(chanspy_opts, &amp;flags, opts, options);
+@@ -471,18 +471,34 @@
+ 			if (peer != chan) {
+ 				const char *group = NULL;
+ 				int igrp = 1;
+-
++				char *groups[25] = {0};
++				int num_groups = 0;
++				char *dup_group;
++				
+ 				if (peer == prev &amp;&amp; !chosen) {
+ 					break;
+ 				}
+ 				chosen = 0;
+-				group = pbx_builtin_getvar_helper(peer, &quot;SPYGROUP&quot;);
++
+ 				if (mygroup) {
+-					if (!group || strcmp(mygroup, group)) {
+-						igrp = 0;
++					int x;
++
++					if ((group = pbx_builtin_getvar_helper(peer, &quot;SPYGROUP&quot;))) {
++						dup_group = ast_strdupa(group);
++						num_groups = ast_app_separate_args(dup_group, ':', groups, sizeof(groups) / sizeof(groups[0]));
+ 					}
++
++					igrp = 0;
++					if (num_groups) {
++						for (x = 0; x &lt; num_groups; x++) {
++							if (!strcmp(mygroup, groups[x])) {
++								igrp = 1;
++								break;
++							}
++						}
++					} 
+ 				}
+-				
++
+ 				if (igrp &amp;&amp; (!spec || ((strlen(spec) &lt;= strlen(peer-&gt;name) &amp;&amp;
+ 							!strncasecmp(peer-&gt;name, spec, strlen(spec)))))) {
+ 					if (peer &amp;&amp; (!bronly || ast_bridged_channel(peer)) &amp;&amp;
+
+Modified: trunk/apps/app_page.c
+===================================================================
+--- trunk/apps/app_page.c	2006-05-03 22:23:00 UTC (rev 50)
++++ trunk/apps/app_page.c	2006-05-03 23:18:25 UTC (rev 51)
+@@ -60,18 +60,21 @@
+ &quot;caller is dumped into the conference as a speaker and the room is\n&quot;
+ &quot;destroyed when the original caller leaves.  Valid options are:\n&quot;
+ &quot;        d - full duplex audio\n&quot;
+-&quot;	 q - quiet, do not play beep to caller\n&quot;;
++&quot;	 q - quiet, do not play beep to caller\n&quot;
++&quot;        r - record the page into a file (see 'r' for app_meetme)\n&quot;;
+ 
+ LOCAL_USER_DECL;
+ 
+ enum {
+ 	PAGE_DUPLEX = (1 &lt;&lt; 0),
+ 	PAGE_QUIET = (1 &lt;&lt; 1),
++	PAGE_RECORD = (1 &lt;&lt; 2),
+ } page_opt_flags;
+ 
+ AST_APP_OPTIONS(page_opts, {
+ 	AST_APP_OPTION('d', PAGE_DUPLEX),
+ 	AST_APP_OPTION('q', PAGE_QUIET),
++	AST_APP_OPTION('r', PAGE_RECORD),
+ });
+ 
+ struct calloutdata {
+@@ -177,7 +180,8 @@
+ 	if (options)
+ 		ast_app_parse_options(page_opts, &amp;flags, NULL, options);
+ 
+-	snprintf(meetmeopts, sizeof(meetmeopts), &quot;%ud|%sqxdw&quot;, confid, ast_test_flag(&amp;flags, PAGE_DUPLEX) ? &quot;&quot; : &quot;m&quot;);
++	snprintf(meetmeopts, sizeof(meetmeopts), &quot;%ud|%s%sqxdw&quot;, confid, (ast_test_flag(&amp;flags, PAGE_DUPLEX) ? &quot;&quot; : &quot;m&quot;),
++		(ast_test_flag(&amp;flags, PAGE_RECORD) ? &quot;r&quot; : &quot;&quot;) );
+ 
+ 	while ((tech = strsep(&amp;tmp, &quot;&amp;&quot;))) {
+ 		/* don't call the originating device */
+@@ -198,7 +202,8 @@
+ 			res = ast_waitstream(chan, &quot;&quot;);
+ 	}
+ 	if (!res) {
+-		snprintf(meetmeopts, sizeof(meetmeopts), &quot;%ud|A%sqxd&quot;, confid, ast_test_flag(&amp;flags, PAGE_DUPLEX) ? &quot;&quot; : &quot;t&quot;);
++		snprintf(meetmeopts, sizeof(meetmeopts), &quot;%ud|A%s%sqxd&quot;, confid, (ast_test_flag(&amp;flags, PAGE_DUPLEX) ? &quot;&quot; : &quot;t&quot;), 
++			(ast_test_flag(&amp;flags, PAGE_RECORD) ? &quot;r&quot; : &quot;&quot;) );
+ 		pbx_exec(chan, app, meetmeopts);
+ 	}
+ 
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-03 22:23:00 UTC (rev 50)
++++ trunk/apps/app_voicemail.c	2006-05-03 23:18:25 UTC (rev 51)
+@@ -855,8 +855,8 @@
+ 	char full_fn[256];
+ 	char msgnums[80];
+ 	
+-	odbc_obj *obj;
+-	obj = fetch_odbc_obj(odbc_database, 0);
++	struct odbc_obj *obj;
++	obj = odbc_request_obj(odbc_database, 0);
+ 	if (obj) {
+ 		ast_copy_string(fmt, vmfmts, sizeof(fmt));
+ 		c = strchr(fmt, '|');
+@@ -875,6 +875,7 @@
+ 		res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		snprintf(sql, sizeof(sql), &quot;SELECT * FROM %s WHERE dir=? AND msgnum=?&quot;,odbc_table);
+@@ -882,6 +883,7 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, strlen(dir), 0, (void *)dir, 0, NULL);
+@@ -890,28 +892,33 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = SQLFetch(stmt);
+ 		if (res == SQL_NO_DATA) {
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		else if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Fetch error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		fd = open(full_fn, O_RDWR | O_CREAT | O_TRUNC);
+ 		if (fd &lt; 0) {
+ 			ast_log(LOG_WARNING, &quot;Failed to write '%s': %s\n&quot;, full_fn, strerror(errno));
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = SQLNumResultCols(stmt, &amp;colcount);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {	
+ 			ast_log(LOG_WARNING, &quot;SQL Column Count error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		if (f) 
+@@ -924,6 +931,7 @@
+ 			if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 				ast_log(LOG_WARNING, &quot;SQL Describe Column error!\n[%s]\n\n&quot;, sql);
+ 				SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++				odbc_release_obj(obj);
+ 				goto yuck;
+ 			}
+ 			if (!strcasecmp(coltitle, &quot;recording&quot;)) {
+@@ -946,6 +954,7 @@
+ 					if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 						ast_log(LOG_WARNING, &quot;SQL Get Data error!\n[%s]\n\n&quot;, sql);
+ 						SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++						odbc_release_obj(obj);
+ 						goto yuck;
+ 					}
+ 				}
+@@ -954,6 +963,7 @@
+ 				if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 					ast_log(LOG_WARNING, &quot;SQL Get Data error!\n[%s]\n\n&quot;, sql);
+ 					SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++					odbc_release_obj(obj);
+ 					goto yuck;
+ 				}
+ 				if (strcasecmp(coltitle, &quot;msgnum&quot;) &amp;&amp; strcasecmp(coltitle, &quot;dir&quot;) &amp;&amp; f)
+@@ -961,6 +971,7 @@
+ 			}
+ 		}
+ 		SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++		odbc_release_obj(obj);
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;Failed to obtain database object for '%s'!\n&quot;, odbc_database);
+ yuck:	
+@@ -998,12 +1009,13 @@
+ 	char sql[256];
+ 	char rowdata[20];
+ 	
+-	odbc_obj *obj;
+-	obj = fetch_odbc_obj(odbc_database, 0);
++	struct odbc_obj *obj;
++	obj = odbc_request_obj(odbc_database, 0);
+ 	if (obj) {
+ 		res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		snprintf(sql, sizeof(sql), &quot;SELECT COUNT(*) FROM %s WHERE dir=?&quot;,odbc_table);
+@@ -1011,6 +1023,7 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, strlen(dir), 0, (void *)dir, 0, NULL);
+@@ -1018,23 +1031,27 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = SQLFetch(stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Fetch error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = SQLGetData(stmt, 1, SQL_CHAR, rowdata, sizeof(rowdata), NULL);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Get Data error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		if (sscanf(rowdata, &quot;%d&quot;, &amp;x) != 1)
+ 			ast_log(LOG_WARNING, &quot;Failed to read message count!\n&quot;);
+ 		SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++		odbc_release_obj(obj);
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;Failed to obtain database object for '%s'!\n&quot;, odbc_database);
+ yuck:	
+@@ -1050,13 +1067,14 @@
+ 	char rowdata[20];
+ 	char msgnums[20];
+ 	
+-	odbc_obj *obj;
+-	obj = fetch_odbc_obj(odbc_database, 0);
++	struct odbc_obj *obj;
++	obj = odbc_request_obj(odbc_database, 0);
+ 	if (obj) {
+ 		snprintf(msgnums, sizeof(msgnums), &quot;%d&quot;, msgnum);
+ 		res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		snprintf(sql, sizeof(sql), &quot;SELECT COUNT(*) FROM %s WHERE dir=? AND msgnum=?&quot;,odbc_table);
+@@ -1064,6 +1082,7 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, strlen(dir), 0, (void *)dir, 0, NULL);
+@@ -1072,23 +1091,27 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = SQLFetch(stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Fetch error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = SQLGetData(stmt, 1, SQL_CHAR, rowdata, sizeof(rowdata), NULL);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Get Data error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		if (sscanf(rowdata, &quot;%d&quot;, &amp;x) != 1)
+ 			ast_log(LOG_WARNING, &quot;Failed to read message count!\n&quot;);
+ 		SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++		odbc_release_obj(obj);
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;Failed to obtain database object for '%s'!\n&quot;, odbc_database);
+ yuck:	
+@@ -1107,13 +1130,14 @@
+ 	char sql[256];
+ 	char msgnums[20];
+ 	
+-	odbc_obj *obj;
+-	obj = fetch_odbc_obj(odbc_database, 0);
++	struct odbc_obj *obj;
++	obj = odbc_request_obj(odbc_database, 0);
+ 	if (obj) {
+ 		snprintf(msgnums, sizeof(msgnums), &quot;%d&quot;, smsg);
+ 		res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		snprintf(sql, sizeof(sql), &quot;DELETE FROM %s WHERE dir=? AND msgnum=?&quot;,odbc_table);
+@@ -1121,6 +1145,7 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, strlen(sdir), 0, (void *)sdir, 0, NULL);
+@@ -1129,9 +1154,11 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++		odbc_release_obj(obj);
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;Failed to obtain database object for '%s'!\n&quot;, odbc_database);
+ yuck:
+@@ -1145,16 +1172,17 @@
+ 	char sql[512];
+ 	char msgnums[20];
+ 	char msgnumd[20];
+-	odbc_obj *obj;
++	struct odbc_obj *obj;
+ 
+ 	delete_file(ddir, dmsg);
+-	obj = fetch_odbc_obj(odbc_database, 0);
++	obj = odbc_request_obj(odbc_database, 0);
+ 	if (obj) {
+ 		snprintf(msgnums, sizeof(msgnums), &quot;%d&quot;, smsg);
+ 		snprintf(msgnumd, sizeof(msgnumd), &quot;%d&quot;, dmsg);
+ 		res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ #ifdef EXTENDED_ODBC_STORAGE
+@@ -1166,6 +1194,7 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, strlen(ddir), 0, (void *)ddir, 0, NULL);
+@@ -1183,9 +1212,11 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s] (You probably don't have MySQL 4.1 or later installed)\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++		odbc_release_obj(obj);
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;Failed to obtain database object for '%s'!\n&quot;, odbc_database);
+ yuck:
+@@ -1210,10 +1241,10 @@
+ 	char *context=&quot;&quot;, *macrocontext=&quot;&quot;, *callerid=&quot;&quot;, *origtime=&quot;&quot;, *duration=&quot;&quot;;
+ 	char *category = &quot;&quot;;
+ 	struct ast_config *cfg=NULL;
+-	odbc_obj *obj;
++	struct odbc_obj *obj;
+ 
+ 	delete_file(dir, msgnum);
+-	obj = fetch_odbc_obj(odbc_database, 0);
++	obj = odbc_request_obj(odbc_database, 0);
+ 	if (obj) {
+ 		ast_copy_string(fmt, vmfmts, sizeof(fmt));
+ 		c = strchr(fmt, '|');
+@@ -1232,6 +1263,7 @@
+ 		fd = open(full_fn, O_RDWR);
+ 		if (fd &lt; 0) {
+ 			ast_log(LOG_WARNING, &quot;Open of sound file '%s' failed: %s\n&quot;, full_fn, strerror(errno));
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		if (cfg) {
+@@ -1254,11 +1286,13 @@
+ 		fdm = mmap(NULL, fdlen, PROT_READ | PROT_WRITE, MAP_SHARED,fd, 0);
+ 		if (!fdm) {
+ 			ast_log(LOG_WARNING, &quot;Memory map failed!\n&quot;);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		} 
+ 		res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+  		if (!ast_strlen_zero(category)) 
+@@ -1277,6 +1311,7 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		len = fdlen; /* SQL_LEN_DATA_AT_EXEC(fdlen); */
+@@ -1301,9 +1336,11 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++		odbc_release_obj(obj);
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;Failed to obtain database object for '%s'!\n&quot;, odbc_database);
+ yuck:	
+@@ -1323,16 +1360,17 @@
+ 	char sql[256];
+ 	char msgnums[20];
+ 	char msgnumd[20];
+-	odbc_obj *obj;
++	struct odbc_obj *obj;
+ 
+ 	delete_file(ddir, dmsg);
+-	obj = fetch_odbc_obj(odbc_database, 0);
++	obj = odbc_request_obj(odbc_database, 0);
+ 	if (obj) {
+ 		snprintf(msgnums, sizeof(msgnums), &quot;%d&quot;, smsg);
+ 		snprintf(msgnumd, sizeof(msgnumd), &quot;%d&quot;, dmsg);
+ 		res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ #ifdef EXTENDED_ODBC_STORAGE
+@@ -1344,6 +1382,7 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, strlen(ddir), 0, (void *)ddir, 0, NULL);
+@@ -1361,9 +1400,11 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++		odbc_release_obj(obj);
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;Failed to obtain database object for '%s'!\n&quot;, odbc_database);
+ yuck:
+@@ -1967,6 +2008,7 @@
+ 	char sql[256];
+ 	char rowdata[20];
+ 	char tmp[256]=&quot;&quot;;
++	struct odbc_obj *obj;
+         char *context;
+ 
+         if (newmsgs)
+@@ -1986,12 +2028,12 @@
+         } else  
+                 context = &quot;default&quot;;
+ 	
+-	odbc_obj *obj;
+-	obj = fetch_odbc_obj(odbc_database, 0);
++	obj = odbc_request_obj(odbc_database, 0);
+ 	if (obj) {
+ 		res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		snprintf(sql, sizeof(sql), &quot;SELECT COUNT(*) FROM %s WHERE dir LIKE '%%%s/%s/%s'&quot;, odbc_table, context, tmp, &quot;INBOX&quot;);
+@@ -1999,24 +2041,28 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = odbc_smart_execute(obj, stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = SQLFetch(stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Fetch error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = SQLGetData(stmt, 1, SQL_CHAR, rowdata, sizeof(rowdata), NULL);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Get Data error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		*newmsgs = atoi(rowdata);
+@@ -2025,6 +2071,7 @@
+ 		res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		snprintf(sql, sizeof(sql), &quot;SELECT COUNT(*) FROM %s WHERE dir like '%%%s/%s/%s'&quot;, odbc_table, context, tmp, &quot;Old&quot;);
+@@ -2032,27 +2079,32 @@
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = odbc_smart_execute(obj, stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = SQLFetch(stmt);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Fetch error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		res = SQLGetData(stmt, 1, SQL_CHAR, rowdata, sizeof(rowdata), NULL);
+ 		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+ 			ast_log(LOG_WARNING, &quot;SQL Get Data error!\n[%s]\n\n&quot;, sql);
+ 			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+ 			goto yuck;
+ 		}
+ 		SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++		odbc_release_obj(obj);
+ 		*oldmsgs = atoi(rowdata);
+ 		x = 1;
+ 	} else
+@@ -2064,6 +2116,7 @@
+ 
+ static int has_voicemail(const char *mailbox, const char *folder)
+ {
++	struct odbc_obj *obj;
+ 	int nummsgs = 0;
+         int res;
+         SQLHSTMT stmt;
+@@ -2086,12 +2139,12 @@
+         } else
+                 context = &quot;default&quot;;
+ 
+-        odbc_obj *obj;
+-        obj = fetch_odbc_obj(odbc_database, 0);
++	obj = odbc_request_obj(odbc_database, 0);
+         if (obj) {
+                 res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+                 if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+                         ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
++			odbc_release_obj(obj);
+                         goto yuck;
+                 }
+ 		snprintf(sql, sizeof(sql), &quot;SELECT COUNT(*) FROM %s WHERE dir like '%%%s/%s/%s'&quot;, odbc_table, context, tmp, &quot;INBOX&quot;);
+@@ -2099,28 +2152,33 @@
+                 if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {  
+                         ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
+                         SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+                         goto yuck;
+                 }
+                 res = odbc_smart_execute(obj, stmt);
+                 if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+                         ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s]\n\n&quot;, sql);
+                         SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+                         goto yuck;
+                 }
+                 res = SQLFetch(stmt);
+                 if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+                         ast_log(LOG_WARNING, &quot;SQL Fetch error!\n[%s]\n\n&quot;, sql);
+                         SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+                         goto yuck;
+                 }
+                 res = SQLGetData(stmt, 1, SQL_CHAR, rowdata, sizeof(rowdata), NULL);
+                 if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+                         ast_log(LOG_WARNING, &quot;SQL Get Data error!\n[%s]\n\n&quot;, sql);
+                         SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			odbc_release_obj(obj);
+                         goto yuck;
+                 }
+                 nummsgs = atoi(rowdata);
+                 SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++		odbc_release_obj(obj);
+        } else
+                 ast_log(LOG_WARNING, &quot;Failed to obtain database object for '%s'!\n&quot;, odbc_database);
+ 
+
+Modified: trunk/doc/channelvariables.txt
+===================================================================
+--- trunk/doc/channelvariables.txt	2006-05-03 22:23:00 UTC (rev 50)
++++ trunk/doc/channelvariables.txt	2006-05-03 23:18:25 UTC (rev 51)
+@@ -755,6 +755,11 @@
+ ${MACRO_PRIORITY}	* The calling priority
+ ${MACRO_OFFSET}		Offset to add to priority at return from macro
+ 
++The ChanSpy() application uses the following variables:
++---------------------------------------------------------
++${SPYGROUP}		* A ':' (colon) separated list of group names.
++			  (To be set on spied on channel and matched against the g(grp) option)
++
+ If you compile with OSP support, these variables are used:
+ ---------------------------------------------------------
+ ${OSPINHANDLE}		OSP handle of in_bound call
+
+Modified: trunk/say.c
+===================================================================
+--- trunk/say.c	2006-05-03 22:23:00 UTC (rev 50)
++++ trunk/say.c	2006-05-03 23:18:25 UTC (rev 51)
+@@ -4082,11 +4082,6 @@
+ 			case 'k':
+ 				/* 24-Hour */
+ 				res = ast_say_number(chan, tm.tm_hour, ints, lang, (char * ) NULL);
+-				if (!res) {
+-					if (format[offset] == 'H') {
+-						res = wait_file(chan,ints, &quot;digits/oclock&quot;,lang);
+-					}
+-				}
+ 				if (!res)
+ 					res = wait_file(chan,ints, &quot;digits/oclock&quot;,lang);
+ 				break;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000047.html">[solid-pbx-svn] r50 - in trunk: apps channels funcs res
+</A></li>
+	<LI>Next message: <A HREF="000049.html">[solid-pbx-svn] r52 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#48">[ date ]</a>
+              <a href="thread.html#48">[ thread ]</a>
+              <a href="subject.html#48">[ subject ]</a>
+              <a href="author.html#48">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

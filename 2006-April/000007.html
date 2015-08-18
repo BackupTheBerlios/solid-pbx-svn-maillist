@@ -1,0 +1,321 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r10 - in trunk: channels pbx res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-April/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r10%20-%20in%20trunk%3A%20channels%20pbx%20res&In-Reply-To=%3C200604290744.k3T7iO1S032652%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000006.html">
+   <LINK REL="Next"  HREF="000008.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r10 - in trunk: channels pbx res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r10%20-%20in%20trunk%3A%20channels%20pbx%20res&In-Reply-To=%3C200604290744.k3T7iO1S032652%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r10 - in trunk: channels pbx res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Apr 29 09:44:24 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000006.html">[solid-pbx-svn] r9 - in trunk: channels pbx res
+</A></li>
+        <LI>Next message: <A HREF="000008.html">[solid-pbx-svn] r11 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#7">[ date ]</a>
+              <a href="thread.html#7">[ thread ]</a>
+              <a href="subject.html#7">[ subject ]</a>
+              <a href="author.html#7">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-04-29 09:44:17 +0200 (Sat, 29 Apr 2006)
+New Revision: 10
+
+Modified:
+   trunk/channels/chan_h323.c
+   trunk/pbx/pbx_dundi.c
+   trunk/res/res_clioriginate.c
+   trunk/res/res_config_pgsql.c
+Log:
+------------------------------------------------------------------------
+r23271 | russell | 2006-04-29 06:13:07 +0200 (Sat, 29 Apr 2006) | 2 lines
+
+add a small optimization for deleting all the members of a list
+
+------------------------------------------------------------------------
+r23272 | rizzo | 2006-04-29 06:54:05 +0200 (Sat, 29 Apr 2006) | 5 lines
+
+partial adaptation to the new module loading
+(not sure if it compiles, partly inspired by #9981 but
+with adaptations)
+
+
+------------------------------------------------------------------------
+r23273 | rizzo | 2006-04-29 06:55:47 +0200 (Sat, 29 Apr 2006) | 3 lines
+
+add reload() (bug 9981)
+
+
+------------------------------------------------------------------------
+r23284 | russell | 2006-04-29 07:02:17 +0200 (Sat, 29 Apr 2006) | 5 lines
+
+- don't create duplicate log messages
+- note when the data part of the tech/data pair is missing not only when using
+  the app version, but the exten version as well
+- instead of logging syntax errors, just output them to the CLI
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_h323.c
+===================================================================
+--- trunk/channels/chan_h323.c	2006-04-29 06:51:12 UTC (rev 9)
++++ trunk/channels/chan_h323.c	2006-04-29 07:44:17 UTC (rev 10)
+@@ -180,10 +180,6 @@
+ /** Protect the interface list (oh323_pvt) */
+ AST_MUTEX_DEFINE_STATIC(iflock);
+ 
+-/** Usage counter and associated lock */
+-static int usecnt = 0;
+-AST_MUTEX_DEFINE_STATIC(usecnt_lock);
+-
+ /* Protect the monitoring thread, so only one process can kill or start it, and not
+    when it's doing something critical. */
+ AST_MUTEX_DEFINE_STATIC(monlock);
+@@ -534,13 +530,8 @@
+ 	pvt-&gt;needdestroy = 1;
+ 
+ 	/* Update usage counter */
+-	ast_mutex_lock(&amp;usecnt_lock);
+-	usecnt--;
+-	if (usecnt &lt; 0) {
+-		ast_log(LOG_WARNING, &quot;Usecnt &lt; 0\n&quot;);
+-	}
+-	ast_mutex_unlock(&amp;usecnt_lock);
+ 	ast_mutex_unlock(&amp;pvt-&gt;lock);
++	ast_atomic_fetchadd_int(&amp;__mod_desc-&gt;usecnt, -1);
+ 	ast_update_use_count();
+ 	return 0;
+ }
+@@ -734,9 +725,7 @@
+ 	ast_mutex_unlock(&amp;pvt-&gt;lock);
+ 	ch = ast_channel_alloc(1);
+ 	/* Update usage counter */
+-	ast_mutex_lock(&amp;usecnt_lock);
+-	usecnt++;
+-	ast_mutex_unlock(&amp;usecnt_lock);
++	ast_atomic_fetchadd_int(&amp;__mod_desc-&gt;usecnt, +1);
+ 	ast_update_use_count();
+ 	ast_mutex_lock(&amp;pvt-&gt;lock);
+ 	if (ch) {
+@@ -2237,7 +2226,7 @@
+ 	return 0;
+ }
+ 
+-int reload(void)
++static int reload(void *mod)
+ {
+ 	return h323_reload(0, 0, NULL);
+ }
+@@ -2317,7 +2306,7 @@
+ 	.set_rtp_peer=  oh323_set_rtp_peer,
+ };
+ 
+-int load_module()
++static int load_module(void *mod)
+ {
+ 	int res;
+ 	ast_mutex_init(&amp;userl.lock);
+@@ -2385,7 +2374,7 @@
+ 	return res;
+ }
+ 
+-int unload_module() 
++static int unload_module(void *mod)
+ {
+ 	struct oh323_pvt *p, *pl;
+ 
+@@ -2459,18 +2448,14 @@
+ 	return 0; 
+ } 
+ 
+-int usecount()
++static const char *description(void)
+ {
+-	return usecnt;
++	return desc;
+ }
+ 
+-const char *description()
++static const char *key(void)
+ {
+-	return (char *) desc;
+-}
+-
+-const char *key()
+-{
+ 	return ASTERISK_GPL_KEY;
+ }
+ 
++STD_MOD(MOD_1, reload, NULL, NULL);
+
+Modified: trunk/pbx/pbx_dundi.c
+===================================================================
+--- trunk/pbx/pbx_dundi.c	2006-04-29 06:51:12 UTC (rev 9)
++++ trunk/pbx/pbx_dundi.c	2006-04-29 07:44:17 UTC (rev 10)
+@@ -559,10 +559,8 @@
+ 				newvariable = ast_var_assign(&quot;IPADDR&quot;, ipaddr);
+ 				AST_LIST_INSERT_HEAD(&amp;headp, newvariable, entries);
+ 				pbx_substitute_variables_varshead(&amp;headp, map-&gt;dest, dr[anscnt].dest, sizeof(dr[anscnt].dest));
+-				while (!AST_LIST_EMPTY(&amp;headp)) {           /* List Deletion. */
+-					newvariable = AST_LIST_REMOVE_HEAD(&amp;headp, entries);
++				while ((newvariable = AST_LIST_REMOVE_HEAD(&amp;headp, entries)))
+ 					ast_var_delete(newvariable);
+-				}
+ 			} else
+ 				dr[anscnt].dest[0] = '\0';
+ 			anscnt++;
+
+Modified: trunk/res/res_clioriginate.c
+===================================================================
+--- trunk/res/res_clioriginate.c	2006-04-29 06:51:12 UTC (rev 9)
++++ trunk/res/res_clioriginate.c	2006-04-29 07:44:17 UTC (rev 10)
+@@ -1,7 +1,7 @@
+ /*
+  * Asterisk -- An open source telephony toolkit.
+  *
+- * Copyright (C) 2005, Digium, Inc.
++ * Copyright (C) 2005 - 2006, Digium, Inc.
+  *
+  * Russell Bryant &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">russell at digium.com</A>&gt;
+  *
+@@ -18,6 +18,7 @@
+ 
+ /*! 
+  * \file
++ * \author Russell Bryant &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">russell at digium.com</A>&gt;
+  *
+  * \brief Originate calls via the CLI
+  * 
+@@ -66,7 +67,7 @@
+ 
+ struct ast_cli_entry cli_orig = { { &quot;originate&quot;, NULL }, handle_orig, &quot;Originate a call&quot;, orig_help, complete_orig };
+ 
+-static int orig_app(const char *chan, const char *app, const char *appdata)
++static int orig_app(int fd, const char *chan, const char *app, const char *appdata)
+ {
+ 	char *chantech;
+ 	char *chandata;
+@@ -75,14 +76,12 @@
+ 	if (ast_strlen_zero(app))
+ 		return RESULT_SHOWUSAGE;
+ 
+-	chandata = ast_strdupa(chan);
+-	if (!chandata) {
+-		ast_log(LOG_ERROR, &quot;Out of Memory!\n&quot;);
++	if (!(chandata = ast_strdupa(chan)))
+ 		return RESULT_FAILURE;
+-	}
++	
+ 	chantech = strsep(&amp;chandata, &quot;/&quot;);
+ 	if (!chandata) {
+-		ast_log(LOG_ERROR, &quot;No dial string.\n&quot;);
++		ast_cli(fd, &quot;*** No data provided after channel type! ***\n&quot;);
+ 		return RESULT_SHOWUSAGE;
+ 	}
+ 
+@@ -91,7 +90,7 @@
+ 	return RESULT_SUCCESS;
+ }
+ 
+-static int orig_exten(const char *chan, const char *data)
++static int orig_exten(int fd, const char *chan, const char *data)
+ {
+ 	char *chantech;
+ 	char *chandata;
+@@ -99,19 +98,18 @@
+ 	char *context = NULL;
+ 	int reason = 0;
+ 
+-	chandata = ast_strdupa(chan);
+-	if (!chandata) {
+-		ast_log(LOG_ERROR, &quot;Out of Memory!\n&quot;);
++	if (!(chandata = ast_strdupa(chan)))
+ 		return RESULT_FAILURE;
+-	}
++	
+ 	chantech = strsep(&amp;chandata, &quot;/&quot;);
++	if (!chandata) {
++		ast_cli(fd, &quot;*** No data provided after channel type! ***\n&quot;);
++		return RESULT_SHOWUSAGE;
++	}
+ 
+ 	if (!ast_strlen_zero(data)) {
+-		context = ast_strdupa(data);
+-		if (!context) {
+-			ast_log(LOG_ERROR, &quot;Out of Memory!\n&quot;);
++		if (!(context = ast_strdupa(data)))
+ 			return RESULT_FAILURE;
+-		}
+ 		exten = strsep(&amp;context, &quot;@&quot;);
+ 	}
+ 
+@@ -135,9 +133,9 @@
+ 	ast_atomic_fetchadd_int(&amp;me-&gt;usecnt, +1);
+ 
+ 	if (!strcasecmp(&quot;application&quot;, argv[2])) {
+-		res = orig_app(argv[1], argv[3], argv[4]);	
++		res = orig_app(fd, argv[1], argv[3], argv[4]);	
+ 	} else if (!strcasecmp(&quot;extension&quot;, argv[2])) {
+-		res = orig_exten(argv[1], argv[3]);
++		res = orig_exten(fd, argv[1], argv[3]);
+ 	} else
+ 		res = RESULT_SHOWUSAGE;
+ 
+
+Modified: trunk/res/res_config_pgsql.c
+===================================================================
+--- trunk/res/res_config_pgsql.c	2006-04-29 06:51:12 UTC (rev 9)
++++ trunk/res/res_config_pgsql.c	2006-04-29 07:44:17 UTC (rev 10)
+@@ -718,7 +718,7 @@
+ 	return ASTERISK_GPL_KEY;
+ }
+ 
+-STD_MOD(MOD_0, NULL, NULL, NULL);
++STD_MOD(MOD_0, reload, NULL, NULL);
+ 
+ static int pgsql_reconnect(const char *database)
+ {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000006.html">[solid-pbx-svn] r9 - in trunk: channels pbx res
+</A></li>
+	<LI>Next message: <A HREF="000008.html">[solid-pbx-svn] r11 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#7">[ date ]</a>
+              <a href="thread.html#7">[ thread ]</a>
+              <a href="subject.html#7">[ subject ]</a>
+              <a href="author.html#7">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

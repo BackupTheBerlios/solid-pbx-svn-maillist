@@ -1,0 +1,2542 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r183 - in trunk: . apps channels funcs include/asterisk res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r183%20-%20in%20trunk%3A%20.%20apps%20channels%20funcs%20include/asterisk%20res&In-Reply-To=%3C200605262141.k4QLfT6h032060%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000177.html">
+   <LINK REL="Next"  HREF="000179.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r183 - in trunk: . apps channels funcs include/asterisk res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r183%20-%20in%20trunk%3A%20.%20apps%20channels%20funcs%20include/asterisk%20res&In-Reply-To=%3C200605262141.k4QLfT6h032060%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r183 - in trunk: . apps channels funcs include/asterisk res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May 26 23:41:29 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000177.html">[solid-pbx-svn] r182 - in trunk: cdr channels configs contrib doc include/asterisk res
+</A></li>
+        <LI>Next message: <A HREF="000179.html">[solid-pbx-svn] r184 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#178">[ date ]</a>
+              <a href="thread.html#178">[ thread ]</a>
+              <a href="subject.html#178">[ subject ]</a>
+              <a href="author.html#178">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-26 23:41:22 +0200 (Fri, 26 May 2006)
+New Revision: 183
+
+Modified:
+   trunk/Makefile
+   trunk/UPGRADE.txt
+   trunk/aclocal.m4
+   trunk/apps/app_meetme.c
+   trunk/apps/app_queue.c
+   trunk/apps/app_setcallerid.c
+   trunk/asterisk.c
+   trunk/channel.c
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_jingle.c
+   trunk/cli.c
+   trunk/configure
+   trunk/configure.ac
+   trunk/funcs/func_odbc.c
+   trunk/include/asterisk/channel.h
+   trunk/include/asterisk/logger.h
+   trunk/logger.c
+   trunk/pbx.c
+   trunk/res/res_agi.c
+   trunk/res/res_features.c
+Log:
+Update to Asterisk SVN trunk r30629
+
+------------------------------------------------------------------------
+r30390 | file | 2006-05-25 22:51:27 +0200 (Thu, 25 May 2006) | 2 lines
+
+Merge in branch which gives you the ability to set the hangup causecode using the Hangup application. (issue #7160 reported by kmilitzer branch by jcollie)
+
+------------------------------------------------------------------------
+r30409 | file | 2006-05-25 23:06:08 +0200 (Thu, 25 May 2006) | 2 lines
+
+Remove possibility of sending duplicate MeetmeJoin manager events, and only send a MeetmeLeave event if a MeetmeJoin event occured in the first place. (issue #6599 reported by imran - provided patch with few tiny mods)
+
+------------------------------------------------------------------------
+r30411 | tilghman | 2006-05-25 23:06:43 +0200 (Thu, 25 May 2006) | 2 lines
+
+Deprecate SetCallerID (should have happened prior to release of 1.2)
+
+------------------------------------------------------------------------
+r30426 | bweschke | 2006-05-25 23:24:12 +0200 (Thu, 25 May 2006) | 11 lines
+
+Merged revisions 30424 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r30424 | bweschke | 2006-05-25 17:22:16 -0400 (Thu, 25 May 2006) | 3 lines
+
+ Oops.
+
+
+.......
+
+------------------------------------------------------------------------
+r30427 | file | 2006-05-25 23:30:40 +0200 (Thu, 25 May 2006) | 2 lines
+
+Merge in branch that adds new features to MeetMeAdmin. See application documentation for more details on the new options. (issue #7131 reported by dmikusa branch by jcollie)
+
+------------------------------------------------------------------------
+r30430 | bweschke | 2006-05-25 23:47:03 +0200 (Thu, 25 May 2006) | 3 lines
+
+  A new way to try and deal with deadlocks that occur in app_queue at present. Using this approach, we only manipulate the main queue mutexes when we get a dev state change on a device that is actually a member of a queue. Further optimizations are still possible (eg - store and manage pointers to the status integer of the member record that this interface/device has a one-to-one relationship with and then go directly to those pointers to make status modifications rather than the recursive looping that goes on now) BUT first things first. :)
+
+
+------------------------------------------------------------------------
+r30458 | russell | 2006-05-26 00:05:12 +0200 (Fri, 26 May 2006) | 2 lines
+
+restore default paths for FreeBSD (reported by alphaque, fixed by jcollie)
+
+------------------------------------------------------------------------
+r30463 | russell | 2006-05-26 00:06:55 +0200 (Fri, 26 May 2006) | 2 lines
+
+regenerate configure after the last fix
+
+------------------------------------------------------------------------
+r30465 | russell | 2006-05-26 00:39:57 +0200 (Fri, 26 May 2006) | 2 lines
+
+only display a debug message if option_debug is in use
+
+------------------------------------------------------------------------
+r30490 | markster | 2006-05-26 05:08:15 +0200 (Fri, 26 May 2006) | 2 lines
+
+Lets not commit things that cause Asterisk to break when config files aren't present.
+
+------------------------------------------------------------------------
+r30521 | markster | 2006-05-26 07:21:41 +0200 (Fri, 26 May 2006) | 2 lines
+
+That goes for jingle too :)
+
+------------------------------------------------------------------------
+r30547 | file | 2006-05-26 19:43:11 +0200 (Fri, 26 May 2006) | 2 lines
+
+Add the video stream for AGI function STREAM FILE (issue #5392 reported by areski -- minor mods by me)
+
+------------------------------------------------------------------------
+r30548 | file | 2006-05-26 19:59:29 +0200 (Fri, 26 May 2006) | 2 lines
+
+attended transfer use transferer context first and set who is transfering at the beginning (issue #6752 reported by moy -- minor mods done by myself)
+
+------------------------------------------------------------------------
+r30578 | russell | 2006-05-26 20:19:37 +0200 (Fri, 26 May 2006) | 2 lines
+
+add some more text about the build system
+
+------------------------------------------------------------------------
+r30579 | russell | 2006-05-26 20:25:38 +0200 (Fri, 26 May 2006) | 2 lines
+
+wrap test at 80 characters
+
+------------------------------------------------------------------------
+r30580 | russell | 2006-05-26 20:33:58 +0200 (Fri, 26 May 2006) | 3 lines
+
+document the changes I made yesterday to the exit behavior of the
+AGI applications
+
+------------------------------------------------------------------------
+r30603 | file | 2006-05-26 21:48:17 +0200 (Fri, 26 May 2006) | 2 lines
+
+Add ability to disable log / verbose output to remote consoles (issue #6524 reported by mavetju)
+
+------------------------------------------------------------------------
+r30607 | file | 2006-05-26 22:00:48 +0200 (Fri, 26 May 2006) | 2 lines
+
+Few more expire_registry changes
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/Makefile	2006-05-26 21:41:22 UTC (rev 183)
+@@ -95,15 +95,19 @@
+ else
+   ASTETCDIR=$(sysconfdir)/asterisk
+   ASTLIBDIR=$(libdir)/asterisk
+-  ASTVARLIBDIR=$(localstatedir)/lib/asterisk
+-  ASTSPOOLDIR=$(localstatedir)/spool/asterisk
+-  ASTLOGDIR=$(localstatedir)/log/asterisk
+   ASTHEADERDIR=$(includedir)/asterisk
+   ASTBINDIR=$(bindir)
+   ASTSBINDIR=$(sbindir)
++  ASTSPOOLDIR=$(localstatedir)/spool/asterisk
++  ASTLOGDIR=$(localstatedir)/log/asterisk
+   ASTVARRUNDIR=$(localstatedir)/run
+   ASTMANDIR=$(mandir)
++ifeq ($(OSARCH),FreeBSD)
++  ASTVARLIBDIR=$(prefix)/share/asterisk
++else
++  ASTVARLIBDIR=$(localstatedir)/lib/asterisk
+ endif
++endif
+ ASTDATADIR?=$(ASTVARLIBDIR)
+ 
+ # Asterisk.conf is located in ASTETCDIR or by using the -C flag
+
+Modified: trunk/UPGRADE.txt
+===================================================================
+--- trunk/UPGRADE.txt	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/UPGRADE.txt	2006-05-26 21:41:22 UTC (rev 183)
+@@ -14,30 +14,46 @@
+ be present, etc.
+ 
+ You must run the configure script before Asterisk will build, although it will
+-attempt to automatically run it for you with no options specified; for most users,
+-that will result in a similar build to what they would have had before the
+-configure script was added to the build process (except for having to run 'make'
+-again after the configure script is run). Note that the configure script does NOT
+-need to be re-run just to rebuild Asterisk; you only need to re-run it when your
+-system configuration changes or you wish to build Asterisk with different options.
++attempt to automatically run it for you with no options specified; for most
++users, that will result in a similar build to what they would have had before
++the configure script was added to the build process (except for having to run
++'make' again after the configure script is run). Note that the configure script
++does NOT need to be re-run just to rebuild Asterisk; you only need to re-run it
++when your system configuration changes or you wish to build Asterisk with 
++different options.
+ 
+ Build Process (module selection):
+ 
+ The Asterisk source tree now includes a basic module selection and build option
+ selection tool called 'menuselect'. Run 'make menuselect' to make your choices.
+ In this tool, you can disable building of modules that you don't care about,
+-turn on/off global options for the build and see which modules will not (and cannot)
+-be built because your system does not have the required external dependencies
+-installed.
++turn on/off global options for the build and see which modules will not 
++(and cannot) be built because your system does not have the required external
++dependencies installed.
+ 
+-(TODO: document where 'global' and 'per-user' menuselect input files should go
+-and what they need to contain)
++The resulting file from menuselect is called 'menuselect.makeopts'. Note that
++the resulting menuselect.makeopts file generally contains which modules *not*
++to build. The modules listed in this file indicate which modules have unmet
++dependencies, a present conflict, or have been disabled by the user in the
++menuselect interface. Compiler Flags can also be set in the menuselect
++interface.  In this case, the resulting file contains which CFLAGS are in use,
++not which ones are not in use.
+ 
++If you would like to save your choices and have them applied against all
++builds, the file can be copied to '~/.asterisk.makeopts' or 
++'/etc/asterisk.makeopts'.
++
+ PBX Core:
+ 
+ * The (very old and undocumented) ability to use BYEXTENSION for dialing
+   instead of ${EXTEN} has been removed.
+-
++  
++* Builtin (res_features) transfer functionality attempts to use the context
++  defined in TRANSFER_CONTEXT variable of the transferer channel first. If
++  not set, it uses the transferee variable. If not set in any channel, it will 
++  attempt to use the last non macro context. If not possible, it will default
++  to the current context.
++ 
+ Command Line Interface:
+ 
+ * 'show channels concise', designed to be used by applications that will parse
+@@ -119,6 +135,24 @@
+   This addresses the deficiency of not being able to count the number of
+   messages in folders other than INBOX and Old.
+ 
++* The exit behavior of the AGI applications has changed. Previously, when
++  a connection to an AGI server failed, the application would cause the channel
++  to immediately stop dialplan execution and hangup. Now, the only time that
++  the AGI applications will cause the channel to stop dialplan execution is
++  when the channel itself requests hangup. The AGI applications now set an
++  AGISTATUS variable which will allow you to find out whether running the AGI
++  was successful or not.
++
++  Previously, there was no way to handle the case where Asterisk was unable to
++  locally execute an AGI script for some reason. In this case, dialplan
++  execution will continue as it did before, but the AGISTATUS variable will be
++  set to &quot;FAILURE&quot;.
++
++  A locally executed AGI script can now exit with a non-zero exit code and this
++  failure will be detected by Asterisk. If an AGI script exits with a non-zero
++  exit code, the AGISTATUS variable will be set to &quot;FAILURE&quot; as opposed to
++  &quot;SUCCESS&quot;.
++
+ Manager:
+ 
+ * After executing the 'status' manager action, the &quot;Status&quot; manager events
+@@ -158,6 +192,9 @@
+ * OSP applications exports several new variables, ${OSPINHANDLE},
+   ${OSPOUTHANDLE}, ${OSPINTOKEN}, ${OSPOUTTOKEN}, ${OSPCALLING},
+   ${OSPINTIMELIMIT}, and ${OSPOUTTIMELIMIT}
++  
++* Builtin transfer functionality sets the variable ${TRANSFERERNAME} in the new
++  created channel. This variables holds the channel name of the transferer.
+ 
+ Functions:
+ 
+@@ -169,8 +206,9 @@
+   modules.conf file then you will need to explicitly load the modules that
+   contain the functions you want to use.
+ 
+-* The ENUMLOOKUP() function with the 'c' option (for counting the number of records),
+-  but the lookup fails to match any records, the returned value will now be &quot;0&quot; instead of blank.
++* The ENUMLOOKUP() function with the 'c' option (for counting the number of 
++  records), but the lookup fails to match any records, the returned value will 
++  now be &quot;0&quot; instead of blank.
+ 
+ * The REALTIME() function is now available in version 1.4 and app_realtime has
+   been deprecated in favor of the new function. app_realtime will be removed
+@@ -188,7 +226,8 @@
+ 
+ The SIP channel:
+ 
+-* The &quot;incominglimit&quot; setting is replaced by the &quot;call-limit&quot; setting in sip.conf.
++* The &quot;incominglimit&quot; setting is replaced by the &quot;call-limit&quot; setting in 
++  sip.conf.
+ 
+ * OSP support code is removed from SIP channel to OSP applications. ospauth 
+   option in sip.conf is removed to osp.conf as authpolicy. allowguest option
+@@ -196,13 +235,17 @@
+ 
+ The Zap channel:
+ 
+-* Support for MFC/R2 has been removed, as it has not been functional for some time
+-  and it has no maintainer.
++* Support for MFC/R2 has been removed, as it has not been functional for some
++  time and it has no maintainer.
+ 
+ Installation:
+ 
+-* On BSD systems, the installation directories have changed to more &quot;FreeBSDish&quot; directories. On startup, Asterisk will look for the main configuration in /usr/local/etc/asterisk/asterisk.conf
+-If you have an old installation, you might want to remove the binaries and move the configuration files to the new locations. The following directories are now default:
++* On BSD systems, the installation directories have changed to more &quot;FreeBSDish&quot;
++  directories. On startup, Asterisk will look for the main configuration in 
++  /usr/local/etc/asterisk/asterisk.conf
++  If you have an old installation, you might want to remove the binaries and 
++  move the configuration files to the new locations. The following directories 
++  are now default:
+ 	ASTLIBDIR	/usr/local/lib/asterisk
+ 	ASTVARLIBDIR	/usr/local/share/asterisk
+ 	ASTETCDIR	/usr/local/etc/asterisk
+@@ -211,8 +254,8 @@
+ 
+ Sounds:
+ 
+-* The phonetic sounds directory has been removed from the asterisk-sounds package
+-  because they are now included directly in Asterisk.  However, it is important to
+-  note that the phonetic sounds that existed in asterisk-sounds used a different
+-  naming convention than the sounds in Asterisk.  For example, instead of alpha.gsm
+-  and bravo.gsm, Asterisk has a_p.gsm and b_p.gsm.
++* The phonetic sounds directory has been removed from the asterisk-sounds
++  package because they are now included directly in Asterisk.  However, it is
++  important to note that the phonetic sounds that existed in asterisk-sounds 
++  used a different naming convention than the sounds in Asterisk.  For example,
++  instead of alpha.gsm and bravo.gsm, Asterisk has a_p.gsm and b_p.gsm.
+
+Modified: trunk/aclocal.m4
+===================================================================
+--- trunk/aclocal.m4	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/aclocal.m4	2006-05-26 21:41:22 UTC (rev 183)
+@@ -1,922 +1,14 @@
+-dnl aclocal.m4 generated automatically by aclocal 1.4-p6
++# generated automatically by aclocal 1.9.6 -*- Autoconf -*-
+ 
+-dnl Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
+-dnl This file is free software; the Free Software Foundation
+-dnl gives unlimited permission to copy and/or distribute it,
+-dnl with or without modifications, as long as this notice is preserved.
++# Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
++# 2005  Free Software Foundation, Inc.
++# This file is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
+ 
+-dnl This program is distributed in the hope that it will be useful,
+-dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+-dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+-dnl PARTICULAR PURPOSE.
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
++# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
++# PARTICULAR PURPOSE.
+ 
+-# AST_EXT_LIB([NAME], [FUNCTION], [package header], [package symbol name], [package friendly name], [additional LIB data])
+-
+-AC_DEFUN([AST_EXT_LIB],
+-[
+-AC_ARG_WITH([$1], AC_HELP_STRING([--with-$1=PATH],[use $5 files in PATH]),[
+-case ${withval} in
+-     n|no)
+-     USE_$4=no
+-     ;;
+-     y|ye|yes)
+-     $4_MANDATORY=&quot;yes&quot;
+-     ;;
+-     *)
+-     $4_DIR=&quot;${withval}&quot;
+-     $4_MANDATORY=&quot;yes&quot;
+-     ;;
+-esac
+-])
+-
+-PBX_LIB$4=0
+-
+-if test &quot;${USE_$4}&quot; != &quot;no&quot;; then
+-   pbxlibdir=&quot;&quot;
+-   if test &quot;x${$4_DIR}&quot; != &quot;x&quot;; then
+-      pbxlibdir=&quot;-L${$1_DIR}/lib&quot;
+-   fi
+-   AC_CHECK_LIB([$1], [$2], [AST_$4_FOUND=yes], [AST_$4_FOUND=no], ${pbxlibdir} $6)
+-
+-   if test &quot;${AST_$4_FOUND}&quot; = &quot;yes&quot;; then
+-      $4_LIB=&quot;-l$1 $6&quot;
+-      $4_HEADER_FOUND=&quot;1&quot;
+-      if test &quot;x${$4_DIR}&quot; != &quot;x&quot;; then
+-         $4_LIB=&quot;${pbxlibdir} ${$4_LIB}&quot;
+-	 $4_INCLUDE=&quot;-I${$4_DIR}/include&quot;
+-	 if test &quot;x$3&quot; != &quot;x&quot; ; then
+-	    AC_CHECK_HEADER([${$4_DIR}/include/$3], [$4_HEADER_FOUND=1], [$4_HEADER_FOUND=0] )
+-	 fi
+-      else
+-	 if test &quot;x$3&quot; != &quot;x&quot; ; then
+-            AC_CHECK_HEADER([$3], [$4_HEADER_FOUND=1], [$4_HEADER_FOUND=0] )
+-	 fi
+-      fi
+-      if test &quot;x${$4_HEADER_FOUND}&quot; = &quot;x0&quot; ; then
+-         if test ! -z &quot;${$4_MANDATORY}&quot; ;
+-         then
+-            echo &quot; ***&quot;
+-            echo &quot; *** It appears that you do not have the $1 development package installed.&quot;
+-            echo &quot; *** Please install it to include $5 support, or re-run configure&quot;
+-            echo &quot; *** without explicitly specifying --with-$1&quot;
+-            exit 1
+-         fi
+-         $4_LIB=&quot;&quot;
+-         $4_INCLUDE=&quot;&quot;
+-         PBX_LIB$4=0
+-      else
+-         PBX_LIB$4=1
+-         AC_DEFINE_UNQUOTED([HAVE_$4], 1, [Define to indicate the $5 library])
+-      fi
+-   elif test ! -z &quot;${$4_MANDATORY}&quot;;
+-   then
+-      echo &quot;***&quot;
+-      echo &quot;*** The $5 installation on this system appears to be broken.&quot;
+-      echo &quot;*** Either correct the installation, or run configure&quot;
+-      echo &quot;*** without explicity specifying --with-$1&quot;
+-      exit 1
+-   fi
+-fi
+-AC_SUBST([$4_LIB])
+-AC_SUBST([$4_INCLUDE])
+-AC_SUBST([PBX_LIB$4])
+-])
+-
+-
+-AC_DEFUN(
+-[AST_CHECK_GNU_MAKE], [AC_CACHE_CHECK(for GNU make, GNU_MAKE,
+-   GNU_MAKE='Not Found' ;
+-   for a in make gmake gnumake ; do
+-      if test -z &quot;$a&quot; ; then continue ; fi ;
+-      if ( sh -c &quot;$a --version&quot; 2&gt; /dev/null | grep GNU  2&gt;&amp;1 &gt; /dev/null ) ;  then
+-         GNU_MAKE=$a ;
+-         break;
+-      fi
+-   done ;
+-) ;
+-if test  &quot;x$GNU_MAKE&quot; = &quot;xNot Found&quot;  ; then
+-   echo &quot; *** Please install GNU make.  It is required to build Asterisk!&quot;
+-   exit 1
+-fi
+-AC_SUBST([GNU_MAKE])
+-])
+-
+-# lib-prefix.m4 serial 4 (gettext-0.14.2)
+-dnl Copyright (C) 2001-2005 Free Software Foundation, Inc.
+-dnl This file is free software; the Free Software Foundation
+-dnl gives unlimited permission to copy and/or distribute it,
+-dnl with or without modifications, as long as this notice is preserved.
+-
+-dnl From Bruno Haible.
+-
+-dnl AC_LIB_ARG_WITH is synonymous to AC_ARG_WITH in autoconf-2.13, and
+-dnl similar to AC_ARG_WITH in autoconf 2.52...2.57 except that is doesn't
+-dnl require excessive bracketing.
+-ifdef([AC_HELP_STRING],
+-[AC_DEFUN([AC_LIB_ARG_WITH], [AC_ARG_WITH([$1],[[$2]],[$3],[$4])])],
+-[AC_DEFUN([AC_][LIB_ARG_WITH], [AC_ARG_WITH([$1],[$2],[$3],[$4])])])
+-
+-dnl AC_LIB_PREFIX adds to the CPPFLAGS and LDFLAGS the flags that are needed
+-dnl to access previously installed libraries. The basic assumption is that
+-dnl a user will want packages to use other packages he previously installed
+-dnl with the same --prefix option.
+-dnl This macro is not needed if only AC_LIB_LINKFLAGS is used to locate
+-dnl libraries, but is otherwise very convenient.
+-AC_DEFUN([AC_LIB_PREFIX],
+-[
+-  AC_BEFORE([$0], [AC_LIB_LINKFLAGS])
+-  AC_REQUIRE([AC_PROG_CC])
+-  AC_REQUIRE([AC_CANONICAL_HOST])
+-  AC_REQUIRE([AC_LIB_PREPARE_PREFIX])
+-  dnl By default, look in $includedir and $libdir.
+-  use_additional=yes
+-  AC_LIB_WITH_FINAL_PREFIX([
+-    eval additional_includedir=\&quot;$includedir\&quot;
+-    eval additional_libdir=\&quot;$libdir\&quot;
+-  ])
+-  AC_LIB_ARG_WITH([lib-prefix],
+-[  --with-lib-prefix[=DIR] search for libraries in DIR/include and DIR/lib
+-  --without-lib-prefix    don't search for libraries in includedir and libdir],
+-[
+-    if test &quot;X$withval&quot; = &quot;Xno&quot;; then
+-      use_additional=no
+-    else
+-      if test &quot;X$withval&quot; = &quot;X&quot;; then
+-        AC_LIB_WITH_FINAL_PREFIX([
+-          eval additional_includedir=\&quot;$includedir\&quot;
+-          eval additional_libdir=\&quot;$libdir\&quot;
+-        ])
+-      else
+-        additional_includedir=&quot;$withval/include&quot;
+-        additional_libdir=&quot;$withval/lib&quot;
+-      fi
+-    fi
+-])
+-  if test $use_additional = yes; then
+-    dnl Potentially add $additional_includedir to $CPPFLAGS.
+-    dnl But don't add it
+-    dnl   1. if it's the standard /usr/include,
+-    dnl   2. if it's already present in $CPPFLAGS,
+-    dnl   3. if it's /usr/local/include and we are using GCC on Linux,
+-    dnl   4. if it doesn't exist as a directory.
+-    if test &quot;X$additional_includedir&quot; != &quot;X/usr/include&quot;; then
+-      haveit=
+-      for x in $CPPFLAGS; do
+-        AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-        if test &quot;X$x&quot; = &quot;X-I$additional_includedir&quot;; then
+-          haveit=yes
+-          break
+-        fi
+-      done
+-      if test -z &quot;$haveit&quot;; then
+-        if test &quot;X$additional_includedir&quot; = &quot;X/usr/local/include&quot;; then
+-          if test -n &quot;$GCC&quot;; then
+-            case $host_os in
+-              linux* | gnu* | k*bsd*-gnu) haveit=yes;;
+-            esac
+-          fi
+-        fi
+-        if test -z &quot;$haveit&quot;; then
+-          if test -d &quot;$additional_includedir&quot;; then
+-            dnl Really add $additional_includedir to $CPPFLAGS.
+-            CPPFLAGS=&quot;${CPPFLAGS}${CPPFLAGS:+ }-I$additional_includedir&quot;
+-          fi
+-        fi
+-      fi
+-    fi
+-    dnl Potentially add $additional_libdir to $LDFLAGS.
+-    dnl But don't add it
+-    dnl   1. if it's the standard /usr/lib,
+-    dnl   2. if it's already present in $LDFLAGS,
+-    dnl   3. if it's /usr/local/lib and we are using GCC on Linux,
+-    dnl   4. if it doesn't exist as a directory.
+-    if test &quot;X$additional_libdir&quot; != &quot;X/usr/lib&quot;; then
+-      haveit=
+-      for x in $LDFLAGS; do
+-        AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-        if test &quot;X$x&quot; = &quot;X-L$additional_libdir&quot;; then
+-          haveit=yes
+-          break
+-        fi
+-      done
+-      if test -z &quot;$haveit&quot;; then
+-        if test &quot;X$additional_libdir&quot; = &quot;X/usr/local/lib&quot;; then
+-          if test -n &quot;$GCC&quot;; then
+-            case $host_os in
+-              linux*) haveit=yes;;
+-            esac
+-          fi
+-        fi
+-        if test -z &quot;$haveit&quot;; then
+-          if test -d &quot;$additional_libdir&quot;; then
+-            dnl Really add $additional_libdir to $LDFLAGS.
+-            LDFLAGS=&quot;${LDFLAGS}${LDFLAGS:+ }-L$additional_libdir&quot;
+-          fi
+-        fi
+-      fi
+-    fi
+-  fi
+-])
+-
+-dnl AC_LIB_PREPARE_PREFIX creates variables acl_final_prefix,
+-dnl acl_final_exec_prefix, containing the values to which $prefix and
+-dnl $exec_prefix will expand at the end of the configure script.
+-AC_DEFUN([AC_LIB_PREPARE_PREFIX],
+-[
+-  dnl Unfortunately, prefix and exec_prefix get only finally determined
+-  dnl at the end of configure.
+-  if test &quot;X$prefix&quot; = &quot;XNONE&quot;; then
+-    acl_final_prefix=&quot;$ac_default_prefix&quot;
+-  else
+-    acl_final_prefix=&quot;$prefix&quot;
+-  fi
+-  if test &quot;X$exec_prefix&quot; = &quot;XNONE&quot;; then
+-    acl_final_exec_prefix='${prefix}'
+-  else
+-    acl_final_exec_prefix=&quot;$exec_prefix&quot;
+-  fi
+-  acl_save_prefix=&quot;$prefix&quot;
+-  prefix=&quot;$acl_final_prefix&quot;
+-  eval acl_final_exec_prefix=\&quot;$acl_final_exec_prefix\&quot;
+-  prefix=&quot;$acl_save_prefix&quot;
+-])
+-
+-dnl AC_LIB_WITH_FINAL_PREFIX([statement]) evaluates statement, with the
+-dnl variables prefix and exec_prefix bound to the values they will have
+-dnl at the end of the configure script.
+-AC_DEFUN([AC_LIB_WITH_FINAL_PREFIX],
+-[
+-  acl_save_prefix=&quot;$prefix&quot;
+-  prefix=&quot;$acl_final_prefix&quot;
+-  acl_save_exec_prefix=&quot;$exec_prefix&quot;
+-  exec_prefix=&quot;$acl_final_exec_prefix&quot;
+-  $1
+-  exec_prefix=&quot;$acl_save_exec_prefix&quot;
+-  prefix=&quot;$acl_save_prefix&quot;
+-])
+-
+-# lib-link.m4 serial 6 (gettext-0.14.3)
+-dnl Copyright (C) 2001-2005 Free Software Foundation, Inc.
+-dnl This file is free software; the Free Software Foundation
+-dnl gives unlimited permission to copy and/or distribute it,
+-dnl with or without modifications, as long as this notice is preserved.
+-
+-dnl From Bruno Haible.
+-
+-AC_PREREQ(2.50)
+-
+-dnl AC_LIB_LINKFLAGS(name [, dependencies]) searches for libname and
+-dnl the libraries corresponding to explicit and implicit dependencies.
+-dnl Sets and AC_SUBSTs the LIB${NAME} and LTLIB${NAME} variables and
+-dnl augments the CPPFLAGS variable.
+-AC_DEFUN([AC_LIB_LINKFLAGS],
+-[
+-  AC_REQUIRE([AC_LIB_PREPARE_PREFIX])
+-  AC_REQUIRE([AC_LIB_RPATH])
+-  define([Name],[translit([$1],[./-], [___])])
+-  define([NAME],[translit([$1],[abcdefghijklmnopqrstuvwxyz./-],
+-                               [ABCDEFGHIJKLMNOPQRSTUVWXYZ___])])
+-  AC_CACHE_CHECK([how to link with lib[]$1], [ac_cv_lib[]Name[]_libs], [
+-    AC_LIB_LINKFLAGS_BODY([$1], [$2])
+-    ac_cv_lib[]Name[]_libs=&quot;$LIB[]NAME&quot;
+-    ac_cv_lib[]Name[]_ltlibs=&quot;$LTLIB[]NAME&quot;
+-    ac_cv_lib[]Name[]_cppflags=&quot;$INC[]NAME&quot;
+-  ])
+-  LIB[]NAME=&quot;$ac_cv_lib[]Name[]_libs&quot;
+-  LTLIB[]NAME=&quot;$ac_cv_lib[]Name[]_ltlibs&quot;
+-  INC[]NAME=&quot;$ac_cv_lib[]Name[]_cppflags&quot;
+-  AC_LIB_APPENDTOVAR([CPPFLAGS], [$INC]NAME)
+-  AC_SUBST([LIB]NAME)
+-  AC_SUBST([LTLIB]NAME)
+-  dnl Also set HAVE_LIB[]NAME so that AC_LIB_HAVE_LINKFLAGS can reuse the
+-  dnl results of this search when this library appears as a dependency.
+-  HAVE_LIB[]NAME=yes
+-  undefine([Name])
+-  undefine([NAME])
+-])
+-
+-dnl AC_LIB_HAVE_LINKFLAGS(name, dependencies, includes, testcode)
+-dnl searches for libname and the libraries corresponding to explicit and
+-dnl implicit dependencies, together with the specified include files and
+-dnl the ability to compile and link the specified testcode. If found, it
+-dnl sets and AC_SUBSTs HAVE_LIB${NAME}=yes and the LIB${NAME} and
+-dnl LTLIB${NAME} variables and augments the CPPFLAGS variable, and
+-dnl #defines HAVE_LIB${NAME} to 1. Otherwise, it sets and AC_SUBSTs
+-dnl HAVE_LIB${NAME}=no and LIB${NAME} and LTLIB${NAME} to empty.
+-AC_DEFUN([AC_LIB_HAVE_LINKFLAGS],
+-[
+-  AC_REQUIRE([AC_LIB_PREPARE_PREFIX])
+-  AC_REQUIRE([AC_LIB_RPATH])
+-  define([Name],[translit([$1],[./-], [___])])
+-  define([NAME],[translit([$1],[abcdefghijklmnopqrstuvwxyz./-],
+-                               [ABCDEFGHIJKLMNOPQRSTUVWXYZ___])])
+-
+-  dnl Search for lib[]Name and define LIB[]NAME, LTLIB[]NAME and INC[]NAME
+-  dnl accordingly.
+-  AC_LIB_LINKFLAGS_BODY([$1], [$2])
+-
+-  dnl Add $INC[]NAME to CPPFLAGS before performing the following checks,
+-  dnl because if the user has installed lib[]Name and not disabled its use
+-  dnl via --without-lib[]Name-prefix, he wants to use it.
+-  ac_save_CPPFLAGS=&quot;$CPPFLAGS&quot;
+-  AC_LIB_APPENDTOVAR([CPPFLAGS], [$INC]NAME)
+-
+-  AC_CACHE_CHECK([for lib[]$1], [ac_cv_lib[]Name], [
+-    ac_save_LIBS=&quot;$LIBS&quot;
+-    LIBS=&quot;$LIBS $LIB[]NAME&quot;
+-    AC_TRY_LINK([$3], [$4], [ac_cv_lib[]Name=yes], [ac_cv_lib[]Name=no])
+-    LIBS=&quot;$ac_save_LIBS&quot;
+-  ])
+-  if test &quot;$ac_cv_lib[]Name&quot; = yes; then
+-    HAVE_LIB[]NAME=yes
+-    AC_DEFINE([HAVE_LIB]NAME, 1, [Define if you have the $1 library.])
+-    AC_MSG_CHECKING([how to link with lib[]$1])
+-    AC_MSG_RESULT([$LIB[]NAME])
+-  else
+-    HAVE_LIB[]NAME=no
+-    dnl If $LIB[]NAME didn't lead to a usable library, we don't need
+-    dnl $INC[]NAME either.
+-    CPPFLAGS=&quot;$ac_save_CPPFLAGS&quot;
+-    LIB[]NAME=
+-    LTLIB[]NAME=
+-  fi
+-  AC_SUBST([HAVE_LIB]NAME)
+-  AC_SUBST([LIB]NAME)
+-  AC_SUBST([LTLIB]NAME)
+-  undefine([Name])
+-  undefine([NAME])
+-])
+-
+-dnl Determine the platform dependent parameters needed to use rpath:
+-dnl libext, shlibext, hardcode_libdir_flag_spec, hardcode_libdir_separator,
+-dnl hardcode_direct, hardcode_minus_L.
+-AC_DEFUN([AC_LIB_RPATH],
+-[
+-  dnl Tell automake &gt;= 1.10 to complain if config.rpath is missing.
+-  m4_ifdef([AC_REQUIRE_AUX_FILE], [AC_REQUIRE_AUX_FILE([config.rpath])])
+-  AC_REQUIRE([AC_PROG_CC])                dnl we use $CC, $GCC, $LDFLAGS
+-  AC_REQUIRE([AC_LIB_PROG_LD])            dnl we use $LD, $with_gnu_ld
+-  AC_REQUIRE([AC_CANONICAL_HOST])         dnl we use $host
+-  AC_REQUIRE([AC_CONFIG_AUX_DIR_DEFAULT]) dnl we use $ac_aux_dir
+-  AC_CACHE_CHECK([for shared library run path origin], acl_cv_rpath, [
+-    CC=&quot;$CC&quot; GCC=&quot;$GCC&quot; LDFLAGS=&quot;$LDFLAGS&quot; LD=&quot;$LD&quot; with_gnu_ld=&quot;$with_gnu_ld&quot; \
+-    ${CONFIG_SHELL-/bin/sh} &quot;$ac_aux_dir/config.rpath&quot; &quot;$host&quot; &gt; conftest.sh
+-    . ./conftest.sh
+-    rm -f ./conftest.sh
+-    acl_cv_rpath=done
+-  ])
+-  wl=&quot;$acl_cv_wl&quot;
+-  libext=&quot;$acl_cv_libext&quot;
+-  shlibext=&quot;$acl_cv_shlibext&quot;
+-  hardcode_libdir_flag_spec=&quot;$acl_cv_hardcode_libdir_flag_spec&quot;
+-  hardcode_libdir_separator=&quot;$acl_cv_hardcode_libdir_separator&quot;
+-  hardcode_direct=&quot;$acl_cv_hardcode_direct&quot;
+-  hardcode_minus_L=&quot;$acl_cv_hardcode_minus_L&quot;
+-  dnl Determine whether the user wants rpath handling at all.
+-  AC_ARG_ENABLE(rpath,
+-    [  --disable-rpath         do not hardcode runtime library paths],
+-    :, enable_rpath=yes)
+-])
+-
+-dnl AC_LIB_LINKFLAGS_BODY(name [, dependencies]) searches for libname and
+-dnl the libraries corresponding to explicit and implicit dependencies.
+-dnl Sets the LIB${NAME}, LTLIB${NAME} and INC${NAME} variables.
+-AC_DEFUN([AC_LIB_LINKFLAGS_BODY],
+-[
+-  define([NAME],[translit([$1],[abcdefghijklmnopqrstuvwxyz./-],
+-                               [ABCDEFGHIJKLMNOPQRSTUVWXYZ___])])
+-  dnl By default, look in $includedir and $libdir.
+-  use_additional=yes
+-  AC_LIB_WITH_FINAL_PREFIX([
+-    eval additional_includedir=\&quot;$includedir\&quot;
+-    eval additional_libdir=\&quot;$libdir\&quot;
+-  ])
+-  AC_LIB_ARG_WITH([lib$1-prefix],
+-[  --with-lib$1-prefix[=DIR]  search for lib$1 in DIR/include and DIR/lib
+-  --without-lib$1-prefix     don't search for lib$1 in includedir and libdir],
+-[
+-    if test &quot;X$withval&quot; = &quot;Xno&quot;; then
+-      use_additional=no
+-    else
+-      if test &quot;X$withval&quot; = &quot;X&quot;; then
+-        AC_LIB_WITH_FINAL_PREFIX([
+-          eval additional_includedir=\&quot;$includedir\&quot;
+-          eval additional_libdir=\&quot;$libdir\&quot;
+-        ])
+-      else
+-        additional_includedir=&quot;$withval/include&quot;
+-        additional_libdir=&quot;$withval/lib&quot;
+-      fi
+-    fi
+-])
+-  dnl Search the library and its dependencies in $additional_libdir and
+-  dnl $LDFLAGS. Using breadth-first-seach.
+-  LIB[]NAME=
+-  LTLIB[]NAME=
+-  INC[]NAME=
+-  rpathdirs=
+-  ltrpathdirs=
+-  names_already_handled=
+-  names_next_round='$1 $2'
+-  while test -n &quot;$names_next_round&quot;; do
+-    names_this_round=&quot;$names_next_round&quot;
+-    names_next_round=
+-    for name in $names_this_round; do
+-      already_handled=
+-      for n in $names_already_handled; do
+-        if test &quot;$n&quot; = &quot;$name&quot;; then
+-          already_handled=yes
+-          break
+-        fi
+-      done
+-      if test -z &quot;$already_handled&quot;; then
+-        names_already_handled=&quot;$names_already_handled $name&quot;
+-        dnl See if it was already located by an earlier AC_LIB_LINKFLAGS
+-        dnl or AC_LIB_HAVE_LINKFLAGS call.
+-        uppername=`echo &quot;$name&quot; | sed -e 'y|abcdefghijklmnopqrstuvwxyz./-|ABCDEFGHIJKLMNOPQRSTUVWXYZ___|'`
+-        eval value=\&quot;\$HAVE_LIB$uppername\&quot;
+-        if test -n &quot;$value&quot;; then
+-          if test &quot;$value&quot; = yes; then
+-            eval value=\&quot;\$LIB$uppername\&quot;
+-            test -z &quot;$value&quot; || LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$value&quot;
+-            eval value=\&quot;\$LTLIB$uppername\&quot;
+-            test -z &quot;$value&quot; || LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }$value&quot;
+-          else
+-            dnl An earlier call to AC_LIB_HAVE_LINKFLAGS has determined
+-            dnl that this library doesn't exist. So just drop it.
+-            :
+-          fi
+-        else
+-          dnl Search the library lib$name in $additional_libdir and $LDFLAGS
+-          dnl and the already constructed $LIBNAME/$LTLIBNAME.
+-          found_dir=
+-          found_la=
+-          found_so=
+-          found_a=
+-          if test $use_additional = yes; then
+-            if test -n &quot;$shlibext&quot; &amp;&amp; test -f &quot;$additional_libdir/lib$name.$shlibext&quot;; then
+-              found_dir=&quot;$additional_libdir&quot;
+-              found_so=&quot;$additional_libdir/lib$name.$shlibext&quot;
+-              if test -f &quot;$additional_libdir/lib$name.la&quot;; then
+-                found_la=&quot;$additional_libdir/lib$name.la&quot;
+-              fi
+-            else
+-              if test -f &quot;$additional_libdir/lib$name.$libext&quot;; then
+-                found_dir=&quot;$additional_libdir&quot;
+-                found_a=&quot;$additional_libdir/lib$name.$libext&quot;
+-                if test -f &quot;$additional_libdir/lib$name.la&quot;; then
+-                  found_la=&quot;$additional_libdir/lib$name.la&quot;
+-                fi
+-              fi
+-            fi
+-          fi
+-          if test &quot;X$found_dir&quot; = &quot;X&quot;; then
+-            for x in $LDFLAGS $LTLIB[]NAME; do
+-              AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-              case &quot;$x&quot; in
+-                -L*)
+-                  dir=`echo &quot;X$x&quot; | sed -e 's/^X-L//'`
+-                  if test -n &quot;$shlibext&quot; &amp;&amp; test -f &quot;$dir/lib$name.$shlibext&quot;; then
+-                    found_dir=&quot;$dir&quot;
+-                    found_so=&quot;$dir/lib$name.$shlibext&quot;
+-                    if test -f &quot;$dir/lib$name.la&quot;; then
+-                      found_la=&quot;$dir/lib$name.la&quot;
+-                    fi
+-                  else
+-                    if test -f &quot;$dir/lib$name.$libext&quot;; then
+-                      found_dir=&quot;$dir&quot;
+-                      found_a=&quot;$dir/lib$name.$libext&quot;
+-                      if test -f &quot;$dir/lib$name.la&quot;; then
+-                        found_la=&quot;$dir/lib$name.la&quot;
+-                      fi
+-                    fi
+-                  fi
+-                  ;;
+-              esac
+-              if test &quot;X$found_dir&quot; != &quot;X&quot;; then
+-                break
+-              fi
+-            done
+-          fi
+-          if test &quot;X$found_dir&quot; != &quot;X&quot;; then
+-            dnl Found the library.
+-            LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }-L$found_dir -l$name&quot;
+-            if test &quot;X$found_so&quot; != &quot;X&quot;; then
+-              dnl Linking with a shared library. We attempt to hardcode its
+-              dnl directory into the executable's runpath, unless it's the
+-              dnl standard /usr/lib.
+-              if test &quot;$enable_rpath&quot; = no || test &quot;X$found_dir&quot; = &quot;X/usr/lib&quot;; then
+-                dnl No hardcoding is needed.
+-                LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$found_so&quot;
+-              else
+-                dnl Use an explicit option to hardcode DIR into the resulting
+-                dnl binary.
+-                dnl Potentially add DIR to ltrpathdirs.
+-                dnl The ltrpathdirs will be appended to $LTLIBNAME at the end.
+-                haveit=
+-                for x in $ltrpathdirs; do
+-                  if test &quot;X$x&quot; = &quot;X$found_dir&quot;; then
+-                    haveit=yes
+-                    break
+-                  fi
+-                done
+-                if test -z &quot;$haveit&quot;; then
+-                  ltrpathdirs=&quot;$ltrpathdirs $found_dir&quot;
+-                fi
+-                dnl The hardcoding into $LIBNAME is system dependent.
+-                if test &quot;$hardcode_direct&quot; = yes; then
+-                  dnl Using DIR/libNAME.so during linking hardcodes DIR into the
+-                  dnl resulting binary.
+-                  LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$found_so&quot;
+-                else
+-                  if test -n &quot;$hardcode_libdir_flag_spec&quot; &amp;&amp; test &quot;$hardcode_minus_L&quot; = no; then
+-                    dnl Use an explicit option to hardcode DIR into the resulting
+-                    dnl binary.
+-                    LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$found_so&quot;
+-                    dnl Potentially add DIR to rpathdirs.
+-                    dnl The rpathdirs will be appended to $LIBNAME at the end.
+-                    haveit=
+-                    for x in $rpathdirs; do
+-                      if test &quot;X$x&quot; = &quot;X$found_dir&quot;; then
+-                        haveit=yes
+-                        break
+-                      fi
+-                    done
+-                    if test -z &quot;$haveit&quot;; then
+-                      rpathdirs=&quot;$rpathdirs $found_dir&quot;
+-                    fi
+-                  else
+-                    dnl Rely on &quot;-L$found_dir&quot;.
+-                    dnl But don't add it if it's already contained in the LDFLAGS
+-                    dnl or the already constructed $LIBNAME
+-                    haveit=
+-                    for x in $LDFLAGS $LIB[]NAME; do
+-                      AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-                      if test &quot;X$x&quot; = &quot;X-L$found_dir&quot;; then
+-                        haveit=yes
+-                        break
+-                      fi
+-                    done
+-                    if test -z &quot;$haveit&quot;; then
+-                      LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }-L$found_dir&quot;
+-                    fi
+-                    if test &quot;$hardcode_minus_L&quot; != no; then
+-                      dnl FIXME: Not sure whether we should use
+-                      dnl &quot;-L$found_dir -l$name&quot; or &quot;-L$found_dir $found_so&quot;
+-                      dnl here.
+-                      LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$found_so&quot;
+-                    else
+-                      dnl We cannot use $hardcode_runpath_var and LD_RUN_PATH
+-                      dnl here, because this doesn't fit in flags passed to the
+-                      dnl compiler. So give up. No hardcoding. This affects only
+-                      dnl very old systems.
+-                      dnl FIXME: Not sure whether we should use
+-                      dnl &quot;-L$found_dir -l$name&quot; or &quot;-L$found_dir $found_so&quot;
+-                      dnl here.
+-                      LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }-l$name&quot;
+-                    fi
+-                  fi
+-                fi
+-              fi
+-            else
+-              if test &quot;X$found_a&quot; != &quot;X&quot;; then
+-                dnl Linking with a static library.
+-                LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$found_a&quot;
+-              else
+-                dnl We shouldn't come here, but anyway it's good to have a
+-                dnl fallback.
+-                LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }-L$found_dir -l$name&quot;
+-              fi
+-            fi
+-            dnl Assume the include files are nearby.
+-            additional_includedir=
+-            case &quot;$found_dir&quot; in
+-              */lib | */lib/)
+-                basedir=`echo &quot;X$found_dir&quot; | sed -e 's,^X,,' -e 's,/lib/*$,,'`
+-                additional_includedir=&quot;$basedir/include&quot;
+-                ;;
+-            esac
+-            if test &quot;X$additional_includedir&quot; != &quot;X&quot;; then
+-              dnl Potentially add $additional_includedir to $INCNAME.
+-              dnl But don't add it
+-              dnl   1. if it's the standard /usr/include,
+-              dnl   2. if it's /usr/local/include and we are using GCC on Linux,
+-              dnl   3. if it's already present in $CPPFLAGS or the already
+-              dnl      constructed $INCNAME,
+-              dnl   4. if it doesn't exist as a directory.
+-              if test &quot;X$additional_includedir&quot; != &quot;X/usr/include&quot;; then
+-                haveit=
+-                if test &quot;X$additional_includedir&quot; = &quot;X/usr/local/include&quot;; then
+-                  if test -n &quot;$GCC&quot;; then
+-                    case $host_os in
+-                      linux* | gnu* | k*bsd*-gnu) haveit=yes;;
+-                    esac
+-                  fi
+-                fi
+-                if test -z &quot;$haveit&quot;; then
+-                  for x in $CPPFLAGS $INC[]NAME; do
+-                    AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-                    if test &quot;X$x&quot; = &quot;X-I$additional_includedir&quot;; then
+-                      haveit=yes
+-                      break
+-                    fi
+-                  done
+-                  if test -z &quot;$haveit&quot;; then
+-                    if test -d &quot;$additional_includedir&quot;; then
+-                      dnl Really add $additional_includedir to $INCNAME.
+-                      INC[]NAME=&quot;${INC[]NAME}${INC[]NAME:+ }-I$additional_includedir&quot;
+-                    fi
+-                  fi
+-                fi
+-              fi
+-            fi
+-            dnl Look for dependencies.
+-            if test -n &quot;$found_la&quot;; then
+-              dnl Read the .la file. It defines the variables
+-              dnl dlname, library_names, old_library, dependency_libs, current,
+-              dnl age, revision, installed, dlopen, dlpreopen, libdir.
+-              save_libdir=&quot;$libdir&quot;
+-              case &quot;$found_la&quot; in
+-                */* | *\\*) . &quot;$found_la&quot; ;;
+-                *) . &quot;./$found_la&quot; ;;
+-              esac
+-              libdir=&quot;$save_libdir&quot;
+-              dnl We use only dependency_libs.
+-              for dep in $dependency_libs; do
+-                case &quot;$dep&quot; in
+-                  -L*)
+-                    additional_libdir=`echo &quot;X$dep&quot; | sed -e 's/^X-L//'`
+-                    dnl Potentially add $additional_libdir to $LIBNAME and $LTLIBNAME.
+-                    dnl But don't add it
+-                    dnl   1. if it's the standard /usr/lib,
+-                    dnl   2. if it's /usr/local/lib and we are using GCC on Linux,
+-                    dnl   3. if it's already present in $LDFLAGS or the already
+-                    dnl      constructed $LIBNAME,
+-                    dnl   4. if it doesn't exist as a directory.
+-                    if test &quot;X$additional_libdir&quot; != &quot;X/usr/lib&quot;; then
+-                      haveit=
+-                      if test &quot;X$additional_libdir&quot; = &quot;X/usr/local/lib&quot;; then
+-                        if test -n &quot;$GCC&quot;; then
+-                          case $host_os in
+-                            linux* | gnu* | k*bsd*-gnu) haveit=yes;;
+-                          esac
+-                        fi
+-                      fi
+-                      if test -z &quot;$haveit&quot;; then
+-                        haveit=
+-                        for x in $LDFLAGS $LIB[]NAME; do
+-                          AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-                          if test &quot;X$x&quot; = &quot;X-L$additional_libdir&quot;; then
+-                            haveit=yes
+-                            break
+-                          fi
+-                        done
+-                        if test -z &quot;$haveit&quot;; then
+-                          if test -d &quot;$additional_libdir&quot;; then
+-                            dnl Really add $additional_libdir to $LIBNAME.
+-                            LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }-L$additional_libdir&quot;
+-                          fi
+-                        fi
+-                        haveit=
+-                        for x in $LDFLAGS $LTLIB[]NAME; do
+-                          AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-                          if test &quot;X$x&quot; = &quot;X-L$additional_libdir&quot;; then
+-                            haveit=yes
+-                            break
+-                          fi
+-                        done
+-                        if test -z &quot;$haveit&quot;; then
+-                          if test -d &quot;$additional_libdir&quot;; then
+-                            dnl Really add $additional_libdir to $LTLIBNAME.
+-                            LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }-L$additional_libdir&quot;
+-                          fi
+-                        fi
+-                      fi
+-                    fi
+-                    ;;
+-                  -R*)
+-                    dir=`echo &quot;X$dep&quot; | sed -e 's/^X-R//'`
+-                    if test &quot;$enable_rpath&quot; != no; then
+-                      dnl Potentially add DIR to rpathdirs.
+-                      dnl The rpathdirs will be appended to $LIBNAME at the end.
+-                      haveit=
+-                      for x in $rpathdirs; do
+-                        if test &quot;X$x&quot; = &quot;X$dir&quot;; then
+-                          haveit=yes
+-                          break
+-                        fi
+-                      done
+-                      if test -z &quot;$haveit&quot;; then
+-                        rpathdirs=&quot;$rpathdirs $dir&quot;
+-                      fi
+-                      dnl Potentially add DIR to ltrpathdirs.
+-                      dnl The ltrpathdirs will be appended to $LTLIBNAME at the end.
+-                      haveit=
+-                      for x in $ltrpathdirs; do
+-                        if test &quot;X$x&quot; = &quot;X$dir&quot;; then
+-                          haveit=yes
+-                          break
+-                        fi
+-                      done
+-                      if test -z &quot;$haveit&quot;; then
+-                        ltrpathdirs=&quot;$ltrpathdirs $dir&quot;
+-                      fi
+-                    fi
+-                    ;;
+-                  -l*)
+-                    dnl Handle this in the next round.
+-                    names_next_round=&quot;$names_next_round &quot;`echo &quot;X$dep&quot; | sed -e 's/^X-l//'`
+-                    ;;
+-                  *.la)
+-                    dnl Handle this in the next round. Throw away the .la's
+-                    dnl directory; it is already contained in a preceding -L
+-                    dnl option.
+-                    names_next_round=&quot;$names_next_round &quot;`echo &quot;X$dep&quot; | sed -e 's,^X.*/,,' -e 's,^lib,,' -e 's,\.la$,,'`
+-                    ;;
+-                  *)
+-                    dnl Most likely an immediate library name.
+-                    LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$dep&quot;
+-                    LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }$dep&quot;
+-                    ;;
+-                esac
+-              done
+-            fi
+-          else
+-            dnl Didn't find the library; assume it is in the system directories
+-            dnl known to the linker and runtime loader. (All the system
+-            dnl directories known to the linker should also be known to the
+-            dnl runtime loader, otherwise the system is severely misconfigured.)
+-            LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }-l$name&quot;
+-            LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }-l$name&quot;
+-          fi
+-        fi
+-      fi
+-    done
+-  done
+-  if test &quot;X$rpathdirs&quot; != &quot;X&quot;; then
+-    if test -n &quot;$hardcode_libdir_separator&quot;; then
+-      dnl Weird platform: only the last -rpath option counts, the user must
+-      dnl pass all path elements in one option. We can arrange that for a
+-      dnl single library, but not when more than one $LIBNAMEs are used.
+-      alldirs=
+-      for found_dir in $rpathdirs; do
+-        alldirs=&quot;${alldirs}${alldirs:+$hardcode_libdir_separator}$found_dir&quot;
+-      done
+-      dnl Note: hardcode_libdir_flag_spec uses $libdir and $wl.
+-      acl_save_libdir=&quot;$libdir&quot;
+-      libdir=&quot;$alldirs&quot;
+-      eval flag=\&quot;$hardcode_libdir_flag_spec\&quot;
+-      libdir=&quot;$acl_save_libdir&quot;
+-      LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$flag&quot;
+-    else
+-      dnl The -rpath options are cumulative.
+-      for found_dir in $rpathdirs; do
+-        acl_save_libdir=&quot;$libdir&quot;
+-        libdir=&quot;$found_dir&quot;
+-        eval flag=\&quot;$hardcode_libdir_flag_spec\&quot;
+-        libdir=&quot;$acl_save_libdir&quot;
+-        LIB[]NAME=&quot;${LIB[]NAME}${LIB[]NAME:+ }$flag&quot;
+-      done
+-    fi
+-  fi
+-  if test &quot;X$ltrpathdirs&quot; != &quot;X&quot;; then
+-    dnl When using libtool, the option that works for both libraries and
+-    dnl executables is -R. The -R options are cumulative.
+-    for found_dir in $ltrpathdirs; do
+-      LTLIB[]NAME=&quot;${LTLIB[]NAME}${LTLIB[]NAME:+ }-R$found_dir&quot;
+-    done
+-  fi
+-])
+-
+-dnl AC_LIB_APPENDTOVAR(VAR, CONTENTS) appends the elements of CONTENTS to VAR,
+-dnl unless already present in VAR.
+-dnl Works only for CPPFLAGS, not for LIB* variables because that sometimes
+-dnl contains two or three consecutive elements that belong together.
+-AC_DEFUN([AC_LIB_APPENDTOVAR],
+-[
+-  for element in [$2]; do
+-    haveit=
+-    for x in $[$1]; do
+-      AC_LIB_WITH_FINAL_PREFIX([eval x=\&quot;$x\&quot;])
+-      if test &quot;X$x&quot; = &quot;X$element&quot;; then
+-        haveit=yes
+-        break
+-      fi
+-    done
+-    if test -z &quot;$haveit&quot;; then
+-      [$1]=&quot;${[$1]}${[$1]:+ }$element&quot;
+-    fi
+-  done
+-])
+-
+-# lib-ld.m4 serial 3 (gettext-0.13)
+-dnl Copyright (C) 1996-2003 Free Software Foundation, Inc.
+-dnl This file is free software; the Free Software Foundation
+-dnl gives unlimited permission to copy and/or distribute it,
+-dnl with or without modifications, as long as this notice is preserved.
+-
+-dnl Subroutines of libtool.m4,
+-dnl with replacements s/AC_/AC_LIB/ and s/lt_cv/acl_cv/ to avoid collision
+-dnl with libtool.m4.
+-
+-dnl From libtool-1.4. Sets the variable with_gnu_ld to yes or no.
+-AC_DEFUN([AC_LIB_PROG_LD_GNU],
+-[AC_CACHE_CHECK([if the linker ($LD) is GNU ld], acl_cv_prog_gnu_ld,
+-[# I'd rather use --version here, but apparently some GNU ld's only accept -v.
+-case `$LD -v 2&gt;&amp;1 &lt;/dev/null` in
+-*GNU* | *'with BFD'*)
+-  acl_cv_prog_gnu_ld=yes ;;
+-*)
+-  acl_cv_prog_gnu_ld=no ;;
+-esac])
+-with_gnu_ld=$acl_cv_prog_gnu_ld
+-])
+-
+-dnl From libtool-1.4. Sets the variable LD.
+-AC_DEFUN([AC_LIB_PROG_LD],
+-[AC_ARG_WITH(gnu-ld,
+-[  --with-gnu-ld           assume the C compiler uses GNU ld [default=no]],
+-test &quot;$withval&quot; = no || with_gnu_ld=yes, with_gnu_ld=no)
+-AC_REQUIRE([AC_PROG_CC])dnl
+-AC_REQUIRE([AC_CANONICAL_HOST])dnl
+-# Prepare PATH_SEPARATOR.
+-# The user is always right.
+-if test &quot;${PATH_SEPARATOR+set}&quot; != set; then
+-  echo &quot;#! /bin/sh&quot; &gt;conf$$.sh
+-  echo  &quot;exit 0&quot;   &gt;&gt;conf$$.sh
+-  chmod +x conf$$.sh
+-  if (PATH=&quot;/nonexistent;.&quot;; conf$$.sh) &gt;/dev/null 2&gt;&amp;1; then
+-    PATH_SEPARATOR=';'
+-  else
+-    PATH_SEPARATOR=:
+-  fi
+-  rm -f conf$$.sh
+-fi
+-ac_prog=ld
+-if test &quot;$GCC&quot; = yes; then
+-  # Check if gcc -print-prog-name=ld gives a path.
+-  AC_MSG_CHECKING([for ld used by GCC])
+-  case $host in
+-  *-*-mingw*)
+-    # gcc leaves a trailing carriage return which upsets mingw
+-    ac_prog=`($CC -print-prog-name=ld) 2&gt;&amp;5 | tr -d '\015'` ;;
+-  *)
+-    ac_prog=`($CC -print-prog-name=ld) 2&gt;&amp;5` ;;
+-  esac
+-  case $ac_prog in
+-    # Accept absolute paths.
+-    [[\\/]* | [A-Za-z]:[\\/]*)]
+-      [re_direlt='/[^/][^/]*/\.\./']
+-      # Canonicalize the path of ld
+-      ac_prog=`echo $ac_prog| sed 's%\\\\%/%g'`
+-      while echo $ac_prog | grep &quot;$re_direlt&quot; &gt; /dev/null 2&gt;&amp;1; do
+-	ac_prog=`echo $ac_prog| sed &quot;s%$re_direlt%/%&quot;`
+-      done
+-      test -z &quot;$LD&quot; &amp;&amp; LD=&quot;$ac_prog&quot;
+-      ;;
+-  &quot;&quot;)
+-    # If it fails, then pretend we aren't using GCC.
+-    ac_prog=ld
+-    ;;
+-  *)
+-    # If it is relative, then search for the first ld in PATH.
+-    with_gnu_ld=unknown
+-    ;;
+-  esac
+-elif test &quot;$with_gnu_ld&quot; = yes; then
+-  AC_MSG_CHECKING([for GNU ld])
+-else
+-  AC_MSG_CHECKING([for non-GNU ld])
+-fi
+-AC_CACHE_VAL(acl_cv_path_LD,
+-[if test -z &quot;$LD&quot;; then
+-  IFS=&quot;${IFS= 	}&quot;; ac_save_ifs=&quot;$IFS&quot;; IFS=&quot;${IFS}${PATH_SEPARATOR-:}&quot;
+-  for ac_dir in $PATH; do
+-    test -z &quot;$ac_dir&quot; &amp;&amp; ac_dir=.
+-    if test -f &quot;$ac_dir/$ac_prog&quot; || test -f &quot;$ac_dir/$ac_prog$ac_exeext&quot;; then
+-      acl_cv_path_LD=&quot;$ac_dir/$ac_prog&quot;
+-      # Check to see if the program is GNU ld.  I'd rather use --version,
+-      # but apparently some GNU ld's only accept -v.
+-      # Break only if it was the GNU/non-GNU ld that we prefer.
+-      case `&quot;$acl_cv_path_LD&quot; -v 2&gt;&amp;1 &lt; /dev/null` in
+-      *GNU* | *'with BFD'*)
+-	test &quot;$with_gnu_ld&quot; != no &amp;&amp; break ;;
+-      *)
+-	test &quot;$with_gnu_ld&quot; != yes &amp;&amp; break ;;
+-      esac
+-    fi
+-  done
+-  IFS=&quot;$ac_save_ifs&quot;
+-else
+-  acl_cv_path_LD=&quot;$LD&quot; # Let the user override the test with a path.
+-fi])
+-LD=&quot;$acl_cv_path_LD&quot;
+-if test -n &quot;$LD&quot;; then
+-  AC_MSG_RESULT($LD)
+-else
+-  AC_MSG_RESULT(no)
+-fi
+-test -z &quot;$LD&quot; &amp;&amp; AC_MSG_ERROR([no acceptable ld found in \$PATH])
+-AC_LIB_PROG_LD_GNU
+-])
+-
++m4_include([acinclude.m4])
+
+Modified: trunk/apps/app_meetme.c
+===================================================================
+--- trunk/apps/app_meetme.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/apps/app_meetme.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -254,6 +254,16 @@
+ &quot;      'M' -- Mute conference\n&quot;
+ &quot;      'n' -- Unmute entire conference (except admin)\n&quot;
+ &quot;      'N' -- Mute entire conference (except admin)\n&quot;
++&quot;      'r' -- Reset one user's volume settings\n&quot;
++&quot;      'R' -- Reset all users volume settings\n&quot;
++&quot;      's' -- Lower entire conference speaking volume\n&quot;
++&quot;      'S' -- Raise entire conference speaking volume\n&quot;
++&quot;      't' -- Lower one user's talk volume\n&quot;
++&quot;      'T' -- Lower all users talk volume\n&quot;
++&quot;      'u' -- Lower one user's listen volume\n&quot;
++&quot;      'U' -- Lower all users listen volume\n&quot;
++&quot;      'v' -- Lower entire conference listening volume\n&quot;
++&quot;      'V' -- Raise entire conference listening volume\n&quot;
+ &quot;&quot;;
+ 
+ struct ast_conference {
+@@ -883,6 +893,7 @@
+ 	int using_pseudo = 0;
+ 	int duration=20;
+ 	int hr, min, sec;
++	int sent_event = 0;
+ 	time_t now;
+ 	struct ast_dsp *dsp=NULL;
+ 	struct ast_app *app;
+@@ -1135,12 +1146,15 @@
+ 	}
+ 	ast_log(LOG_DEBUG, &quot;Placed channel %s in ZAP conf %d\n&quot;, chan-&gt;name, conf-&gt;zapconf);
+ 
+-	manager_event(EVENT_FLAG_CALL, &quot;MeetmeJoin&quot;, 
+-		      &quot;Channel: %s\r\n&quot;
+-		      &quot;Uniqueid: %s\r\n&quot;
+-		      &quot;Meetme: %s\r\n&quot;
+-		      &quot;Usernum: %d\r\n&quot;,
+-		      chan-&gt;name, chan-&gt;uniqueid, conf-&gt;confno, user-&gt;user_no);
++	if (!sent_event) {
++		manager_event(EVENT_FLAG_CALL, &quot;MeetmeJoin&quot;, 
++			      &quot;Channel: %s\r\n&quot;
++			      &quot;Uniqueid: %s\r\n&quot;
++			      &quot;Meetme: %s\r\n&quot;
++			      &quot;Usernum: %d\r\n&quot;,
++			      chan-&gt;name, chan-&gt;uniqueid, conf-&gt;confno, user-&gt;user_no);
++		sent_event = 1;
++	}
+ 
+ 	if (!firstpass &amp;&amp; !(confflags &amp; CONFFLAG_MONITOR) &amp;&amp; !(confflags &amp; CONFFLAG_ADMIN)) {
+ 		firstpass = 1;
+@@ -1693,19 +1707,21 @@
+ 		min = ((now - user-&gt;jointime) % 3600) / 60;
+ 		sec = (now - user-&gt;jointime) % 60;
+ 
+-		manager_event(EVENT_FLAG_CALL, &quot;MeetmeLeave&quot;,
+-			&quot;Channel: %s\r\n&quot;
+-			&quot;Uniqueid: %s\r\n&quot;
+-			&quot;Meetme: %s\r\n&quot;
+-			&quot;Usernum: %d\r\n&quot;
+-		        &quot;CallerIDnum: %s\r\n&quot;
+-			&quot;CallerIDname: %s\r\n&quot;
+-		        &quot;Duration: %ld\r\n&quot;,
+-			chan-&gt;name, chan-&gt;uniqueid, conf-&gt;confno, 
+-			user-&gt;user_no,
+-			S_OR(user-&gt;chan-&gt;cid.cid_num, &quot;&lt;unknown&gt;&quot;),
+-			S_OR(user-&gt;chan-&gt;cid.cid_name, &quot;&lt;unknown&gt;&quot;),
+-			(now - user-&gt;jointime));
++		if (sent_event) {
++			manager_event(EVENT_FLAG_CALL, &quot;MeetmeLeave&quot;,
++				      &quot;Channel: %s\r\n&quot;
++				      &quot;Uniqueid: %s\r\n&quot;
++				      &quot;Meetme: %s\r\n&quot;
++				      &quot;Usernum: %d\r\n&quot;
++				      &quot;CallerIDnum: %s\r\n&quot;
++				      &quot;CallerIDname: %s\r\n&quot;
++				      &quot;Duration: %ld\r\n&quot;,
++				      chan-&gt;name, chan-&gt;uniqueid, conf-&gt;confno, 
++				      user-&gt;user_no,
++				      S_OR(user-&gt;chan-&gt;cid.cid_num, &quot;&lt;unknown&gt;&quot;),
++				      S_OR(user-&gt;chan-&gt;cid.cid_name, &quot;&lt;unknown&gt;&quot;),
++				      (now - user-&gt;jointime));
++		}
+ 
+ 		conf-&gt;users--;
+ 		conf-&gt;refcount--;
+@@ -2270,9 +2286,8 @@
+ 			case 77: /* M: Mute */ 
+ 				if (user) {
+ 					user-&gt;adminflags |= ADMINFLAG_MUTED;
+-				} else {
++				} else
+ 					ast_log(LOG_NOTICE, &quot;Specified User not found!\n&quot;);
+-				}
+ 				break;
+ 			case 78: /* N: Mute all (non-admin) users */
+ 				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list) {
+@@ -2283,9 +2298,8 @@
+ 			case 109: /* m: Unmute */ 
+ 				if (user) {
+ 					user-&gt;adminflags &amp;= ~ADMINFLAG_MUTED;
+-				} else {
++				} else
+ 					ast_log(LOG_NOTICE, &quot;Specified User not found!\n&quot;);
+-				}
+ 				break;
+ 			case 110: /* n: Unmute all users */
+ 				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list)
+@@ -2297,6 +2311,56 @@
+ 				else
+ 					ast_log(LOG_NOTICE, &quot;Specified User not found!&quot;);
+ 				break;
++			case 118: /* v: Lower all users listen volume */
++				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list)
++					tweak_listen_volume(user, VOL_DOWN);
++				break;
++			case 86: /* V: Raise all users listen volume */
++				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list)
++					tweak_listen_volume(user, VOL_UP);
++				break;
++			case 115: /* s: Lower all users speaking volume */
++				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list)
++					tweak_talk_volume(user, VOL_DOWN);
++				break;
++			case 83: /* S: Raise all users speaking volume */
++				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list)
++					tweak_talk_volume(user, VOL_UP);
++				break;
++			case 82: /* R: Reset all volume levels */
++				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list)
++					reset_volumes(user);
++				break;
++			case 114: /* r: Reset user's volume level */
++				if (user)
++					reset_volumes(user);
++				else
++					ast_log(LOG_NOTICE, &quot;Specified User not found!&quot;);
++				break;
++			case 85: /* U: Raise user's listen volume */
++				if (user)
++					tweak_listen_volume(user, VOL_UP);
++				else
++					ast_log(LOG_NOTICE, &quot;Specified User not found!&quot;);
++				break;
++			case 117: /* u: Lower user's listen volume */
++				if (user)
++					tweak_listen_volume(user, VOL_DOWN);
++				else
++					ast_log(LOG_NOTICE, &quot;Specified User not found!&quot;);
++				break;
++			case 84: /* T: Raise user's talk volume */
++				if (user)
++					tweak_talk_volume(user, VOL_UP);
++				else
++					ast_log(LOG_NOTICE, &quot;Specified User not found!&quot;);
++				break;
++			case 116: /* t: Lower user's talk volume */
++				if (user) 
++					tweak_talk_volume(user, VOL_DOWN);
++				else 
++					ast_log(LOG_NOTICE, &quot;Specified User not found!&quot;);
++				break;
+ 			}
+ 		} else {
+ 			ast_log(LOG_NOTICE, &quot;Conference Number not found\n&quot;);
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/apps/app_queue.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -318,6 +318,13 @@
+ 	struct member *next;		/*!&lt; Next member */
+ };
+ 
++struct ast_member_interfaces {
++	char interface[80];
++	AST_LIST_ENTRY(ast_member_interfaces) list;    /*!&lt; Next call queue */
++};
++
++static AST_LIST_HEAD_STATIC(interfaces, ast_member_interfaces);
++
+ /* values used in multi-bit flags in ast_call_queue */
+ #define QUEUE_EMPTY_NORMAL 1
+ #define QUEUE_EMPTY_STRICT 2
+@@ -482,6 +489,7 @@
+ 	struct ast_call_queue *q;
+ 	struct statechange *sc = data;
+ 	struct member *cur;
++	struct ast_member_interfaces *curint;
+ 	char *loc;
+ 	char *technology;
+ 
+@@ -494,36 +502,50 @@
+ 		free(sc);
+ 		return NULL;
+ 	}
+-	if (option_debug)
+-		ast_log(LOG_DEBUG, &quot;Device '%s/%s' changed to state '%d' (%s)\n&quot;, technology, loc, sc-&gt;state, devstate2str(sc-&gt;state));
+-	AST_LIST_LOCK(&amp;queues);
+-	AST_LIST_TRAVERSE(&amp;queues, q, list) {
+-		ast_mutex_lock(&amp;q-&gt;lock);
+-		cur = q-&gt;members;
+-		while(cur) {
+-			if (!strcasecmp(sc-&gt;dev, cur-&gt;interface)) {
+-				if (cur-&gt;status != sc-&gt;state) {
+-					cur-&gt;status = sc-&gt;state;
+-					if (!q-&gt;maskmemberstatus) {
+-						manager_event(EVENT_FLAG_AGENT, &quot;QueueMemberStatus&quot;,
+-							&quot;Queue: %s\r\n&quot;
+-							&quot;Location: %s\r\n&quot;
+-							&quot;Membership: %s\r\n&quot;
+-							&quot;Penalty: %d\r\n&quot;
+-							&quot;CallsTaken: %d\r\n&quot;
+-							&quot;LastCall: %d\r\n&quot;
+-							&quot;Status: %d\r\n&quot;
+-							&quot;Paused: %d\r\n&quot;,
+-						q-&gt;name, cur-&gt;interface, cur-&gt;dynamic ? &quot;dynamic&quot; : &quot;static&quot;,
+-						cur-&gt;penalty, cur-&gt;calls, (int)cur-&gt;lastcall, cur-&gt;status, cur-&gt;paused);
++
++	AST_LIST_LOCK(&amp;interfaces);
++	AST_LIST_TRAVERSE(&amp;interfaces, curint, list) {
++		if (!strcasecmp(curint-&gt;interface, sc-&gt;dev))
++			break; 
++	}
++	AST_LIST_UNLOCK(&amp;interfaces);
++
++	if (curint) {
++
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Device '%s/%s' changed to state '%d' (%s)\n&quot;, technology, loc, sc-&gt;state, devstate2str(sc-&gt;state));
++		AST_LIST_LOCK(&amp;queues);
++		AST_LIST_TRAVERSE(&amp;queues, q, list) {
++			ast_mutex_lock(&amp;q-&gt;lock);
++			cur = q-&gt;members;
++			while(cur) {
++				if (!strcasecmp(sc-&gt;dev, cur-&gt;interface)) {
++					if (cur-&gt;status != sc-&gt;state) {
++						cur-&gt;status = sc-&gt;state;
++						if (!q-&gt;maskmemberstatus) {
++							manager_event(EVENT_FLAG_AGENT, &quot;QueueMemberStatus&quot;,
++								&quot;Queue: %s\r\n&quot;
++								&quot;Location: %s\r\n&quot;
++								&quot;Membership: %s\r\n&quot;
++								&quot;Penalty: %d\r\n&quot;
++								&quot;CallsTaken: %d\r\n&quot;
++								&quot;LastCall: %d\r\n&quot;
++								&quot;Status: %d\r\n&quot;
++								&quot;Paused: %d\r\n&quot;,
++							q-&gt;name, cur-&gt;interface, cur-&gt;dynamic ? &quot;dynamic&quot; : &quot;static&quot;,
++							cur-&gt;penalty, cur-&gt;calls, (int)cur-&gt;lastcall, cur-&gt;status, cur-&gt;paused);
++						}
+ 					}
+ 				}
++				cur = cur-&gt;next;
+ 			}
+-			cur = cur-&gt;next;
++			ast_mutex_unlock(&amp;q-&gt;lock);
+ 		}
+-		ast_mutex_unlock(&amp;q-&gt;lock);
++		AST_LIST_UNLOCK(&amp;queues);
++	} else {
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Device '%s/%s' changed to state '%d' (%s) but we don't care because they're not a member of any queue.\n&quot;, technology, loc, sc-&gt;state, devstate2str(sc-&gt;state));
+ 	}
+-	AST_LIST_UNLOCK(&amp;queues);
+ 	free(sc);
+ 	return NULL;
+ }
+@@ -622,6 +644,87 @@
+ 	q-&gt;wrapuptime = 0;
+ }
+ 
++static int add_to_interfaces(char *interface) 
++{
++	struct ast_member_interfaces *curint, *newint;
++
++	AST_LIST_LOCK(&amp;interfaces);
++	AST_LIST_TRAVERSE(&amp;interfaces, curint, list) {
++		if (!strcasecmp(curint-&gt;interface, interface))
++			break; 
++	}
++
++	if (!curint) {
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Adding %s to the list of interfaces that make up all of our queue members.\n&quot;, interface);
++
++	        if ((newint = ast_calloc(1, sizeof(*newint)))) {
++			ast_copy_string(newint-&gt;interface, interface, sizeof(newint-&gt;interface));
++			AST_LIST_INSERT_HEAD(&amp;interfaces, newint, list);
++		}
++	}
++	AST_LIST_UNLOCK(&amp;interfaces);
++
++ return 0;
++}
++
++static int interface_exists_global(char *interface)
++{
++	struct ast_call_queue *q;
++	struct member *mem;
++	int ret = 0;
++
++	AST_LIST_LOCK(&amp;queues);
++	AST_LIST_TRAVERSE(&amp;queues, q, list) {
++		ast_mutex_lock(&amp;q-&gt;lock);
++		for (mem = q-&gt;members; mem; mem = mem-&gt;next)
++			if (!strcasecmp(interface, mem-&gt;interface)) {
++				ast_mutex_unlock(&amp;q-&gt;lock);
++				ret = 1;
++				break;
++			}
++		ast_mutex_unlock(&amp;q-&gt;lock);
++	}
++	AST_LIST_UNLOCK(&amp;queues);
++
++	return ret;
++}
++
++
++static int remove_from_interfaces(char *interface)
++{
++	struct ast_member_interfaces *curint;
++
++	AST_LIST_LOCK(&amp;interfaces);
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;interfaces, curint, list) {
++		if (!strcasecmp(curint-&gt;interface, interface) &amp;&amp; !interface_exists_global(interface)) {
++			if (option_debug)
++				ast_log(LOG_DEBUG, &quot;Removing %s from the list of interfaces that make up all of our queue members.\n&quot;, interface);
++			AST_LIST_REMOVE_CURRENT(&amp;interfaces, list);
++			free(curint);
++		}
++	}
++	AST_LIST_TRAVERSE_SAFE_END;
++	AST_LIST_UNLOCK(&amp;interfaces);
++
++ 	return 0;
++}
++
++static void clear_and_free_interfaces(void)
++{
++	struct ast_member_interfaces *curint;
++
++	AST_LIST_LOCK(&amp;interfaces);
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;interfaces, curint, list) {
++		AST_LIST_REMOVE_CURRENT(&amp;interfaces, list);
++		free(curint);
++	}
++	AST_LIST_TRAVERSE_SAFE_END;
++	AST_LIST_UNLOCK(&amp;interfaces);
++
++ 	return;
++}
++
+ /*! \brief Configure a queue parameter.
+ \par
+    For error reporting, line number is passed for .conf static configuration.
+@@ -802,6 +905,7 @@
+ 		m = create_queue_member(interface, penalty, 0);
+ 		if (m) {
+ 			m-&gt;dead = 0;
++			add_to_interfaces(interface);
+ 			if (prev_m) {
+ 				prev_m-&gt;next = m;
+ 			} else {
+@@ -826,6 +930,7 @@
+ 				prev-&gt;next = next;
+ 			else
+ 				q-&gt;members = next;
++			remove_from_interfaces(curm-&gt;interface);
+ 			free(curm);
+ 		} else 
+ 			prev = curm;
+@@ -948,6 +1053,7 @@
+ 			} else {
+ 				q-&gt;members = next_m;
+ 			}
++			remove_from_interfaces(m-&gt;interface);
+ 			free(m);
+ 		} else {
+ 			prev_m = m;
+@@ -1065,9 +1171,8 @@
+ 			      S_OR(qe-&gt;chan-&gt;cid.cid_num, &quot;unknown&quot;), /* XXX somewhere else it is &lt;unknown&gt; */
+ 			      S_OR(qe-&gt;chan-&gt;cid.cid_name, &quot;unknown&quot;),
+ 			      q-&gt;name, qe-&gt;pos, q-&gt;count, qe-&gt;chan-&gt;uniqueid );
+-#if 0
+-ast_log(LOG_NOTICE, &quot;Queue '%s' Join, Channel '%s', Position '%d'\n&quot;, q-&gt;name, qe-&gt;chan-&gt;name, qe-&gt;pos );
+-#endif
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Queue '%s' Join, Channel '%s', Position '%d'\n&quot;, q-&gt;name, qe-&gt;chan-&gt;name, qe-&gt;pos );
+ 	}
+ 	ast_mutex_unlock(&amp;q-&gt;lock);
+ 	AST_LIST_UNLOCK(&amp;queues);
+@@ -2488,7 +2593,7 @@
+ 		if (bridge != AST_PBX_NO_HANGUP_PEER)
+ 			ast_hangup(peer);
+ 		update_queue(qe-&gt;parent, member);
+-		res = bridge ? 0 : -1;
++		res = bridge ? -1 : 0;
+ 	}
+ out:
+ 	hangupcalls(outgoing, NULL);
+@@ -2596,10 +2701,14 @@
+ 		}
+ 		ast_mutex_unlock(&amp;q-&gt;lock);
+ 	}
++	if (res == RES_OKAY) {
++		remove_from_interfaces(interface);
++	}
+ 	AST_LIST_UNLOCK(&amp;queues);
+ 	return res;
+ }
+ 
++
+ static int add_to_queue(char *queuename, char *interface, int penalty, int paused, int dump)
+ {
+ 	struct ast_call_queue *q;
+@@ -2615,6 +2724,9 @@
+ 	if (q) {
+ 		ast_mutex_lock(&amp;q-&gt;lock);
+ 		if (interface_exists(q, interface) == NULL) {
++
++			add_to_interfaces(interface);
++
+ 			new_member = create_queue_member(interface, penalty, paused);
+ 
+ 			if (new_member != NULL) {
+@@ -3183,7 +3295,6 @@
+ 
+ 				/* Try calling all queue members for 'timeout' seconds */
+ 				res = try_calling(&amp;qe, args.options, args.announceoverride, args.url, &amp;go_on, args.agi);
+-
+ 				if (res) {
+ 					if (res &lt; 0) {
+ 						if (!qe.handled) {
+@@ -3552,6 +3663,8 @@
+ 							}
+ 							free(cur);
+ 						} else {
++							/* Add them to the master int list if necessary */
++							add_to_interfaces(interface);
+ 							newm-&gt;next = q-&gt;members;
+ 							q-&gt;members = newm;
+ 						}
+@@ -3575,6 +3688,7 @@
+ 							q-&gt;members = cur-&gt;next;
+ 							newm = cur;
+ 						}
++						remove_from_interfaces(cur-&gt;interface);
+ 					}
+ 				}
+ 
+@@ -4128,6 +4242,7 @@
+ {
+ 	int res;
+ 
++	clear_and_free_interfaces();
+ 	res = ast_cli_unregister(&amp;cli_show_queue);
+ 	res |= ast_cli_unregister(&amp;cli_show_queues);
+ 	res |= ast_cli_unregister(&amp;cli_add_queue_member);
+@@ -4137,7 +4252,6 @@
+ 	res |= ast_manager_unregister(&quot;QueueAdd&quot;);
+ 	res |= ast_manager_unregister(&quot;QueueRemove&quot;);
+ 	res |= ast_manager_unregister(&quot;QueuePause&quot;);
+-	ast_devstate_del(statechange_queue, NULL);
+ 	res |= ast_unregister_application(app_aqm);
+ 	res |= ast_unregister_application(app_rqm);
+ 	res |= ast_unregister_application(app_pqm);
+@@ -4162,7 +4276,6 @@
+ 	res |= ast_cli_register(&amp;cli_show_queues);
+ 	res |= ast_cli_register(&amp;cli_add_queue_member);
+ 	res |= ast_cli_register(&amp;cli_remove_queue_member);
+-	res |= ast_devstate_add(statechange_queue, NULL);
+ 	res |= ast_manager_register( &quot;Queues&quot;, 0, manager_queues_show, &quot;Queues&quot; );
+ 	res |= ast_manager_register( &quot;QueueStatus&quot;, 0, manager_queues_status, &quot;Queue Status&quot; );
+ 	res |= ast_manager_register( &quot;QueueAdd&quot;, EVENT_FLAG_AGENT, manager_add_queue_member, &quot;Add interface to queue.&quot; );
+@@ -4176,6 +4289,7 @@
+ 	res |= ast_custom_function_register(&amp;queuemembercount_function);
+ 	res |= ast_custom_function_register(&amp;queuememberlist_function);
+ 	res |= ast_custom_function_register(&amp;queuewaitingcount_function);
++	res |= ast_devstate_add(statechange_queue, NULL);
+ 
+ 	if (!res) {	
+ 		reload_queues();
+
+Modified: trunk/apps/app_setcallerid.c
+===================================================================
+--- trunk/apps/app_setcallerid.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/apps/app_setcallerid.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -107,6 +107,7 @@
+ 	struct localuser *u;
+ 	char *opt;
+ 	int anitoo = 0;
++	static int dep_warning = 0;
+ 
+ 	if (ast_strlen_zero(data)) {
+ 		ast_log(LOG_WARNING, &quot;SetCallerID requires an argument!\n&quot;);
+@@ -114,7 +115,12 @@
+ 	}
+ 	
+ 	LOCAL_USER_ADD(u);
+-	
++
++	if (!dep_warning) {
++		dep_warning = 1;
++		ast_log(LOG_WARNING, &quot;SetCallerID is deprecated.  Please use Set(CALLERID(all)=...) or Set(CALLERID(ani)=...) instead.\n&quot;);
++	}
++
+ 	tmp = ast_strdupa(data);
+ 	
+ 	opt = strchr(tmp, '|');
+
+Modified: trunk/asterisk.c
+===================================================================
+--- trunk/asterisk.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/asterisk.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -160,6 +160,7 @@
+ 
+ int option_verbose = 0;				/*!&lt; Verbosity level */
+ int option_debug = 0;				/*!&lt; Debug level */
++int option_mute = 0;				/*!&lt; Mute console */
+ 
+ double option_maxload = 0.0;			/*!&lt; Max load avg on system */
+ int option_maxcalls = 0;			/*!&lt; Max number of active calls */
+@@ -176,6 +177,7 @@
+ 	int fd;				/*!&lt; File descriptor */
+ 	int p[2];			/*!&lt; Pipe */
+ 	pthread_t t;			/*!&lt; Thread of handler */
++	int mute;			/*!&lt; Is the console muted for logs */
+ };
+ 
+ struct ast_atexit {
+@@ -681,6 +683,51 @@
+ }
+ 
+ /*!
++ * mute or unmute a console from logging
++ */
++void ast_console_mute(int fd) {
++	int x;
++	for (x=0;x&lt;AST_MAX_CONNECTS; x++) {
++		if (fd == consoles[x].fd) {
++			if (consoles[x].mute) {
++				consoles[x].mute=0;
++				ast_cli(fd, &quot;Console is not muted anymore.\n&quot;);
++			} else {
++				consoles[x].mute=1;
++				ast_cli(fd, &quot;Console is muted.\n&quot;);
++			}
++			return;
++		}
++	}
++	ast_cli(fd, &quot;Couldn't find remote console.\n&quot;);
++}
++
++/*!
++ * log the string to all attached console clients
++ */
++static void ast_network_puts_mutable(const char *string)
++{
++	int x;
++	for (x=0;x &lt; AST_MAX_CONNECTS; x++) {
++		if (consoles[x].mute)
++			continue;;
++		if (consoles[x].fd &gt; -1) 
++			fdprint(consoles[x].p[1], string);
++	}
++}
++
++/*!
++ * log the string to the console, and all attached
++ * console clients
++ */
++void ast_console_puts_mutable(const char *string)
++{
++	fputs(string, stdout);
++	fflush(stdout);
++	ast_network_puts_mutable(string);
++}
++
++/*!
+  * write the string to all attached console clients
+  */
+ static void ast_network_puts(const char *string)
+@@ -711,14 +758,14 @@
+ 		if ((t = alloca(strlen(s) + 2))) {
+ 			sprintf(t, &quot;\r%s&quot;, s);
+ 			if (complete)
+-				ast_network_puts(t);
++				ast_network_puts_mutable(t);
+ 		} else {
+ 			ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
+-			ast_network_puts(s);
++			ast_network_puts_mutable(s);
+ 		}
+ 	} else {
+ 		if (complete)
+-			ast_network_puts(s);
++			ast_network_puts_mutable(s);
+ 	}
+ }
+ 
+@@ -819,6 +866,7 @@
+ 					flags = fcntl(consoles[x].p[1], F_GETFL);
+ 					fcntl(consoles[x].p[1], F_SETFL, flags | O_NONBLOCK);
+ 					consoles[x].fd = s;
++					consoles[x].mute = 0;
+ 					if (ast_pthread_create(&amp;consoles[x].t, &amp;attr, netconsole, &amp;consoles[x])) {
+ 						ast_log(LOG_ERROR, &quot;Unable to spawn thread to handle connection: %s\n&quot;, strerror(errno));
+ 						close(consoles[x].p[0]);
+@@ -2025,6 +2073,10 @@
+ 	fdprint(ast_consock, tmp);
+ 	snprintf(tmp, sizeof(tmp), &quot;set debug atleast %d&quot;, option_debug);
+ 	fdprint(ast_consock, tmp);
++	if (option_mute) {
++		snprintf(tmp, sizeof(tmp), &quot;logger mute&quot;);
++		fdprint(ast_consock, tmp);
++	}
+ 	ast_verbose(&quot;Connected to Asterisk %s currently running on %s (pid = %d)\n&quot;, version, hostname, pid);
+ 	remotehostname = hostname;
+ 	if (getenv(&quot;HOME&quot;)) 
+@@ -2093,6 +2145,7 @@
+ 	printf(&quot;   -I              Enable internal timing if Zaptel timer is available\n&quot;);
+ 	printf(&quot;   -L &lt;load&gt;       Limit the maximum load average before rejecting new calls\n&quot;);
+ 	printf(&quot;   -M &lt;value&gt;      Limit the maximum number of calls to the specified value\n&quot;);
++	printf(&quot;   -m              Mute the console from debugging and verbose output\n&quot;);
+ 	printf(&quot;   -n              Disable console colorization\n&quot;);
+ 	printf(&quot;   -p              Run as pseudo-realtime thread\n&quot;);
+ 	printf(&quot;   -q              Quiet mode (suppress output)\n&quot;);
+@@ -2311,7 +2364,7 @@
+ 	if (getenv(&quot;HOME&quot;)) 
+ 		snprintf(filename, sizeof(filename), &quot;%s/.asterisk_history&quot;, getenv(&quot;HOME&quot;));
+ 	/* Check for options */
+-	while ((c = getopt(argc, argv, &quot;tThfdvVqprRgciInx:U:G:C:L:M:&quot;)) != -1) {
++	while ((c = getopt(argc, argv, &quot;mtThfdvVqprRgciInx:U:G:C:L:M:&quot;)) != -1) {
+ 		switch (c) {
+ 		case 'F':
+ 			ast_set_flag(&amp;ast_options, AST_OPT_FLAG_ALWAYS_FORK);
+@@ -2342,6 +2395,10 @@
+ 			option_verbose++;
+ 			ast_set_flag(&amp;ast_options, AST_OPT_FLAG_NO_FORK);
+ 			break;
++		case 'm':
++			option_mute++;
++			ast_set_flag(&amp;ast_options, AST_OPT_FLAG_NO_FORK);
++			break;
+ 		case 'M':
+ 			if ((sscanf(optarg, &quot;%d&quot;, &amp;option_maxcalls) != 1) || (option_maxcalls &lt; 0))
+ 				option_maxcalls = 0;
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/channel.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -116,52 +116,53 @@
+ /*! map AST_CAUSE's to readable string representations */
+ const struct ast_cause {
+ 	int cause;
++	const char *name;
+ 	const char *desc;
+ } causes[] = {
+-	{ AST_CAUSE_UNALLOCATED, &quot;Unallocated (unassigned) number&quot; },
+-	{ AST_CAUSE_NO_ROUTE_TRANSIT_NET, &quot;No route to specified transmit network&quot; },
+-	{ AST_CAUSE_NO_ROUTE_DESTINATION, &quot;No route to destination&quot; },
+-	{ AST_CAUSE_CHANNEL_UNACCEPTABLE, &quot;Channel unacceptable&quot; },
+-	{ AST_CAUSE_CALL_AWARDED_DELIVERED, &quot;Call awarded and being delivered in an established channel&quot; },
+-	{ AST_CAUSE_NORMAL_CLEARING, &quot;Normal Clearing&quot; },
+-	{ AST_CAUSE_USER_BUSY, &quot;User busy&quot; },
+-	{ AST_CAUSE_NO_USER_RESPONSE, &quot;No user responding&quot; },
+-	{ AST_CAUSE_NO_ANSWER, &quot;User alerting, no answer&quot; },
+-	{ AST_CAUSE_CALL_REJECTED, &quot;Call Rejected&quot; },
+-	{ AST_CAUSE_NUMBER_CHANGED, &quot;Number changed&quot; },
+-	{ AST_CAUSE_DESTINATION_OUT_OF_ORDER, &quot;Destination out of order&quot; },
+-	{ AST_CAUSE_INVALID_NUMBER_FORMAT, &quot;Invalid number format&quot; },
+-	{ AST_CAUSE_FACILITY_REJECTED, &quot;Facility rejected&quot; },
+-	{ AST_CAUSE_RESPONSE_TO_STATUS_ENQUIRY, &quot;Response to STATus ENQuiry&quot; },
+-	{ AST_CAUSE_NORMAL_UNSPECIFIED, &quot;Normal, unspecified&quot; },
+-	{ AST_CAUSE_NORMAL_CIRCUIT_CONGESTION, &quot;Circuit/channel congestion&quot; },
+-	{ AST_CAUSE_NETWORK_OUT_OF_ORDER, &quot;Network out of order&quot; },
+-	{ AST_CAUSE_NORMAL_TEMPORARY_FAILURE, &quot;Temporary failure&quot; },
+-	{ AST_CAUSE_SWITCH_CONGESTION, &quot;Switching equipment congestion&quot; },
+-	{ AST_CAUSE_ACCESS_INFO_DISCARDED, &quot;Access information discarded&quot; },
+-	{ AST_CAUSE_REQUESTED_CHAN_UNAVAIL, &quot;Requested channel not available&quot; },
+-	{ AST_CAUSE_PRE_EMPTED, &quot;Pre-empted&quot; },
+-	{ AST_CAUSE_FACILITY_NOT_SUBSCRIBED, &quot;Facility not subscribed&quot; },
+-	{ AST_CAUSE_OUTGOING_CALL_BARRED, &quot;Outgoing call barred&quot; },
+-	{ AST_CAUSE_INCOMING_CALL_BARRED, &quot;Incoming call barred&quot; },
+-	{ AST_CAUSE_BEARERCAPABILITY_NOTAUTH, &quot;Bearer capability not authorized&quot; },
+-	{ AST_CAUSE_BEARERCAPABILITY_NOTAVAIL, &quot;Bearer capability not available&quot; },
+-	{ AST_CAUSE_BEARERCAPABILITY_NOTIMPL, &quot;Bearer capability not implemented&quot; },
+-	{ AST_CAUSE_CHAN_NOT_IMPLEMENTED, &quot;Channel not implemented&quot; },
+-	{ AST_CAUSE_FACILITY_NOT_IMPLEMENTED, &quot;Facility not implemented&quot; },
+-	{ AST_CAUSE_INVALID_CALL_REFERENCE, &quot;Invalid call reference value&quot; },
+-	{ AST_CAUSE_INCOMPATIBLE_DESTINATION, &quot;Incompatible destination&quot; },
+-	{ AST_CAUSE_INVALID_MSG_UNSPECIFIED, &quot;Invalid message unspecified&quot; },
+-	{ AST_CAUSE_MANDATORY_IE_MISSING, &quot;Mandatory information element is missing&quot; },
+-	{ AST_CAUSE_MESSAGE_TYPE_NONEXIST, &quot;Message type nonexist.&quot; },
+-	{ AST_CAUSE_WRONG_MESSAGE, &quot;Wrong message&quot; },
+-	{ AST_CAUSE_IE_NONEXIST, &quot;Info. element nonexist or not implemented&quot; },
+-	{ AST_CAUSE_INVALID_IE_CONTENTS, &quot;Invalid information element contents&quot; },
+-	{ AST_CAUSE_WRONG_CALL_STATE, &quot;Message not compatible with call state&quot; },
+-	{ AST_CAUSE_RECOVERY_ON_TIMER_EXPIRE, &quot;Recover on timer expiry&quot; },
+-	{ AST_CAUSE_MANDATORY_IE_LENGTH_ERROR, &quot;Mandatory IE length error&quot; },
+-	{ AST_CAUSE_PROTOCOL_ERROR, &quot;Protocol error, unspecified&quot; },
+-	{ AST_CAUSE_INTERWORKING, &quot;Interworking, unspecified&quot; },
++	{ AST_CAUSE_UNALLOCATED, &quot;UNALLOCATED&quot;, &quot;Unallocated (unassigned) number&quot; },
++	{ AST_CAUSE_NO_ROUTE_TRANSIT_NET, &quot;NO_ROUTE_TRANSIT_NET&quot;, &quot;No route to specified transmit network&quot; },
++	{ AST_CAUSE_NO_ROUTE_DESTINATION, &quot;NO_ROUTE_DESTINATION&quot;, &quot;No route to destination&quot; },
++	{ AST_CAUSE_CHANNEL_UNACCEPTABLE, &quot;CHANNEL_UNACCEPTABLE&quot;, &quot;Channel unacceptable&quot; },
++	{ AST_CAUSE_CALL_AWARDED_DELIVERED, &quot;CALL_AWARDED_DELIVERED&quot;, &quot;Call awarded and being delivered in an established channel&quot; },
++	{ AST_CAUSE_NORMAL_CLEARING, &quot;NORMAL_CLEARING&quot;, &quot;Normal Clearing&quot; },
++	{ AST_CAUSE_USER_BUSY, &quot;USER_BUSY&quot;, &quot;User busy&quot; },
++	{ AST_CAUSE_NO_USER_RESPONSE, &quot;NO_USER_RESPONSE&quot;, &quot;No user responding&quot; },
++	{ AST_CAUSE_NO_ANSWER, &quot;NO_ANSWER&quot;, &quot;User alerting, no answer&quot; },
++	{ AST_CAUSE_CALL_REJECTED, &quot;CALL_REJECTED&quot;, &quot;Call Rejected&quot; },
++	{ AST_CAUSE_NUMBER_CHANGED, &quot;NUMBER_CHANGED&quot;, &quot;Number changed&quot; },
++	{ AST_CAUSE_DESTINATION_OUT_OF_ORDER, &quot;DESTINATION_OUT_OF_ORDER&quot;, &quot;Destination out of order&quot; },
++	{ AST_CAUSE_INVALID_NUMBER_FORMAT, &quot;INVALID_NUMBER_FORMAT&quot;, &quot;Invalid number format&quot; },
++	{ AST_CAUSE_FACILITY_REJECTED, &quot;FACILITY_REJECTED&quot;, &quot;Facility rejected&quot; },
++	{ AST_CAUSE_RESPONSE_TO_STATUS_ENQUIRY, &quot;RESPONSE_TO_STATUS_ENQUIRY&quot;, &quot;Response to STATus ENQuiry&quot; },
++	{ AST_CAUSE_NORMAL_UNSPECIFIED, &quot;NORMAL_UNSPECIFIED&quot;, &quot;Normal, unspecified&quot; },
++	{ AST_CAUSE_NORMAL_CIRCUIT_CONGESTION, &quot;NORMAL_CIRCUIT_CONGESTION&quot;, &quot;Circuit/channel congestion&quot; },
++	{ AST_CAUSE_NETWORK_OUT_OF_ORDER, &quot;NETWORK_OUT_OF_ORDER&quot;, &quot;Network out of order&quot; },
++	{ AST_CAUSE_NORMAL_TEMPORARY_FAILURE, &quot;NORMAL_TEMPORARY_FAILURE&quot;, &quot;Temporary failure&quot; },
++	{ AST_CAUSE_SWITCH_CONGESTION, &quot;SWITCH_CONGESTION&quot;, &quot;Switching equipment congestion&quot; },
++	{ AST_CAUSE_ACCESS_INFO_DISCARDED, &quot;ACCESS_INFO_DISCARDED&quot;, &quot;Access information discarded&quot; },
++	{ AST_CAUSE_REQUESTED_CHAN_UNAVAIL, &quot;REQUESTED_CHAN_UNAVAIL&quot;, &quot;Requested channel not available&quot; },
++	{ AST_CAUSE_PRE_EMPTED, &quot;PRE_EMPTED&quot;, &quot;Pre-empted&quot; },
++	{ AST_CAUSE_FACILITY_NOT_SUBSCRIBED, &quot;FACILITY_NOT_SUBSCRIBED&quot;, &quot;Facility not subscribed&quot; },
++	{ AST_CAUSE_OUTGOING_CALL_BARRED, &quot;OUTGOING_CALL_BARRED&quot;, &quot;Outgoing call barred&quot; },
++	{ AST_CAUSE_INCOMING_CALL_BARRED, &quot;INCOMING_CALL_BARRED&quot;, &quot;Incoming call barred&quot; },
++	{ AST_CAUSE_BEARERCAPABILITY_NOTAUTH, &quot;BEARERCAPABILITY_NOTAUTH&quot;, &quot;Bearer capability not authorized&quot; },
++	{ AST_CAUSE_BEARERCAPABILITY_NOTAVAIL, &quot;BEARERCAPABILITY_NOTAVAIL&quot;, &quot;Bearer capability not available&quot; },
++	{ AST_CAUSE_BEARERCAPABILITY_NOTIMPL, &quot;BEARERCAPABILITY_NOTIMPL&quot;, &quot;Bearer capability not implemented&quot; },
++	{ AST_CAUSE_CHAN_NOT_IMPLEMENTED, &quot;CHAN_NOT_IMPLEMENTED&quot;, &quot;Channel not implemented&quot; },
++	{ AST_CAUSE_FACILITY_NOT_IMPLEMENTED, &quot;FACILITY_NOT_IMPLEMENTED&quot;, &quot;Facility not implemented&quot; },
++	{ AST_CAUSE_INVALID_CALL_REFERENCE, &quot;INVALID_CALL_REFERENCE&quot;, &quot;Invalid call reference value&quot; },
++	{ AST_CAUSE_INCOMPATIBLE_DESTINATION, &quot;INCOMPATIBLE_DESTINATION&quot;, &quot;Incompatible destination&quot; },
++	{ AST_CAUSE_INVALID_MSG_UNSPECIFIED, &quot;INVALID_MSG_UNSPECIFIED&quot;, &quot;Invalid message unspecified&quot; },
++	{ AST_CAUSE_MANDATORY_IE_MISSING, &quot;MANDATORY_IE_MISSING&quot;, &quot;Mandatory information element is missing&quot; },
++	{ AST_CAUSE_MESSAGE_TYPE_NONEXIST, &quot;MESSAGE_TYPE_NONEXIST&quot;, &quot;Message type nonexist.&quot; },
++	{ AST_CAUSE_WRONG_MESSAGE, &quot;WRONG_MESSAGE&quot;, &quot;Wrong message&quot; },
++	{ AST_CAUSE_IE_NONEXIST, &quot;IE_NONEXIST&quot;, &quot;Info. element nonexist or not implemented&quot; },
++	{ AST_CAUSE_INVALID_IE_CONTENTS, &quot;INVALID_IE_CONTENTS&quot;, &quot;Invalid information element contents&quot; },
++	{ AST_CAUSE_WRONG_CALL_STATE, &quot;WRONG_CALL_STATE&quot;, &quot;Message not compatible with call state&quot; },
++	{ AST_CAUSE_RECOVERY_ON_TIMER_EXPIRE, &quot;RECOVERY_ON_TIMER_EXPIRE&quot;, &quot;Recover on timer expiry&quot; },
++	{ AST_CAUSE_MANDATORY_IE_LENGTH_ERROR, &quot;MANDATORY_IE_LENGTH_ERROR&quot;, &quot;Mandatory IE length error&quot; },
++	{ AST_CAUSE_PROTOCOL_ERROR, &quot;PROTOCOL_ERROR&quot;, &quot;Protocol error, unspecified&quot; },
++	{ AST_CAUSE_INTERWORKING, &quot;INTERWORKING&quot;, &quot;Interworking, unspecified&quot; },
+ };
+ 
+ 
+@@ -477,6 +478,18 @@
+ 	return &quot;Unknown&quot;;
+ }
+ 
++/*! \brief Convert a symbolic hangup cause to number */
++int ast_str2cause(const char *name)
++{
++	int x;
++
++	for (x = 0; x &lt; sizeof(causes) / sizeof(causes[0]); x++)
++		if (strncasecmp(causes[x].name, name, strlen(causes[x].name)) == 0)
++			return causes[x].cause;
++
++	return -1;
++}
++	 
+ /*! \brief Gives the string form of a given channel state */
+ char *ast_state2str(int state)
+ {
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/channels/chan_iax2.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -1893,7 +1893,7 @@
+ 	} else if ((peer = find_peer(argv[3], 0))) {
+ 		if(ast_test_flag(peer, IAX_RTCACHEFRIENDS)) {
+ 			ast_set_flag(peer, IAX_RTAUTOCLEAR);
+-			expire_registry(peer);
++			expire_registry(peer-&gt;name);
+ 			ast_cli(fd, &quot;OK peer %s was removed from the cache.\n&quot;, argv[3]);
+ 		} else {
+ 			ast_cli(fd, &quot;SORRY peer %s is not eligible for this operation.\n&quot;, argv[3]);
+@@ -2531,7 +2531,7 @@
+ 		if (ast_test_flag(peer, IAX_RTAUTOCLEAR)) {
+ 			if (peer-&gt;expire &gt; -1)
+ 				ast_sched_del(sched, peer-&gt;expire);
+-			peer-&gt;expire = ast_sched_add(sched, (global_rtautoclear) * 1000, expire_registry, peer);
++			peer-&gt;expire = ast_sched_add(sched, (global_rtautoclear) * 1000, expire_registry, (void*)peer-&gt;name);
+ 		}
+ 		AST_LIST_LOCK(&amp;peers);
+ 		AST_LIST_INSERT_HEAD(&amp;peers, peer, entry);
+@@ -5521,6 +5521,7 @@
+ 			/* If we are set to auto clear then remove ourselves */
+ 			if (ast_test_flag(p, IAX_RTAUTOCLEAR))
+ 				AST_LIST_REMOVE_CURRENT(&amp;peers, entry);
++			p-&gt;expire = -1;
+ 			break;
+ 		}
+ 	}
+@@ -5552,9 +5553,6 @@
+ 
+ static int expire_registry(void *data)
+ {
+-	struct iax2_peer *p = data;
+-	/* Reset expire notice */
+-	p-&gt;expire = -1;
+ #ifdef SCHED_MULTITHREADED
+ 	if (schedule_action(__expire_registry, data))
+ #endif		
+@@ -7138,6 +7136,7 @@
+ 					iax2_destroy_nolock(fr-&gt;callno);
+ 					peer-&gt;callno = 0;
+ 					/* Try again eventually */
++					if (option_debug)
+ 						ast_log(LOG_DEBUG, &quot;Peer lastms %d, historicms %d, maxms %d\n&quot;, peer-&gt;lastms, peer-&gt;historicms, peer-&gt;maxms);
+ 					if ((peer-&gt;lastms &lt; 0)  || (peer-&gt;historicms &gt; peer-&gt;maxms)) 
+ 						peer-&gt;pokeexpire = ast_sched_add(sched, peer-&gt;pokefreqnotok, iax2_poke_peer_s, peer);
+
+Modified: trunk/channels/chan_jingle.c
+===================================================================
+--- trunk/channels/chan_jingle.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/channels/chan_jingle.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -1563,7 +1563,7 @@
+ 	ASTOBJ_CONTAINER_INIT(&amp;jingles);
+ 	if (!jingle_load_config()) {
+ 		ast_log(LOG_ERROR, &quot;Unable to read config file %s\n&quot;, JINGLE_CONFIG);
+-		return -1;
++		return 0;
+ 	}
+ 
+ 	sched = sched_context_create();
+
+Modified: trunk/cli.c
+===================================================================
+--- trunk/cli.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/cli.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -114,6 +114,11 @@
+ &quot;       no messages should be displayed. Equivalent to -d[d[d...]]\n&quot;
+ &quot;       on startup.\n&quot;;
+ 
++static char logger_mute_help[] = 
++&quot;Usage: logger mute\n&quot;
++&quot;       Disables logging output to the current console, making it possible to\n&quot;
++&quot;       gather information without being disturbed by scrolling lines.\n&quot;;
++
+ static char softhangup_help[] =
+ &quot;Usage: soft hangup &lt;channel&gt;\n&quot;
+ &quot;       Request that a channel be hung up. The hangup takes effect\n&quot;
+@@ -213,6 +218,14 @@
+ 	return RESULT_SUCCESS;
+ }
+ 
++static int handle_logger_mute(int fd, int argc, char *argv[])
++{
++	if (argc != 2)
++		return RESULT_SHOWUSAGE;
++	ast_console_mute(fd);
++	return RESULT_SUCCESS;
++}
++
+ static int handle_unload(int fd, int argc, char *argv[])
+ {
+ 	int x;
+@@ -919,6 +932,7 @@
+ 	{ { &quot;reload&quot;, NULL }, handle_reload, &quot;Reload configuration&quot;, reload_help, complete_mod_2 },
+ 	{ { &quot;set&quot;, &quot;debug&quot;, NULL }, handle_set_debug, &quot;Set level of debug chattiness&quot;, set_debug_help },
+ 	{ { &quot;set&quot;, &quot;verbose&quot;, NULL }, handle_set_verbose, &quot;Set level of verboseness&quot;, set_verbose_help },
++	{ { &quot;logger&quot;, &quot;mute&quot;, NULL }, handle_logger_mute, &quot;Disable logging output to a console&quot;, logger_mute_help },
+ 	{ { &quot;show&quot;, &quot;channel&quot;, NULL }, handle_showchan, &quot;Display information on a specific channel&quot;, showchan_help, complete_ch_3 },
+ 	{ { &quot;show&quot;, &quot;channels&quot;, NULL }, handle_chanlist, &quot;Display information on channels&quot;, chanlist_help, complete_show_channels },
+ 	{ { &quot;show&quot;, &quot;modules&quot;, NULL }, handle_modlist, &quot;List modules and info&quot;, modlist_help },
+
+Modified: trunk/configure
+===================================================================
+--- trunk/configure	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/configure	2006-05-26 21:41:22 UTC (rev 183)
+@@ -1846,21 +1846,19 @@
+      ;;
+      *)
+      ac_default_prefix=/usr
++     if test ${sysconfdir} = '${prefix}/etc'; then
++        sysconfdir=/etc
++     fi
++     if test ${mandir} = '${prefix}/man'; then
++        mandir=/usr/share/man
++     fi
+      ;;
+ esac
+ 
+-if test ${sysconfdir} = '${prefix}/etc'; then
+-   sysconfdir=/etc
+-fi
+-
+ if test ${localstatedir} = '${prefix}/var'; then
+-   localstatedir=/var
++     localstatedir=/var
+ fi
+ 
+-if test ${mandir} = '${prefix}/man'; then
+-   mandir=/usr/share/man
+-fi
+-
+ ### ** Platform.
+ 
+ cat &gt;&gt;confdefs.h &lt;&lt;_ACEOF
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/configure.ac	2006-05-26 21:41:22 UTC (rev 183)
+@@ -28,21 +28,19 @@
+      ;;
+      *)
+      ac_default_prefix=/usr
++     if test ${sysconfdir} = '${prefix}/etc'; then
++        sysconfdir=/etc
++     fi
++     if test ${mandir} = '${prefix}/man'; then
++        mandir=/usr/share/man
++     fi
+      ;;
+ esac
+ 
+-if test ${sysconfdir} = '${prefix}/etc'; then
+-   sysconfdir=/etc
+-fi
+-
+ if test ${localstatedir} = '${prefix}/var'; then
+-   localstatedir=/var
++     localstatedir=/var
+ fi
+ 
+-if test ${mandir} = '${prefix}/man'; then
+-   mandir=/usr/share/man
+-fi
+-
+ ### ** Platform.
+ AC_DEFINE_UNQUOTED(PBX_PLATFORM, &quot;${host}&quot;,
+ [Define this to be the canonical name (cpu-vendor-os) of your system.])
+
+Modified: trunk/funcs/func_odbc.c
+===================================================================
+--- trunk/funcs/func_odbc.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/funcs/func_odbc.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -539,9 +539,9 @@
+ 
+ 	cfg = ast_config_load(config);
+ 	if (!cfg) {
+-		ast_log(LOG_WARNING, &quot;Unable to load config for func_odbc: %s\n&quot;, config);
++		ast_log(LOG_NOTICE, &quot;Unable to load config for func_odbc: %s\n&quot;, config);
+ 		AST_LIST_UNLOCK(&amp;queries);
+-		return -1;
++		return 0;
+ 	}
+ 
+ 	for (catg = ast_category_browse(cfg, NULL);
+
+Modified: trunk/include/asterisk/channel.h
+===================================================================
+--- trunk/include/asterisk/channel.h	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/include/asterisk/channel.h	2006-05-26 21:41:22 UTC (rev 183)
+@@ -1011,6 +1011,13 @@
+  */
+ const char *ast_cause2str(int state);
+ 
++/*! Convert the string form of a cause code to a number */
++/*! 
++ * \param name string form of the cause
++ * Returns the cause code
++ */
++int ast_str2cause(const char *name);
++
+ /*! Gives the string form of a given channel state */
+ /*! 
+  * \param state state to get the name of
+
+Modified: trunk/include/asterisk/logger.h
+===================================================================
+--- trunk/include/asterisk/logger.h	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/include/asterisk/logger.h	2006-05-26 21:41:22 UTC (rev 183)
+@@ -82,6 +82,9 @@
+ int ast_verbose_dmesg(void (*verboser)(const char *string, int opos, int replacelast, int complete));
+ void ast_console_puts(const char *string);
+ 
++extern void ast_console_puts_mutable(const char *string);
++extern void ast_console_mute(int fd);
++
+ #define _A_ __FILE__, __LINE__, __PRETTY_FUNCTION__
+ 
+ #ifdef LOG_DEBUG
+
+Modified: trunk/logger.c
+===================================================================
+--- trunk/logger.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/logger.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -756,11 +756,11 @@
+ 						term_color(tmp3, linestr, COLOR_BRWHITE, 0, sizeof(tmp3)),
+ 						term_color(tmp4, function, COLOR_BRWHITE, 0, sizeof(tmp4)));
+ 					
+-					ast_console_puts(buf);
++					ast_console_puts_mutable(buf);
+ 					va_start(ap, fmt);
+ 					vsnprintf(buf, sizeof(buf), fmt, ap);
+ 					va_end(ap);
+-					ast_console_puts(buf);
++					ast_console_puts_mutable(buf);
+ 				}
+ 			/* File channels */
+ 			} else if ((chan-&gt;logmask &amp; (1 &lt;&lt; level)) &amp;&amp; (chan-&gt;fileptr)) {
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/pbx.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -343,7 +343,9 @@
+ 
+ 	{ &quot;Hangup&quot;, pbx_builtin_hangup,
+ 	&quot;Hang up the calling channel&quot;,
+-	&quot;  Hangup(): This application will hang up the calling channel.\n&quot;
++	&quot;  Hangup([causecode]): This application will hang up the calling channel.\n&quot;
++	&quot;If a causecode is given the channel's hangup cause will be set to the given\n&quot;
++	&quot;value.\n&quot;
+ 	},
+ 
+ 	{ &quot;NoOp&quot;, pbx_builtin_noop,
+@@ -5018,9 +5020,28 @@
+  */
+ static int pbx_builtin_hangup(struct ast_channel *chan, void *data)
+ {
+-	/* Just return non-zero and it will hang up */
+-	if (!chan-&gt;hangupcause)
++	if (!ast_strlen_zero(data)) {
++		int cause;
++		char *endptr;
++
++		if ((cause = ast_str2cause(data)) &gt; -1) {
++			chan-&gt;hangupcause = cause;
++			return -1;
++		}
++		
++		cause = strtol((const char *) data, &amp;endptr, 10);
++		if (cause != 0 || (data != endptr)) {
++			chan-&gt;hangupcause = cause;
++			return -1;
++		}
++			
++		ast_log(LOG_NOTICE, &quot;Invalid cause given to Hangup(): \&quot;%s\&quot;\n&quot;, (char *) data);
++	}
++
++	if (!chan-&gt;hangupcause) {
+ 		chan-&gt;hangupcause = AST_CAUSE_NORMAL_CLEARING;
++	}
++
+ 	return -1;
+ }
+ 
+
+Modified: trunk/res/res_agi.c
+===================================================================
+--- trunk/res/res_agi.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/res/res_agi.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -537,7 +537,9 @@
+ static int handle_streamfile(struct ast_channel *chan, AGI *agi, int argc, char *argv[])
+ {
+ 	int res;
++	int vres;	
+ 	struct ast_filestream *fs;
++	struct ast_filestream *vfs;
+ 	long sample_offset = 0;
+ 	long max_length;
+ 
+@@ -546,16 +548,26 @@
+ 	if ((argc &gt; 4) &amp;&amp; (sscanf(argv[4], &quot;%ld&quot;, &amp;sample_offset) != 1))
+ 		return RESULT_SHOWUSAGE;
+ 	
+-	fs = ast_openstream(chan, argv[2], chan-&gt;language);
+-	if (!fs){
++	fs = ast_openstream(chan, argv[2], chan-&gt;language);	
++	
++	if (!fs) {
+ 		fdprintf(agi-&gt;fd, &quot;200 result=%d endpos=%ld\n&quot;, 0, sample_offset);
+ 		return RESULT_SUCCESS;
+-	}
++	}	
++	vfs = ast_openvstream(chan, argv[2], chan-&gt;language);
++	if (vfs)
++		ast_log(LOG_DEBUG, &quot;Ooh, found a video stream, too\n&quot;);
++		
+ 	ast_seekstream(fs, 0, SEEK_END);
+ 	max_length = ast_tellstream(fs);
+ 	ast_seekstream(fs, sample_offset, SEEK_SET);
+ 	res = ast_applystream(chan, fs);
++	if (vfs)
++		vres = ast_applystream(chan, vfs);
+ 	res = ast_playstream(fs);
++	if (vfs)
++		vres = ast_playstream(vfs);
++	
+ 	if (res) {
+ 		fdprintf(agi-&gt;fd, &quot;200 result=%d endpos=%ld\n&quot;, res, sample_offset);
+ 		return (res &gt;= 0) ? RESULT_SHOWUSAGE : RESULT_FAILURE;
+@@ -576,10 +588,12 @@
+ /* get option - really similar to the handle_streamfile, but with a timeout */
+ static int handle_getoption(struct ast_channel *chan, AGI *agi, int argc, char *argv[])
+ {
+-        int res;
+-        struct ast_filestream *fs;
+-        long sample_offset = 0;
+-        long max_length;
++	int res;
++	int vres;	
++	struct ast_filestream *fs;
++	struct ast_filestream *vfs;
++	long sample_offset = 0;
++	long max_length;
+ 	int timeout = 0;
+ 	char *edigits = NULL;
+ 
+@@ -596,43 +610,51 @@
+ 		timeout = chan-&gt;pbx-&gt;dtimeout * 1000; /* in msec */
+ 	}
+ 
+-        fs = ast_openstream(chan, argv[2], chan-&gt;language);
+-        if (!fs){
+-                fdprintf(agi-&gt;fd, &quot;200 result=%d endpos=%ld\n&quot;, 0, sample_offset);
+-                ast_log(LOG_WARNING, &quot;Unable to open %s\n&quot;, argv[2]);
++	fs = ast_openstream(chan, argv[2], chan-&gt;language);
++	if (!fs) {
++		fdprintf(agi-&gt;fd, &quot;200 result=%d endpos=%ld\n&quot;, 0, sample_offset);
++		ast_log(LOG_WARNING, &quot;Unable to open %s\n&quot;, argv[2]);
+ 		return RESULT_SUCCESS;
+-        }
++	}
++	vfs = ast_openvstream(chan, argv[2], chan-&gt;language);
++	if (vfs)
++		ast_log(LOG_DEBUG, &quot;Ooh, found a video stream, too\n&quot;);
++	
+ 	if (option_verbose &gt; 2)
+ 		ast_verbose(VERBOSE_PREFIX_3 &quot;Playing '%s' (escape_digits=%s) (timeout %d)\n&quot;, argv[2], edigits, timeout);
+ 
+-        ast_seekstream(fs, 0, SEEK_END);
+-        max_length = ast_tellstream(fs);
+-        ast_seekstream(fs, sample_offset, SEEK_SET);
+-        res = ast_applystream(chan, fs);
+-        res = ast_playstream(fs);
+-        if (res) {
+-                fdprintf(agi-&gt;fd, &quot;200 result=%d endpos=%ld\n&quot;, res, sample_offset);
+-                if (res &gt;= 0)
+-                        return RESULT_SHOWUSAGE;
+-                else
+-                        return RESULT_FAILURE;
+-        }
+-        res = ast_waitstream_full(chan, argv[3], agi-&gt;audio, agi-&gt;ctrl);
+-        /* this is to check for if ast_waitstream closed the stream, we probably are at
+-         * the end of the stream, return that amount, else check for the amount */
+-        sample_offset = (chan-&gt;stream)?ast_tellstream(fs):max_length;
+-        ast_stopstream(chan);
+-        if (res == 1) {
+-                /* Stop this command, don't print a result line, as there is a new command */
+-                return RESULT_SUCCESS;
+-        }
++	ast_seekstream(fs, 0, SEEK_END);
++	max_length = ast_tellstream(fs);
++	ast_seekstream(fs, sample_offset, SEEK_SET);
++	res = ast_applystream(chan, fs);
++	if (vfs)
++		vres = ast_applystream(chan, vfs);
++	res = ast_playstream(fs);
++	if (vfs)
++		vres = ast_playstream(vfs);
++	if (res) {
++		fdprintf(agi-&gt;fd, &quot;200 result=%d endpos=%ld\n&quot;, res, sample_offset);
++		if (res &gt;= 0)
++			return RESULT_SHOWUSAGE;
++		else
++			return RESULT_FAILURE;
++	}
++	res = ast_waitstream_full(chan, argv[3], agi-&gt;audio, agi-&gt;ctrl);
++	/* this is to check for if ast_waitstream closed the stream, we probably are at
++	 * the end of the stream, return that amount, else check for the amount */
++	sample_offset = (chan-&gt;stream)?ast_tellstream(fs):max_length;
++	ast_stopstream(chan);
++	if (res == 1) {
++		/* Stop this command, don't print a result line, as there is a new command */
++		return RESULT_SUCCESS;
++	}
+ 
+ 	/* If the user didnt press a key, wait for digitTimeout*/
+ 	if (res == 0 ) {
+ 		res = ast_waitfordigit_full(chan, timeout, agi-&gt;audio, agi-&gt;ctrl);
+ 		/* Make sure the new result is in the escape digits of the GET OPTION */
+ 		if ( !strchr(edigits,res) )
+-                	res=0;
++			res=0;
+ 	}
+ 
+         fdprintf(agi-&gt;fd, &quot;200 result=%d endpos=%ld\n&quot;, res, sample_offset);
+
+Modified: trunk/res/res_features.c
+===================================================================
+--- trunk/res/res_features.c	2006-05-26 21:14:40 UTC (rev 182)
++++ trunk/res/res_features.c	2006-05-26 21:41:22 UTC (rev 183)
+@@ -563,9 +563,9 @@
+ 
+ static const char *real_ctx(struct ast_channel *transferer, struct ast_channel *transferee)
+ {
+-        const char *s = pbx_builtin_getvar_helper(transferee, &quot;TRANSFER_CONTEXT&quot;);
++        const char *s = pbx_builtin_getvar_helper(transferer, &quot;TRANSFER_CONTEXT&quot;);
+         if (ast_strlen_zero(s))
+-                s = pbx_builtin_getvar_helper(transferer, &quot;TRANSFER_CONTEXT&quot;);
++                s = pbx_builtin_getvar_helper(transferee, &quot;TRANSFER_CONTEXT&quot;);
+         if (ast_strlen_zero(s)) /* Use the non-macro context to transfer the call XXX ? */
+                 s = transferer-&gt;macrocontext;
+         if (ast_strlen_zero(s))
+@@ -1039,6 +1039,7 @@
+ 	if ((chan = ast_request(type, format, data, &amp;cause))) {
+ 		ast_set_callerid(chan, cid_num, cid_name, cid_num);
+ 		ast_channel_inherit_variables(caller, chan);	
++		pbx_builtin_setvar_helper(chan, &quot;TRANSFERERNAME&quot;, caller-&gt;name);
+ 		if (!ast_call(chan, data, timeout)) {
+ 			struct timeval started;
+ 			int x, len = 0;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000177.html">[solid-pbx-svn] r182 - in trunk: cdr channels configs contrib doc include/asterisk res
+</A></li>
+	<LI>Next message: <A HREF="000179.html">[solid-pbx-svn] r184 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#178">[ date ]</a>
+              <a href="thread.html#178">[ thread ]</a>
+              <a href="subject.html#178">[ subject ]</a>
+              <a href="author.html#178">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,283 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r91 - in trunk: . channels utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r91%20-%20in%20trunk%3A%20.%20channels%20utils&In-Reply-To=%3C200605081518.k48FIrC1022081%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000087.html">
+   <LINK REL="Next"  HREF="000090.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r91 - in trunk: . channels utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r91%20-%20in%20trunk%3A%20.%20channels%20utils&In-Reply-To=%3C200605081518.k48FIrC1022081%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r91 - in trunk: . channels utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  8 17:18:53 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000087.html">[solid-pbx-svn] r90 - in trunk: apps channels
+</A></li>
+        <LI>Next message: <A HREF="000090.html">[solid-pbx-svn] r92 - in trunk: . channels configs include mxml
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#88">[ date ]</a>
+              <a href="thread.html#88">[ thread ]</a>
+              <a href="subject.html#88">[ subject ]</a>
+              <a href="author.html#88">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-08 17:18:48 +0200 (Mon, 08 May 2006)
+New Revision: 91
+
+Modified:
+   trunk/Makefile
+   trunk/channel.c
+   trunk/channels/chan_sip.c
+   trunk/utils/Makefile
+Log:
+Update to Asterisk SVN trunk r25608
+
+------------------------------------------------------------------------
+r25565 | kpfleming | 2006-05-08 16:34:32 +0200 (Mon, 08 May 2006) | 2 lines
+
+don't let make use implicit rules for bison/flex output files
+
+------------------------------------------------------------------------
+r25566 | kpfleming | 2006-05-08 16:43:49 +0200 (Mon, 08 May 2006) | 2 lines
+
+remove incorrect Makefile rule that was causing aelparse to be rebuilt unnecessarily
+
+------------------------------------------------------------------------
+r25567 | markster | 2006-05-08 16:45:18 +0200 (Mon, 08 May 2006) | 2 lines
+
+Minor cleanup on dtmf calling (bug #7076)
+
+------------------------------------------------------------------------
+r25568 | oej | 2006-05-08 16:45:28 +0200 (Mon, 08 May 2006) | 4 lines
+
+- Issue 7101 (mikma) - Don't crash with no From: header in pedantic mode
+- Cleanup of get_destination
+- Don't call uri_decode twice on the same string if you're in a rush ... :-)
+
+------------------------------------------------------------------------
+r25590 | russell | 2006-05-08 17:03:44 +0200 (Mon, 08 May 2006) | 3 lines
+
+add TOPDIR_CFLAGS to the CFLAGS before ASTCFLAGS to make sure that -Iinclude
+comes before -I/usr/local/include or something similar
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-08 14:18:41 UTC (rev 90)
++++ trunk/Makefile	2006-05-08 15:18:48 UTC (rev 91)
+@@ -410,7 +410,7 @@
+ endif
+ 
+ ifeq ($(MAKETOPLEVEL),$(MAKELEVEL))
+-  CFLAGS+=$(ASTCFLAGS) $(TOPDIR_CFLAGS)
++  CFLAGS+=$(TOPDIR_CFLAGS) $(ASTCFLAGS)
+ endif
+ 
+ # This is used when generating the doxygen documentation
+@@ -482,10 +482,10 @@
+ endif
+ 
+ ast_expr2.c:
+-	bison -d --name-prefix=ast_yy ast_expr2.y -o ast_expr2.c
++	bison -o $@ -d --name-prefix=ast_yy ast_expr2.y
+ 
+ ast_expr2f.c:
+-	flex --full ast_expr2.fl
++	flex -o $@ --full ast_expr2.fl
+ 
+ testexpr2: ast_expr2f.c ast_expr2.c ast_expr2.h
+ 	gcc -g -c -DSTANDALONE ast_expr2f.c
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-05-08 14:18:41 UTC (rev 90)
++++ trunk/channel.c	2006-05-08 15:18:48 UTC (rev 91)
+@@ -2186,8 +2186,7 @@
+ 
+ 	if (chan-&gt;tech-&gt;send_digit)
+ 		res = chan-&gt;tech-&gt;send_digit(chan, digit);
+-	if (!(chan-&gt;tech-&gt;send_digit &amp;&amp; chan-&gt;tech-&gt;send_digit_begin) ||
+-	    res) {
++	if (res) {
+ 		/*
+ 		 * Device does not support DTMF tones, lets fake
+ 		 * it by doing our own generation. (PM2002)
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-08 14:18:41 UTC (rev 90)
++++ trunk/channels/chan_sip.c	2006-05-08 15:18:48 UTC (rev 91)
+@@ -6802,49 +6802,60 @@
+ 	return 0;
+ }
+ 
+-/*! \brief Find out who the call is for */
++/*! \brief Find out who the call is for 
++	We use the INVITE uri to find out
++*/
+ static int get_destination(struct sip_pvt *p, struct sip_request *oreq)
+ {
+ 	char tmp[256] = &quot;&quot;, *uri, *a;
+-	char tmpf[256], *from;
++	char tmpf[256] = &quot;&quot;, *from;
+ 	struct sip_request *req;
+ 	char *colon;
+ 	
+ 	req = oreq;
+ 	if (!req)
+ 		req = &amp;p-&gt;initreq;
++
++	/* Find the request URI */
+ 	if (req-&gt;rlPart2)
+ 		ast_copy_string(tmp, req-&gt;rlPart2, sizeof(tmp));
+ 	uri = get_in_brackets(tmp);
+ 	
+-	ast_copy_string(tmpf, get_header(req, &quot;From&quot;), sizeof(tmpf));
+-	if (pedanticsipchecking) {
++	if (pedanticsipchecking)
+ 		ast_uri_decode(tmp);
+-		ast_uri_decode(tmpf);
+-	}
+ 
+-	from = get_in_brackets(tmpf);
+-	
+ 	if (strncmp(uri, &quot;sip:&quot;, 4)) {
+ 		ast_log(LOG_WARNING, &quot;Huh?  Not a SIP header (%s)?\n&quot;, uri);
+ 		return -1;
+ 	}
+ 	uri += 4;
++
++	/* Now find the From: caller ID and name */
++	ast_copy_string(tmpf, get_header(req, &quot;From&quot;), sizeof(tmpf));
++	if (!ast_strlen_zero(tmpf)) {
++		if (pedanticsipchecking)
++			ast_uri_decode(tmpf);
++		from = get_in_brackets(tmpf);
++	} else {
++		from = NULL;
++	}
++	
+ 	if (!ast_strlen_zero(from)) {
+ 		if (strncmp(from, &quot;sip:&quot;, 4)) {
+ 			ast_log(LOG_WARNING, &quot;Huh?  Not a SIP header (%s)?\n&quot;, from);
+ 			return -1;
+ 		}
+ 		from += 4;
+-	} else
+-		from = NULL;
+-
+-	if (pedanticsipchecking) {
+-		ast_uri_decode(uri);
+-		ast_uri_decode(from);
++		if ((a = strchr(from, ';')))
++			*a = '\0';
++		if ((a = strchr(from, '@'))) {
++			*a = '\0';
++			ast_string_field_set(p, fromdomain, a + 1);
++		} else
++			ast_string_field_set(p, fromdomain, from);
+ 	}
+ 
+-	/* Skip any options */
++	/* Skip any options and find the domain */
+ 	if ((a = strchr(uri, ';')))
+ 		*a = '\0';
+ 
+@@ -6879,19 +6890,12 @@
+ 			ast_string_field_set(p, context, domain_context);
+ 	}
+ 
+-	if (from) {
+-		if ((a = strchr(from, ';')))
+-			*a = '\0';
+-		if ((a = strchr(from, '@'))) {
+-			*a = '\0';
+-			ast_string_field_set(p, fromdomain, a + 1);
+-		} else
+-			ast_string_field_set(p, fromdomain, from);
+-	}
+ 	if (sip_debug_test_pvt(p))
+ 		ast_verbose(&quot;Looking for %s in %s (domain %s)\n&quot;, uri, p-&gt;context, p-&gt;domain);
+ 
+-	/* Return 0 if we have a matching extension */
++	/* Check the dialplan for the username part of the request URI,
++	   the domain will be stored in the SIPDOMAIN variable
++		Return 0 if we have a matching extension */
+ 	if (ast_exists_extension(NULL, p-&gt;context, uri, 1, from) ||
+ 		!strcmp(uri, ast_pickup_ext())) {
+ 		if (!oreq)
+@@ -6899,9 +6903,10 @@
+ 		return 0;
+ 	}
+ 
+-	/* Return 1 for overlap dialling support */
+-	if (ast_canmatch_extension(NULL, p-&gt;context, uri, 1, from) ||
+-	    !strncmp(uri, ast_pickup_ext(),strlen(uri))) {
++	/* Return 1 for pickup extension or overlap dialling support (if we support it) */
++	if((ast_test_flag(&amp;global_flags[1], SIP_PAGE2_ALLOWOVERLAP) &amp;&amp; 
++ 	    ast_canmatch_extension(NULL, p-&gt;context, uri, 1, from)) ||
++	    !strncmp(uri, ast_pickup_ext(), strlen(uri))) {
+ 		return 1;
+ 	}
+ 	
+
+Modified: trunk/utils/Makefile
+===================================================================
+--- trunk/utils/Makefile	2006-05-08 14:18:41 UTC (rev 90)
++++ trunk/utils/Makefile	2006-05-08 15:18:48 UTC (rev 91)
+@@ -57,8 +57,12 @@
+ stereorize: stereorize.o frame.o
+ 	$(CC) $(CFLAGS) -o stereorize stereorize.o frame.o -lm
+ 
+-.PHONY: ../ast_expr2.c ../ast_expr2f.c ../pbx/ael/aelflex.o ../pbx/ael/aelbison.o ../pbx/pbx_ael.o
++../ast_expr2.c:
++	bison -o $@ -d --name-prefix=ast_yy ../ast_expr2.y
+ 
++../ast_expr2f.c:
++	flex -o $@ --full ../ast_expr2.fl
++
+ ast_expr2.o: ../ast_expr2.c
+ 	gcc  $(CFLAGS) -c -o $@ $&lt;
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000087.html">[solid-pbx-svn] r90 - in trunk: apps channels
+</A></li>
+	<LI>Next message: <A HREF="000090.html">[solid-pbx-svn] r92 - in trunk: . channels configs include mxml
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#88">[ date ]</a>
+              <a href="thread.html#88">[ thread ]</a>
+              <a href="subject.html#88">[ subject ]</a>
+              <a href="author.html#88">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

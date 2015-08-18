@@ -1,0 +1,252 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r258 - in trunk: . include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r258%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200606181625.k5IGPJPf011952%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000252.html">
+   <LINK REL="Next"  HREF="000254.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r258 - in trunk: . include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r258%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200606181625.k5IGPJPf011952%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r258 - in trunk: . include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 18:25:19 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000252.html">[solid-pbx-svn] r257 - trunk/contrib/utils
+</A></li>
+        <LI>Next message: <A HREF="000254.html">[solid-pbx-svn] r259 - in trunk: configs pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#253">[ date ]</a>
+              <a href="thread.html#253">[ thread ]</a>
+              <a href="subject.html#253">[ subject ]</a>
+              <a href="author.html#253">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 18:25:18 +0200 (Sun, 18 Jun 2006)
+New Revision: 258
+
+Modified:
+   trunk/include/asterisk/rtp.h
+   trunk/rtp.c
+Log:
+Update to Asterisk SVN trunk r32263
+
+------------------------------------------------------------------------
+r32255 | oej | 2006-06-05 11:42:28 +0200 (Mon, 05 Jun 2006) | 2 lines
+
+Move definition of RTP structure to rtp.h (preparing for future changes)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/include/asterisk/rtp.h
+===================================================================
+--- trunk/include/asterisk/rtp.h	2006-06-18 15:37:34 UTC (rev 257)
++++ trunk/include/asterisk/rtp.h	2006-06-18 16:25:18 UTC (rev 258)
+@@ -48,6 +48,8 @@
+ /*! Maximum RTP-specific code */
+ #define AST_RTP_MAX             AST_RTP_CISCO_DTMF
+ 
++#define MAX_RTP_PT			256
++
+ struct ast_rtp_protocol {
+ 	/*! Get RTP struct, or NULL if unwilling to transfer */
+ 	struct ast_rtp *(* const get_rtp_info)(struct ast_channel *chan);
+@@ -60,16 +62,76 @@
+ 	AST_LIST_ENTRY(ast_rtp_protocol) list;
+ };
+ 
++typedef int (*ast_rtp_callback)(struct ast_rtp *rtp, struct ast_frame *f, void *data);
++
++
+ /*!
+  * \brief Structure representing a RTP session.
+  *
+  * RTP session is defined on page 9 of RFC 3550: &quot;An association among a set of participants communicating with RTP.  A participant may be involved in multiple RTP sessions at the same time [...]&quot;
+  *
+  */
+-struct ast_rtp;
+ 
+-typedef int (*ast_rtp_callback)(struct ast_rtp *rtp, struct ast_frame *f, void *data);
++/*! \brief The value of each payload format mapping: */
++struct rtpPayloadType {
++	int isAstFormat; 	/*!&lt; whether the following code is an AST_FORMAT */
++	int code;
++};
+ 
++/*! \brief RTP session description */
++struct ast_rtp {
++	int s;
++	char resp;
++	struct ast_frame f;
++	unsigned char rawdata[8192 + AST_FRIENDLY_OFFSET];
++	unsigned int ssrc;		/*!&lt; Synchronization source, RFC 3550, page 10. */
++	unsigned int themssrc;		/*!&lt; Their SSRC */
++	unsigned int rxssrc;
++	unsigned int lastts;
++	unsigned int lastdigitts;
++	unsigned int lastrxts;
++	unsigned int lastividtimestamp;
++	unsigned int lastovidtimestamp;
++	unsigned int lasteventseqn;
++	int lastrxseqno;                /*!&lt; Last received sequence number */
++	unsigned short seedrxseqno;     /*!&lt; What sequence number did they start with?*/
++	unsigned int seedrxts;          /*!&lt; What RTP timestamp did they start with? */
++	unsigned int rxcount;           /*!&lt; How many packets have we received? */
++	unsigned int rxoctetcount;      /*!&lt; How many octets have we received? should be rxcount *160*/
++	unsigned int txcount;           /*!&lt; How many packets have we sent? */
++	unsigned int txoctetcount;      /*!&lt; How many octets have we sent? (txcount*160)*/
++	unsigned int cycles;            /*!&lt; Shifted count of sequence number cycles */
++	double rxjitter;                /*!&lt; Interarrival jitter at the moment */
++	double rxtransit;               /*!&lt; Relative transit time for previous packet */
++	unsigned int lasteventendseqn;
++	int lasttxformat;
++	int lastrxformat;
++	int dtmfcount;
++	unsigned int dtmfduration;
++	int nat;
++	unsigned int flags;
++	struct sockaddr_in us;		/*!&lt; Socket representation of the local endpoint. */
++	struct sockaddr_in them;	/*!&lt; Socket representation of the remote endpoint. */
++	struct timeval rxcore;
++	struct timeval txcore;
++	double drxcore;                 /*!&lt; The double representation of the first received packet */
++	struct timeval lastrx;          /*!&lt; timeval when we last received a packet */
++	struct timeval dtmfmute;
++	struct ast_smoother *smoother;
++	int *ioid;
++	unsigned short seqno;		/*!&lt; Sequence number, RFC 3550, page 13. */
++	unsigned short rxseqno;
++	struct sched_context *sched;
++	struct io_context *io;
++	void *data;
++	ast_rtp_callback callback;
++	struct rtpPayloadType current_RTP_PT[MAX_RTP_PT];
++	int rtp_lookup_code_cache_isAstFormat; /*!&lt; a cache for the result of rtp_lookup_code(): */
++	int rtp_lookup_code_cache_code;
++	int rtp_lookup_code_cache_result;
++	struct ast_rtcp *rtcp;
++};
++
+ /*!
+  * \brief Initializate a RTP session.
+  *
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-06-18 15:37:34 UTC (rev 257)
++++ trunk/rtp.c	2006-06-18 16:25:18 UTC (rev 258)
+@@ -97,74 +97,12 @@
+ static int ast_rtcp_write_rr(void *data);
+ static unsigned int ast_rtcp_calc_interval(struct ast_rtp *rtp);
+ 
+-/*! \brief The value of each payload format mapping: */
+-struct rtpPayloadType {
+-	int isAstFormat; 	/*!&lt; whether the following code is an AST_FORMAT */
+-	int code;
+-};
+-
+-#define MAX_RTP_PT			256
+-
+ #define FLAG_3389_WARNING		(1 &lt;&lt; 0)
+ #define FLAG_NAT_ACTIVE			(3 &lt;&lt; 1)
+ #define FLAG_NAT_INACTIVE		(0 &lt;&lt; 1)
+ #define FLAG_NAT_INACTIVE_NOWARN	(1 &lt;&lt; 1)
+ #define FLAG_HAS_DTMF			(1 &lt;&lt; 3)
+ 
+-/*! \brief RTP session description */
+-struct ast_rtp {
+-	int s;
+-	char resp;
+-	struct ast_frame f;
+-	unsigned char rawdata[8192 + AST_FRIENDLY_OFFSET];
+-	unsigned int ssrc;		/*!&lt; Synchronization source, RFC 3550, page 10. */
+-	unsigned int themssrc;		/*!&lt; Their SSRC */
+-	unsigned int rxssrc;
+-	unsigned int lastts;
+-	unsigned int lastdigitts;
+-	unsigned int lastrxts;
+-	unsigned int lastividtimestamp;
+-	unsigned int lastovidtimestamp;
+-	unsigned int lasteventseqn;
+-	int lastrxseqno;                /*!&lt; Last received sequence number */
+-	unsigned short seedrxseqno;     /*!&lt; What sequence number did they start with?*/
+-	unsigned int seedrxts;          /*!&lt; What RTP timestamp did they start with? */
+-	unsigned int rxcount;           /*!&lt; How many packets have we received? */
+-	unsigned int rxoctetcount;      /*!&lt; How many octets have we received? should be rxcount *160*/
+-	unsigned int txcount;           /*!&lt; How many packets have we sent? */
+-	unsigned int txoctetcount;      /*!&lt; How many octets have we sent? (txcount*160)*/
+-	unsigned int cycles;            /*!&lt; Shifted count of sequence number cycles */
+-	double rxjitter;                /*!&lt; Interarrival jitter at the moment */
+-	double rxtransit;               /*!&lt; Relative transit time for previous packet */
+-	unsigned int lasteventendseqn;
+-	int lasttxformat;
+-	int lastrxformat;
+-	int dtmfcount;
+-	unsigned int dtmfduration;
+-	int nat;
+-	unsigned int flags;
+-	struct sockaddr_in us;		/*!&lt; Socket representation of the local endpoint. */
+-	struct sockaddr_in them;	/*!&lt; Socket representation of the remote endpoint. */
+-	struct timeval rxcore;
+-	struct timeval txcore;
+-	double drxcore;                 /*!&lt; The double representation of the first received packet */
+-	struct timeval lastrx;          /*!&lt; timeval when we last received a packet */
+-	struct timeval dtmfmute;
+-	struct ast_smoother *smoother;
+-	int *ioid;
+-	unsigned short seqno;		/*!&lt; Sequence number, RFC 3550, page 13. */
+-	unsigned short rxseqno;
+-	struct sched_context *sched;
+-	struct io_context *io;
+-	void *data;
+-	ast_rtp_callback callback;
+-	struct rtpPayloadType current_RTP_PT[MAX_RTP_PT];
+-	int rtp_lookup_code_cache_isAstFormat; /*!&lt; a cache for the result of rtp_lookup_code(): */
+-	int rtp_lookup_code_cache_code;
+-	int rtp_lookup_code_cache_result;
+-	struct ast_rtcp *rtcp;
+-};
+-
+ /*!
+  * \brief Structure defining an RTCP session.
+  * 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000252.html">[solid-pbx-svn] r257 - trunk/contrib/utils
+</A></li>
+	<LI>Next message: <A HREF="000254.html">[solid-pbx-svn] r259 - in trunk: configs pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#253">[ date ]</a>
+              <a href="thread.html#253">[ thread ]</a>
+              <a href="subject.html#253">[ subject ]</a>
+              <a href="author.html#253">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,355 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r73 - trunk/channels/h323
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r73%20-%20trunk/channels/h323&In-Reply-To=%3C200605061448.k46Em6Q2022894%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000069.html">
+   <LINK REL="Next"  HREF="000071.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r73 - trunk/channels/h323</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r73%20-%20trunk/channels/h323&In-Reply-To=%3C200605061448.k46Em6Q2022894%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r73 - trunk/channels/h323">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat May  6 16:48:06 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000069.html">[solid-pbx-svn] r72 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000071.html">[solid-pbx-svn] r74 - trunk/build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#70">[ date ]</a>
+              <a href="thread.html#70">[ thread ]</a>
+              <a href="subject.html#70">[ subject ]</a>
+              <a href="author.html#70">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-06 16:48:04 +0200 (Sat, 06 May 2006)
+New Revision: 73
+
+Modified:
+   trunk/channels/h323/ast_h323.cpp
+   trunk/channels/h323/ast_h323.h
+Log:
+Re-introduce GSM codec capability support for chan_h323 (Asterisk bug #6663, PCadach, reviewed by casper
+
+Modified: trunk/channels/h323/ast_h323.cpp
+===================================================================
+--- trunk/channels/h323/ast_h323.cpp	2006-05-06 14:45:40 UTC (rev 72)
++++ trunk/channels/h323/ast_h323.cpp	2006-05-06 14:48:04 UTC (rev 73)
+@@ -175,7 +175,11 @@
+ H323_REGISTER_CAPABILITY(H323_G7231Capability, OPAL_G7231);
+ H323_REGISTER_CAPABILITY(AST_G729Capability,  OPAL_G729);
+ H323_REGISTER_CAPABILITY(AST_G729ACapability, OPAL_G729A);
++H323_REGISTER_CAPABILITY(AST_GSM0610Capability, OPAL_GSM0610);
+ 
++/*
++ * Capability: G.723.1
++ */
+ H323_G7231Capability::H323_G7231Capability(BOOL annexA_)
+   : H323AudioCapability(7, 4)
+ {
+@@ -240,6 +244,9 @@
+   	return NULL;
+ }
+ 
++/*
++ * Capability: G.729
++ */
+ AST_G729Capability::AST_G729Capability()
+   : H323AudioCapability(24, 2)
+ {
+@@ -265,6 +272,9 @@
+   	return NULL;
+ }
+ 
++/*
++ * Capability: G.729A
++ */
+ AST_G729ACapability::AST_G729ACapability()
+   : H323AudioCapability(24, 6)
+ {
+@@ -290,6 +300,61 @@
+   	return NULL;
+ }
+ 
++/*
++ * Capability: GSM full rate
++ */
++AST_GSM0610Capability::AST_GSM0610Capability(int comfortNoise_, int scrambled_)
++  : H323AudioCapability(24, 2)
++{
++	comfortNoise = comfortNoise_;
++	scrambled = scrambled_;
++}
++
++PObject * AST_GSM0610Capability::Clone() const
++{
++  	return new AST_GSM0610Capability(*this);
++}
++
++unsigned AST_GSM0610Capability::GetSubType() const
++{
++  	return H245_AudioCapability::e_gsmFullRate;
++}
++
++BOOL AST_GSM0610Capability::OnSendingPDU(H245_AudioCapability &amp; cap,
++                                          unsigned packetSize) const
++{
++	cap.SetTag(H245_AudioCapability::e_gsmFullRate);
++	H245_GSMAudioCapability &amp; gsm = cap;
++	gsm.m_audioUnitSize = packetSize;
++	gsm.m_comfortNoise = comfortNoise;
++	gsm.m_scrambled = scrambled;
++	return TRUE;
++}
++
++BOOL AST_GSM0610Capability::OnReceivedPDU(const H245_AudioCapability &amp; cap,
++                                           unsigned &amp; packetSize)
++{
++	if (cap.GetTag() != H245_AudioCapability::e_gsmFullRate)
++		return FALSE;
++	const H245_GSMAudioCapability &amp; gsm = cap;
++	packetSize = gsm.m_audioUnitSize;
++	comfortNoise = gsm.m_comfortNoise;
++	scrambled = gsm.m_scrambled;
++
++	return TRUE;
++}
++
++PString AST_GSM0610Capability::GetFormatName() const
++{
++  	return OPAL_GSM0610;
++}
++
++H323Codec * AST_GSM0610Capability::CreateCodec(H323Codec::Direction direction) const
++{
++  	return NULL;
++}
++
++
+ /** MyH323EndPoint 
+   */
+ MyH323EndPoint::MyH323EndPoint()
+@@ -981,7 +1046,7 @@
+ void MyH323Connection::SetCapabilities(int cap, int dtmfMode)
+ {
+ 	int g711Frames = 20;
+-//	int gsmFrames  = 4;
++	int gsmFrames  = 4;
+ 	PINDEX lastcap = -1; /* last common capability index */
+ 
+ #if 0
+@@ -1008,13 +1073,13 @@
+ 		H323_G7231Capability *g7231Cap;
+ 		lastcap = localCapabilities.SetCapability(0, 0, g7231Cap = new H323_G7231Capability);
+ 	} 
+-#if 0
++
+ 	if (cap &amp; AST_FORMAT_GSM) {
+-		H323_GSM0610Capability *gsmCap;
+-	    	lastcap = localCapabilities.SetCapability(0, 0, gsmCap = new H323_GSM0610Capability);
++		AST_GSM0610Capability *gsmCap;
++	    	lastcap = localCapabilities.SetCapability(0, 0, gsmCap = new AST_GSM0610Capability);
+ 	    	gsmCap-&gt;SetTxFramesInPacket(gsmFrames);
+ 	} 
+-#endif
++
+ 	if (cap &amp; AST_FORMAT_ULAW) {
+ 		H323_G711Capability *g711uCap;
+ 	    	lastcap = localCapabilities.SetCapability(0, 0, g711uCap = new H323_G711Capability(H323_G711Capability::muLaw));
+
+Modified: trunk/channels/h323/ast_h323.h
+===================================================================
+--- trunk/channels/h323/ast_h323.h	2006-05-06 14:45:40 UTC (rev 72)
++++ trunk/channels/h323/ast_h323.h	2006-05-06 14:48:04 UTC (rev 73)
+@@ -29,6 +29,7 @@
+ #ifndef AST_H323_H
+ #define AST_H323_H
+ 
++#if 0
+ /**  These need to be redefined here because the C++
+ 	 side of this driver is blind to the asterisk headers */	
+ /*! G.723.1 compression */
+@@ -53,76 +54,109 @@
+ #define AST_FORMAT_SPEEX	(1 &lt;&lt; 9)
+ /*! ILBC Free Codec */
+ #define AST_FORMAT_ILBC         (1 &lt;&lt; 10)
++#endif
+ 
+ /**This class describes the G.723.1 codec capability.
+  */
+ class H323_G7231Capability : public H323AudioCapability
+ {
+-    PCLASSINFO(H323_G7231Capability, H323AudioCapability);
++	PCLASSINFO(H323_G7231Capability, H323AudioCapability);
+   public:
+-    	H323_G7231Capability(BOOL annexA = TRUE);
+-    	Comparison Compare(const PObject &amp; obj) const;
+-   	PObject * Clone() const;
+-  	virtual H323Codec * CreateCodec(H323Codec::Direction direction) const;
++	H323_G7231Capability(BOOL annexA = TRUE);
++	Comparison Compare(const PObject &amp; obj) const;
++	PObject * Clone() const;
++	virtual H323Codec * CreateCodec(H323Codec::Direction direction) const;
+ 	unsigned GetSubType() const;
+ 	PString GetFormatName() const;
+-    	BOOL OnSendingPDU(H245_AudioCapability &amp; pdu, unsigned packetSize) const;
++	BOOL OnSendingPDU(H245_AudioCapability &amp; pdu, unsigned packetSize) const;
+ 	BOOL OnReceivedPDU(const H245_AudioCapability &amp; pdu, unsigned &amp; packetSize);
+   protected:
+-    	BOOL annexA;
++	BOOL annexA;
+ };
+ 
+ /**This class describes the (fake) G729 codec capability.
+  */
+ class AST_G729Capability : public H323AudioCapability
+ {
+-  PCLASSINFO(AST_G729Capability, H323AudioCapability);
++	PCLASSINFO(AST_G729Capability, H323AudioCapability);
+ 
+   public:
+-    AST_G729Capability();
+-    /* Create a copy of the object. */
+-    virtual PObject * Clone() const;
++	AST_G729Capability();
++	/* Create a copy of the object. */
++	virtual PObject * Clone() const;
+ 
+-    /* Create the codec instance, allocating resources as required. */
+-    virtual H323Codec * CreateCodec(H323Codec::Direction direction) const;
++	/* Create the codec instance, allocating resources as required. */
++	virtual H323Codec * CreateCodec(H323Codec::Direction direction) const;
+ 
+-    /* Get the sub-type of the capability. This is a code dependent on the
+-       main type of the capability.
++	/* Get the sub-type of the capability. This is a code dependent on the
++	   main type of the capability.
+ 
+-       This returns one of the four possible combinations of mode and speed
+-       using the enum values of the protocol ASN H245_AudioCapability class. */
+-    virtual unsigned GetSubType() const;
++	   This returns one of the four possible combinations of mode and speed
++	   using the enum values of the protocol ASN H245_AudioCapability class. */
++	virtual unsigned GetSubType() const;
+ 
+-    /* Get the name of the media data format this class represents. */
+-    virtual PString GetFormatName() const;
+-
++	/* Get the name of the media data format this class represents. */
++	virtual PString GetFormatName() const;
+ };
+ 
+ /* This class describes the VoiceAge G729A codec capability. */
+ class AST_G729ACapability : public H323AudioCapability
+ {
+-  PCLASSINFO(AST_G729ACapability, H323AudioCapability);
++	PCLASSINFO(AST_G729ACapability, H323AudioCapability);
+ 
+   public:
+-    /* Create a new G.729A capability. */
+-    AST_G729ACapability();
++	/* Create a new G.729A capability. */
++	AST_G729ACapability();
+ 
+-    /* Create a copy of the object. */
+-    virtual PObject * Clone() const;
+-    /* Create the codec instance, allocating resources as required. */
+-    virtual H323Codec * CreateCodec(H323Codec::Direction direction) const;
++	/* Create a copy of the object. */
++	virtual PObject * Clone() const;
++	/* Create the codec instance, allocating resources as required. */
++	virtual H323Codec * CreateCodec(H323Codec::Direction direction) const;
+ 
+-    /* Get the sub-type of the capability. This is a code dependent on the
+-       main type of the capability.
++	/* Get the sub-type of the capability. This is a code dependent on the
++	   main type of the capability.
+ 
+-       This returns one of the four possible combinations of mode and speed
+-       using the enum values of the protocol ASN H245_AudioCapability class. */
+-    virtual unsigned GetSubType() const;
++	   This returns one of the four possible combinations of mode and speed
++	   using the enum values of the protocol ASN H245_AudioCapability class. */
++	virtual unsigned GetSubType() const;
+ 
+-    /* Get the name of the media data format this class represents. */
+-    virtual PString GetFormatName() const;
++	/* Get the name of the media data format this class represents. */
++	virtual PString GetFormatName() const;
+ };
+ 
++/* This class describes the GSM-06.10 codec capability. */
++class AST_GSM0610Capability : public H323AudioCapability
++{
++	PCLASSINFO(AST_GSM0610Capability, H323AudioCapability);
++
++  public:
++	/* Create a new GSM capability. */
++	AST_GSM0610Capability(int comfortNoise = 0, int scrambled = 0);
++
++	/* Create a copy of the object. */
++	virtual PObject * Clone() const;
++
++	/* Create the codec instance, allocating resources as required. */
++	virtual H323Codec * CreateCodec(H323Codec::Direction direction) const;
++
++	/* Get the sub-type of the capability. This is a code dependent on the
++	   main type of the capability.
++
++	   This returns one of the four possible combinations of mode and speed
++	   using the enum values of the protocol ASN H245_AudioCapability class. */
++	virtual unsigned GetSubType() const;
++
++	/* Get the name of the media data format this class represents. */
++	virtual PString GetFormatName() const;
++
++    	BOOL OnSendingPDU(H245_AudioCapability &amp; pdu, unsigned packetSize) const;
++	BOOL OnReceivedPDU(const H245_AudioCapability &amp; pdu, unsigned &amp; packetSize);
++
++  protected:
++	int comfortNoise;
++	int scrambled;
++};
++
+ class MyH323EndPoint : public H323EndPoint {
+ 
+ 	PCLASSINFO(MyH323EndPoint, H323EndPoint);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000069.html">[solid-pbx-svn] r72 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000071.html">[solid-pbx-svn] r74 - trunk/build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#70">[ date ]</a>
+              <a href="thread.html#70">[ thread ]</a>
+              <a href="subject.html#70">[ subject ]</a>
+              <a href="author.html#70">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

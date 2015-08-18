@@ -1,0 +1,322 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r55 - in trunk: . apps doc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r55%20-%20in%20trunk%3A%20.%20apps%20doc&In-Reply-To=%3C200605042224.k44MOwow005748%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000051.html">
+   <LINK REL="Next"  HREF="000053.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r55 - in trunk: . apps doc</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r55%20-%20in%20trunk%3A%20.%20apps%20doc&In-Reply-To=%3C200605042224.k44MOwow005748%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r55 - in trunk: . apps doc">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May  5 00:24:58 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000051.html">[solid-pbx-svn] r54 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000053.html">[solid-pbx-svn] r56 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#52">[ date ]</a>
+              <a href="thread.html#52">[ thread ]</a>
+              <a href="subject.html#52">[ subject ]</a>
+              <a href="author.html#52">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-05 00:24:54 +0200 (Fri, 05 May 2006)
+New Revision: 55
+
+Modified:
+   trunk/app.c
+   trunk/apps/app_senddtmf.c
+   trunk/doc/manager.txt
+Log:
+Update to Asterisk SVN trunk r24804
+
+------------------------------------------------------------------------
+r24775 | bweschke | 2006-05-04 23:26:04 +0200 (Thu, 04 May 2006) | 3 lines
+
+ #6991. Take 3. (casper)
+
+
+------------------------------------------------------------------------
+r24776 | bweschke | 2006-05-04 23:33:45 +0200 (Thu, 04 May 2006) | 3 lines
+
+ New manager action SendDTMF #6682 (squinky86)
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/app.c
+===================================================================
+--- trunk/app.c	2006-05-04 21:18:08 UTC (rev 54)
++++ trunk/app.c	2006-05-04 22:24:54 UTC (rev 55)
+@@ -540,14 +540,14 @@
+ 	int d = 0;
+ 	char *fmts;
+ 	char comment[256];
+-	int x, fmtcnt=1, res=-1,outmsg=0;
++	int x, fmtcnt = 1, res = -1, outmsg = 0;
+ 	struct ast_filestream *others[MAX_OTHER_FORMATS];
+ 	char *sfmt[MAX_OTHER_FORMATS];
+-	char *stringp=NULL;
++	char *stringp = NULL;
+ 	time_t start, end;
+-	struct ast_dsp *sildet=NULL;   	/* silence detector dsp */
++	struct ast_dsp *sildet = NULL;   /* silence detector dsp */
+ 	int totalsilence = 0;
+-	int rfmt=0;
++	int rfmt = 0;
+ 	struct ast_silence_generator *silgen = NULL;
+ 	char prependfile[80];
+ 
+@@ -564,7 +564,7 @@
+ 	}
+ 
+ 	ast_log(LOG_DEBUG,&quot;play_and_record: %s, %s, '%s'\n&quot;, playfile ? playfile : &quot;&lt;None&gt;&quot;, recordfile, fmt);
+-	snprintf(comment,sizeof(comment),&quot;Playing %s, Recording to: %s on %s\n&quot;, playfile ? playfile : &quot;&lt;None&gt;&quot;, recordfile, chan-&gt;name);
++	snprintf(comment, sizeof(comment), &quot;Playing %s, Recording to: %s on %s\n&quot;, playfile ? playfile : &quot;&lt;None&gt;&quot;, recordfile, chan-&gt;name);
+ 
+ 	if (playfile || beep) {
+ 		if (!beep)
+@@ -582,7 +582,7 @@
+ 
+ 	fmts = ast_strdupa(fmt);
+ 
+-	stringp=fmts;
++	stringp = fmts;
+ 	strsep(&amp;stringp, &quot;|&quot;);
+ 	ast_log(LOG_DEBUG,&quot;Recording Formats: sfmts=%s\n&quot;, fmts);
+ 	sfmt[0] = ast_strdupa(fmts);
+@@ -596,8 +596,8 @@
+ 	}
+ 
+ 	time(&amp;start);
+-	end=start;  /* pre-initialize end to be same as start in case we never get into loop */
+-	for (x=0;x&lt;fmtcnt;x++) {
++	end = start;  /* pre-initialize end to be same as start in case we never get into loop */
++	for (x = 0; x &lt; fmtcnt; x++) {
+ 		others[x] = ast_writefile(prepend ? prependfile : recordfile, sfmt[x], comment, O_TRUNC, 0, 0700);
+ 		if (option_verbose &gt; 2)
+ 			ast_verbose(VERBOSE_PREFIX_3 &quot;x=%d, open writing:  %s format: %s, %p\n&quot;, x, prepend ? prependfile : recordfile, sfmt[x], others[x]);
+@@ -638,7 +638,7 @@
+ 		/* Loop forever, writing the packets we read to the writer(s), until
+ 		   we read a digit or get a hangup */
+ 		struct ast_frame *f;
+-		for(;;) {
++		for (;;) {
+ 		 	res = ast_waitfor(chan, 2000);
+ 			if (!res) {
+ 				ast_log(LOG_DEBUG, &quot;One waitfor failed, trying another\n&quot;);
+@@ -659,7 +659,7 @@
+ 				break;
+ 			if (f-&gt;frametype == AST_FRAME_VOICE) {
+ 				/* write each format */
+-				for (x=0;x&lt;fmtcnt;x++) {
++				for (x = 0; x &lt; fmtcnt; x++) {
+ 					if (prepend &amp;&amp; !others[x])
+ 						break;
+ 					res = ast_writestream(others[x], f);
+@@ -679,7 +679,7 @@
+ 						if (option_verbose &gt; 2)
+ 							ast_verbose( VERBOSE_PREFIX_3 &quot;Recording automatically stopped after a silence of %d seconds\n&quot;, totalsilence/1000);
+ 						res = 'S';
+-						outmsg=2;
++						outmsg = 2;
+ 						break;
+ 					}
+ 				}
+@@ -702,7 +702,7 @@
+ 				}
+ 				if (f-&gt;subclass == '#') {
+ 					if (option_verbose &gt; 2)
+-						ast_verbose( VERBOSE_PREFIX_3 &quot;User ended message by pressing %c\n&quot;, f-&gt;subclass);
++						ast_verbose(VERBOSE_PREFIX_3 &quot;User ended message by pressing %c\n&quot;, f-&gt;subclass);
+ 					res = '#';
+ 					outmsg = 2;
+ 					break;
+@@ -720,7 +720,7 @@
+ 				time(&amp;end);
+ 				if (maxtime &lt; (end - start)) {
+ 					if (option_verbose &gt; 2)
+-						ast_verbose( VERBOSE_PREFIX_3 &quot;Took too long, cutting it short...\n&quot;);
++						ast_verbose(VERBOSE_PREFIX_3 &quot;Took too long, cutting it short...\n&quot;);
+ 					res = 't';
+ 					outmsg = 2;
+ 					break;
+@@ -730,9 +730,9 @@
+ 		}
+ 		if (!f) {
+ 			if (option_verbose &gt; 2)
+-				ast_verbose( VERBOSE_PREFIX_3 &quot;User hung up\n&quot;);
++				ast_verbose(VERBOSE_PREFIX_3 &quot;User hung up\n&quot;);
+ 			res = -1;
+-			outmsg=1;
++			outmsg = 1;
+ 		} else {
+ 			ast_frfree(f);
+ 		}
+@@ -740,13 +740,15 @@
+ 	} else {
+ 		ast_log(LOG_WARNING, &quot;Error creating writestream '%s', format '%s'\n&quot;, recordfile, sfmt[x]);
+ 	}
++
+ 	if (!prepend) {
+ 		if (silgen)
+ 			ast_channel_stop_silence_generator(chan, silgen);
+ 	}
+ 	*duration = end - start;
++
+ 	if (!prepend) {
+-		for (x=0;x&lt;fmtcnt;x++) {
++		for (x = 0; x &lt; fmtcnt; x++) {
+ 			if (!others[x])
+ 				break;
+ 			if (res &gt; 0)
+@@ -755,10 +757,12 @@
+ 			ast_closestream(others[x]);
+ 		}
+ 	}
++
+ 	if (prepend &amp;&amp; outmsg) {
+ 		struct ast_filestream *realfiles[MAX_OTHER_FORMATS];
+ 		struct ast_frame *fr;
+-		for (x=0;x&lt;fmtcnt;x++) {
++
++		for (x = 0; x &lt; fmtcnt; x++) {
+ 			snprintf(comment, sizeof(comment), &quot;Opening the real file %s.%s\n&quot;, recordfile, sfmt[x]);
+ 			realfiles[x] = ast_readfile(recordfile, sfmt[x], comment, O_RDONLY, 0, 0);
+ 			if (!others[x] || !realfiles[x])
+@@ -767,7 +771,7 @@
+ 			ast_truncstream(others[x]);
+ 			/* add the original file too */
+ 			while ((fr = ast_readframe(realfiles[x]))) {
+-				ast_writestream(others[x],fr);
++				ast_writestream(others[x], fr);
+ 				ast_frfree(fr);
+ 			}
+ 			ast_closestream(others[x]);
+@@ -783,7 +787,7 @@
+ 	}
+ 	if (outmsg == 2) {
+ 		ast_stream_and_wait(chan, &quot;auth-thankyou&quot;, chan-&gt;language, &quot;&quot;);
+-	}	
++	}
+ 	if (sildet)
+ 		ast_dsp_free(sildet);
+ 	return res;
+
+Modified: trunk/apps/app_senddtmf.c
+===================================================================
+--- trunk/apps/app_senddtmf.c	2006-05-04 21:18:08 UTC (rev 54)
++++ trunk/apps/app_senddtmf.c	2006-05-04 22:24:54 UTC (rev 55)
+@@ -43,6 +43,7 @@
+ #include &quot;asterisk/options.h&quot;
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/app.h&quot;
++#include &quot;asterisk/manager.h&quot;
+ 
+ static char *tdesc = &quot;Send DTMF digits Application&quot;;
+ 
+@@ -93,11 +94,39 @@
+ 	return res;
+ }
+ 
++static char mandescr_playdtmf[] =
++&quot;Description: Plays a dtmf digit on the specified channel.\n&quot;
++&quot;Variables: (all are required)\n&quot;
++&quot;	Channel: Channel name to send digit to\n&quot;
++&quot;	Digit: The dtmf digit to play\n&quot;;
++
++static int manager_play_dtmf(struct mansession *s, struct message *m)
++{
++	char *channel, *digit;
++
++	channel = astman_get_header(m, &quot;Channel&quot;);
++	digit = astman_get_header(m, &quot;Digit&quot;);
++	struct ast_channel *chan = ast_get_channel_by_name_locked(channel);
++	if (chan == NULL) {
++		astman_send_error(s, m, &quot;No such channel&quot;);
++		return 0;
++	}
++	if (digit == NULL) {
++		astman_send_error(s, m, &quot;No digit specified&quot;);
++		return 0;
++	}
++	ast_senddigit(chan, *digit);
++	ast_mutex_unlock(&amp;chan-&gt;lock);
++	astman_send_ack(s, m, &quot;DTMF successfully queued&quot;);
++	return 0;
++}
++
+ static int unload_module(void *mod)
+ {
+ 	int res;
+ 
+ 	res = ast_unregister_application(app);
++	res |= ast_manager_unregister(&quot;PlayDTMF&quot;);
+ 
+ 	STANDARD_HANGUP_LOCALUSERS;
+ 
+@@ -106,6 +135,7 @@
+ 
+ static int load_module(void *mod)
+ {
++	ast_manager_register2( &quot;PlayDTMF&quot;, EVENT_FLAG_CALL, manager_play_dtmf, &quot;Play DTMF signal on a specific channel.&quot;, mandescr_playdtmf );
+ 	return ast_register_application(app, senddtmf_exec, synopsis, descrip);
+ }
+ 
+
+Modified: trunk/doc/manager.txt
+===================================================================
+--- trunk/doc/manager.txt	2006-05-04 21:18:08 UTC (rev 54)
++++ trunk/doc/manager.txt	2006-05-04 22:24:54 UTC (rev 55)
+@@ -101,6 +101,9 @@
+ Command: Ping
+ Parameters: None
+ 
++Command: PlayDTMF
++Parameters: Channel, Digit
++
+ Command: Redirect
+ Parameters: Channel, ExtraChannel, Exten, Context, Priority
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000051.html">[solid-pbx-svn] r54 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000053.html">[solid-pbx-svn] r56 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#52">[ date ]</a>
+              <a href="thread.html#52">[ thread ]</a>
+              <a href="subject.html#52">[ subject ]</a>
+              <a href="author.html#52">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

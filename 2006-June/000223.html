@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r228 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r228%20-%20trunk/apps&In-Reply-To=%3C200606180056.k5I0uZQP009531%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000222.html">
+   <LINK REL="Next"  HREF="000224.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r228 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r228%20-%20trunk/apps&In-Reply-To=%3C200606180056.k5I0uZQP009531%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r228 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 02:56:35 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000222.html">[solid-pbx-svn] r227 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000224.html">[solid-pbx-svn] r229 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#223">[ date ]</a>
+              <a href="thread.html#223">[ thread ]</a>
+              <a href="subject.html#223">[ subject ]</a>
+              <a href="author.html#223">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 02:56:29 +0200 (Sun, 18 Jun 2006)
+New Revision: 228
+
+Modified:
+   trunk/apps/app_morsecode.c
+Log:
+Update to Asterisk SVN trunk r31693
+
+------------------------------------------------------------------------
+r31690 | tilghman | 2006-06-03 04:17:00 +0200 (Sat, 03 Jun 2006) | 2 lines
+
+Ooops, those characters weren't really periods (credit to John Olson)
+
+------------------------------------------------------------------------
+r31691 | tilghman | 2006-06-03 04:18:59 +0200 (Sat, 03 Jun 2006) | 2 lines
+
+Two missed cases
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_morsecode.c
+===================================================================
+--- trunk/apps/app_morsecode.c	2006-06-18 00:53:18 UTC (rev 227)
++++ trunk/apps/app_morsecode.c	2006-06-18 00:56:29 UTC (rev 228)
+@@ -74,10 +74,10 @@
+ 	&quot;--..--&quot;, /* 44 - , */
+ 	&quot;-....-&quot;, /* 45 - - */
+ 	&quot;.-.-.-&quot;, /* 46 - . */
+-	&quot;-&#183;&#183;-&#183;&quot;,  /* 47 - / */
++	&quot;-..-.&quot;,  /* 47 - / */
+ 	&quot;-----&quot;, &quot;.----&quot;, &quot;..---&quot;, &quot;...--&quot;, &quot;....-&quot;, &quot;.....&quot;, &quot;-....&quot;, &quot;--...&quot;, &quot;---..&quot;, &quot;----.&quot;, /* 48-57 - 0-9 */
+ 	&quot;---...&quot;, /* 58 - : */
+-	&quot;-&#183;-&#183;-&#183;&quot;, /* 59 - ; */
++	&quot;-.-.-.&quot;, /* 59 - ; */
+ 	&quot;&quot;,       /* 60 - &lt; */
+ 	&quot;-...-&quot;,  /* 61 - = */
+ 	&quot;&quot;,       /* 62 - &gt; */
+@@ -86,18 +86,18 @@
+ 	&quot;.-&quot;, &quot;-...&quot;, &quot;-.-.&quot;, &quot;-..&quot;, &quot;.&quot;, &quot;..-.&quot;, &quot;--.&quot;, &quot;....&quot;, &quot;..&quot;, &quot;.---&quot;, &quot;-.-&quot;, &quot;.-..&quot;, &quot;--&quot;,
+ 	&quot;-.&quot;, &quot;---&quot;, &quot;.--.&quot;, &quot;--.-&quot;, &quot;.-.&quot;, &quot;...&quot;, &quot;-&quot;, &quot;..-&quot;, &quot;...-&quot;, &quot;.--&quot;, &quot;-..-&quot;, &quot;-.--&quot;, &quot;--..&quot;,
+ 	&quot;-.--.-&quot;, /* 91 - [ (really '(') */
+-	&quot;-&#183;&#183;-&#183;&quot;,  /* 92 - \ (really '/') */
++	&quot;-..-.&quot;,  /* 92 - \ (really '/') */
+ 	&quot;-.--.-&quot;, /* 93 - ] (really ')') */
+ 	&quot;&quot;,       /* 94 - ^ */
+-	&quot;&#183;&#183;--&#183;-&quot;, /* 95 - _ */
++	&quot;..--.-&quot;, /* 95 - _ */
+ 	&quot;.----.&quot;, /* 96 - ` */
+ 	&quot;.-&quot;, &quot;-...&quot;, &quot;-.-.&quot;, &quot;-..&quot;, &quot;.&quot;, &quot;..-.&quot;, &quot;--.&quot;, &quot;....&quot;, &quot;..&quot;, &quot;.---&quot;, &quot;-.-&quot;, &quot;.-..&quot;, &quot;--&quot;,
+ 	&quot;-.&quot;, &quot;---&quot;, &quot;.--.&quot;, &quot;--.-&quot;, &quot;.-.&quot;, &quot;...&quot;, &quot;-&quot;, &quot;..-&quot;, &quot;...-&quot;, &quot;.--&quot;, &quot;-..-&quot;, &quot;-.--&quot;, &quot;--..&quot;,
+ 	&quot;-.--.-&quot;, /* 123 - { (really '(') */
+ 	&quot;&quot;,       /* 124 - | */
+ 	&quot;-.--.-&quot;, /* 125 - } (really ')') */
+-	&quot;-&#183;&#183;-&#183;&quot;,  /* 126 - ~ (really bar) */
+-	&quot;&#183; &#183; &#183;&quot;,  /* 127 - &lt;del&gt; (error) */
++	&quot;-..-.&quot;,  /* 126 - ~ (really bar) */
++	&quot;. . .&quot;,  /* 127 - &lt;del&gt; (error) */
+ };
+ 
+ static void playtone(struct ast_channel *chan, int tone, int len)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000222.html">[solid-pbx-svn] r227 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000224.html">[solid-pbx-svn] r229 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#223">[ date ]</a>
+              <a href="thread.html#223">[ thread ]</a>
+              <a href="subject.html#223">[ subject ]</a>
+              <a href="author.html#223">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

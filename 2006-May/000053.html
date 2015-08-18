@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r56 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r56%20-%20trunk/apps&In-Reply-To=%3C200605050118.k451Irqr032744%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000052.html">
+   <LINK REL="Next"  HREF="000054.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r56 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r56%20-%20trunk/apps&In-Reply-To=%3C200605050118.k451Irqr032744%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r56 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May  5 03:18:53 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000052.html">[solid-pbx-svn] r55 - in trunk: . apps doc
+</A></li>
+        <LI>Next message: <A HREF="000054.html">[solid-pbx-svn] r57 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#53">[ date ]</a>
+              <a href="thread.html#53">[ thread ]</a>
+              <a href="subject.html#53">[ subject ]</a>
+              <a href="author.html#53">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-05 03:18:42 +0200 (Fri, 05 May 2006)
+New Revision: 56
+
+Modified:
+   trunk/apps/app_senddtmf.c
+Log:
+Update to Asterisk SVN trunk r24833
+
+------------------------------------------------------------------------
+r24805 | russell | 2006-05-05 02:43:28 +0200 (Fri, 05 May 2006) | 4 lines
+
+- formatting fixes
+- don't declare a variable in the middle of a block
+- keep track of the result of registration functions in load_module()
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_senddtmf.c
+===================================================================
+--- trunk/apps/app_senddtmf.c	2006-05-04 22:24:54 UTC (rev 55)
++++ trunk/apps/app_senddtmf.c	2006-05-05 01:18:42 UTC (rev 56)
+@@ -84,7 +84,7 @@
+ 		timeout = atoi(to);
+ 	}
+ 		
+-	if(timeout &lt;= 0)
++	if (timeout &lt;= 0)
+ 		timeout = 250;
+ 
+ 	res = ast_dtmf_stream(chan,NULL,digits,timeout);
+@@ -102,22 +102,26 @@
+ 
+ static int manager_play_dtmf(struct mansession *s, struct message *m)
+ {
+-	char *channel, *digit;
+-
+-	channel = astman_get_header(m, &quot;Channel&quot;);
+-	digit = astman_get_header(m, &quot;Digit&quot;);
++	char *channel = astman_get_header(m, &quot;Channel&quot;);
++	char *digit = astman_get_header(m, &quot;Digit&quot;);
+ 	struct ast_channel *chan = ast_get_channel_by_name_locked(channel);
+-	if (chan == NULL) {
+-		astman_send_error(s, m, &quot;No such channel&quot;);
++	
++	if (!chan) {
++		astman_send_error(s, m, &quot;Channel not specified&quot;);
++		ast_mutex_unlock(&amp;chan-&gt;lock);
+ 		return 0;
+ 	}
+-	if (digit == NULL) {
++	if (!digit) {
+ 		astman_send_error(s, m, &quot;No digit specified&quot;);
++		ast_mutex_unlock(&amp;chan-&gt;lock);
+ 		return 0;
+ 	}
++
+ 	ast_senddigit(chan, *digit);
++
+ 	ast_mutex_unlock(&amp;chan-&gt;lock);
+ 	astman_send_ack(s, m, &quot;DTMF successfully queued&quot;);
++	
+ 	return 0;
+ }
+ 
+@@ -135,8 +139,12 @@
+ 
+ static int load_module(void *mod)
+ {
+-	ast_manager_register2( &quot;PlayDTMF&quot;, EVENT_FLAG_CALL, manager_play_dtmf, &quot;Play DTMF signal on a specific channel.&quot;, mandescr_playdtmf );
+-	return ast_register_application(app, senddtmf_exec, synopsis, descrip);
++	int res;
++
++	res = ast_manager_register2( &quot;PlayDTMF&quot;, EVENT_FLAG_CALL, manager_play_dtmf, &quot;Play DTMF signal on a specific channel.&quot;, mandescr_playdtmf );
++	res |= ast_register_application(app, senddtmf_exec, synopsis, descrip);
++
++	return res;
+ }
+ 
+ static const char *description(void)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000052.html">[solid-pbx-svn] r55 - in trunk: . apps doc
+</A></li>
+	<LI>Next message: <A HREF="000054.html">[solid-pbx-svn] r57 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#53">[ date ]</a>
+              <a href="thread.html#53">[ thread ]</a>
+              <a href="subject.html#53">[ subject ]</a>
+              <a href="author.html#53">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

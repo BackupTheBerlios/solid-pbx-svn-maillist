@@ -1,0 +1,179 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r247 - in trunk: . channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r247%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200606180625.k5I6PdT1014822%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000241.html">
+   <LINK REL="Next"  HREF="000243.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r247 - in trunk: . channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r247%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200606180625.k5I6PdT1014822%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r247 - in trunk: . channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 08:25:39 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000241.html">[solid-pbx-svn] r246 - in trunk: channels configs
+</A></li>
+        <LI>Next message: <A HREF="000243.html">[solid-pbx-svn] r248 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#242">[ date ]</a>
+              <a href="thread.html#242">[ thread ]</a>
+              <a href="subject.html#242">[ subject ]</a>
+              <a href="author.html#242">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 08:25:33 +0200 (Sun, 18 Jun 2006)
+New Revision: 247
+
+Modified:
+   trunk/channel.c
+   trunk/channels/chan_sip.c
+   trunk/rtp.c
+Log:
+Update to Asterisk SVN trunk r32093
+
+------------------------------------------------------------------------
+r32087 | oej | 2006-06-04 20:35:29 +0200 (Sun, 04 Jun 2006) | 3 lines
+
+- Doxygen fix
+- Debug message change
+
+------------------------------------------------------------------------
+r32088 | oej | 2006-06-04 20:55:16 +0200 (Sun, 04 Jun 2006) | 3 lines
+
+- 5 is the highest used debug level, so let's stay there
+- Change formatting of RTP debug to align better
+
+------------------------------------------------------------------------
+r32089 | oej | 2006-06-04 20:58:27 +0200 (Sun, 04 Jun 2006) | 2 lines
+
+Fix potential bug. THanks luigi!
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-06-18 05:25:28 UTC (rev 246)
++++ trunk/channel.c	2006-06-18 06:25:33 UTC (rev 247)
+@@ -2097,7 +2097,7 @@
+ int ast_internal_timing_enabled(struct ast_channel *chan)
+ {
+ 	int ret = ast_opt_internal_timing &amp;&amp; chan-&gt;timingfd &gt; -1;
+-	if (option_debug &gt; 20)
++	if (option_debug &gt; 4)
+ 		ast_log(LOG_DEBUG, &quot;Internal timing is %s (option_internal_timing=%d chan-&gt;timingfd=%d)\n&quot;, ret? &quot;enabled&quot;: &quot;disabled&quot;, ast_opt_internal_timing, chan-&gt;timingfd);
+ 	return ret;
+ }
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-18 05:25:28 UTC (rev 246)
++++ trunk/channels/chan_sip.c	2006-06-18 06:25:33 UTC (rev 247)
+@@ -805,7 +805,8 @@
+ 	int jointcapability;			/*!&lt; Supported capability at both ends (codecs ) */
+ 	int peercapability;			/*!&lt; Supported peer capability */
+ 	int prefcodec;				/*!&lt; Preferred codec (outbound only) */
+-	int noncodeccapability;
++	int noncodeccapability;			/*!&lt; DTMF RFC2833 telephony-event */
++	int redircodecs;			/*!&lt; Redirect codecs */
+ 	int maxcallbitrate;			/*!&lt; Maximum Call Bitrate for Video Calls */	
+ 	int callingpres;			/*!&lt; Calling presentation */
+ 	int authtries;				/*!&lt; Times we've tried to authenticate */
+@@ -817,7 +818,6 @@
+ 	struct sockaddr_in sa;			/*!&lt; Our peer */
+ 	struct sockaddr_in redirip;		/*!&lt; Where our RTP should be going if not to us */
+ 	struct sockaddr_in vredirip;		/*!&lt; Where our Video RTP should be going if not to us */
+-	int redircodecs;			/*!&lt; Redirect codecs */
+ 	struct sockaddr_in recv;		/*!&lt; Received as */
+ 	struct in_addr ourip;			/*!&lt; Our IP */
+ 	struct ast_channel *owner;		/*!&lt; Who owns us */
+@@ -7329,12 +7329,8 @@
+ 			ast_uri_decode(referdata-&gt;replaces_callid);
+ 			if ((ptr = strchr(referdata-&gt;replaces_callid, ';'))) 	/* Remove options */ {
+ 				*ptr = '\0';
++				ptr++;
+ 			}
+-			/*
+-			 * XXX don't know what was the intention but this code is
+-			 * definitely wrong, as ptr can be NULL here.
+-			 */
+-			ptr++;
+ 
+ 			/* Find the different tags before we destroy the string */
+ 			to = strcasestr(ptr, &quot;to-tag=&quot;);
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-06-18 05:25:28 UTC (rev 246)
++++ trunk/rtp.c	2006-06-18 06:25:33 UTC (rev 247)
+@@ -786,8 +786,8 @@
+ 	}
+ 
+ 	if(rtp_debug_test_addr(&amp;sin))
+-		ast_verbose(&quot;Got RTP packet from %s:%d (type %d, seq %d, ts %d, len %d)\n&quot;
+-			, ast_inet_ntoa(iabuf, sizeof(iabuf), sin.sin_addr), ntohs(sin.sin_port), payloadtype, seqno, timestamp,res - hdrlen);
++		ast_verbose(&quot;Got  RTP packet from %s:%d (type %-2.2d, seq %-6.6u, ts %-6.6u, len %-6.6u)\n&quot;,
++			ast_inet_ntoa(iabuf, sizeof(iabuf), sin.sin_addr), ntohs(sin.sin_port), payloadtype, seqno, timestamp,res - hdrlen);
+ 
+    	rtpPT = ast_rtp_lookup_pt(rtp, payloadtype);
+ 	if (!rtpPT.isAstFormat) {
+@@ -1573,7 +1573,7 @@
+ 					ast_inet_ntoa(iabuf, sizeof(iabuf), rtp-&gt;them.sin_addr),
+ 					ntohs(rtp-&gt;them.sin_port), strerror(errno));
+ 			if (rtp_debug_test_addr(&amp;rtp-&gt;them))
+-				ast_verbose(&quot;Sent RTP packet to %s:%d (type %d, seq %u, ts %u, len %u)\n&quot;,
++				ast_verbose(&quot;Sent RTP DTMF packet to %s:%d (type %-2.2d, seq %-6.6u, ts %-6.6u, len %-6.6u)\n&quot;,
+ 					    ast_inet_ntoa(iabuf, sizeof(iabuf), rtp-&gt;them.sin_addr),
+ 					    ntohs(rtp-&gt;them.sin_port), payload, rtp-&gt;seqno, rtp-&gt;lastdigitts, res - hdrlen);
+ 		}
+@@ -1719,8 +1719,8 @@
+ 		}
+ 				
+ 		if(rtp_debug_test_addr(&amp;rtp-&gt;them))
+-			ast_verbose(&quot;Sent RTP packet to %s:%d (type %d, seq %u, ts %u, len %u)\n&quot;
+-					, ast_inet_ntoa(iabuf, sizeof(iabuf), rtp-&gt;them.sin_addr), ntohs(rtp-&gt;them.sin_port), codec, rtp-&gt;seqno, rtp-&gt;lastts,res - hdrlen);
++			ast_verbose(&quot;Sent RTP packet to   %s:%d (type %d, seq %u, ts %u, len %u)\n&quot;,
++				ast_inet_ntoa(iabuf, sizeof(iabuf), rtp-&gt;them.sin_addr), ntohs(rtp-&gt;them.sin_port), codec, rtp-&gt;seqno, rtp-&gt;lastts,res - hdrlen);
+ 	}
+ 
+ 	rtp-&gt;seqno++;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000241.html">[solid-pbx-svn] r246 - in trunk: channels configs
+</A></li>
+	<LI>Next message: <A HREF="000243.html">[solid-pbx-svn] r248 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#242">[ date ]</a>
+              <a href="thread.html#242">[ thread ]</a>
+              <a href="subject.html#242">[ subject ]</a>
+              <a href="author.html#242">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

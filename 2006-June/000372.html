@@ -1,0 +1,3873 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r377 - in trunk: . doc include/asterisk pbx pbx/ael pbx/ael/ael-test res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r377%20-%20in%20trunk%3A%20.%20doc%20include/asterisk%20pbx%20pbx/ael%20pbx/ael/ael-test%20res&In-Reply-To=%3C200606280140.k5S1ecp2017245%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000371.html">
+   <LINK REL="Next"  HREF="000373.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r377 - in trunk: . doc include/asterisk pbx pbx/ael pbx/ael/ael-test res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r377%20-%20in%20trunk%3A%20.%20doc%20include/asterisk%20pbx%20pbx/ael%20pbx/ael/ael-test%20res&In-Reply-To=%3C200606280140.k5S1ecp2017245%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r377 - in trunk: . doc include/asterisk pbx pbx/ael pbx/ael/ael-test res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:40:38 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000371.html">[solid-pbx-svn] r376 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000373.html">[solid-pbx-svn] r378 - in trunk: channels configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#372">[ date ]</a>
+              <a href="thread.html#372">[ thread ]</a>
+              <a href="subject.html#372">[ subject ]</a>
+              <a href="author.html#372">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:40:14 +0200 (Wed, 28 Jun 2006)
+New Revision: 377
+
+Modified:
+   trunk/doc/ael.txt
+   trunk/include/asterisk/ael_structs.h
+   trunk/pbx/ael/ael-test/ref.ael-test1
+   trunk/pbx/ael/ael-test/ref.ael-test2
+   trunk/pbx/ael/ael-test/ref.ael-test3
+   trunk/pbx/ael/ael-test/ref.ael-test4
+   trunk/pbx/ael/ael-test/ref.ael-test5
+   trunk/pbx/ael/ael-test/ref.ael-test6
+   trunk/pbx/ael/ael-test/ref.ael-test7
+   trunk/pbx/ael/ael.tab.c
+   trunk/pbx/ael/ael.tab.h
+   trunk/pbx/ael/ael.y
+   trunk/pbx/ael/ael_lex.c
+   trunk/pbx/pbx_ael.c
+   trunk/res/res_jabber.c
+   trunk/say.c
+Log:
+Update to Asterisk SVN trunk r34673
+
+------------------------------------------------------------------------
+r34664 | russell | 2006-06-18 23:26:48 +0200 (Sun, 18 Jun 2006) | 2 lines
+
+fix a polish voicemail bug with saying dates (issue #7389, supczinskib)
+
+------------------------------------------------------------------------
+r34665 | russell | 2006-06-18 23:36:24 +0200 (Sun, 18 Jun 2006) | 6 lines
+
+merge changes from team/murf/AEL-trunk-fixesonly
+ - fix callerid matching for extensions
+ - fix nested switch statements
+ - fix compilation with bison 2.1a or higher
+(issue #7309)
+
+------------------------------------------------------------------------
+r34667 | russell | 2006-06-18 23:45:48 +0200 (Sun, 18 Jun 2006) | 3 lines
+
+handle ast_calloc failure and tweak some formatting to comply with coding
+guidelines (issue #7341, casper)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/doc/ael.txt
+===================================================================
+--- trunk/doc/ael.txt	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/doc/ael.txt	2006-06-28 01:40:14 UTC (rev 377)
+@@ -35,7 +35,7 @@
+       Asterisk. Embedded in this language is the Application/AGI
+       commands, of which one application call per step, or priority
+       can be made. You can think of this as a &quot;macro assembler&quot;
+-      language, that AEL2 will compile into.
++      language, that AEL will compile into.
+ 
+ 
+ Any programmer of AEL should be familiar with it's syntax, of course,
+@@ -178,7 +178,7 @@
+ * About &quot;aelparse&quot;          *
+ *****************************
+ 
+-You can also use the &quot;aelparse&quot; program to check your extensions.ael
++You can use the &quot;aelparse&quot; program to check your extensions.ael
+ file before feeding it to asterisk. Wouldn't it be nice to eliminate
+ most errors before giving the file to asterisk?
+ 
+@@ -270,7 +270,7 @@
+ capitalized letter somewhere in its name. In the Asterisk extension
+ language, application names are NOT case-sensitive.
+ 
+-The following are keywords in the AEL2 language:
++The following are keywords in the AEL language:
+ 
+     * abstract
+     * context
+@@ -581,7 +581,10 @@
+ specification of hints, and a keyword, regexten, that will force the
+ numbering of priorities to start at 2.
+ 
++The ability to make extensions match by CID is preserved in
++AEL; just use '/' and the CID number in the specification. See below.
+ 
++
+ context default {
+ 
+     regexten _5XXX =&gt; NoOp(it's a pattern!);
+@@ -604,8 +607,20 @@
+ 
+ The regexten must come before the hint if they are both present.
+ 
++CID matching is done as with the extensions.conf file. Follow the extension
++name/number with a slash (/) and the number to match against the Caller ID:
+ 
++context zoombo 
++{
++	819/7079953345 =&gt; { NoOp(hello, 3345); }
++}
+ 
++In the above,  the 819/7079953345 extension will only be matched if the
++CallerID is 7079953345, and the dialed number is 819. Hopefully you have
++another 819 extension defined for all those who wish 819, that are not so lucky
++as to have 7079953345 as their CallerID!
++
++
+ Includes
+ ========
+ 
+
+Modified: trunk/include/asterisk/ael_structs.h
+===================================================================
+--- trunk/include/asterisk/ael_structs.h	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/include/asterisk/ael_structs.h	2006-06-28 01:40:14 UTC (rev 377)
+@@ -170,6 +170,7 @@
+ struct ael_extension
+ {
+ 	char *name;
++	char *cidmatch;
+ 	char *hints;
+ 	int regexten;
+ 	
+
+Modified: trunk/pbx/ael/ael-test/ref.ael-test1
+===================================================================
+--- trunk/pbx/ael/ael-test/ref.ael-test1	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/ael/ael-test/ref.ael-test1	2006-06-28 01:40:14 UTC (rev 377)
+@@ -1,11 +1,11 @@
+ Executed ast_register_file_version();
+-LOG: lev:2 file:pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
+-LOG: lev:2 file:pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
+-LOG: lev:3 file:pbx_ael.c  line:891 func: check_dow  Warning: file ./extensions.ael, line 67-67: The day (m0n) must be one of 'sun', 'mon', 'tue', 'wed', 'thu', 'fri', or 'sat'!
+-LOG: lev:3 file:pbx_ael.c  line:849 func: check_timerange  Warning: file ./extensions.ael, line 78-78: The end time (25:00) is out of range!
+-LOG: lev:2 file:pbx_ael.c  line:3441 func: pbx_load_module  AEL load process: checked config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3443 func: pbx_load_module  AEL load process: compiled config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3446 func: pbx_load_module  AEL load process: merged config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3449 func: pbx_load_module  AEL load process: verified config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
++LOG: lev:3 file:../pbx/pbx_ael.c  line:891 func: check_dow  Warning: file ./extensions.ael, line 67-67: The day (m0n) must be one of 'sun', 'mon', 'tue', 'wed', 'thu', 'fri', or 'sat'!
++LOG: lev:3 file:../pbx/pbx_ael.c  line:849 func: check_timerange  Warning: file ./extensions.ael, line 78-78: The end time (25:00) is out of range!
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3441 func: pbx_load_module  AEL load process: checked config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3443 func: pbx_load_module  AEL load process: compiled config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3446 func: pbx_load_module  AEL load process: merged config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3449 func: pbx_load_module  AEL load process: verified config file name './extensions.ael'.
+ LOG: lev:4 file:ael2_parse  line:261 func: main  5 contexts, 13 extensions, 156 priorities
+
+Modified: trunk/pbx/ael/ael-test/ref.ael-test2
+===================================================================
+--- trunk/pbx/ael/ael-test/ref.ael-test2	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/ael/ael-test/ref.ael-test2	2006-06-28 01:40:14 UTC (rev 377)
+@@ -1,15 +1,15 @@
+ Executed ast_register_file_version();
+-LOG: lev:2 file:pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
+-LOG: lev:2 file:pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
+ LOG: lev:2 file:ael.flex  line:467 func: ael_yylex    --Read in included file ./apptest.ael2, 3474 chars
+ LOG: lev:3 file:ael.y  line:405 func: ael_yyparse  ==== File: ./apptest.ael2, Line 46, Cols: 8-11: Suggestion: Use the goto statement instead of the Goto() application call in AEL.
+-LOG: lev:2 file:pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 35-35: application call to EndWhile needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 37-37: application call to ExecIf needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:4 file:pbx_ael.c  line:1100 func: check_goto  Error: file ./apptest.ael2, line 46-46: goto:  no context cont could be found that matches the goto target!
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 47-47: application call to GotoIf needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 48-48: application call to GotoIfTime needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 85-85: application call to Random needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 141-141: application call to While needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:4 file:pbx_ael.c  line:3451 func: pbx_load_module  Sorry, but 0 syntax errors and 1 semantic errors were detected. It doesn't make sense to compile.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 35-35: application call to EndWhile needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 37-37: application call to ExecIf needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:4 file:../pbx/pbx_ael.c  line:1100 func: check_goto  Error: file ./apptest.ael2, line 46-46: goto:  no context cont could be found that matches the goto target!
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 47-47: application call to GotoIf needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 48-48: application call to GotoIfTime needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 85-85: application call to Random needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 141-141: application call to While needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:4 file:../pbx/pbx_ael.c  line:3451 func: pbx_load_module  Sorry, but 0 syntax errors and 1 semantic errors were detected. It doesn't make sense to compile.
+ LOG: lev:4 file:ael2_parse  line:261 func: main  0 contexts, 0 extensions, 0 priorities
+
+Modified: trunk/pbx/ael/ael-test/ref.ael-test3
+===================================================================
+--- trunk/pbx/ael/ael-test/ref.ael-test3	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/ael/ael-test/ref.ael-test3	2006-06-28 01:40:14 UTC (rev 377)
+@@ -1,18 +1,18 @@
+ Executed ast_register_file_version();
+-LOG: lev:2 file:pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
+-LOG: lev:2 file:pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
+ LOG: lev:2 file:ael.flex  line:467 func: ael_yylex    --Read in included file ./include1.ael2, 78 chars
+ LOG: lev:2 file:ael.flex  line:467 func: ael_yylex    --Read in included file ./include2.ael2, 98 chars
+ LOG: lev:2 file:ael.flex  line:467 func: ael_yylex    --Read in included file ./include3.ael2, 57 chars
+ LOG: lev:2 file:ael.flex  line:467 func: ael_yylex    --Read in included file ./include5.ael2, 56 chars
+ LOG: lev:2 file:ael.flex  line:467 func: ael_yylex    --Read in included file ./include4.ael2, 87 chars
+ LOG: lev:2 file:ael.flex  line:467 func: ael_yylex    --Read in included file /etc/asterisk/telemarket_torture.ael2, 28036 chars
+-LOG: lev:2 file:pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
+-LOG: lev:3 file:pbx_ael.c  line:2186 func: check_pval_item  Warning: file ./extensions.ael, line 5-5: expression Console/dsp has operators, but no variables. Interesting...
+-LOG: lev:3 file:pbx_ael.c  line:2186 func: check_pval_item  Warning: file ./extensions.ael, line 8-8: expression &quot;Joe-Worker&quot; has operators, but no variables. Interesting...
+-LOG: lev:3 file:pbx_ael.c  line:2186 func: check_pval_item  Warning: file ./extensions.ael, line 10-10: expression Zap/6  has operators, but no variables. Interesting...
+-LOG: lev:2 file:pbx_ael.c  line:3441 func: pbx_load_module  AEL load process: checked config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3443 func: pbx_load_module  AEL load process: compiled config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3446 func: pbx_load_module  AEL load process: merged config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3449 func: pbx_load_module  AEL load process: verified config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2186 func: check_pval_item  Warning: file ./extensions.ael, line 5-5: expression Console/dsp has operators, but no variables. Interesting...
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2186 func: check_pval_item  Warning: file ./extensions.ael, line 8-8: expression &quot;Joe-Worker&quot; has operators, but no variables. Interesting...
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2186 func: check_pval_item  Warning: file ./extensions.ael, line 10-10: expression Zap/6  has operators, but no variables. Interesting...
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3441 func: pbx_load_module  AEL load process: checked config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3443 func: pbx_load_module  AEL load process: compiled config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3446 func: pbx_load_module  AEL load process: merged config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3449 func: pbx_load_module  AEL load process: verified config file name './extensions.ael'.
+ LOG: lev:4 file:ael2_parse  line:261 func: main  172 contexts, 858 extensions, 2326 priorities
+
+Modified: trunk/pbx/ael/ael-test/ref.ael-test4
+===================================================================
+--- trunk/pbx/ael/ael-test/ref.ael-test4	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/ael/ael-test/ref.ael-test4	2006-06-28 01:40:14 UTC (rev 377)
+@@ -1,15 +1,15 @@
+ Executed ast_register_file_version();
+-LOG: lev:2 file:pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
+-LOG: lev:2 file:pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
+ LOG: lev:2 file:ael.flex  line:467 func: ael_yylex    --Read in included file ./apptest.ael2, 3474 chars
+ LOG: lev:3 file:ael.y  line:405 func: ael_yyparse  ==== File: ./apptest.ael2, Line 46, Cols: 8-11: Suggestion: Use the goto statement instead of the Goto() application call in AEL.
+-LOG: lev:2 file:pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 35-35: application call to EndWhile needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 37-37: application call to ExecIf needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:4 file:pbx_ael.c  line:1100 func: check_goto  Error: file ./apptest.ael2, line 46-46: goto:  no context cont could be found that matches the goto target!
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 47-47: application call to GotoIf needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 48-48: application call to GotoIfTime needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 85-85: application call to Random needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:3 file:pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 141-141: application call to While needs to be re-written using AEL if, while, goto, etc. keywords instead!
+-LOG: lev:4 file:pbx_ael.c  line:3451 func: pbx_load_module  Sorry, but 0 syntax errors and 1 semantic errors were detected. It doesn't make sense to compile.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 35-35: application call to EndWhile needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 37-37: application call to ExecIf needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:4 file:../pbx/pbx_ael.c  line:1100 func: check_goto  Error: file ./apptest.ael2, line 46-46: goto:  no context cont could be found that matches the goto target!
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 47-47: application call to GotoIf needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 48-48: application call to GotoIfTime needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 85-85: application call to Random needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2081 func: check_pval_item  Warning: file ./apptest.ael2, line 141-141: application call to While needs to be re-written using AEL if, while, goto, etc. keywords instead!
++LOG: lev:4 file:../pbx/pbx_ael.c  line:3451 func: pbx_load_module  Sorry, but 0 syntax errors and 1 semantic errors were detected. It doesn't make sense to compile.
+ LOG: lev:4 file:ael2_parse  line:261 func: main  0 contexts, 0 extensions, 0 priorities
+
+Modified: trunk/pbx/ael/ael-test/ref.ael-test5
+===================================================================
+--- trunk/pbx/ael/ael-test/ref.ael-test5	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/ael/ael-test/ref.ael-test5	2006-06-28 01:40:14 UTC (rev 377)
+@@ -1,9 +1,9 @@
+ Executed ast_register_file_version();
+-LOG: lev:2 file:pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
+-LOG: lev:2 file:pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3441 func: pbx_load_module  AEL load process: checked config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3443 func: pbx_load_module  AEL load process: compiled config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3446 func: pbx_load_module  AEL load process: merged config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3449 func: pbx_load_module  AEL load process: verified config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3441 func: pbx_load_module  AEL load process: checked config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3443 func: pbx_load_module  AEL load process: compiled config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3446 func: pbx_load_module  AEL load process: merged config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3449 func: pbx_load_module  AEL load process: verified config file name './extensions.ael'.
+ LOG: lev:4 file:ael2_parse  line:261 func: main  38 contexts, 90 extensions, 484 priorities
+
+Modified: trunk/pbx/ael/ael-test/ref.ael-test6
+===================================================================
+--- trunk/pbx/ael/ael-test/ref.ael-test6	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/ael/ael-test/ref.ael-test6	2006-06-28 01:40:14 UTC (rev 377)
+@@ -1,20 +1,15 @@
+ Executed ast_register_file_version();
+-LOG: lev:2 file:pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
+-LOG: lev:2 file:pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
+-LOG: lev:4 file:ael.flex  line:193 func: ael_yylex  File=./extensions.ael, line=165, column=21: Mismatched '}' in expression!
+-LOG: lev:4 file:ael.y  line:674 func: ael_yyerror  ==== File: ./extensions.ael, Line 165, Cols: 23-23: Error: syntax error, unexpected '=', expecting ')'
+-LOG: lev:4 file:ael.flex  line:317 func: ael_yylex  File=./extensions.ael, line=174, column=63: Mismatched '}' in expression!
+-LOG: lev:4 file:ael.flex  line:317 func: ael_yylex  File=./extensions.ael, line=180, column=46: Mismatched '}' in expression!
+-LOG: lev:4 file:ael.y  line:674 func: ael_yyerror  ==== File: ./extensions.ael, Line 184, Cols: 0-4: Error: syntax error, unexpected 'macro'
+-LOG: lev:4 file:ael.flex  line:193 func: ael_yylex  File=./extensions.ael, line=222, column=21: Mismatched '}' in expression!
+-LOG: lev:4 file:ael.y  line:674 func: ael_yyerror  ==== File: ./extensions.ael, Line 222, Cols: 23-23: Error: syntax error, unexpected '=', expecting ')'
+-LOG: lev:4 file:ael.flex  line:317 func: ael_yylex  File=./extensions.ael, line=228, column=37: Mismatched '}' in expression!
+-LOG: lev:4 file:ael.y  line:674 func: ael_yyerror  ==== File: ./extensions.ael, Line 235, Cols: 0-6: Error: syntax error, unexpected 'context'
+-LOG: lev:4 file:ael.y  line:674 func: ael_yyerror  ==== File: ./extensions.ael, Line 344, Cols: 32-32: Error: syntax error, unexpected ';', expecting '{'
+-LOG: lev:4 file:ael.y  line:674 func: ael_yyerror  ==== File: ./extensions.ael, Line 350, Cols: 32-32: Error: syntax error, unexpected ';', expecting '{'
+-LOG: lev:4 file:ael.y  line:674 func: ael_yyerror  ==== File: ./extensions.ael, Line 461, Cols: 10-13: Error: syntax error, unexpected 'else'
+-LOG: lev:2 file:pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
+-LOG: lev:4 file:pbx_ael.c  line:1100 func: check_goto  Error: file ./extensions.ael, line 11-11: goto:  no context default could be found that matches the goto target!
+-LOG: lev:4 file:pbx_ael.c  line:2036 func: check_pval_item  Error: file ./extensions.ael, line 206-206: macro call to non-existent uvm !
+-LOG: lev:4 file:pbx_ael.c  line:3451 func: pbx_load_module  Sorry, but 7 syntax errors and 2 semantic errors were detected. It doesn't make sense to compile.
+-LOG: lev:4 file:ael2_parse  line:261 func: main  0 contexts, 0 extensions, 0 priorities
++Executed ast_register_file_version();
++Executed ast_register_file_version();
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3453 func: pbx_load_module  Starting AEL load process.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3460 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
++LOG: lev:4 file:ael.flex  line:267 func: ael_yylex  File=./extensions.ael, line=165, column=49: Mismatched '}' in expression!
++LOG: lev:4 file:ael.y  line:726 func: ael_yyerror  ==== File: ./extensions.ael, Line 165, Cols: 51-51: Error: syntax error, unexpected '=', expecting ')'
++LOG: lev:4 file:ael.y  line:726 func: ael_yyerror  ==== File: ./extensions.ael, Line 169, Cols: 24-24: Error: syntax error, unexpected '&amp;'
++LOG: lev:4 file:ael.flex  line:267 func: ael_yylex  File=./extensions.ael, line=222, column=41: Mismatched '}' in expression!
++LOG: lev:4 file:ael.y  line:726 func: ael_yyerror  ==== File: ./extensions.ael, Line 222, Cols: 43-43: Error: syntax error, unexpected '=', expecting ')'
++LOG: lev:4 file:ael.y  line:726 func: ael_yyerror  ==== File: ./extensions.ael, Line 226, Cols: 16-16: Error: syntax error, unexpected '&amp;'
++LOG: lev:4 file:ael.y  line:726 func: ael_yyerror  ==== File: ./extensions.ael, Line 291, Cols: 21-28: Error: syntax error, unexpected word, expecting '(' or ';' or '=' or ':'
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3463 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
++LOG: lev:4 file:../pbx/pbx_ael.c  line:3476 func: pbx_load_module  Sorry, but 5 syntax errors and 0 semantic errors were detected. It doesn't make sense to compile.
++LOG: lev:4 file:ael2_parse  line:253 func: main  0 contexts, 0 extensions, 0 priorities
+
+Modified: trunk/pbx/ael/ael-test/ref.ael-test7
+===================================================================
+--- trunk/pbx/ael/ael-test/ref.ael-test7	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/ael/ael-test/ref.ael-test7	2006-06-28 01:40:14 UTC (rev 377)
+@@ -1,13 +1,13 @@
+ Executed ast_register_file_version();
+-LOG: lev:2 file:pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
+-LOG: lev:2 file:pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
+-LOG: lev:2 file:pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
+-LOG: lev:3 file:pbx_ael.c  line:2186 func: check_pval_item  Warning: file ./extensions.ael, line 6-6: expression Console/dsp has operators, but no variables. Interesting...
+-LOG: lev:3 file:pbx_ael.c  line:2186 func: check_pval_item  Warning: file ./extensions.ael, line 10-10: expression pstn-spa3k has operators, but no variables. Interesting...
+-LOG: lev:4 file:pbx_ael.c  line:2055 func: check_pval_item  Error: file ./extensions.ael, line 98-98: The macro call to checkanddial has 5 arguments, but the macro definition has 7 arguments
+-LOG: lev:4 file:pbx_ael.c  line:2055 func: check_pval_item  Error: file ./extensions.ael, line 107-107: The macro call to checkanddial has 5 arguments, but the macro definition has 7 arguments
+-LOG: lev:4 file:pbx_ael.c  line:2055 func: check_pval_item  Error: file ./extensions.ael, line 284-284: The macro call to checkanddial has 5 arguments, but the macro definition has 7 arguments
+-LOG: lev:4 file:pbx_ael.c  line:2055 func: check_pval_item  Error: file ./extensions.ael, line 287-287: The macro call to checkanddial has 5 arguments, but the macro definition has 7 arguments
+-LOG: lev:4 file:pbx_ael.c  line:2036 func: check_pval_item  Error: file ./extensions.ael, line 452-452: macro call to non-existent std-exten-ael !
+-LOG: lev:4 file:pbx_ael.c  line:3451 func: pbx_load_module  Sorry, but 0 syntax errors and 5 semantic errors were detected. It doesn't make sense to compile.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3428 func: pbx_load_module  Starting AEL load process.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3435 func: pbx_load_module  AEL load process: calculated config file name './extensions.ael'.
++LOG: lev:2 file:../pbx/pbx_ael.c  line:3438 func: pbx_load_module  AEL load process: parsed config file name './extensions.ael'.
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2186 func: check_pval_item  Warning: file ./extensions.ael, line 6-6: expression Console/dsp has operators, but no variables. Interesting...
++LOG: lev:3 file:../pbx/pbx_ael.c  line:2186 func: check_pval_item  Warning: file ./extensions.ael, line 10-10: expression pstn-spa3k has operators, but no variables. Interesting...
++LOG: lev:4 file:../pbx/pbx_ael.c  line:2055 func: check_pval_item  Error: file ./extensions.ael, line 98-98: The macro call to checkanddial has 5 arguments, but the macro definition has 7 arguments
++LOG: lev:4 file:../pbx/pbx_ael.c  line:2055 func: check_pval_item  Error: file ./extensions.ael, line 107-107: The macro call to checkanddial has 5 arguments, but the macro definition has 7 arguments
++LOG: lev:4 file:../pbx/pbx_ael.c  line:2055 func: check_pval_item  Error: file ./extensions.ael, line 284-284: The macro call to checkanddial has 5 arguments, but the macro definition has 7 arguments
++LOG: lev:4 file:../pbx/pbx_ael.c  line:2055 func: check_pval_item  Error: file ./extensions.ael, line 287-287: The macro call to checkanddial has 5 arguments, but the macro definition has 7 arguments
++LOG: lev:4 file:../pbx/pbx_ael.c  line:2036 func: check_pval_item  Error: file ./extensions.ael, line 452-452: macro call to non-existent std-exten-ael !
++LOG: lev:4 file:../pbx/pbx_ael.c  line:3451 func: pbx_load_module  Sorry, but 0 syntax errors and 5 semantic errors were detected. It doesn't make sense to compile.
+ LOG: lev:4 file:ael2_parse  line:261 func: main  0 contexts, 0 extensions, 0 priorities
+
+Modified: trunk/pbx/ael/ael.tab.c
+===================================================================
+--- trunk/pbx/ael/ael.tab.c	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/ael/ael.tab.c	2006-06-28 01:40:14 UTC (rev 377)
+@@ -1,7 +1,7 @@
+-/* A Bison parser, made by GNU Bison 2.1.  */
++/* A Bison parser, made by GNU Bison 2.1a.  */
+ 
+ /* Skeleton parser for Yacc-like parsing with Bison,
+-   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
++   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+ 
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+@@ -23,8 +23,8 @@
+    This special exception was added by the Free Software Foundation
+    in version 1.24 of Bison.  */
+ 
+-/* Written by Richard Stallman by simplifying the original so called
+-   ``semantic'' parser.  */
++/* C LALR(1) parser skeleton written by Richard Stallman, by
++   simplifying the original so-called &quot;semantic&quot; parser.  */
+ 
+ /* All symbols defined below should begin with yy or YY, to avoid
+    infringing on user name space.  This should be done even for local
+@@ -37,7 +37,7 @@
+ #define YYBISON 1
+ 
+ /* Bison version.  */
+-#define YYBISON_VERSION &quot;2.1&quot;
++#define YYBISON_VERSION &quot;2.1a&quot;
+ 
+ /* Skeleton name.  */
+ #define YYSKELETON_NAME &quot;yacc.c&quot;
+@@ -220,21 +220,23 @@
+ # define YYTOKEN_TABLE 0
+ #endif
+ 
+-#if ! defined (YYSTYPE) &amp;&amp; ! defined (YYSTYPE_IS_DECLARED)
++#if ! defined YYSTYPE &amp;&amp; ! defined YYSTYPE_IS_DECLARED
++typedef union YYSTYPE
+ #line 48 &quot;ael.y&quot;
+-typedef union YYSTYPE {
++{
+ 	int	intval;		/* integer value, typically flags */
+ 	char	*str;		/* strings */
+ 	struct pval *pval;	/* full objects */
+-} YYSTYPE;
+-/* Line 196 of yacc.c.  */
+-#line 227 &quot;ael.tab.c&quot;
++}
++/* Line 198 of yacc.c.  */
++#line 228 &quot;ael.tab.c&quot;
++	YYSTYPE;
+ # define yystype YYSTYPE /* obsolescent; will be withdrawn */
+ # define YYSTYPE_IS_DECLARED 1
+ # define YYSTYPE_IS_TRIVIAL 1
+ #endif
+ 
+-#if ! defined (YYLTYPE) &amp;&amp; ! defined (YYLTYPE_IS_DECLARED)
++#if ! defined YYLTYPE &amp;&amp; ! defined YYLTYPE_IS_DECLARED
+ typedef struct YYLTYPE
+ {
+   int first_line;
+@@ -271,23 +273,56 @@
+ static pval *update_last(pval *, YYLTYPE *);
+ 
+ 
+-/* Line 219 of yacc.c.  */
+-#line 271 &quot;ael.tab.c&quot;
++/* Line 221 of yacc.c.  */
++#line 273 &quot;ael.tab.c&quot;
+ 
+-#if ! defined (YYSIZE_T) &amp;&amp; defined (__SIZE_TYPE__)
+-# define YYSIZE_T __SIZE_TYPE__
++#ifdef short
++# undef short
+ #endif
+-#if ! defined (YYSIZE_T) &amp;&amp; defined (size_t)
+-# define YYSIZE_T size_t
++
++#ifdef YYTYPE_UINT8
++typedef YYTYPE_UINT8 yytype_uint8;
++#else
++typedef unsigned char yytype_uint8;
+ #endif
+-#if ! defined (YYSIZE_T) &amp;&amp; (defined (__STDC__) || defined (__cplusplus))
+-# include &lt;stddef.h&gt; /* INFRINGES ON USER NAME SPACE */
+-# define YYSIZE_T size_t
++
++#ifdef YYTYPE_INT8
++typedef YYTYPE_INT8 yytype_int8;
++#elif (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
++typedef signed char yytype_int8;
++#else
++typedef short int yytype_int8;
+ #endif
+-#if ! defined (YYSIZE_T)
+-# define YYSIZE_T unsigned int
++
++#ifdef YYTYPE_UINT16
++typedef YYTYPE_UINT16 yytype_uint16;
++#else
++typedef unsigned short int yytype_uint16;
+ #endif
+ 
++#ifdef YYTYPE_INT16
++typedef YYTYPE_INT16 yytype_int16;
++#else
++typedef short int yytype_int16;
++#endif
++
++#ifndef YYSIZE_T
++# ifdef __SIZE_TYPE__
++#  define YYSIZE_T __SIZE_TYPE__
++# elif defined size_t
++#  define YYSIZE_T size_t
++# elif ! defined YYSIZE_T &amp;&amp; (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
++#  include &lt;stddef.h&gt; /* INFRINGES ON USER NAME SPACE */
++#  define YYSIZE_T size_t
++# else
++#  define YYSIZE_T unsigned int
++# endif
++#endif
++
++#define YYSIZE_MAXIMUM ((YYSIZE_T) -1)
++
+ #ifndef YY_
+ # if YYENABLE_NLS
+ #  if ENABLE_NLS
+@@ -300,54 +335,89 @@
+ # endif
+ #endif
+ 
+-#if ! defined (yyoverflow) || YYERROR_VERBOSE
++/* Suppress unused-variable warnings by &quot;using&quot; E.  */
++#if ! defined lint || defined __GNUC__
++# define YYUSE(e) ((void) (e))
++#else
++# define YYUSE(e) /* empty */
++#endif
+ 
++/* Identity function, used to suppress warnings about constant conditions.  */
++#ifndef lint
++# define YYID(n) (n)
++#else
++#if (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
++static int
++YYID (int i)
++#else
++static int
++YYID (i)
++    int i;
++#endif
++{
++  return i;
++}
++#endif
++
++#if ! defined yyoverflow || YYERROR_VERBOSE
++
+ /* The parser invokes alloca or malloc; define the necessary symbols.  */
+ 
+ # ifdef YYSTACK_USE_ALLOCA
+ #  if YYSTACK_USE_ALLOCA
+ #   ifdef __GNUC__
+ #    define YYSTACK_ALLOC __builtin_alloca
++#   elif defined __BUILTIN_VA_ARG_INCR
++#    include &lt;alloca.h&gt; /* INFRINGES ON USER NAME SPACE */
++#   elif defined _AIX
++#    define YYSTACK_ALLOC __alloca
++#   elif defined _MSC_VER
++#    include &lt;malloc.h&gt; /* INFRINGES ON USER NAME SPACE */
++#    define alloca _alloca
+ #   else
+ #    define YYSTACK_ALLOC alloca
+-#    if defined (__STDC__) || defined (__cplusplus)
++#    if ! defined _ALLOCA_H &amp;&amp; ! defined _STDLIB_H &amp;&amp; (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
+ #     include &lt;stdlib.h&gt; /* INFRINGES ON USER NAME SPACE */
+-#     define YYINCLUDED_STDLIB_H
++#     ifndef _STDLIB_H
++#      define _STDLIB_H 1
++#     endif
+ #    endif
+ #   endif
+ #  endif
+ # endif
+ 
+ # ifdef YYSTACK_ALLOC
+-   /* Pacify GCC's `empty if-body' warning. */
+-#  define YYSTACK_FREE(Ptr) do { /* empty */; } while (0)
++   /* Pacify GCC's `empty if-body' warning.  */
++#  define YYSTACK_FREE(Ptr) do { /* empty */; } while (YYID (0))
+ #  ifndef YYSTACK_ALLOC_MAXIMUM
+     /* The OS might guarantee only one guard page at the bottom of the stack,
+        and a page size can be as small as 4096 bytes.  So we cannot safely
+        invoke alloca (N) if N exceeds 4096.  Use a slightly smaller number
+        to allow for a few compiler-allocated temporary stack slots.  */
+-#   define YYSTACK_ALLOC_MAXIMUM 4032 /* reasonable circa 2005 */
++#   define YYSTACK_ALLOC_MAXIMUM 4032 /* reasonable circa 2006 */
+ #  endif
+ # else
+ #  define YYSTACK_ALLOC YYMALLOC
+ #  define YYSTACK_FREE YYFREE
+ #  ifndef YYSTACK_ALLOC_MAXIMUM
+-#   define YYSTACK_ALLOC_MAXIMUM ((YYSIZE_T) -1)
++#   define YYSTACK_ALLOC_MAXIMUM YYSIZE_MAXIMUM
+ #  endif
+ #  ifdef __cplusplus
+ extern &quot;C&quot; {
+ #  endif
+ #  ifndef YYMALLOC
+ #   define YYMALLOC malloc
+-#   if (! defined (malloc) &amp;&amp; ! defined (YYINCLUDED_STDLIB_H) \
+-	&amp;&amp; (defined (__STDC__) || defined (__cplusplus)))
++#   if ! defined malloc &amp;&amp; ! defined _STDLIB_H &amp;&amp; (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
+ void *malloc (YYSIZE_T); /* INFRINGES ON USER NAME SPACE */
+ #   endif
+ #  endif
+ #  ifndef YYFREE
+ #   define YYFREE free
+-#   if (! defined (free) &amp;&amp; ! defined (YYINCLUDED_STDLIB_H) \
+-	&amp;&amp; (defined (__STDC__) || defined (__cplusplus)))
++#   if ! defined free &amp;&amp; ! defined _STDLIB_H &amp;&amp; (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
+ void free (void *); /* INFRINGES ON USER NAME SPACE */
+ #   endif
+ #  endif
+@@ -355,18 +425,18 @@
+ }
+ #  endif
+ # endif
+-#endif /* ! defined (yyoverflow) || YYERROR_VERBOSE */
++#endif /* ! defined yyoverflow || YYERROR_VERBOSE */
+ 
+ 
+-#if (! defined (yyoverflow) \
+-     &amp;&amp; (! defined (__cplusplus) \
+-	 || (defined (YYLTYPE_IS_TRIVIAL) &amp;&amp; YYLTYPE_IS_TRIVIAL \
+-             &amp;&amp; defined (YYSTYPE_IS_TRIVIAL) &amp;&amp; YYSTYPE_IS_TRIVIAL)))
++#if (! defined yyoverflow \
++     &amp;&amp; (! defined __cplusplus \
++	 || (defined YYLTYPE_IS_TRIVIAL &amp;&amp; YYLTYPE_IS_TRIVIAL \
++	     &amp;&amp; defined YYSTYPE_IS_TRIVIAL &amp;&amp; YYSTYPE_IS_TRIVIAL)))
+ 
+ /* A type that is properly aligned for any stack member.  */
+ union yyalloc
+ {
+-  short int yyss;
++  yytype_int16 yyss;
+   YYSTYPE yyvs;
+     YYLTYPE yyls;
+ };
+@@ -377,13 +447,13 @@
+ /* The size of an array large to enough to hold all stacks, each with
+    N elements.  */
+ # define YYSTACK_BYTES(N) \
+-     ((N) * (sizeof (short int) + sizeof (YYSTYPE) + sizeof (YYLTYPE))	\
++     ((N) * (sizeof (yytype_int16) + sizeof (YYSTYPE) + sizeof (YYLTYPE)) \
+       + 2 * YYSTACK_GAP_MAXIMUM)
+ 
+ /* Copy COUNT objects from FROM to TO.  The source and destination do
+    not overlap.  */
+ # ifndef YYCOPY
+-#  if defined (__GNUC__) &amp;&amp; 1 &lt; __GNUC__
++#  if defined __GNUC__ &amp;&amp; 1 &lt; __GNUC__
+ #   define YYCOPY(To, From, Count) \
+       __builtin_memcpy (To, From, (Count) * sizeof (*(From)))
+ #  else
+@@ -394,7 +464,7 @@
+ 	  for (yyi = 0; yyi &lt; (Count); yyi++)	\
+ 	    (To)[yyi] = (From)[yyi];		\
+ 	}					\
+-      while (0)
++      while (YYID (0))
+ #  endif
+ # endif
+ 
+@@ -412,28 +482,22 @@
+ 	yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
+ 	yyptr += yynewbytes / sizeof (*yyptr);				\
+       }									\
+-    while (0)
++    while (YYID (0))
+ 
+ #endif
+ 
+-#if defined (__STDC__) || defined (__cplusplus)
+-   typedef signed char yysigned_char;
+-#else
+-   typedef short int yysigned_char;
+-#endif
+-
+-/* YYFINAL -- State number of the termination state. */
++/* YYFINAL -- State number of the termination state.  */
+ #define YYFINAL  14
+ /* YYLAST -- Last index in YYTABLE.  */
+ #define YYLAST   275
+ 
+-/* YYNTOKENS -- Number of terminals. */
++/* YYNTOKENS -- Number of terminals.  */
+ #define YYNTOKENS  42
+-/* YYNNTS -- Number of nonterminals. */
++/* YYNNTS -- Number of nonterminals.  */
+ #define YYNNTS  53
+-/* YYNRULES -- Number of rules. */
++/* YYNRULES -- Number of rules.  */
+ #define YYNRULES  128
+-/* YYNRULES -- Number of states. */
++/* YYNRULES -- Number of states.  */
+ #define YYNSTATES  258
+ 
+ /* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
+@@ -444,7 +508,7 @@
+   ((unsigned int) (YYX) &lt;= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
+ 
+ /* YYTRANSLATE[YYLEX] -- Bison symbol number corresponding to YYLEX.  */
+-static const unsigned char yytranslate[] =
++static const yytype_uint8 yytranslate[] =
+ {
+        0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+@@ -481,7 +545,7 @@
+ #if YYDEBUG
+ /* YYPRHS[YYN] -- Index of the first RHS symbol of rule number YYN in
+    YYRHS.  */
+-static const unsigned short int yyprhs[] =
++static const yytype_uint16 yyprhs[] =
+ {
+        0,     0,     3,     5,     7,    10,    13,    15,    17,    19,
+       21,    23,    25,    32,    34,    35,    44,    49,    50,    53,
+@@ -498,8 +562,8 @@
+      392,   396,   399,   401,   405,   408,   412,   415,   420
+ };
+ 
+-/* YYRHS -- A `-1'-separated list of the rules' RHS. */
+-static const yysigned_char yyrhs[] =
++/* YYRHS -- A `-1'-separated list of the rules' RHS.  */
++static const yytype_int8 yyrhs[] =
+ {
+       43,     0,    -1,    44,    -1,    45,    -1,    44,    45,    -1,
+       44,     1,    -1,    47,    -1,    49,    -1,    50,    -1,     8,
+@@ -547,7 +611,7 @@
+ };
+ 
+ /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
+-static const unsigned short int yyrline[] =
++static const yytype_uint16 yyrline[] =
+ {
+        0,   179,   179,   182,   183,   184,   187,   188,   189,   190,
+      193,   194,   197,   205,   206,   209,   214,   219,   220,   221,
+@@ -557,17 +621,17 @@
+      310,   313,   316,   327,   328,   335,   336,   341,   349,   350,
+      354,   360,   369,   372,   373,   376,   379,   382,   383,   384,
+      382,   390,   394,   395,   396,   397,   400,   400,   433,   434,
+-     435,   436,   440,   443,   444,   449,   450,   453,   456,   460,
+-     464,   468,   474,   475,   479,   482,   488,   488,   493,   501,
+-     501,   512,   519,   522,   523,   526,   527,   530,   533,   534,
+-     537,   541,   545,   551,   552,   555,   556,   562,   567,   572,
+-     573,   574,   577,   578,   585,   586,   587,   590,   593
++     435,   436,   440,   443,   444,   447,   448,   451,   454,   458,
++     462,   466,   472,   473,   477,   480,   486,   486,   491,   499,
++     499,   510,   517,   520,   521,   524,   525,   528,   531,   532,
++     535,   539,   543,   549,   550,   553,   554,   560,   565,   570,
++     571,   572,   575,   576,   583,   584,   585,   588,   591
+ };
+ #endif
+ 
+ #if YYDEBUG || YYERROR_VERBOSE || YYTOKEN_TABLE
+ /* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
+-   First, the terminals, then, starting at YYNTOKENS, nonterminals. */
++   First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
+ static const char *const yytname[] =
+ {
+   &quot;$end&quot;, &quot;error&quot;, &quot;$undefined&quot;, &quot;KW_CONTEXT&quot;, &quot;LC&quot;, &quot;RC&quot;, &quot;LP&quot;, &quot;RP&quot;,
+@@ -593,7 +657,7 @@
+ # ifdef YYPRINT
+ /* YYTOKNUM[YYLEX-NUM] -- Internal token number corresponding to
+    token YYLEX-NUM.  */
+-static const unsigned short int yytoknum[] =
++static const yytype_uint16 yytoknum[] =
+ {
+        0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
+      265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
+@@ -604,7 +668,7 @@
+ # endif
+ 
+ /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
+-static const unsigned char yyr1[] =
++static const yytype_uint8 yyr1[] =
+ {
+        0,    42,    43,    44,    44,    44,    45,    45,    45,    45,
+       46,    46,    47,    48,    48,    49,    50,    51,    51,    51,
+@@ -622,7 +686,7 @@
+ };
+ 
+ /* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
+-static const unsigned char yyr2[] =
++static const yytype_uint8 yyr2[] =
+ {
+        0,     2,     1,     1,     2,     2,     1,     1,     1,     1,
+        1,     1,     6,     1,     0,     8,     4,     0,     2,     2,
+@@ -642,7 +706,7 @@
+ /* YYDEFACT[STATE-NAME] -- Default rule to reduce with in state
+    STATE-NUM when YYTABLE doesn't specify something else to do.  Zero
+    means the default is an error.  */
+-static const unsigned char yydefact[] =
++static const yytype_uint8 yydefact[] =
+ {
+       14,     9,     0,     0,    13,     0,     0,     3,     6,     0,
+        7,     8,     0,    17,     1,     5,     4,     0,    22,     0,
+@@ -672,8 +736,8 @@
+        0,     0,    69,    47,     0,     0,     0,    70
+ };
+ 
+-/* YYDEFGOTO[NTERM-NUM]. */
+-static const short int yydefgoto[] =
++/* YYDEFGOTO[NTERM-NUM].  */
++static const yytype_int16 yydefgoto[] =
+ {
+       -1,     5,     6,     7,   101,     8,     9,    10,    11,    20,
+       83,    35,    26,    45,    46,    47,    48,   105,   160,   161,
+@@ -686,7 +750,7 @@
+ /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
+    STATE-NUM.  */
+ #define YYPACT_NINF -103
+-static const short int yypact[] =
++static const yytype_int16 yypact[] =
+ {
+      142,  -103,   -28,    52,  -103,    80,   148,  -103,  -103,    84,
+     -103,  -103,    88,    65,  -103,  -103,  -103,   -20,    77,   126,
+@@ -717,7 +781,7 @@
+ };
+ 
+ /* YYPGOTO[NTERM-NUM].  */
+-static const short int yypgoto[] =
++static const yytype_int16 yypgoto[] =
+ {
+     -103,  -103,  -103,   251,   -15,  -103,  -103,  -103,  -103,   240,
+       -6,  -103,  -103,   188,  -103,  -103,  -103,  -102,  -103,   102,
+@@ -732,7 +796,7 @@
+    number is the opposite.  If zero, do what YYDEFACT says.
+    If YYTABLE_NINF, syntax error.  */
+ #define YYTABLE_NINF -121
+-static const short int yytable[] =
++static const yytype_int16 yytable[] =
+ {
+       86,    96,    24,   118,   154,    99,   149,    21,    56,   165,
+      150,   104,    62,    12,   130,    21,    22,    32,    57,   -55,
+@@ -764,7 +828,7 @@
+        0,     0,     0,   250,     0,   255
+ };
+ 
+-static const short int yycheck[] =
++static const yytype_int16 yycheck[] =
+ {
+       52,    58,    17,    75,   106,    60,     1,    13,    31,    11,
+        5,    63,     1,    41,     7,    21,    36,     1,    41,    11,
+@@ -798,7 +862,7 @@
+ 
+ /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
+    symbol of state STATE-NUM.  */
+-static const unsigned char yystos[] =
++static const yytype_uint8 yystos[] =
+ {
+        0,     8,    15,    16,    23,    43,    44,    45,    47,    48,
+       49,    50,    41,     4,     0,     1,    45,     3,     6,    41,
+@@ -853,7 +917,7 @@
+       yychar = (Token);						\
+       yylval = (Value);						\
+       yytoken = YYTRANSLATE (yychar);				\
+-      YYPOPSTACK;						\
++      YYPOPSTACK (1);						\
+       goto yybackup;						\
+     }								\
+   else								\
+@@ -861,7 +925,7 @@
+       yyerror (&amp;yylloc, parseio, YY_(&quot;syntax error: cannot back up&quot;)); \
+       YYERROR;							\
+     }								\
+-while (0)
++while (YYID (0))
+ 
+ 
+ #define YYTERROR	1
+@@ -876,7 +940,7 @@
+ #ifndef YYLLOC_DEFAULT
+ # define YYLLOC_DEFAULT(Current, Rhs, N)				\
+     do									\
+-      if (N)								\
++      if (YYID (N))                                                    \
+ 	{								\
+ 	  (Current).first_line   = YYRHSLOC (Rhs, 1).first_line;	\
+ 	  (Current).first_column = YYRHSLOC (Rhs, 1).first_column;	\
+@@ -890,7 +954,7 @@
+ 	  (Current).first_column = (Current).last_column =		\
+ 	    YYRHSLOC (Rhs, 0).last_column;				\
+ 	}								\
+-    while (0)
++    while (YYID (0))
+ #endif
+ 
+ 
+@@ -902,8 +966,8 @@
+ # if YYLTYPE_IS_TRIVIAL
+ #  define YY_LOCATION_PRINT(File, Loc)			\
+      fprintf (File, &quot;%d.%d-%d.%d&quot;,			\
+-              (Loc).first_line, (Loc).first_column,	\
+-              (Loc).last_line,  (Loc).last_column)
++	      (Loc).first_line, (Loc).first_column,	\
++	      (Loc).last_line,  (Loc).last_column)
+ # else
+ #  define YY_LOCATION_PRINT(File, Loc) ((void) 0)
+ # endif
+@@ -930,36 +994,104 @@
+ do {						\
+   if (yydebug)					\
+     YYFPRINTF Args;				\
+-} while (0)
++} while (YYID (0))
+ 
+-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)		\
+-do {								\
+-  if (yydebug)							\
+-    {								\
+-      YYFPRINTF (stderr, &quot;%s &quot;, Title);				\
+-      yysymprint (stderr,					\
+-                  Type, Value, Location);	\
+-      YYFPRINTF (stderr, &quot;\n&quot;);					\
+-    }								\
+-} while (0)
++# define YY_SYMBOL_PRINT(Title, Type, Value, Location)			  \
++do {									  \
++  if (yydebug)								  \
++    {									  \
++      YYFPRINTF (stderr, &quot;%s &quot;, Title);					  \
++      yy_symbol_print (stderr,						  \
++		  Type, Value, Location, parseio); \
++      YYFPRINTF (stderr, &quot;\n&quot;);						  \
++    }									  \
++} while (YYID (0))
+ 
++
++/*--------------------------------.
++| Print this symbol on YYOUTPUT.  |
++`--------------------------------*/
++
++/*ARGSUSED*/
++#if (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
++static void
++yy_symbol_value_print (FILE *yyoutput, int yytype, const YYSTYPE * const yyvaluep, const YYLTYPE * const yylocationp, struct parse_io *parseio)
++#else
++static void
++yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, parseio)
++    FILE *yyoutput;
++    int yytype;
++    const YYSTYPE * const yyvaluep;
++    const YYLTYPE * const yylocationp;
++    struct parse_io *parseio;
++#endif
++{
++  if (!yyvaluep)
++    return;
++  YYUSE (yylocationp);
++  YYUSE (parseio);
++# ifdef YYPRINT
++  if (yytype &lt; YYNTOKENS)
++    YYPRINT (yyoutput, yytoknum[yytype], *yyvaluep);
++# else
++  YYUSE (yyoutput);
++# endif
++  switch (yytype)
++    {
++      default:
++	break;
++    }
++}
++
++
++/*--------------------------------.
++| Print this symbol on YYOUTPUT.  |
++`--------------------------------*/
++
++#if (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
++static void
++yy_symbol_print (FILE *yyoutput, int yytype, const YYSTYPE * const yyvaluep, const YYLTYPE * const yylocationp, struct parse_io *parseio)
++#else
++static void
++yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp, parseio)
++    FILE *yyoutput;
++    int yytype;
++    const YYSTYPE * const yyvaluep;
++    const YYLTYPE * const yylocationp;
++    struct parse_io *parseio;
++#endif
++{
++  if (yytype &lt; YYNTOKENS)
++    YYFPRINTF (yyoutput, &quot;token %s (&quot;, yytname[yytype]);
++  else
++    YYFPRINTF (yyoutput, &quot;nterm %s (&quot;, yytname[yytype]);
++
++  YY_LOCATION_PRINT (yyoutput, *yylocationp);
++  YYFPRINTF (yyoutput, &quot;: &quot;);
++  yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, parseio);
++  YYFPRINTF (yyoutput, &quot;)&quot;);
++}
++
+ /*------------------------------------------------------------------.
+ | yy_stack_print -- Print the state stack from its BOTTOM up to its |
+ | TOP (included).                                                   |
+ `------------------------------------------------------------------*/
+ 
+-#if defined (__STDC__) || defined (__cplusplus)
++#if (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
+ static void
+-yy_stack_print (short int *bottom, short int *top)
++yy_stack_print (yytype_int16 *bottom, yytype_int16 *top)
+ #else
+ static void
+ yy_stack_print (bottom, top)
+-    short int *bottom;
+-    short int *top;
++    yytype_int16 *bottom;
++    yytype_int16 *top;
+ #endif
+ {
+   YYFPRINTF (stderr, &quot;Stack now&quot;);
+-  for (/* Nothing. */; bottom &lt;= top; ++bottom)
++  for (; bottom &lt;= top; ++bottom)
+     YYFPRINTF (stderr, &quot; %d&quot;, *bottom);
+   YYFPRINTF (stderr, &quot;\n&quot;);
+ }
+@@ -968,37 +1100,47 @@
+ do {								\
+   if (yydebug)							\
+     yy_stack_print ((Bottom), (Top));				\
+-} while (0)
++} while (YYID (0))
+ 
+ 
+ /*------------------------------------------------.
+ | Report that the YYRULE is going to be reduced.  |
+ `------------------------------------------------*/
+ 
+-#if defined (__STDC__) || defined (__cplusplus)
++#if (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
+ static void
+-yy_reduce_print (int yyrule)
++yy_reduce_print (YYSTYPE *yyvsp, YYLTYPE *yylsp, int yyrule, struct parse_io *parseio)
+ #else
+ static void
+-yy_reduce_print (yyrule)
++yy_reduce_print (yyvsp, yylsp, yyrule, parseio)
++    YYSTYPE *yyvsp;
++    YYLTYPE *yylsp;
+     int yyrule;
++    struct parse_io *parseio;
+ #endif
+ {
++  int yynrhs = yyr2[yyrule];
+   int yyi;
+   unsigned long int yylno = yyrline[yyrule];
+-  YYFPRINTF (stderr, &quot;Reducing stack by rule %d (line %lu), &quot;,
+-             yyrule - 1, yylno);
+-  /* Print the symbols being reduced, and their result.  */
+-  for (yyi = yyprhs[yyrule]; 0 &lt;= yyrhs[yyi]; yyi++)
+-    YYFPRINTF (stderr, &quot;%s &quot;, yytname[yyrhs[yyi]]);
+-  YYFPRINTF (stderr, &quot;-&gt; %s\n&quot;, yytname[yyr1[yyrule]]);
++  YYFPRINTF (stderr, &quot;Reducing stack by rule %d (line %lu):\n&quot;,
++	     yyrule - 1, yylno);
++  /* The symbols being reduced.  */
++  for (yyi = 0; yyi &lt; yynrhs; yyi++)
++    {
++      fprintf (stderr, &quot;   $%d = &quot;, yyi + 1);
++      yy_symbol_print (stderr, yyrhs[yyprhs[yyrule] + yyi],
++		       &amp;(yyvsp[(yyi + 1) - (yynrhs)])
++		       , &amp;(yylsp[(yyi + 1) - (yynrhs)])		       , parseio);
++      fprintf (stderr, &quot;\n&quot;);
++    }
+ }
+ 
+ # define YY_REDUCE_PRINT(Rule)		\
+ do {					\
+   if (yydebug)				\
+-    yy_reduce_print (Rule);		\
+-} while (0)
++    yy_reduce_print (yyvsp, yylsp, Rule, parseio); \
++} while (YYID (0))
+ 
+ /* Nonzero means print parse trace.  It is left uninitialized so that
+    multiple parsers can coexist.  */
+@@ -1032,42 +1174,44 @@
+ #if YYERROR_VERBOSE
+ 
+ # ifndef yystrlen
+-#  if defined (__GLIBC__) &amp;&amp; defined (_STRING_H)
++#  if defined __GLIBC__ &amp;&amp; defined _STRING_H
+ #   define yystrlen strlen
+ #  else
+ /* Return the length of YYSTR.  */
++#if (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
+ static YYSIZE_T
+-#   if defined (__STDC__) || defined (__cplusplus)
+ yystrlen (const char *yystr)
+-#   else
++#else
++static YYSIZE_T
+ yystrlen (yystr)
+-     const char *yystr;
+-#   endif
++    const char *yystr;
++#endif
+ {
+-  const char *yys = yystr;
+-
+-  while (*yys++ != '\0')
++  YYSIZE_T yylen;
++  for (yylen = 0; yystr[yylen]; yylen++)
+     continue;
+-
+-  return yys - yystr - 1;
++  return yylen;
+ }
+ #  endif
+ # endif
+ 
+ # ifndef yystpcpy
+-#  if defined (__GLIBC__) &amp;&amp; defined (_STRING_H) &amp;&amp; defined (_GNU_SOURCE)
++#  if defined __GLIBC__ &amp;&amp; defined _STRING_H &amp;&amp; defined _GNU_SOURCE
+ #   define yystpcpy stpcpy
+ #  else
+ /* Copy YYSRC to YYDEST, returning the address of the terminating '\0' in
+    YYDEST.  */
++#if (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
+ static char *
+-#   if defined (__STDC__) || defined (__cplusplus)
+ yystpcpy (char *yydest, const char *yysrc)
+-#   else
++#else
++static char *
+ yystpcpy (yydest, yysrc)
+-     char *yydest;
+-     const char *yysrc;
+-#   endif
++    char *yydest;
++    const char *yysrc;
++#endif
+ {
+   char *yyd = yydest;
+   const char *yys = yysrc;
+@@ -1128,71 +1272,138 @@
+ }
+ # endif
+ 
+-#endif /* YYERROR_VERBOSE */
++/* Copy into YYRESULT an error message about the unexpected token
++   YYCHAR while in state YYSTATE.  Return the number of bytes copied,
++   including the terminating null byte.  If YYRESULT is null, do not
++   copy anything; just return the number of bytes that would be
++   copied.  As a special case, return 0 if an ordinary &quot;syntax error&quot;
++   message will do.  Return YYSIZE_MAXIMUM if overflow occurs during
++   size calculation.  */
++static YYSIZE_T
++yysyntax_error (char *yyresult, int yystate, int yychar)
++{
++  int yyn = yypact[yystate];
+ 
+-
++  if (! (YYPACT_NINF &lt; yyn &amp;&amp; yyn &lt; YYLAST))
++    return 0;
++  else
++    {
++      int yytype = YYTRANSLATE (yychar);
++      YYSIZE_T yysize0 = yytnamerr (0, yytname[yytype]);
++      YYSIZE_T yysize = yysize0;
++      YYSIZE_T yysize1;
++      int yysize_overflow = 0;
++      enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
++      char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
++      int yyx;
+ 
+-#if YYDEBUG
+-/*--------------------------------.
+-| Print this symbol on YYOUTPUT.  |
+-`--------------------------------*/
++# if 0
++      /* This is so xgettext sees the translatable formats that are
++	 constructed on the fly.  */
++      YY_(&quot;syntax error, unexpected %s&quot;);
++      YY_(&quot;syntax error, unexpected %s, expecting %s&quot;);
++      YY_(&quot;syntax error, unexpected %s, expecting %s or %s&quot;);
++      YY_(&quot;syntax error, unexpected %s, expecting %s or %s or %s&quot;);
++      YY_(&quot;syntax error, unexpected %s, expecting %s or %s or %s or %s&quot;);
++# endif
++      char *yyfmt;
++      char const *yyf;
++      static char const yyunexpected[] = &quot;syntax error, unexpected %s&quot;;
++      static char const yyexpecting[] = &quot;, expecting %s&quot;;
++      static char const yyor[] = &quot; or %s&quot;;
++      char yyformat[sizeof yyunexpected
++		    + sizeof yyexpecting - 1
++		    + ((YYERROR_VERBOSE_ARGS_MAXIMUM - 2)
++		       * (sizeof yyor - 1))];
++      char const *yyprefix = yyexpecting;
+ 
+-#if defined (__STDC__) || defined (__cplusplus)
+-static void
+-yysymprint (FILE *yyoutput, int yytype, YYSTYPE *yyvaluep, YYLTYPE *yylocationp)
+-#else
+-static void
+-yysymprint (yyoutput, yytype, yyvaluep, yylocationp)
+-    FILE *yyoutput;
+-    int yytype;
+-    YYSTYPE *yyvaluep;
+-    YYLTYPE *yylocationp;
+-#endif
+-{
+-  /* Pacify ``unused variable'' warnings.  */
+-  (void) yyvaluep;
+-  (void) yylocationp;
++      /* Start YYX at -YYN if negative to avoid negative indexes in
++	 YYCHECK.  */
++      int yyxbegin = yyn &lt; 0 ? -yyn : 0;
+ 
+-  if (yytype &lt; YYNTOKENS)
+-    YYFPRINTF (yyoutput, &quot;token %s (&quot;, yytname[yytype]);
+-  else
+-    YYFPRINTF (yyoutput, &quot;nterm %s (&quot;, yytname[yytype]);
++      /* Stay within bounds of both yycheck and yytname.  */
++      int yychecklim = YYLAST - yyn;
++      int yyxend = yychecklim &lt; YYNTOKENS ? yychecklim : YYNTOKENS;
++      int yycount = 1;
+ 
+-  YY_LOCATION_PRINT (yyoutput, *yylocationp);
+-  YYFPRINTF (yyoutput, &quot;: &quot;);
++      yyarg[0] = yytname[yytype];
++      yyfmt = yystpcpy (yyformat, yyunexpected);
+ 
+-# ifdef YYPRINT
+-  if (yytype &lt; YYNTOKENS)
+-    YYPRINT (yyoutput, yytoknum[yytype], *yyvaluep);
+-# endif
+-  switch (yytype)
+-    {
+-      default:
+-        break;
++      for (yyx = yyxbegin; yyx &lt; yyxend; ++yyx)
++	if (yycheck[yyx + yyn] == yyx &amp;&amp; yyx != YYTERROR)
++	  {
++	    if (yycount == YYERROR_VERBOSE_ARGS_MAXIMUM)
++	      {
++		yycount = 1;
++		yysize = yysize0;
++		yyformat[sizeof yyunexpected - 1] = '\0';
++		break;
++	      }
++	    yyarg[yycount++] = yytname[yyx];
++	    yysize1 = yysize + yytnamerr (0, yytname[yyx]);
++	    yysize_overflow |= (yysize1 &lt; yysize);
++	    yysize = yysize1;
++	    yyfmt = yystpcpy (yyfmt, yyprefix);
++	    yyprefix = yyor;
++	  }
++
++      yyf = YY_(yyformat);
++      yysize1 = yysize + yystrlen (yyf);
++      yysize_overflow |= (yysize1 &lt; yysize);
++      yysize = yysize1;
++
++      if (yysize_overflow)
++	return YYSIZE_MAXIMUM;
++
++      if (yyresult)
++	{
++	  /* Avoid sprintf, as that infringes on the user's name space.
++	     Don't have undefined behavior even if the translation
++	     produced a string with the wrong number of &quot;%s&quot;s.  */
++	  char *yyp = yyresult;
++	  int yyi = 0;
++	  while ((*yyp = *yyf) != '\0')
++	    {
++	      if (*yyp == '%' &amp;&amp; yyf[1] == 's' &amp;&amp; yyi &lt; yycount)
++		{
++		  yyp += yytnamerr (yyp, yyarg[yyi++]);
++		  yyf += 2;
++		}
++	      else
++		{
++		  yyp++;
++		  yyf++;
++		}
++	    }
++	}
++      return yysize;
+     }
+-  YYFPRINTF (yyoutput, &quot;)&quot;);
+ }
++#endif /* YYERROR_VERBOSE */
++
+ 
+-#endif /* ! YYDEBUG */
+ /*-----------------------------------------------.
+ | Release the memory associated to this symbol.  |
+ `-----------------------------------------------*/
+ 
+-#if defined (__STDC__) || defined (__cplusplus)
++/*ARGSUSED*/
++#if (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
+ static void
+-yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, YYLTYPE *yylocationp)
++yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, struct parse_io *parseio)
+ #else
+ static void
+-yydestruct (yymsg, yytype, yyvaluep, yylocationp)
++yydestruct (yymsg, yytype, yyvaluep, yylocationp, parseio)
+     const char *yymsg;
+     int yytype;
+     YYSTYPE *yyvaluep;
+     YYLTYPE *yylocationp;
++    struct parse_io *parseio;
+ #endif
+ {
+-  /* Pacify ``unused variable'' warnings.  */
+-  (void) yyvaluep;
+-  (void) yylocationp;
++  YYUSE (yyvaluep);
++  YYUSE (yylocationp);
++  YYUSE (parseio);
+ 
+   if (!yymsg)
+     yymsg = &quot;Deleting&quot;;
+@@ -1202,324 +1413,324 @@
+     {
+       case 41: /* &quot;word&quot; */
+ #line 171 &quot;ael.y&quot;
+-        { free((yyvaluep-&gt;str));};
+-#line 1202 &quot;ael.tab.c&quot;
+-        break;
++	{ free((yyvaluep-&gt;str));};
++#line 1413 &quot;ael.tab.c&quot;
++	break;
+       case 44: /* &quot;objects&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1210 &quot;ael.tab.c&quot;
+-        break;
++#line 1421 &quot;ael.tab.c&quot;
++	break;
+       case 45: /* &quot;object&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1218 &quot;ael.tab.c&quot;
+-        break;
++#line 1429 &quot;ael.tab.c&quot;
++	break;
+       case 46: /* &quot;context_name&quot; */
+ #line 171 &quot;ael.y&quot;
+-        { free((yyvaluep-&gt;str));};
+-#line 1223 &quot;ael.tab.c&quot;
+-        break;
++	{ free((yyvaluep-&gt;str));};
++#line 1434 &quot;ael.tab.c&quot;
++	break;
+       case 47: /* &quot;context&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1231 &quot;ael.tab.c&quot;
+-        break;
++#line 1442 &quot;ael.tab.c&quot;
++	break;
+       case 49: /* &quot;macro&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1239 &quot;ael.tab.c&quot;
+-        break;
++#line 1450 &quot;ael.tab.c&quot;
++	break;
+       case 50: /* &quot;globals&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1247 &quot;ael.tab.c&quot;
+-        break;
++#line 1458 &quot;ael.tab.c&quot;
++	break;
+       case 51: /* &quot;global_statements&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1255 &quot;ael.tab.c&quot;
+-        break;
++#line 1466 &quot;ael.tab.c&quot;
++	break;
+       case 52: /* &quot;assignment&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1263 &quot;ael.tab.c&quot;
+-        break;
++#line 1474 &quot;ael.tab.c&quot;
++	break;
+       case 54: /* &quot;arglist&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1271 &quot;ael.tab.c&quot;
+-        break;
++#line 1482 &quot;ael.tab.c&quot;
++	break;
+       case 55: /* &quot;elements&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1279 &quot;ael.tab.c&quot;
+-        break;
++#line 1490 &quot;ael.tab.c&quot;
++	break;
+       case 56: /* &quot;element&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1287 &quot;ael.tab.c&quot;
+-        break;
++#line 1498 &quot;ael.tab.c&quot;
++	break;
+       case 57: /* &quot;ignorepat&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1295 &quot;ael.tab.c&quot;
+-        break;
++#line 1506 &quot;ael.tab.c&quot;
++	break;
+       case 58: /* &quot;extension&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1303 &quot;ael.tab.c&quot;
+-        break;
++#line 1514 &quot;ael.tab.c&quot;
++	break;
+       case 59: /* &quot;statements&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1311 &quot;ael.tab.c&quot;
+-        break;
++#line 1522 &quot;ael.tab.c&quot;
++	break;
+       case 60: /* &quot;timerange&quot; */
+ #line 171 &quot;ael.y&quot;
+-        { free((yyvaluep-&gt;str));};
+-#line 1316 &quot;ael.tab.c&quot;
+-        break;
++	{ free((yyvaluep-&gt;str));};
++#line 1527 &quot;ael.tab.c&quot;
++	break;
+       case 61: /* &quot;timespec&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1324 &quot;ael.tab.c&quot;
+-        break;
++#line 1535 &quot;ael.tab.c&quot;
++	break;
+       case 62: /* &quot;test_expr&quot; */
+ #line 171 &quot;ael.y&quot;
+-        { free((yyvaluep-&gt;str));};
+-#line 1329 &quot;ael.tab.c&quot;
+-        break;
++	{ free((yyvaluep-&gt;str));};
++#line 1540 &quot;ael.tab.c&quot;
++	break;
+       case 64: /* &quot;if_like_head&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1337 &quot;ael.tab.c&quot;
+-        break;
++#line 1548 &quot;ael.tab.c&quot;
++	break;
+       case 65: /* &quot;word_list&quot; */
+ #line 171 &quot;ael.y&quot;
+-        { free((yyvaluep-&gt;str));};
+-#line 1342 &quot;ael.tab.c&quot;
+-        break;
++	{ free((yyvaluep-&gt;str));};
++#line 1553 &quot;ael.tab.c&quot;
++	break;
+       case 66: /* &quot;word3_list&quot; */
+ #line 171 &quot;ael.y&quot;
+-        { free((yyvaluep-&gt;str));};
+-#line 1347 &quot;ael.tab.c&quot;
+-        break;
++	{ free((yyvaluep-&gt;str));};
++#line 1558 &quot;ael.tab.c&quot;
++	break;
+       case 67: /* &quot;goto_word&quot; */
+ #line 171 &quot;ael.y&quot;
+-        { free((yyvaluep-&gt;str));};
+-#line 1352 &quot;ael.tab.c&quot;
+-        break;
++	{ free((yyvaluep-&gt;str));};
++#line 1563 &quot;ael.tab.c&quot;
++	break;
+       case 68: /* &quot;switch_statement&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1360 &quot;ael.tab.c&quot;
+-        break;
++#line 1571 &quot;ael.tab.c&quot;
++	break;
+       case 69: /* &quot;statement&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1368 &quot;ael.tab.c&quot;
+-        break;
++#line 1579 &quot;ael.tab.c&quot;
++	break;
+       case 74: /* &quot;opt_else&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1376 &quot;ael.tab.c&quot;
+-        break;
++#line 1587 &quot;ael.tab.c&quot;
++	break;
+       case 75: /* &quot;target&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1384 &quot;ael.tab.c&quot;
+-        break;
++#line 1595 &quot;ael.tab.c&quot;
++	break;
+       case 76: /* &quot;opt_pri&quot; */
+ #line 171 &quot;ael.y&quot;
+-        { free((yyvaluep-&gt;str));};
+-#line 1389 &quot;ael.tab.c&quot;
+-        break;
++	{ free((yyvaluep-&gt;str));};
++#line 1600 &quot;ael.tab.c&quot;
++	break;
+       case 77: /* &quot;jumptarget&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1397 &quot;ael.tab.c&quot;
+-        break;
++#line 1608 &quot;ael.tab.c&quot;
++	break;
+       case 78: /* &quot;macro_call&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1405 &quot;ael.tab.c&quot;
+-        break;
++#line 1616 &quot;ael.tab.c&quot;
++	break;
+       case 80: /* &quot;application_call_head&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1413 &quot;ael.tab.c&quot;
+-        break;
++#line 1624 &quot;ael.tab.c&quot;
++	break;
+       case 82: /* &quot;application_call&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1421 &quot;ael.tab.c&quot;
+-        break;
++#line 1632 &quot;ael.tab.c&quot;
++	break;
+       case 83: /* &quot;opt_word&quot; */
+ #line 171 &quot;ael.y&quot;
+-        { free((yyvaluep-&gt;str));};
+-#line 1426 &quot;ael.tab.c&quot;
+-        break;
++	{ free((yyvaluep-&gt;str));};
++#line 1637 &quot;ael.tab.c&quot;
++	break;
+       case 84: /* &quot;eval_arglist&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1434 &quot;ael.tab.c&quot;
+-        break;
++#line 1645 &quot;ael.tab.c&quot;
++	break;
+       case 85: /* &quot;case_statements&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1442 &quot;ael.tab.c&quot;
+-        break;
++#line 1653 &quot;ael.tab.c&quot;
++	break;
+       case 86: /* &quot;case_statement&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1450 &quot;ael.tab.c&quot;
+-        break;
++#line 1661 &quot;ael.tab.c&quot;
++	break;
+       case 87: /* &quot;macro_statements&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1458 &quot;ael.tab.c&quot;
+-        break;
++#line 1669 &quot;ael.tab.c&quot;
++	break;
+       case 88: /* &quot;macro_statement&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1466 &quot;ael.tab.c&quot;
+-        break;
++#line 1677 &quot;ael.tab.c&quot;
++	break;
+       case 89: /* &quot;switches&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1474 &quot;ael.tab.c&quot;
+-        break;
++#line 1685 &quot;ael.tab.c&quot;
++	break;
+       case 90: /* &quot;eswitches&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1482 &quot;ael.tab.c&quot;
+-        break;
++#line 1693 &quot;ael.tab.c&quot;
++	break;
+       case 91: /* &quot;switchlist&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1490 &quot;ael.tab.c&quot;
+-        break;
++#line 1701 &quot;ael.tab.c&quot;
++	break;
+       case 92: /* &quot;included_entry&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1498 &quot;ael.tab.c&quot;
+-        break;
++#line 1709 &quot;ael.tab.c&quot;
++	break;
+       case 93: /* &quot;includeslist&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1506 &quot;ael.tab.c&quot;
+-        break;
++#line 1717 &quot;ael.tab.c&quot;
++	break;
+       case 94: /* &quot;includes&quot; */
+ #line 158 &quot;ael.y&quot;
+-        {
++	{
+ 		destroy_pval((yyvaluep-&gt;pval));
+ 		prev_word=0;
+ 	};
+-#line 1514 &quot;ael.tab.c&quot;
+-        break;
++#line 1725 &quot;ael.tab.c&quot;
++	break;
+ 
+       default:
+-        break;
++	break;
+     }
+ }
+ 
+@@ -1527,13 +1738,13 @@
+ /* Prevent warnings from -Wmissing-prototypes.  */
+ 
+ #ifdef YYPARSE_PARAM
+-# if defined (__STDC__) || defined (__cplusplus)
++#if defined __STDC__ || defined __cplusplus
+ int yyparse (void *YYPARSE_PARAM);
+-# else
++#else
+ int yyparse ();
+-# endif
++#endif
+ #else /* ! YYPARSE_PARAM */
+-#if defined (__STDC__) || defined (__cplusplus)
++#if defined __STDC__ || defined __cplusplus
+ int yyparse (struct parse_io *parseio);
+ #else
+ int yyparse ();
+@@ -1550,14 +1761,18 @@
+ `----------*/
+ 
+ #ifdef YYPARSE_PARAM
+-# if defined (__STDC__) || defined (__cplusplus)
+-int yyparse (void *YYPARSE_PARAM)
+-# else
+-int yyparse (YYPARSE_PARAM)
+-  void *YYPARSE_PARAM;
+-# endif
++#if (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
++int
++yyparse (void *YYPARSE_PARAM)
++#else
++int
++yyparse (YYPARSE_PARAM)
++    void *YYPARSE_PARAM;
++#endif
+ #else /* ! YYPARSE_PARAM */
+-#if defined (__STDC__) || defined (__cplusplus)
++#if (defined __STDC__ || defined __C99__FUNC__ \
++     || defined __cplusplus || defined _MSC_VER)
+ int
+ yyparse (struct parse_io *parseio)
+ #else
+@@ -1585,6 +1800,12 @@
+   int yyerrstatus;
+   /* Look-ahead token as an internal (translated) token number.  */
+   int yytoken = 0;
++#if YYERROR_VERBOSE
++  /* Buffer for error messages, and its allocated size.  */
++  char yymsgbuf[128];
++  char *yymsg = yymsgbuf;
++  YYSIZE_T yymsg_alloc = sizeof yymsgbuf;
++#endif
+ 
+   /* Three stacks and their tools:
+      `yyss': related to states,
+@@ -1595,9 +1816,9 @@
+      to reallocate them elsewhere.  */
+ 
+   /* The state stack.  */
+-  short int yyssa[YYINITDEPTH];
+-  short int *yyss = yyssa;
+-  short int *yyssp;
++  yytype_int16 yyssa[YYINITDEPTH];
++  yytype_int16 *yyss = yyssa;
++  yytype_int16 *yyssp;
+ 
+   /* The semantic value stack.  */
+   YYSTYPE yyvsa[YYINITDEPTH];
+@@ -1608,10 +1829,10 @@
+   YYLTYPE yylsa[YYINITDEPTH];
+   YYLTYPE *yyls = yylsa;
+   YYLTYPE *yylsp;
+-  /* The locations where the error started and ended. */
++  /* The locations where the error started and ended.  */
+   YYLTYPE yyerror_range[2];
+ 
+-#define YYPOPSTACK   (yyvsp--, yyssp--, yylsp--)
++#define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N), yylsp -= (N))
+ 
+   YYSIZE_T yystacksize = YYINITDEPTH;
+ 
+@@ -1620,9 +1841,9 @@
+   YYSTYPE yyval;
+   YYLTYPE yyloc;
+ 
+-  /* When reducing, the number of symbols on the RHS of the reduced
+-     rule.  */
+-  int yylen;
++  /* The number of symbols on the RHS of the reduced rule.
++     Keep to zero when no symbol should be popped.  */
++  int yylen = 0;
+ 
+   YYDPRINTF ((stderr, &quot;Starting parse\n&quot;));
+ 
+@@ -1652,8 +1873,7 @@
+ `------------------------------------------------------------*/
+  yynewstate:
+   /* In all cases, when you get here, the value and location stacks
+-     have just been pushed. so pushing a state here evens the stacks.
+-     */
++     have just been pushed.  So pushing a state here evens the stacks.  */
+   yyssp++;
+ 
+  yysetstate:
+@@ -1666,11 +1886,11 @@
+ 
+ #ifdef yyoverflow
+       {
+-	/* Give user a chance to reallocate the stack. Use copies of
++	/* Give user a chance to reallocate the stack.  Use copies of
+ 	   these so that the &amp;'s don't force the real ones into
+ 	   memory.  */
+ 	YYSTYPE *yyvs1 = yyvs;
+-	short int *yyss1 = yyss;
++	yytype_int16 *yyss1 = yyss;
+ 	YYLTYPE *yyls1 = yyls;
+ 
+ 	/* Each stack pointer address is followed by the size of the
+@@ -1698,7 +1918,7 @@
+ 	yystacksize = YYMAXDEPTH;
+ 
+       {
+-	short int *yyss1 = yyss;
++	yytype_int16 *yyss1 = yyss;
+ 	union yyalloc *yyptr =
+ 	  (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
+ 	if (! yyptr)
+@@ -1733,12 +1953,10 @@
+ `-----------*/
+ yybackup:
+ 
+-/* Do appropriate processing given the current state.  */
+-/* Read a look-ahead token if we need one and don't already have one.  */
+-/* yyresume: */
++  /* Do appropriate processing given the current state.  Read a
++     look-ahead token if we need one and don't already have one.  */
+ 
+   /* First try to decide what to do without reference to look-ahead token.  */
+-
+   yyn = yypact[yystate];
+   if (yyn == YYPACT_NINF)
+     goto yydefault;
+@@ -1780,22 +1998,21 @@
+   if (yyn == YYFINAL)
+     YYACCEPT;
+ 
++  /* Count tokens shifted since error; after three, turn off error
++     status.  */
++  if (yyerrstatus)
++    yyerrstatus--;
++
+   /* Shift the look-ahead token.  */
+   YY_SYMBOL_PRINT (&quot;Shifting&quot;, yytoken, &amp;yylval, &amp;yylloc);
+ 
+-  /* Discard the token being shifted unless it is eof.  */
++  /* Discard the shifted token unless it is eof.  */
+   if (yychar != YYEOF)
+     yychar = YYEMPTY;
+ 
++  yystate = yyn;
+   *++yyvsp = yylval;
+   *++yylsp = yylloc;
+-
+-  /* Count tokens shifted since error; after three, turn off error
+-     status.  */
+-  if (yyerrstatus)
+-    yyerrstatus--;
+-
+-  yystate = yyn;
+   goto yynewstate;
+ 
+ 
+@@ -1826,44 +2043,44 @@
+      GCC warning that YYVAL may be used uninitialized.  */
+   yyval = yyvsp[1-yylen];
+ 
+-  /* Default location. */
+-  YYLLOC_DEFAULT (yyloc, yylsp - yylen, yylen);
++  /* Default location.  */
++  YYLLOC_DEFAULT (yyloc, (yylsp - yylen), yylen);
+   YY_REDUCE_PRINT (yyn);
+   switch (yyn)
+     {
+         case 2:
+ #line 179 &quot;ael.y&quot;
+-    { (yyval.pval) = parseio-&gt;pval = (yyvsp[0].pval); ;}
++    { (yyval.pval) = parseio-&gt;pval = (yyvsp[(1) - (1)].pval); ;}
+     break;
+ 
+   case 3:
+ #line 182 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[0].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (1)].pval);;}
+     break;
+ 
+   case 4:
+ #line 183 &quot;ael.y&quot;
+-    { (yyval.pval) = linku1((yyvsp[-1].pval), (yyvsp[0].pval)); ;}
++    { (yyval.pval) = linku1((yyvsp[(1) - (2)].pval), (yyvsp[(2) - (2)].pval)); ;}
+     break;
+ 
+   case 5:
+ #line 184 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[-1].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (2)].pval);;}
+     break;
+ 
+   case 6:
+ #line 187 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[0].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (1)].pval);;}
+     break;
+ 
+   case 7:
+ #line 188 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[0].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (1)].pval);;}
+     break;
+ 
+   case 8:
+ #line 189 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[0].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (1)].pval);;}
+     break;
+ 
+   case 9:
+@@ -1873,7 +2090,7 @@
+ 
+   case 10:
+ #line 193 &quot;ael.y&quot;
+-    { (yyval.str) = (yyvsp[0].str); ;}
++    { (yyval.str) = (yyvsp[(1) - (1)].str); ;}
+     break;
+ 
+   case 11:
+@@ -1884,10 +2101,10 @@
+   case 12:
+ #line 197 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_CONTEXT, &amp;(yylsp[-5]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-3].str);
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[-1].pval);
+-		(yyval.pval)-&gt;u3.abstract = (yyvsp[-5].intval); ;}
++		(yyval.pval) = npval2(PV_CONTEXT, &amp;(yylsp[(1) - (6)]), &amp;(yylsp[(6) - (6)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(3) - (6)].str);
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(5) - (6)].pval);
++		(yyval.pval)-&gt;u3.abstract = (yyvsp[(1) - (6)].intval); ;}
+     break;
+ 
+   case 13:
+@@ -1903,15 +2120,15 @@
+   case 15:
+ #line 209 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_MACRO, &amp;(yylsp[-7]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-6].str); (yyval.pval)-&gt;u2.arglist = (yyvsp[-4].pval); (yyval.pval)-&gt;u3.macro_statements = (yyvsp[-1].pval); ;}
++		(yyval.pval) = npval2(PV_MACRO, &amp;(yylsp[(1) - (8)]), &amp;(yylsp[(8) - (8)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(2) - (8)].str); (yyval.pval)-&gt;u2.arglist = (yyvsp[(4) - (8)].pval); (yyval.pval)-&gt;u3.macro_statements = (yyvsp[(7) - (8)].pval); ;}
+     break;
+ 
+   case 16:
+ #line 214 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_GLOBALS, &amp;(yylsp[-3]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.statements = (yyvsp[-1].pval);;}
++		(yyval.pval) = npval2(PV_GLOBALS, &amp;(yylsp[(1) - (4)]), &amp;(yylsp[(4) - (4)]));
++		(yyval.pval)-&gt;u1.statements = (yyvsp[(3) - (4)].pval);;}
+     break;
+ 
+   case 17:
+@@ -1921,12 +2138,12 @@
+ 
+   case 18:
+ #line 220 &quot;ael.y&quot;
+-    {(yyval.pval) = linku1((yyvsp[-1].pval), (yyvsp[0].pval)); ;}
++    {(yyval.pval) = linku1((yyvsp[(1) - (2)].pval), (yyvsp[(2) - (2)].pval)); ;}
+     break;
+ 
+   case 19:
+ #line 221 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[-1].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (2)].pval);;}
+     break;
+ 
+   case 20:
+@@ -1937,9 +2154,9 @@
+   case 21:
+ #line 224 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_VARDEC, &amp;(yylsp[-4]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-4].str);
+-		(yyval.pval)-&gt;u2.val = (yyvsp[-1].str); ;}
++		(yyval.pval) = npval2(PV_VARDEC, &amp;(yylsp[(1) - (5)]), &amp;(yylsp[(5) - (5)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(1) - (5)].str);
++		(yyval.pval)-&gt;u2.val = (yyvsp[(4) - (5)].str); ;}
+     break;
+ 
+   case 22:
+@@ -1949,17 +2166,17 @@
+ 
+   case 23:
+ #line 232 &quot;ael.y&quot;
+-    { (yyval.pval) = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++    { (yyval.pval) = nword((yyvsp[(1) - (1)].str), &amp;(yylsp[(1) - (1)])); ;}
+     break;
+ 
+   case 24:
+ #line 233 &quot;ael.y&quot;
+-    { (yyval.pval) = linku1((yyvsp[-2].pval), nword((yyvsp[0].str), &amp;(yylsp[0]))); ;}
++    { (yyval.pval) = linku1((yyvsp[(1) - (3)].pval), nword((yyvsp[(3) - (3)].str), &amp;(yylsp[(3) - (3)]))); ;}
+     break;
+ 
+   case 25:
+ #line 234 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[-1].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (2)].pval);;}
+     break;
+ 
+   case 26:
+@@ -1969,47 +2186,47 @@
+ 
+   case 27:
+ #line 238 &quot;ael.y&quot;
+-    { (yyval.pval) = linku1((yyvsp[-1].pval), (yyvsp[0].pval)); ;}
++    { (yyval.pval) = linku1((yyvsp[(1) - (2)].pval), (yyvsp[(2) - (2)].pval)); ;}
+     break;
+ 
+   case 28:
+ #line 239 &quot;ael.y&quot;
+-    { (yyval.pval)=(yyvsp[-1].pval);;}
++    { (yyval.pval)=(yyvsp[(1) - (2)].pval);;}
+     break;
+ 
+   case 29:
+ #line 242 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[0].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (1)].pval);;}
+     break;
+ 
+   case 30:
+ #line 243 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[0].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (1)].pval);;}
+     break;
+ 
+   case 31:
+ #line 244 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[0].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (1)].pval);;}
+     break;
+ 
+   case 32:
+ #line 245 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[0].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (1)].pval);;}
+     break;
+ 
+   case 33:
+ #line 246 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[0].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (1)].pval);;}
+     break;
+ 
+   case 34:
+ #line 247 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[0].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (1)].pval);;}
+     break;
+ 
+   case 35:
+ #line 248 &quot;ael.y&quot;
+-    {free((yyvsp[-1].str)); (yyval.pval)=0;;}
++    {free((yyvsp[(1) - (2)].str)); (yyval.pval)=0;;}
+     break;
+ 
+   case 36:
+@@ -2020,44 +2237,44 @@
+   case 37:
+ #line 252 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_IGNOREPAT, &amp;(yylsp[-3]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-1].str);;}
++		(yyval.pval) = npval2(PV_IGNOREPAT, &amp;(yylsp[(1) - (4)]), &amp;(yylsp[(4) - (4)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(3) - (4)].str);;}
+     break;
+ 
+   case 38:
+ #line 257 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_EXTENSION, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-2].str);
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[0].pval); ;}
++		(yyval.pval) = npval2(PV_EXTENSION, &amp;(yylsp[(1) - (3)]), &amp;(yylsp[(3) - (3)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(1) - (3)].str);
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(3) - (3)].pval); ;}
+     break;
+ 
+   case 39:
+ #line 261 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_EXTENSION, &amp;(yylsp[-3]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-2].str);
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[0].pval);
++		(yyval.pval) = npval2(PV_EXTENSION, &amp;(yylsp[(1) - (4)]), &amp;(yylsp[(4) - (4)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(2) - (4)].str);
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(4) - (4)].pval);
+ 		(yyval.pval)-&gt;u4.regexten=1;;}
+     break;
+ 
+   case 40:
+ #line 266 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_EXTENSION, &amp;(yylsp[-6]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-2].str);
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[0].pval);
+-		(yyval.pval)-&gt;u3.hints = (yyvsp[-4].str);;}
++		(yyval.pval) = npval2(PV_EXTENSION, &amp;(yylsp[(1) - (7)]), &amp;(yylsp[(7) - (7)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(5) - (7)].str);
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(7) - (7)].pval);
++		(yyval.pval)-&gt;u3.hints = (yyvsp[(3) - (7)].str);;}
+     break;
+ 
+   case 41:
+ #line 271 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_EXTENSION, &amp;(yylsp[-7]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-2].str);
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[0].pval);
++		(yyval.pval) = npval2(PV_EXTENSION, &amp;(yylsp[(1) - (8)]), &amp;(yylsp[(8) - (8)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(6) - (8)].str);
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(8) - (8)].pval);
+ 		(yyval.pval)-&gt;u4.regexten=1;
+-		(yyval.pval)-&gt;u3.hints = (yyvsp[-4].str);;}
++		(yyval.pval)-&gt;u3.hints = (yyvsp[(4) - (8)].str);;}
+     break;
+ 
+   case 42:
+@@ -2067,35 +2284,35 @@
+ 
+   case 43:
+ #line 282 &quot;ael.y&quot;
+-    { (yyval.pval) = linku1((yyvsp[-1].pval), (yyvsp[0].pval)); ;}
++    { (yyval.pval) = linku1((yyvsp[(1) - (2)].pval), (yyvsp[(2) - (2)].pval)); ;}
+     break;
+ 
+   case 44:
+ #line 283 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[-1].pval);;}
++    {(yyval.pval)=(yyvsp[(1) - (2)].pval);;}
+     break;
+ 
+   case 45:
+ #line 289 &quot;ael.y&quot;
+     {
+-		asprintf(&amp;(yyval.str), &quot;%s:%s:%s&quot;, (yyvsp[-4].str), (yyvsp[-2].str), (yyvsp[0].str));
+-		free((yyvsp[-4].str));
+-		free((yyvsp[-2].str));
+-		free((yyvsp[0].str)); ;}
++		asprintf(&amp;(yyval.str), &quot;%s:%s:%s&quot;, (yyvsp[(1) - (5)].str), (yyvsp[(3) - (5)].str), (yyvsp[(5) - (5)].str));
++		free((yyvsp[(1) - (5)].str));
++		free((yyvsp[(3) - (5)].str));
++		free((yyvsp[(5) - (5)].str)); ;}
+     break;
+ 
+   case 46:
+ #line 294 &quot;ael.y&quot;
+-    { (yyval.str) = (yyvsp[0].str); ;}
++    { (yyval.str) = (yyvsp[(1) - (1)].str); ;}
+     break;
+ 
+   case 47:
+ #line 298 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = nword((yyvsp[-6].str), &amp;(yylsp[-6]));
+-		(yyval.pval)-&gt;next = nword((yyvsp[-4].str), &amp;(yylsp[-4]));
+-		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+-		(yyval.pval)-&gt;next-&gt;next-&gt;next = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++		(yyval.pval) = nword((yyvsp[(1) - (7)].str), &amp;(yylsp[(1) - (7)]));
++		(yyval.pval)-&gt;next = nword((yyvsp[(3) - (7)].str), &amp;(yylsp[(3) - (7)]));
++		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[(5) - (7)].str), &amp;(yylsp[(5) - (7)]));
++		(yyval.pval)-&gt;next-&gt;next-&gt;next = nword((yyvsp[(7) - (7)].str), &amp;(yylsp[(7) - (7)])); ;}
+     break;
+ 
+   case 48:
+@@ -2105,129 +2322,129 @@
+ 
+   case 49:
+ #line 306 &quot;ael.y&quot;
+-    { (yyval.str) = (yyvsp[-1].str); ;}
++    { (yyval.str) = (yyvsp[(3) - (4)].str); ;}
+     break;
+ 
+   case 50:
+ #line 310 &quot;ael.y&quot;
+     {
+-		(yyval.pval)= npval2(PV_IF, &amp;(yylsp[-1]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[0].str); ;}
++		(yyval.pval)= npval2(PV_IF, &amp;(yylsp[(1) - (2)]), &amp;(yylsp[(2) - (2)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(2) - (2)].str); ;}
+     break;
+ 
+   case 51:
+ #line 313 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_RANDOM, &amp;(yylsp[-1]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str=(yyvsp[0].str);;}
++		(yyval.pval) = npval2(PV_RANDOM, &amp;(yylsp[(1) - (2)]), &amp;(yylsp[(2) - (2)]));
++		(yyval.pval)-&gt;u1.str=(yyvsp[(2) - (2)].str);;}
+     break;
+ 
+   case 52:
+ #line 316 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_IFTIME, &amp;(yylsp[-3]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval);
++		(yyval.pval) = npval2(PV_IFTIME, &amp;(yylsp[(1) - (4)]), &amp;(yylsp[(4) - (4)]));
++		(yyval.pval)-&gt;u1.list = (yyvsp[(3) - (4)].pval);
+ 		prev_word = 0; ;}
+     break;
+ 
+   case 53:
+ #line 327 &quot;ael.y&quot;
+-    { (yyval.str) = (yyvsp[0].str);;}
++    { (yyval.str) = (yyvsp[(1) - (1)].str);;}
+     break;
+ 
+   case 54:
+ #line 328 &quot;ael.y&quot;
+     {
+-		asprintf(&amp;((yyval.str)), &quot;%s%s&quot;, (yyvsp[-1].str), (yyvsp[0].str));
+-		free((yyvsp[-1].str));
+-		free((yyvsp[0].str));
++		asprintf(&amp;((yyval.str)), &quot;%s%s&quot;, (yyvsp[(1) - (2)].str), (yyvsp[(2) - (2)].str));
++		free((yyvsp[(1) - (2)].str));
++		free((yyvsp[(2) - (2)].str));
+ 		prev_word = (yyval.str);;}
+     break;
+ 
+   case 55:
+ #line 335 &quot;ael.y&quot;
+-    { (yyval.str) = (yyvsp[0].str);;}
++    { (yyval.str) = (yyvsp[(1) - (1)].str);;}
+     break;
+ 
+   case 56:
+ #line 336 &quot;ael.y&quot;
+     {
+-		asprintf(&amp;((yyval.str)), &quot;%s%s&quot;, (yyvsp[-1].str), (yyvsp[0].str));
+-		free((yyvsp[-1].str));
+-		free((yyvsp[0].str));
++		asprintf(&amp;((yyval.str)), &quot;%s%s&quot;, (yyvsp[(1) - (2)].str), (yyvsp[(2) - (2)].str));
++		free((yyvsp[(1) - (2)].str));
++		free((yyvsp[(2) - (2)].str));
+ 		prev_word = (yyval.str);;}
+     break;
+ 
+   case 57:
+ #line 341 &quot;ael.y&quot;
+     {
+-		asprintf(&amp;((yyval.str)), &quot;%s%s%s&quot;, (yyvsp[-2].str), (yyvsp[-1].str), (yyvsp[0].str));
+-		free((yyvsp[-2].str));
+-		free((yyvsp[-1].str));
+-		free((yyvsp[0].str));
++		asprintf(&amp;((yyval.str)), &quot;%s%s%s&quot;, (yyvsp[(1) - (3)].str), (yyvsp[(2) - (3)].str), (yyvsp[(3) - (3)].str));
++		free((yyvsp[(1) - (3)].str));
++		free((yyvsp[(2) - (3)].str));
++		free((yyvsp[(3) - (3)].str));
+ 		prev_word=(yyval.str);;}
+     break;
+ 
+   case 58:
+ #line 349 &quot;ael.y&quot;
+-    { (yyval.str) = (yyvsp[0].str);;}
++    { (yyval.str) = (yyvsp[(1) - (1)].str);;}
+     break;
+ 
+   case 59:
+ #line 350 &quot;ael.y&quot;
+     {
+-		asprintf(&amp;((yyval.str)), &quot;%s%s&quot;, (yyvsp[-1].str), (yyvsp[0].str));
+-		free((yyvsp[-1].str));
+-		free((yyvsp[0].str));;}
++		asprintf(&amp;((yyval.str)), &quot;%s%s&quot;, (yyvsp[(1) - (2)].str), (yyvsp[(2) - (2)].str));
++		free((yyvsp[(1) - (2)].str));
++		free((yyvsp[(2) - (2)].str));;}
+     break;
+ 
+   case 60:
+ #line 354 &quot;ael.y&quot;
+     {
+-		asprintf(&amp;((yyval.str)), &quot;%s:%s&quot;, (yyvsp[-2].str), (yyvsp[0].str));
+-		free((yyvsp[-2].str));
+-		free((yyvsp[0].str));;}
++		asprintf(&amp;((yyval.str)), &quot;%s:%s&quot;, (yyvsp[(1) - (3)].str), (yyvsp[(3) - (3)].str));
++		free((yyvsp[(1) - (3)].str));
++		free((yyvsp[(3) - (3)].str));;}
+     break;
+ 
+   case 61:
+ #line 360 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_SWITCH, &amp;(yylsp[-4]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-3].str);
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[-1].pval);;}
++		(yyval.pval) = npval2(PV_SWITCH, &amp;(yylsp[(1) - (5)]), &amp;(yylsp[(5) - (5)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(2) - (5)].str);
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(4) - (5)].pval);;}
+     break;
+ 
+   case 62:
+ #line 369 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_STATEMENTBLOCK, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval); ;}
++		(yyval.pval) = npval2(PV_STATEMENTBLOCK, &amp;(yylsp[(1) - (3)]), &amp;(yylsp[(3) - (3)]));
++		(yyval.pval)-&gt;u1.list = (yyvsp[(2) - (3)].pval); ;}
+     break;
+ 
+   case 63:
+ #line 372 &quot;ael.y&quot;
+-    { (yyval.pval) = (yyvsp[0].pval); ;}
++    { (yyval.pval) = (yyvsp[(1) - (1)].pval); ;}
+     break;
+ 
+   case 64:
+ #line 373 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_GOTO, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval);;}
++		(yyval.pval) = npval2(PV_GOTO, &amp;(yylsp[(1) - (3)]), &amp;(yylsp[(3) - (3)]));
++		(yyval.pval)-&gt;u1.list = (yyvsp[(2) - (3)].pval);;}
+     break;
+ 
+   case 65:
+ #line 376 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_GOTO, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval);;}
++		(yyval.pval) = npval2(PV_GOTO, &amp;(yylsp[(1) - (3)]), &amp;(yylsp[(3) - (3)]));
++		(yyval.pval)-&gt;u1.list = (yyvsp[(2) - (3)].pval);;}
+     break;
+ 
+   case 66:
+ #line 379 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_LABEL, &amp;(yylsp[-1]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-1].str); ;}
++		(yyval.pval) = npval2(PV_LABEL, &amp;(yylsp[(1) - (2)]), &amp;(yylsp[(2) - (2)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(1) - (2)].str); ;}
+     break;
+ 
+   case 67:
+@@ -2248,41 +2465,41 @@
+   case 70:
+ #line 384 &quot;ael.y&quot;
+     { /* XXX word_list maybe ? */
+-		(yyval.pval) = npval2(PV_FOR, &amp;(yylsp[-11]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.for_init = (yyvsp[-8].str);
+-		(yyval.pval)-&gt;u2.for_test=(yyvsp[-5].str);
+-		(yyval.pval)-&gt;u3.for_inc = (yyvsp[-2].str);
+-		(yyval.pval)-&gt;u4.for_statements = (yyvsp[0].pval);;}
++		(yyval.pval) = npval2(PV_FOR, &amp;(yylsp[(1) - (12)]), &amp;(yylsp[(12) - (12)]));
++		(yyval.pval)-&gt;u1.for_init = (yyvsp[(4) - (12)].str);
++		(yyval.pval)-&gt;u2.for_test=(yyvsp[(7) - (12)].str);
++		(yyval.pval)-&gt;u3.for_inc = (yyvsp[(10) - (12)].str);
++		(yyval.pval)-&gt;u4.for_statements = (yyvsp[(12) - (12)].pval);;}
+     break;
+ 
+   case 71:
+ #line 390 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_WHILE, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-1].str);
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[0].pval); ;}
++		(yyval.pval) = npval2(PV_WHILE, &amp;(yylsp[(1) - (3)]), &amp;(yylsp[(3) - (3)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(2) - (3)].str);
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(3) - (3)].pval); ;}
+     break;
+ 
+   case 72:
+ #line 394 &quot;ael.y&quot;
+-    { (yyval.pval) = (yyvsp[0].pval); ;}
++    { (yyval.pval) = (yyvsp[(1) - (1)].pval); ;}
+     break;
+ 
+   case 73:
+ #line 395 &quot;ael.y&quot;
+-    { (yyval.pval) = update_last((yyvsp[-1].pval), &amp;(yylsp[-1])); ;}
++    { (yyval.pval) = update_last((yyvsp[(2) - (3)].pval), &amp;(yylsp[(2) - (3)])); ;}
+     break;
+ 
+   case 74:
+ #line 396 &quot;ael.y&quot;
+-    { (yyval.pval) = update_last((yyvsp[-1].pval), &amp;(yylsp[0])); ;}
++    { (yyval.pval) = update_last((yyvsp[(1) - (2)].pval), &amp;(yylsp[(2) - (2)])); ;}
+     break;
+ 
+   case 75:
+ #line 397 &quot;ael.y&quot;
+     {
+-		(yyval.pval)= npval2(PV_APPLICATION_CALL, &amp;(yylsp[-1]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-1].str);;}
++		(yyval.pval)= npval2(PV_APPLICATION_CALL, &amp;(yylsp[(1) - (2)]), &amp;(yylsp[(2) - (2)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(1) - (2)].str);;}
+     break;
+ 
+   case 76:
+@@ -2296,58 +2513,58 @@
+ 		char *bufx;
+ 		int tot=0;
+ 		pval *pptr;
+-		(yyval.pval) = npval2(PV_VARDEC, &amp;(yylsp[-4]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u2.val=(yyvsp[-1].str);
++		(yyval.pval) = npval2(PV_VARDEC, &amp;(yylsp[(1) - (5)]), &amp;(yylsp[(5) - (5)]));
++		(yyval.pval)-&gt;u2.val=(yyvsp[(4) - (5)].str);
+ 		/* rebuild the original string-- this is not an app call, it's an unwrapped vardec, with a func call on the LHS */
+ 		/* string to big to fit in the buffer? */
+-		tot+=strlen((yyvsp[-4].pval)-&gt;u1.str);
+-		for(pptr=(yyvsp[-4].pval)-&gt;u2.arglist;pptr;pptr=pptr-&gt;next) {
++		tot+=strlen((yyvsp[(1) - (5)].pval)-&gt;u1.str);
++		for(pptr=(yyvsp[(1) - (5)].pval)-&gt;u2.arglist;pptr;pptr=pptr-&gt;next) {
+ 			tot+=strlen(pptr-&gt;u1.str);
+ 			tot++; /* for a sep like a comma */
+ 		}
+ 		tot+=4; /* for safety */
+ 		bufx = calloc(1, tot);
+-		strcpy(bufx,(yyvsp[-4].pval)-&gt;u1.str);
++		strcpy(bufx,(yyvsp[(1) - (5)].pval)-&gt;u1.str);
+ 		strcat(bufx,&quot;(&quot;);
+ 		/* XXX need to advance the pointer or the loop is very inefficient */
+-		for (pptr=(yyvsp[-4].pval)-&gt;u2.arglist;pptr;pptr=pptr-&gt;next) {
+-			if ( pptr != (yyvsp[-4].pval)-&gt;u2.arglist )
++		for (pptr=(yyvsp[(1) - (5)].pval)-&gt;u2.arglist;pptr;pptr=pptr-&gt;next) {
++			if ( pptr != (yyvsp[(1) - (5)].pval)-&gt;u2.arglist )
+ 				strcat(bufx,&quot;,&quot;);
+ 			strcat(bufx,pptr-&gt;u1.str);
+ 		}
+ 		strcat(bufx,&quot;)&quot;);
+ #ifdef AAL_ARGCHECK
+-		if ( !ael_is_funcname((yyvsp[-4].pval)-&gt;u1.str) )
++		if ( !ael_is_funcname((yyvsp[(1) - (5)].pval)-&gt;u1.str) )
+ 			ast_log(LOG_WARNING, &quot;==== File: %s, Line %d, Cols: %d-%d: Function call? The name %s is not in my internal list of function names\n&quot;,
+-				my_file, (yylsp[-4]).first_line, (yylsp[-4]).first_column, (yylsp[-4]).last_column, (yyvsp[-4].pval)-&gt;u1.str);
++				my_file, (yylsp[(1) - (5)]).first_line, (yylsp[(1) - (5)]).first_column, (yylsp[(1) - (5)]).last_column, (yyvsp[(1) - (5)].pval)-&gt;u1.str);
+ #endif
+ 		(yyval.pval)-&gt;u1.str = bufx;
+-		destroy_pval((yyvsp[-4].pval)); /* the app call it is not, get rid of that chain */
++		destroy_pval((yyvsp[(1) - (5)].pval)); /* the app call it is not, get rid of that chain */
+ 		prev_word = 0;
+ 	;}
+     break;
+ 
+   case 78:
+ #line 433 &quot;ael.y&quot;
+-    { (yyval.pval) = npval2(PV_BREAK, &amp;(yylsp[-1]), &amp;(yylsp[0])); ;}
++    { (yyval.pval) = npval2(PV_BREAK, &amp;(yylsp[(1) - (2)]), &amp;(yylsp[(2) - (2)])); ;}
+     break;
+ 
+   case 79:
+ #line 434 &quot;ael.y&quot;
+-    { (yyval.pval) = npval2(PV_RETURN, &amp;(yylsp[-1]), &amp;(yylsp[0])); ;}
++    { (yyval.pval) = npval2(PV_RETURN, &amp;(yylsp[(1) - (2)]), &amp;(yylsp[(2) - (2)])); ;}
+     break;
+ 
+   case 80:
+ #line 435 &quot;ael.y&quot;
+-    { (yyval.pval) = npval2(PV_CONTINUE, &amp;(yylsp[-1]), &amp;(yylsp[0])); ;}
++    { (yyval.pval) = npval2(PV_CONTINUE, &amp;(yylsp[(1) - (2)]), &amp;(yylsp[(2) - (2)])); ;}
+     break;
+ 
+   case 81:
+ #line 436 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = update_last((yyvsp[-2].pval), &amp;(yylsp[-1]));
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[-1].pval);
+-		(yyval.pval)-&gt;u3.else_statements = (yyvsp[0].pval);;}
++		(yyval.pval) = update_last((yyvsp[(1) - (3)].pval), &amp;(yylsp[(2) - (3)]));
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(2) - (3)].pval);
++		(yyval.pval)-&gt;u3.else_statements = (yyvsp[(3) - (3)].pval);;}
+     break;
+ 
+   case 82:
+@@ -2357,7 +2574,7 @@
+ 
+   case 83:
+ #line 443 &quot;ael.y&quot;
+-    { (yyval.pval) = (yyvsp[0].pval); ;}
++    { (yyval.pval) = (yyvsp[(2) - (2)].pval); ;}
+     break;
+ 
+   case 84:
+@@ -2366,301 +2583,299 @@
+     break;
+ 
+   case 85:
+-#line 449 &quot;ael.y&quot;
+-    { (yyval.pval) = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++#line 447 &quot;ael.y&quot;
++    { (yyval.pval) = nword((yyvsp[(1) - (1)].str), &amp;(yylsp[(1) - (1)])); ;}
+     break;
+ 
+   case 86:
+-#line 450 &quot;ael.y&quot;
++#line 448 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+-		(yyval.pval)-&gt;next = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++		(yyval.pval) = nword((yyvsp[(1) - (3)].str), &amp;(yylsp[(1) - (3)]));
++		(yyval.pval)-&gt;next = nword((yyvsp[(3) - (3)].str), &amp;(yylsp[(3) - (3)])); ;}
+     break;
+ 
+   case 87:
+-#line 453 &quot;ael.y&quot;
++#line 451 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+-		(yyval.pval)-&gt;next = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++		(yyval.pval) = nword((yyvsp[(1) - (3)].str), &amp;(yylsp[(1) - (3)]));
++		(yyval.pval)-&gt;next = nword((yyvsp[(3) - (3)].str), &amp;(yylsp[(3) - (3)])); ;}
+     break;
+ 
+   case 88:
+-#line 456 &quot;ael.y&quot;
++#line 454 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = nword((yyvsp[-4].str), &amp;(yylsp[-4]));
+-		(yyval.pval)-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+-		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++		(yyval.pval) = nword((yyvsp[(1) - (5)].str), &amp;(yylsp[(1) - (5)]));
++		(yyval.pval)-&gt;next = nword((yyvsp[(3) - (5)].str), &amp;(yylsp[(3) - (5)]));
++		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[(5) - (5)].str), &amp;(yylsp[(5) - (5)])); ;}
+     break;
+ 
+   case 89:
+-#line 460 &quot;ael.y&quot;
++#line 458 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = nword((yyvsp[-4].str), &amp;(yylsp[-4]));
+-		(yyval.pval)-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+-		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++		(yyval.pval) = nword((yyvsp[(1) - (5)].str), &amp;(yylsp[(1) - (5)]));
++		(yyval.pval)-&gt;next = nword((yyvsp[(3) - (5)].str), &amp;(yylsp[(3) - (5)]));
++		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[(5) - (5)].str), &amp;(yylsp[(5) - (5)])); ;}
+     break;
+ 
+   case 90:
+-#line 464 &quot;ael.y&quot;
++#line 462 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = nword(strdup(&quot;default&quot;), &amp;(yylsp[-4]));
+-		(yyval.pval)-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+-		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++		(yyval.pval) = nword(strdup(&quot;default&quot;), &amp;(yylsp[(1) - (5)]));
++		(yyval.pval)-&gt;next = nword((yyvsp[(3) - (5)].str), &amp;(yylsp[(3) - (5)]));
++		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[(5) - (5)].str), &amp;(yylsp[(5) - (5)])); ;}
+     break;
+ 
+   case 91:
+-#line 468 &quot;ael.y&quot;
++#line 466 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = nword(strdup(&quot;default&quot;), &amp;(yylsp[-4]));
+-		(yyval.pval)-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+-		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++		(yyval.pval) = nword(strdup(&quot;default&quot;), &amp;(yylsp[(1) - (5)]));
++		(yyval.pval)-&gt;next = nword((yyvsp[(3) - (5)].str), &amp;(yylsp[(3) - (5)]));
++		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[(5) - (5)].str), &amp;(yylsp[(5) - (5)])); ;}
+     break;
+ 
+   case 92:
+-#line 474 &quot;ael.y&quot;
++#line 472 &quot;ael.y&quot;
+     { (yyval.str) = strdup(&quot;1&quot;); ;}
+     break;
+ 
+   case 93:
+-#line 475 &quot;ael.y&quot;
+-    { (yyval.str) = (yyvsp[0].str); ;}
++#line 473 &quot;ael.y&quot;
++    { (yyval.str) = (yyvsp[(2) - (2)].str); ;}
+     break;
+ 
+   case 94:
+-#line 479 &quot;ael.y&quot;
++#line 477 &quot;ael.y&quot;
+     {			/* ext[, pri] default 1 */
+-		(yyval.pval) = nword((yyvsp[-1].str), &amp;(yylsp[-1]));
+-		(yyval.pval)-&gt;next = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++		(yyval.pval) = nword((yyvsp[(1) - (2)].str), &amp;(yylsp[(1) - (2)]));
++		(yyval.pval)-&gt;next = nword((yyvsp[(2) - (2)].str), &amp;(yylsp[(2) - (2)])); ;}
+     break;
+ 
+   case 95:
+-#line 482 &quot;ael.y&quot;
++#line 480 &quot;ael.y&quot;
+     {	/* context, ext, pri */
+-		(yyval.pval) = nword((yyvsp[0].str), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;next = nword((yyvsp[-3].str), &amp;(yylsp[-3]));
+-		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[-2].str), &amp;(yylsp[-2])); ;}
++		(yyval.pval) = nword((yyvsp[(4) - (4)].str), &amp;(yylsp[(4) - (4)]));
++		(yyval.pval)-&gt;next = nword((yyvsp[(1) - (4)].str), &amp;(yylsp[(1) - (4)]));
++		(yyval.pval)-&gt;next-&gt;next = nword((yyvsp[(2) - (4)].str), &amp;(yylsp[(2) - (4)])); ;}
+     break;
+ 
+   case 96:
+-#line 488 &quot;ael.y&quot;
++#line 486 &quot;ael.y&quot;
+     {reset_argcount(parseio-&gt;scanner);;}
+     break;
+ 
+   case 97:
+-#line 488 &quot;ael.y&quot;
++#line 486 &quot;ael.y&quot;
+     {
+ 		/* XXX original code had @2 but i think we need @5 */
+-		(yyval.pval) = npval2(PV_MACRO_CALL, &amp;(yylsp[-4]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-4].str);
+-		(yyval.pval)-&gt;u2.arglist = (yyvsp[-1].pval);;}
++		(yyval.pval) = npval2(PV_MACRO_CALL, &amp;(yylsp[(1) - (5)]), &amp;(yylsp[(5) - (5)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(1) - (5)].str);
++		(yyval.pval)-&gt;u2.arglist = (yyvsp[(4) - (5)].pval);;}
+     break;
+ 
+   case 98:
+-#line 493 &quot;ael.y&quot;
++#line 491 &quot;ael.y&quot;
+     {
+-		(yyval.pval)= npval2(PV_MACRO_CALL, &amp;(yylsp[-2]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-2].str); ;}
++		(yyval.pval)= npval2(PV_MACRO_CALL, &amp;(yylsp[(1) - (3)]), &amp;(yylsp[(3) - (3)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(1) - (3)].str); ;}
+     break;
+ 
+   case 99:
+-#line 501 &quot;ael.y&quot;
++#line 499 &quot;ael.y&quot;
+     {reset_argcount(parseio-&gt;scanner);;}
+     break;
+ 
+   case 100:
+-#line 501 &quot;ael.y&quot;
++#line 499 &quot;ael.y&quot;
+     {
+-		if (strcasecmp((yyvsp[-2].str),&quot;goto&quot;) == 0) {
+-			(yyval.pval) = npval2(PV_GOTO, &amp;(yylsp[-2]), &amp;(yylsp[-1]));
+-			free((yyvsp[-2].str)); /* won't be using this */
+-			ast_log(LOG_WARNING, &quot;==== File: %s, Line %d, Cols: %d-%d: Suggestion: Use the goto statement instead of the Goto() application call in AEL.\n&quot;, my_file, (yylsp[-2]).first_line, (yylsp[-2]).first_column, (yylsp[-2]).last_column );
++		if (strcasecmp((yyvsp[(1) - (3)].str),&quot;goto&quot;) == 0) {
++			(yyval.pval) = npval2(PV_GOTO, &amp;(yylsp[(1) - (3)]), &amp;(yylsp[(2) - (3)]));
++			free((yyvsp[(1) - (3)].str)); /* won't be using this */
++			ast_log(LOG_WARNING, &quot;==== File: %s, Line %d, Cols: %d-%d: Suggestion: Use the goto statement instead of the Goto() application call in AEL.\n&quot;, my_file, (yylsp[(1) - (3)]).first_line, (yylsp[(1) - (3)]).first_column, (yylsp[(1) - (3)]).last_column );
+ 		} else {
+-			(yyval.pval)= npval2(PV_APPLICATION_CALL, &amp;(yylsp[-2]), &amp;(yylsp[-1]));
+-			(yyval.pval)-&gt;u1.str = (yyvsp[-2].str);
++			(yyval.pval)= npval2(PV_APPLICATION_CALL, &amp;(yylsp[(1) - (3)]), &amp;(yylsp[(2) - (3)]));
++			(yyval.pval)-&gt;u1.str = (yyvsp[(1) - (3)].str);
+ 		} ;}
+     break;
+ 
+   case 101:
+-#line 512 &quot;ael.y&quot;
++#line 510 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = update_last((yyvsp[-2].pval), &amp;(yylsp[0]));
++		(yyval.pval) = update_last((yyvsp[(1) - (3)].pval), &amp;(yylsp[(3) - (3)]));
+  		if( (yyval.pval)-&gt;type == PV_GOTO )
+-			(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval);
++			(yyval.pval)-&gt;u1.list = (yyvsp[(2) - (3)].pval);
+ 	 	else
+-			(yyval.pval)-&gt;u2.arglist = (yyvsp[-1].pval);
++			(yyval.pval)-&gt;u2.arglist = (yyvsp[(2) - (3)].pval);
+ 	;}
+     break;
+ 
+   case 102:
+-#line 519 &quot;ael.y&quot;
+-    { (yyval.pval) = update_last((yyvsp[-1].pval), &amp;(yylsp[0])); ;}
++#line 517 &quot;ael.y&quot;
++    { (yyval.pval) = update_last((yyvsp[(1) - (2)].pval), &amp;(yylsp[(2) - (2)])); ;}
+     break;
+ 
+   case 103:
+-#line 522 &quot;ael.y&quot;
+-    { (yyval.str) = (yyvsp[0].str) ;}
++#line 520 &quot;ael.y&quot;
++    { (yyval.str) = (yyvsp[(1) - (1)].str) ;}
+     break;
+ 
+   case 104:
+-#line 523 &quot;ael.y&quot;
++#line 521 &quot;ael.y&quot;
+     { (yyval.str) = strdup(&quot;&quot;); ;}
+     break;
+ 
+   case 105:
+-#line 526 &quot;ael.y&quot;
+-    { (yyval.pval) = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++#line 524 &quot;ael.y&quot;
++    { (yyval.pval) = nword((yyvsp[(1) - (1)].str), &amp;(yylsp[(1) - (1)])); ;}
+     break;
+ 
+   case 106:
+-#line 527 &quot;ael.y&quot;
++#line 525 &quot;ael.y&quot;
+     {
+ 		(yyval.pval)= npval(PV_WORD,0/*@1.first_line*/,0/*@1.last_line*/,0/* @1.first_column*/, 0/*@1.last_column*/);
+ 		(yyval.pval)-&gt;u1.str = strdup(&quot;&quot;); ;}
+     break;
+ 
+   case 107:
+-#line 530 &quot;ael.y&quot;
+-    { (yyval.pval) = linku1((yyvsp[-2].pval), nword((yyvsp[0].str), &amp;(yylsp[0]))); ;}
++#line 528 &quot;ael.y&quot;
++    { (yyval.pval) = linku1((yyvsp[(1) - (3)].pval), nword((yyvsp[(3) - (3)].str), &amp;(yylsp[(3) - (3)]))); ;}
+     break;
+ 
+   case 108:
+-#line 533 &quot;ael.y&quot;
++#line 531 &quot;ael.y&quot;
+     { (yyval.pval) = NULL; ;}
+     break;
+ 
+   case 109:
+-#line 534 &quot;ael.y&quot;
+-    { (yyval.pval) = linku1((yyvsp[-1].pval), (yyvsp[0].pval)); ;}
++#line 532 &quot;ael.y&quot;
++    { (yyval.pval) = linku1((yyvsp[(1) - (2)].pval), (yyvsp[(2) - (2)].pval)); ;}
+     break;
+ 
+   case 110:
+-#line 537 &quot;ael.y&quot;
++#line 535 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_CASE, &amp;(yylsp[-3]), &amp;(yylsp[-1])); /* XXX 3 or 4 ? */
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-2].str);
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[0].pval);;}
++		(yyval.pval) = npval2(PV_CASE, &amp;(yylsp[(1) - (4)]), &amp;(yylsp[(3) - (4)])); /* XXX 3 or 4 ? */
++		(yyval.pval)-&gt;u1.str = (yyvsp[(2) - (4)].str);
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(4) - (4)].pval);;}
+     break;
+ 
+   case 111:
+-#line 541 &quot;ael.y&quot;
++#line 539 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_DEFAULT, &amp;(yylsp[-2]), &amp;(yylsp[0]));
++		(yyval.pval) = npval2(PV_DEFAULT, &amp;(yylsp[(1) - (3)]), &amp;(yylsp[(3) - (3)]));
+ 		(yyval.pval)-&gt;u1.str = NULL;
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[0].pval);;}
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(3) - (3)].pval);;}
+     break;
+ 
+   case 112:
+-#line 545 &quot;ael.y&quot;
++#line 543 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_PATTERN, &amp;(yylsp[-3]), &amp;(yylsp[0])); /* <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">XXX at 3</A> or @4 ? */
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-2].str);
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[0].pval);;}
++		(yyval.pval) = npval2(PV_PATTERN, &amp;(yylsp[(1) - (4)]), &amp;(yylsp[(4) - (4)])); /* <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">XXX at 3</A> or @4 ? */
++		(yyval.pval)-&gt;u1.str = (yyvsp[(2) - (4)].str);
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(4) - (4)].pval);;}
+     break;
+ 
+   case 113:
+-#line 551 &quot;ael.y&quot;
++#line 549 &quot;ael.y&quot;
+     { (yyval.pval) = NULL; ;}
+     break;
+ 
+   case 114:
+-#line 552 &quot;ael.y&quot;
+-    { (yyval.pval) = linku1((yyvsp[-1].pval), (yyvsp[0].pval)); ;}
++#line 550 &quot;ael.y&quot;
++    { (yyval.pval) = linku1((yyvsp[(1) - (2)].pval), (yyvsp[(2) - (2)].pval)); ;}
+     break;
+ 
+   case 115:
+-#line 555 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[0].pval);;}
++#line 553 &quot;ael.y&quot;
++    {(yyval.pval)=(yyvsp[(1) - (1)].pval);;}
+     break;
+ 
+   case 116:
+-#line 556 &quot;ael.y&quot;
++#line 554 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_CATCH, &amp;(yylsp[-4]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.str = (yyvsp[-3].str);
+-		(yyval.pval)-&gt;u2.statements = (yyvsp[-1].pval);;}
++		(yyval.pval) = npval2(PV_CATCH, &amp;(yylsp[(1) - (5)]), &amp;(yylsp[(5) - (5)]));
++		(yyval.pval)-&gt;u1.str = (yyvsp[(2) - (5)].str);
++		(yyval.pval)-&gt;u2.statements = (yyvsp[(4) - (5)].pval);;}
+     break;
+ 
+   case 117:
+-#line 562 &quot;ael.y&quot;
++#line 560 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_SWITCHES, &amp;(yylsp[-3]), &amp;(yylsp[-2]));
+-		(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval); ;}
++		(yyval.pval) = npval2(PV_SWITCHES, &amp;(yylsp[(1) - (4)]), &amp;(yylsp[(2) - (4)]));
++		(yyval.pval)-&gt;u1.list = (yyvsp[(3) - (4)].pval); ;}
+     break;
+ 
+   case 118:
+-#line 567 &quot;ael.y&quot;
++#line 565 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_ESWITCHES, &amp;(yylsp[-3]), &amp;(yylsp[-2]));
+-		(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval); ;}
++		(yyval.pval) = npval2(PV_ESWITCHES, &amp;(yylsp[(1) - (4)]), &amp;(yylsp[(2) - (4)]));
++		(yyval.pval)-&gt;u1.list = (yyvsp[(3) - (4)].pval); ;}
+     break;
+ 
+   case 119:
+-#line 572 &quot;ael.y&quot;
++#line 570 &quot;ael.y&quot;
+     { (yyval.pval) = NULL; ;}
+     break;
+ 
+   case 120:
+-#line 573 &quot;ael.y&quot;
+-    { (yyval.pval) = linku1(nword((yyvsp[-2].str), &amp;(yylsp[-2])), (yyvsp[0].pval)); ;}
++#line 571 &quot;ael.y&quot;
++    { (yyval.pval) = linku1(nword((yyvsp[(1) - (3)].str), &amp;(yylsp[(1) - (3)])), (yyvsp[(3) - (3)].pval)); ;}
+     break;
+ 
+   case 121:
+-#line 574 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[-1].pval);;}
++#line 572 &quot;ael.y&quot;
++    {(yyval.pval)=(yyvsp[(1) - (2)].pval);;}
+     break;
+ 
+   case 122:
+-#line 577 &quot;ael.y&quot;
+-    { (yyval.pval) = nword((yyvsp[0].str), &amp;(yylsp[0])); ;}
++#line 575 &quot;ael.y&quot;
++    { (yyval.pval) = nword((yyvsp[(1) - (1)].str), &amp;(yylsp[(1) - (1)])); ;}
+     break;
+ 
+   case 123:
+-#line 578 &quot;ael.y&quot;
++#line 576 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = nword((yyvsp[-2].str), &amp;(yylsp[-2]));
+-		(yyval.pval)-&gt;u2.arglist = (yyvsp[0].pval);
++		(yyval.pval) = nword((yyvsp[(1) - (3)].str), &amp;(yylsp[(1) - (3)]));
++		(yyval.pval)-&gt;u2.arglist = (yyvsp[(3) - (3)].pval);
+ 		prev_word=0; /* XXX sure ? */ ;}
+     break;
+ 
+   case 124:
+-#line 585 &quot;ael.y&quot;
+-    { (yyval.pval) = (yyvsp[-1].pval); ;}
++#line 583 &quot;ael.y&quot;
++    { (yyval.pval) = (yyvsp[(1) - (2)].pval); ;}
+     break;
+ 
+   case 125:
+-#line 586 &quot;ael.y&quot;
+-    { (yyval.pval) = linku1((yyvsp[-2].pval), (yyvsp[-1].pval)); ;}
++#line 584 &quot;ael.y&quot;
++    { (yyval.pval) = linku1((yyvsp[(1) - (3)].pval), (yyvsp[(2) - (3)].pval)); ;}
+     break;
+ 
+   case 126:
+-#line 587 &quot;ael.y&quot;
+-    {(yyval.pval)=(yyvsp[-1].pval);;}
++#line 585 &quot;ael.y&quot;
++    {(yyval.pval)=(yyvsp[(1) - (2)].pval);;}
+     break;
+ 
+   case 127:
+-#line 590 &quot;ael.y&quot;
++#line 588 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_INCLUDES, &amp;(yylsp[-3]), &amp;(yylsp[0]));
+-		(yyval.pval)-&gt;u1.list = (yyvsp[-1].pval);;}
++		(yyval.pval) = npval2(PV_INCLUDES, &amp;(yylsp[(1) - (4)]), &amp;(yylsp[(4) - (4)]));
++		(yyval.pval)-&gt;u1.list = (yyvsp[(3) - (4)].pval);;}
+     break;
+ 
+   case 128:
+-#line 593 &quot;ael.y&quot;
++#line 591 &quot;ael.y&quot;
+     {
+-		(yyval.pval) = npval2(PV_INCLUDES, &amp;(yylsp[-2]), &amp;(yylsp[0]));;}
++		(yyval.pval) = npval2(PV_INCLUDES, &amp;(yylsp[(1) - (3)]), &amp;(yylsp[(3) - (3)]));;}
+     break;
+ 
+ 
++/* Line 1270 of yacc.c.  */
++#line 2868 &quot;ael.tab.c&quot;
+       default: break;
+     }
++  YY_SYMBOL_PRINT (&quot;-&gt; $$ =&quot;, yyr1[yyn], &amp;yyval, &amp;yyloc);
+ 
+-/* Line 1126 of yacc.c.  */
+-#line 2654 &quot;ael.tab.c&quot;
+-
+-  yyvsp -= yylen;
+-  yyssp -= yylen;
+-  yylsp -= yylen;
+-
++  YYPOPSTACK (yylen);
++  yylen = 0;
+   YY_STACK_PRINT (yyss, yyssp);
+ 
+   *++yyvsp = yyval;
+@@ -2689,110 +2904,41 @@
+   if (!yyerrstatus)
+     {
+       ++yynerrs;
+-#if YYERROR_VERBOSE
+-      yyn = yypact[yystate];
+-
+-      if (YYPACT_NINF &lt; yyn &amp;&amp; yyn &lt; YYLAST)
+-	{
+-	  int yytype = YYTRANSLATE (yychar);
+-	  YYSIZE_T yysize0 = yytnamerr (0, yytname[yytype]);
+-	  YYSIZE_T yysize = yysize0;
+-	  YYSIZE_T yysize1;
+-	  int yysize_overflow = 0;
+-	  char *yymsg = 0;
+-#	  define YYERROR_VERBOSE_ARGS_MAXIMUM 5
+-	  char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
+-	  int yyx;
+-
+-#if 0
+-	  /* This is so xgettext sees the translatable formats that are
+-	     constructed on the fly.  */
+-	  YY_(&quot;syntax error, unexpected %s&quot;);
+-	  YY_(&quot;syntax error, unexpected %s, expecting %s&quot;);
+-	  YY_(&quot;syntax error, unexpected %s, expecting %s or %s&quot;);
+-	  YY_(&quot;syntax error, unexpected %s, expecting %s or %s or %s&quot;);
+-	  YY_(&quot;syntax error, unexpected %s, expecting %s or %s or %s or %s&quot;);
+-#endif
+-	  char *yyfmt;
+-	  char const *yyf;
+-	  static char const yyunexpected[] = &quot;syntax error, unexpected %s&quot;;
+-	  static char const yyexpecting[] = &quot;, expecting %s&quot;;
+-	  static char const yyor[] = &quot; or %s&quot;;
+-	  char yyformat[sizeof yyunexpected
+-			+ sizeof yyexpecting - 1
+-			+ ((YYERROR_VERBOSE_ARGS_MAXIMUM - 2)
+-			   * (sizeof yyor - 1))];
+-	  char const *yyprefix = yyexpecting;
+-
+-	  /* Start YYX at -YYN if negative to avoid negative indexes in
+-	     YYCHECK.  */
+-	  int yyxbegin = yyn &lt; 0 ? -yyn : 0;
+-
+-	  /* Stay within bounds of both yycheck and yytname.  */
+-	  int yychecklim = YYLAST - yyn;
+-	  int yyxend = yychecklim &lt; YYNTOKENS ? yychecklim : YYNTOKENS;
+-	  int yycount = 1;
+-
+-	  yyarg[0] = yytname[yytype];
+-	  yyfmt = yystpcpy (yyformat, yyunexpected);
+-
+-	  for (yyx = yyxbegin; yyx &lt; yyxend; ++yyx)
+-	    if (yycheck[yyx + yyn] == yyx &amp;&amp; yyx != YYTERROR)
++#if ! YYERROR_VERBOSE
++      yyerror (&amp;yylloc, parseio, YY_(&quot;syntax error&quot;));
++#else
++      {
++	YYSIZE_T yysize = yysyntax_error (0, yystate, yychar);
++	if (yymsg_alloc &lt; yysize &amp;&amp; yymsg_alloc &lt; YYSTACK_ALLOC_MAXIMUM)
++	  {
++	    YYSIZE_T yyalloc = 2 * yysize;
++	    if (! (yysize &lt;= yyalloc &amp;&amp; yyalloc &lt;= YYSTACK_ALLOC_MAXIMUM))
++	      yyalloc = YYSTACK_ALLOC_MAXIMUM;
++	    if (yymsg != yymsgbuf)
++	      YYSTACK_FREE (yymsg);
++	    yymsg = (char *) YYSTACK_ALLOC (yyalloc);
++	    if (yymsg)
++	      yymsg_alloc = yyalloc;
++	    else
+ 	      {
+-		if (yycount == YYERROR_VERBOSE_ARGS_MAXIMUM)
+-		  {
+-		    yycount = 1;
+-		    yysize = yysize0;
+-		    yyformat[sizeof yyunexpected - 1] = '\0';
+-		    break;
+-		  }
+-		yyarg[yycount++] = yytname[yyx];
+-		yysize1 = yysize + yytnamerr (0, yytname[yyx]);
+-		yysize_overflow |= yysize1 &lt; yysize;
+-		yysize = yysize1;
+-		yyfmt = yystpcpy (yyfmt, yyprefix);
+-		yyprefix = yyor;
++		yymsg = yymsgbuf;
++		yymsg_alloc = sizeof yymsgbuf;
+ 	      }
++	  }
+ 
+-	  yyf = YY_(yyformat);
+-	  yysize1 = yysize + yystrlen (yyf);
+-	  yysize_overflow |= yysize1 &lt; yysize;
+-	  yysize = yysize1;
+-
+-	  if (!yysize_overflow &amp;&amp; yysize &lt;= YYSTACK_ALLOC_MAXIMUM)
+-	    yymsg = (char *) YYSTACK_ALLOC (yysize);
+-	  if (yymsg)
+-	    {
+-	      /* Avoid sprintf, as that infringes on the user's name space.
+-		 Don't have undefined behavior even if the translation
+-		 produced a string with the wrong number of &quot;%s&quot;s.  */
+-	      char *yyp = yymsg;
+-	      int yyi = 0;
+-	      while ((*yyp = *yyf))
+-		{
+-		  if (*yyp == '%' &amp;&amp; yyf[1] == 's' &amp;&amp; yyi &lt; yycount)
+-		    {
+-		      yyp += yytnamerr (yyp, yyarg[yyi++]);
+-		      yyf += 2;
+-		    }
+-		  else
+-		    {
+-		      yyp++;
+-		      yyf++;
+-		    }
+-		}
+-	      yyerror (&amp;yylloc, parseio, yymsg);
+-	      YYSTACK_FREE (yymsg);
+-	    }
+-	  else
+-	    {
+-	      yyerror (&amp;yylloc, parseio, YY_(&quot;syntax error&quot;));
++	if (0 &lt; yysize &amp;&amp; yysize &lt;= yymsg_alloc)
++	  {
++	    (void) yysyntax_error (yymsg, yystate, yychar);
++	    yyerror (&amp;yylloc, parseio, yymsg);
++	  }
++	else
++	  {
++	    yyerror (&amp;yylloc, parseio, YY_(&quot;syntax error&quot;));
++	    if (yysize != 0)
+ 	      goto yyexhaustedlab;
+-	    }
+-	}
+-      else
+-#endif /* YYERROR_VERBOSE */
+-	yyerror (&amp;yylloc, parseio, YY_(&quot;syntax error&quot;));
++	  }
++      }
++#endif
+     }
+ 
+   yyerror_range[0] = yylloc;
+@@ -2803,14 +2949,15 @@
+ 	 error, discard it.  */
+ 
+       if (yychar &lt;= YYEOF)
+-        {
++	{
+ 	  /* Return failure if at end of input.  */
+ 	  if (yychar == YYEOF)
+ 	    YYABORT;
+-        }
++	}
+       else
+ 	{
+-	  yydestruct (&quot;Error: discarding&quot;, yytoken, &amp;yylval, &amp;yylloc);
++	  yydestruct (&quot;Error: discarding&quot;,
++		      yytoken, &amp;yylval, &amp;yylloc, parseio);
+ 	  yychar = YYEMPTY;
+ 	}
+     }
+@@ -2828,13 +2975,15 @@
+   /* Pacify compilers like GCC when the user code never invokes
+      YYERROR and the label yyerrorlab therefore never appears in user
+      code.  */
+-  if (0)
++  if (/*CONSTCOND*/ 0)
+      goto yyerrorlab;
+ 
+   yyerror_range[0] = yylsp[1-yylen];
+-  yylsp -= yylen;
+-  yyvsp -= yylen;
+-  yyssp -= yylen;
++  /* Do not reclaim the symbols of the rule which action triggered
++     this YYERROR.  */
++  YYPOPSTACK (yylen);
++  yylen = 0;
++  YY_STACK_PRINT (yyss, yyssp);
+   yystate = *yyssp;
+   goto yyerrlab1;
+ 
+@@ -2864,8 +3013,9 @@
+ 	YYABORT;
+ 
+       yyerror_range[0] = *yylsp;
+-      yydestruct (&quot;Error: popping&quot;, yystos[yystate], yyvsp, yylsp);
+-      YYPOPSTACK;
++      yydestruct (&quot;Error: popping&quot;,
++		  yystos[yystate], yyvsp, yylsp, parseio);
++      YYPOPSTACK (1);
+       yystate = *yyssp;
+       YY_STACK_PRINT (yyss, yyssp);
+     }
+@@ -2877,11 +3027,11 @@
+ 
+   yyerror_range[1] = yylloc;
+   /* Using YYLLOC is tempting, but would change the location of
+-     the look-ahead.  YYLOC is available though. */
+-  YYLLOC_DEFAULT (yyloc, yyerror_range - 1, 2);
++     the look-ahead.  YYLOC is available though.  */
++  YYLLOC_DEFAULT (yyloc, (yyerror_range - 1), 2);
+   *++yylsp = yyloc;
+ 
+-  /* Shift the error token. */
++  /* Shift the error token.  */
+   YY_SYMBOL_PRINT (&quot;Shifting&quot;, yystos[yyn], yyvsp, yylsp);
+ 
+   yystate = yyn;
+@@ -2915,22 +3065,30 @@
+ yyreturn:
+   if (yychar != YYEOF &amp;&amp; yychar != YYEMPTY)
+      yydestruct (&quot;Cleanup: discarding lookahead&quot;,
+-		 yytoken, &amp;yylval, &amp;yylloc);
++		 yytoken, &amp;yylval, &amp;yylloc, parseio);
++  /* Do not reclaim the symbols of the rule which action triggered
++     this YYABORT or YYACCEPT.  */
++  YYPOPSTACK (yylen);
++  YY_STACK_PRINT (yyss, yyssp);
+   while (yyssp != yyss)
+     {
+       yydestruct (&quot;Cleanup: popping&quot;,
+-		  yystos[*yyssp], yyvsp, yylsp);
+-      YYPOPSTACK;
++		  yystos[*yyssp], yyvsp, yylsp, parseio);
++      YYPOPSTACK (1);
+     }
+ #ifndef yyoverflow
+   if (yyss != yyssa)
+     YYSTACK_FREE (yyss);
+ #endif
++#if YYERROR_VERBOSE
++  if (yymsg != yymsgbuf)
++    YYSTACK_FREE (yymsg);
++#endif
+   return yyresult;
+ }
+ 
+ 
+-#line 598 &quot;ael.y&quot;
++#line 596 &quot;ael.y&quot;
+ 
+ 
+ static char *token_equivs1[] =
+
+Modified: trunk/pbx/ael/ael.tab.h
+===================================================================
+--- trunk/pbx/ael/ael.tab.h	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/ael/ael.tab.h	2006-06-28 01:40:14 UTC (rev 377)
+@@ -1,7 +1,7 @@
+-/* A Bison parser, made by GNU Bison 2.1.  */
++/* A Bison parser, made by GNU Bison 2.1a.  */
+ 
+ /* Skeleton parser for Yacc-like parsing with Bison,
+-   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
++   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+ 
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+@@ -114,15 +114,17 @@
+ 
+ 
+ 
+-#if ! defined (YYSTYPE) &amp;&amp; ! defined (YYSTYPE_IS_DECLARED)
++#if ! defined YYSTYPE &amp;&amp; ! defined YYSTYPE_IS_DECLARED
++typedef union YYSTYPE
+ #line 48 &quot;ael.y&quot;
+-typedef union YYSTYPE {
++{
+ 	int	intval;		/* integer value, typically flags */
+ 	char	*str;		/* strings */
+ 	struct pval *pval;	/* full objects */
+-} YYSTYPE;
+-/* Line 1447 of yacc.c.  */
+-#line 126 &quot;ael.tab.h&quot;
++}
++/* Line 1536 of yacc.c.  */
++#line 127 &quot;ael.tab.h&quot;
++	YYSTYPE;
+ # define yystype YYSTYPE /* obsolescent; will be withdrawn */
+ # define YYSTYPE_IS_DECLARED 1
+ # define YYSTYPE_IS_TRIVIAL 1
+@@ -130,7 +132,7 @@
+ 
+ 
+ 
+-#if ! defined (YYLTYPE) &amp;&amp; ! defined (YYLTYPE_IS_DECLARED)
++#if ! defined YYLTYPE &amp;&amp; ! defined YYLTYPE_IS_DECLARED
+ typedef struct YYLTYPE
+ {
+   int first_line;
+
+Modified: trunk/pbx/ael/ael.y
+===================================================================
+--- trunk/pbx/ael/ael.y	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/ael/ael.y	2006-06-28 01:40:14 UTC (rev 377)
+@@ -153,7 +153,7 @@
+ 
+ /* there will be two shift/reduce conflicts, they involve the if statement, where a single statement occurs not wrapped in curlies in the &quot;true&quot; section
+    the default action to shift will attach the else to the preceeding if. */
+-%expect 5
++%expect 7
+ %error-verbose
+ 
+ /*
+@@ -449,8 +449,6 @@
+ opt_else : KW_ELSE statement { $$ = $2; }
+ 	| { $$ = NULL ; }
+ 
+-/* XXX unused */
+-bar_or_comma: BAR | COMMA ;
+ 
+ target : goto_word { $$ = nword($1, &amp;@1); }
+ 	| goto_word BAR goto_word {
+
+Modified: trunk/pbx/ael/ael_lex.c
+===================================================================
+--- trunk/pbx/ael/ael_lex.c	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/ael/ael_lex.c	2006-06-28 01:40:14 UTC (rev 377)
+@@ -9,7 +9,7 @@
+ #define FLEX_SCANNER
+ #define YY_FLEX_MAJOR_VERSION 2
+ #define YY_FLEX_MINOR_VERSION 5
+-#define YY_FLEX_SUBMINOR_VERSION 33
++#define YY_FLEX_SUBMINOR_VERSION 31
+ #if YY_FLEX_SUBMINOR_VERSION &gt; 0
+ #define FLEX_BETA
+ #endif
+@@ -32,15 +32,7 @@
+ 
+ /* C99 systems have &lt;inttypes.h&gt;. Non-C99 systems may or may not. */
+ 
+-#if __STDC_VERSION__ &gt;= 199901L
+-
+-/* C99 says to define __STDC_LIMIT_MACROS before including stdint.h,
+- * if you want the limit (max/min) macros for int types. 
+- */
+-#ifndef __STDC_LIMIT_MACROS
+-#define __STDC_LIMIT_MACROS 1
+-#endif
+-
++#if defined __STDC_VERSION__ &amp;&amp; __STDC_VERSION__ &gt;= 199901L
+ #include &lt;inttypes.h&gt;
+ typedef int8_t flex_int8_t;
+ typedef uint8_t flex_uint8_t;
+@@ -163,10 +155,6 @@
+ #define YY_BUF_SIZE 16384
+ #endif
+ 
+-/* The state buf must be large enough to hold one state per character in the main buffer.
+- */
+-#define YY_STATE_BUF_SIZE   ((YY_BUF_SIZE + 2) * sizeof(yy_state_type))
+-
+ #ifndef YY_TYPEDEF_YY_BUFFER_STATE
+ #define YY_TYPEDEF_YY_BUFFER_STATE
+ typedef struct yy_buffer_state *YY_BUFFER_STATE;
+@@ -785,13 +773,11 @@
+ #define semic 2
+ #define argg 3
+ 
+-#ifndef YY_NO_UNISTD_H
+ /* Special case for &quot;unistd.h&quot;, since it is non-ANSI. We include it way
+  * down here because we want the user's section 1 to have been scanned first.
+  * The user has a chance to override it with an option.
+  */
+ #include &lt;unistd.h&gt;
+-#endif
+ 
+ #ifndef YY_EXTRA_TYPE
+ #define YY_EXTRA_TYPE void *
+@@ -835,8 +821,6 @@
+ 
+     }; /* end struct yyguts_t */
+ 
+-static int yy_init_globals (yyscan_t yyscanner );
+-
+     /* This must go here because YYSTYPE and YYLTYPE are included
+      * from bison output in section 1.*/
+     #    define yylval yyg-&gt;yylval_r
+@@ -987,11 +971,9 @@
+ #ifndef YY_DECL
+ #define YY_DECL_IS_OURS 1
+ 
+-extern int ael_yylex \
+-               (YYSTYPE * yylval_param,YYLTYPE * yylloc_param ,yyscan_t yyscanner);
++extern int ael_yylex (YYSTYPE * yylval_param,YYLTYPE * yylloc_param ,yyscan_t yyscanner);
+ 
+-#define YY_DECL int ael_yylex \
+-               (YYSTYPE * yylval_param, YYLTYPE * yylloc_param , yyscan_t yyscanner)
++#define YY_DECL int ael_yylex (YYSTYPE * yylval_param, YYLTYPE * yylloc_param , yyscan_t yyscanner)
+ #endif /* !YY_DECL */
+ 
+ /* Code executed at the beginning of each rule, after yytext and yyleng
+@@ -1027,9 +1009,9 @@
+ 
+     yylloc = yylloc_param;
+ 
+-	if ( !yyg-&gt;yy_init )
++	if ( yyg-&gt;yy_init )
+ 		{
+-		yyg-&gt;yy_init = 1;
++		yyg-&gt;yy_init = 0;
+ 
+ #ifdef YY_USER_INIT
+ 		YY_USER_INIT;
+@@ -1795,7 +1777,7 @@
+ 
+ 	else
+ 		{
+-			int num_to_read =
++			size_t num_to_read =
+ 			YY_CURRENT_BUFFER_LVALUE-&gt;yy_buf_size - number_to_move - 1;
+ 
+ 		while ( num_to_read &lt;= 0 )
+@@ -1911,7 +1893,7 @@
+     static yy_state_type yy_try_NUL_trans  (yy_state_type yy_current_state , yyscan_t yyscanner)
+ {
+ 	register int yy_is_jam;
+-    struct yyguts_t * yyg = (struct yyguts_t*)yyscanner; /* This var may be unused depending upon options. */
++    struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+ 	register char *yy_cp = yyg-&gt;yy_c_buf_p;
+ 
+ 	register YY_CHAR yy_c = 1;
+@@ -2354,16 +2336,16 @@
+ 
+ /** Setup the input buffer state to scan a string. The next call to ael_yylex() will
+  * scan from a @e copy of @a str.
+- * @param yystr a NUL-terminated string to scan
++ * @param str a NUL-terminated string to scan
+  * @param yyscanner The scanner object.
+  * @return the newly allocated buffer state object.
+  * @note If you want to scan bytes that may contain NUL values, then use
+  *       ael_yy_scan_bytes() instead.
+  */
+-YY_BUFFER_STATE ael_yy_scan_string (yyconst char * yystr , yyscan_t yyscanner)
++YY_BUFFER_STATE ael_yy_scan_string (yyconst char * str , yyscan_t yyscanner)
+ {
+     
+-	return ael_yy_scan_bytes(yystr,strlen(yystr) ,yyscanner);
++	return ael_yy_scan_bytes(str,strlen(str) ,yyscanner);
+ }
+ 
+ /** Setup the input buffer state to scan the given bytes. The next call to ael_yylex() will
+@@ -2373,7 +2355,7 @@
+  * @param yyscanner The scanner object.
+  * @return the newly allocated buffer state object.
+  */
+-YY_BUFFER_STATE ael_yy_scan_bytes  (yyconst char * yybytes, int  _yybytes_len , yyscan_t yyscanner)
++YY_BUFFER_STATE ael_yy_scan_bytes  (yyconst char * bytes, int  len , yyscan_t yyscanner)
+ {
+ 	YY_BUFFER_STATE b;
+ 	char *buf;
+@@ -2381,15 +2363,15 @@
+ 	int i;
+     
+ 	/* Get memory for full buffer, including space for trailing EOB's. */
+-	n = _yybytes_len + 2;
++	n = len + 2;
+ 	buf = (char *) ael_yyalloc(n ,yyscanner );
+ 	if ( ! buf )
+ 		YY_FATAL_ERROR( &quot;out of dynamic memory in ael_yy_scan_bytes()&quot; );
+ 
+-	for ( i = 0; i &lt; _yybytes_len; ++i )
+-		buf[i] = yybytes[i];
++	for ( i = 0; i &lt; len; ++i )
++		buf[i] = bytes[i];
+ 
+-	buf[_yybytes_len] = buf[_yybytes_len+1] = YY_END_OF_BUFFER_CHAR;
++	buf[len] = buf[len+1] = YY_END_OF_BUFFER_CHAR;
+ 
+ 	b = ael_yy_scan_buffer(buf,n ,yyscanner);
+ 	if ( ! b )
+@@ -2600,51 +2582,21 @@
+     yylloc = yylloc_param;
+ }
+     
+-/* User-visible API */
+-
+-/* ael_yylex_init is special because it creates the scanner itself, so it is
+- * the ONLY reentrant function that doesn't take the scanner as the last argument.
+- * That's why we explicitly handle the declaration, instead of using our macros.
+- */
+-
+-int ael_yylex_init(yyscan_t* ptr_yy_globals)
+-
+-{
+-    if (ptr_yy_globals == NULL){
+-        errno = EINVAL;
+-        return 1;
+-    }
+-
+-    *ptr_yy_globals = (yyscan_t) ael_yyalloc ( sizeof( struct yyguts_t ), NULL );
+-
+-    if (*ptr_yy_globals == NULL){
+-        errno = ENOMEM;
+-        return 1;
+-    }
+-
+-    /* By setting to 0xAA, we expose bugs in yy_init_globals. Leave at 0x00 for releases. */
+-    memset(*ptr_yy_globals,0x00,sizeof(struct yyguts_t));
+-
+-    return yy_init_globals ( *ptr_yy_globals );
+-}
+-
+ static int yy_init_globals (yyscan_t yyscanner)
+ {
+     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+     /* Initialization is the same as for the non-reentrant scanner.
+-     * This function is called from ael_yylex_destroy(), so don't allocate here.
+-     */
++       This function is called once per scanner lifetime. */
+ 
+     yyg-&gt;yy_buffer_stack = 0;
+     yyg-&gt;yy_buffer_stack_top = 0;
+     yyg-&gt;yy_buffer_stack_max = 0;
+     yyg-&gt;yy_c_buf_p = (char *) 0;
+-    yyg-&gt;yy_init = 0;
++    yyg-&gt;yy_init = 1;
+     yyg-&gt;yy_start = 0;
+-
+     yyg-&gt;yy_start_stack_ptr = 0;
+     yyg-&gt;yy_start_stack_depth = 0;
+-    yyg-&gt;yy_start_stack =  NULL;
++    yyg-&gt;yy_start_stack = (int *) 0;
+ 
+ /* Defined in main.c */
+ #ifdef YY_STDINIT
+@@ -2661,6 +2613,33 @@
+     return 0;
+ }
+ 
++/* User-visible API */
++
++/* ael_yylex_init is special because it creates the scanner itself, so it is
++ * the ONLY reentrant function that doesn't take the scanner as the last argument.
++ * That's why we explicitly handle the declaration, instead of using our macros.
++ */
++
++int ael_yylex_init(yyscan_t* ptr_yy_globals)
++
++{
++    if (ptr_yy_globals == NULL){
++        errno = EINVAL;
++        return 1;
++    }
++
++    *ptr_yy_globals = (yyscan_t) ael_yyalloc ( sizeof( struct yyguts_t ), NULL );
++
++    if (*ptr_yy_globals == NULL){
++        errno = ENOMEM;
++        return 1;
++    }
++
++    memset(*ptr_yy_globals,0,sizeof(struct yyguts_t));
++
++    return yy_init_globals ( *ptr_yy_globals );
++}
++
+ /* ael_yylex_destroy is for both reentrant and non-reentrant scanners. */
+ int ael_yylex_destroy  (yyscan_t yyscanner)
+ {
+@@ -2681,13 +2660,8 @@
+         ael_yyfree(yyg-&gt;yy_start_stack ,yyscanner );
+         yyg-&gt;yy_start_stack = NULL;
+ 
+-    /* Reset the globals. This is important in a non-reentrant scanner so the next time
+-     * ael_yylex() is called, initialization will occur. */
+-    yy_init_globals( yyscanner);
+-
+     /* Destroy the main struct (reentrant only). */
+     ael_yyfree ( yyscanner , yyscanner );
+-    yyscanner = NULL;
+     return 0;
+ }
+ 
+@@ -2699,6 +2673,7 @@
+ static void yy_flex_strncpy (char* s1, yyconst char * s2, int n , yyscan_t yyscanner)
+ {
+ 	register int i;
++    struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+ 	for ( i = 0; i &lt; n; ++i )
+ 		s1[i] = s2[i];
+ }
+@@ -2708,6 +2683,7 @@
+ static int yy_flex_strlen (yyconst char * s , yyscan_t yyscanner)
+ {
+ 	register int n;
++    struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+ 	for ( n = 0; s[n]; ++n )
+ 		;
+ 
+@@ -2739,10 +2715,22 @@
+ 
+ #define YYTABLES_NAME &quot;yytables&quot;
+ 
+-#line 453 &quot;ael.flex&quot;
++#undef YY_NEW_FILE
++#undef YY_FLUSH_BUFFER
++#undef yy_set_bol
++#undef yy_new_buffer
++#undef yy_set_interactive
++#undef yytext_ptr
++#undef YY_DO_BEFORE_ACTION
+ 
++#ifdef YY_DECL_IS_OURS
++#undef YY_DECL_IS_OURS
++#undef YY_DECL
++#endif
++#line 450 &quot;ael.flex&quot;
+ 
+ 
++
+ static void pbcpush(char x)
+ {
+ 	pbcstack[pbcpos++] = x;
+
+Modified: trunk/pbx/pbx_ael.c
+===================================================================
+--- trunk/pbx/pbx_ael.c	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/pbx/pbx_ael.c	2006-06-28 01:40:14 UTC (rev 377)
+@@ -2491,6 +2491,10 @@
+ 		if (ne-&gt;name)
+ 			free(ne-&gt;name);
+ 		
++		/* cidmatch fields are allocated with name, and freed when
++		   the name field is freed. Don't do a free for this field,
++		   unless you LIKE to see a crash! */
++
+ 		if (ne-&gt;hints)
+ 			free(ne-&gt;hints);
+ 		
+@@ -2540,6 +2544,7 @@
+ 	char *strp, *strp2;
+ 	char new_label[2000];
+ 	int default_exists;
++	int local_control_statement_count;
+ 	struct ael_priority *loop_break_save;
+ 	struct ael_priority *loop_continue_save;
+ 	struct ael_extension *switch_case;
+@@ -2699,6 +2704,7 @@
+ 
+ 		case PV_SWITCH:
+ 			control_statement_count++;
++			local_control_statement_count = control_statement_count;
+ 			loop_break_save = exten-&gt;loop_break; /* save them, then restore before leaving */
+ 			loop_continue_save = exten-&gt;loop_continue;
+ 			snprintf(new_label,sizeof(new_label),&quot;sw-%s-%d&quot;, label, control_statement_count);
+@@ -2733,9 +2739,9 @@
+ 					switch_case-&gt;loop_continue = exten-&gt;loop_continue;
+ 					
+ 					linkexten(exten,switch_case);
+-					snprintf(buf1,sizeof(buf1),&quot;sw-%d-%s&quot;, control_statement_count, p2-&gt;u1.str);
++					snprintf(buf1,sizeof(buf1),&quot;sw-%d-%s&quot;, local_control_statement_count, p2-&gt;u1.str);
+ 					switch_case-&gt;name = strdup(buf1);
+-					snprintf(new_label,sizeof(new_label),&quot;sw-%s-%s-%d&quot;, label, p2-&gt;u1.str, control_statement_count);
++					snprintf(new_label,sizeof(new_label),&quot;sw-%s-%s-%d&quot;, label, p2-&gt;u1.str, local_control_statement_count);
+ 					
+ 					gen_prios(switch_case, new_label, p2-&gt;u2.statements, exten); /* this will link in all the case body statements here */
+ 
+@@ -2751,21 +2757,21 @@
+ 							fall_thru = new_prio();
+ 							fall_thru-&gt;type = AEL_APPCALL;
+ 							fall_thru-&gt;app = strdup(&quot;Goto&quot;);
+-							snprintf(buf1,sizeof(buf1),&quot;sw-%d-%s|1&quot;,control_statement_count, p2-&gt;next-&gt;u1.str);
++							snprintf(buf1,sizeof(buf1),&quot;sw-%d-%s|1&quot;,local_control_statement_count, p2-&gt;next-&gt;u1.str);
+ 							fall_thru-&gt;appargs = strdup(buf1);
+ 							linkprio(switch_case, fall_thru);
+ 						} else if (p2-&gt;next &amp;&amp; p2-&gt;next-&gt;type == PV_PATTERN) {
+ 							fall_thru = new_prio();
+ 							fall_thru-&gt;type = AEL_APPCALL;
+ 							fall_thru-&gt;app = strdup(&quot;Goto&quot;);
+-							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-%s|1&quot;,control_statement_count, p2-&gt;next-&gt;u1.str);
++							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-%s|1&quot;,local_control_statement_count, p2-&gt;next-&gt;u1.str);
+ 							fall_thru-&gt;appargs = strdup(buf1);
+ 							linkprio(switch_case, fall_thru);
+ 						} else if (p2-&gt;next &amp;&amp; p2-&gt;next-&gt;type == PV_DEFAULT) {
+ 							fall_thru = new_prio();
+ 							fall_thru-&gt;type = AEL_APPCALL;
+ 							fall_thru-&gt;app = strdup(&quot;Goto&quot;);
+-							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-.|1&quot;,control_statement_count);
++							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-.|1&quot;,local_control_statement_count);
+ 							fall_thru-&gt;appargs = strdup(buf1);
+ 							linkprio(switch_case, fall_thru);
+ 						} else if (!p2-&gt;next) {
+@@ -2794,9 +2800,9 @@
+ 					switch_case-&gt;loop_continue = exten-&gt;loop_continue;
+ 					
+ 					linkexten(exten,switch_case);
+-					snprintf(buf1,sizeof(buf1),&quot;_sw-%d-%s&quot;, control_statement_count, p2-&gt;u1.str);
++					snprintf(buf1,sizeof(buf1),&quot;_sw-%d-%s&quot;, local_control_statement_count, p2-&gt;u1.str);
+ 					switch_case-&gt;name = strdup(buf1);
+-					snprintf(new_label,sizeof(new_label),&quot;sw-%s-%s-%d&quot;, label, p2-&gt;u1.str, control_statement_count);
++					snprintf(new_label,sizeof(new_label),&quot;sw-%s-%s-%d&quot;, label, p2-&gt;u1.str, local_control_statement_count);
+ 					
+ 					gen_prios(switch_case, new_label, p2-&gt;u2.statements, exten); /* this will link in all the while body statements here */
+ 					/* here is where we write code to &quot;fall thru&quot; to the next case... if there is one... */
+@@ -2811,21 +2817,21 @@
+ 							fall_thru = new_prio();
+ 							fall_thru-&gt;type = AEL_APPCALL;
+ 							fall_thru-&gt;app = strdup(&quot;Goto&quot;);
+-							snprintf(buf1,sizeof(buf1),&quot;sw-%d-%s|1&quot;,control_statement_count, p2-&gt;next-&gt;u1.str);
++							snprintf(buf1,sizeof(buf1),&quot;sw-%d-%s|1&quot;,local_control_statement_count, p2-&gt;next-&gt;u1.str);
+ 							fall_thru-&gt;appargs = strdup(buf1);
+ 							linkprio(switch_case, fall_thru);
+ 						} else if (p2-&gt;next &amp;&amp; p2-&gt;next-&gt;type == PV_PATTERN) {
+ 							fall_thru = new_prio();
+ 							fall_thru-&gt;type = AEL_APPCALL;
+ 							fall_thru-&gt;app = strdup(&quot;Goto&quot;);
+-							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-%s|1&quot;,control_statement_count, p2-&gt;next-&gt;u1.str);
++							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-%s|1&quot;,local_control_statement_count, p2-&gt;next-&gt;u1.str);
+ 							fall_thru-&gt;appargs = strdup(buf1);
+ 							linkprio(switch_case, fall_thru);
+ 						} else if (p2-&gt;next &amp;&amp; p2-&gt;next-&gt;type == PV_DEFAULT) {
+ 							fall_thru = new_prio();
+ 							fall_thru-&gt;type = AEL_APPCALL;
+ 							fall_thru-&gt;app = strdup(&quot;Goto&quot;);
+-							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-.|1&quot;,control_statement_count);
++							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-.|1&quot;,local_control_statement_count);
+ 							fall_thru-&gt;appargs = strdup(buf1);
+ 							linkprio(switch_case, fall_thru);
+ 						} else if (!p2-&gt;next) {
+@@ -2854,10 +2860,10 @@
+ 					switch_case-&gt;loop_break = exten-&gt;loop_break;
+ 					switch_case-&gt;loop_continue = exten-&gt;loop_continue;
+ 					linkexten(exten,switch_case);
+-					snprintf(buf1,sizeof(buf1),&quot;_sw-%d-.&quot;, control_statement_count);
++					snprintf(buf1,sizeof(buf1),&quot;_sw-%d-.&quot;, local_control_statement_count);
+ 					switch_case-&gt;name = strdup(buf1);
+ 					
+-					snprintf(new_label,sizeof(new_label),&quot;sw-%s-default-%d&quot;, label, control_statement_count);
++					snprintf(new_label,sizeof(new_label),&quot;sw-%s-default-%d&quot;, label, local_control_statement_count);
+ 					
+ 					gen_prios(switch_case, new_label, p2-&gt;u2.statements, exten); /* this will link in all the while body statements here */
+ 					
+@@ -2873,21 +2879,21 @@
+ 							fall_thru = new_prio();
+ 							fall_thru-&gt;type = AEL_APPCALL;
+ 							fall_thru-&gt;app = strdup(&quot;Goto&quot;);
+-							snprintf(buf1,sizeof(buf1),&quot;sw-%d-%s|1&quot;,control_statement_count, p2-&gt;next-&gt;u1.str);
++							snprintf(buf1,sizeof(buf1),&quot;sw-%d-%s|1&quot;,local_control_statement_count, p2-&gt;next-&gt;u1.str);
+ 							fall_thru-&gt;appargs = strdup(buf1);
+ 							linkprio(switch_case, fall_thru);
+ 						} else if (p2-&gt;next &amp;&amp; p2-&gt;next-&gt;type == PV_PATTERN) {
+ 							fall_thru = new_prio();
+ 							fall_thru-&gt;type = AEL_APPCALL;
+ 							fall_thru-&gt;app = strdup(&quot;Goto&quot;);
+-							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-%s|1&quot;,control_statement_count, p2-&gt;next-&gt;u1.str);
++							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-%s|1&quot;,local_control_statement_count, p2-&gt;next-&gt;u1.str);
+ 							fall_thru-&gt;appargs = strdup(buf1);
+ 							linkprio(switch_case, fall_thru);
+ 						} else if (p2-&gt;next &amp;&amp; p2-&gt;next-&gt;type == PV_DEFAULT) {
+ 							fall_thru = new_prio();
+ 							fall_thru-&gt;type = AEL_APPCALL;
+ 							fall_thru-&gt;app = strdup(&quot;Goto&quot;);
+-							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-.|1&quot;,control_statement_count);
++							snprintf(buf1,sizeof(buf1),&quot;_sw-%d-.|1&quot;,local_control_statement_count);
+ 							fall_thru-&gt;appargs = strdup(buf1);
+ 							linkprio(switch_case, fall_thru);
+ 						} else if (!p2-&gt;next) {
+@@ -3184,7 +3190,7 @@
+ 		struct ael_priority *last = 0;
+ 		
+ 		if (exten-&gt;hints) {
+-			if (ast_add_extension2(context, 0 /*no replace*/, exten-&gt;name, PRIORITY_HINT, NULL, NULL, 
++			if (ast_add_extension2(context, 0 /*no replace*/, exten-&gt;name, PRIORITY_HINT, NULL, exten-&gt;cidmatch, 
+ 								  exten-&gt;hints, NULL, FREE, registrar)) {
+ 				ast_log(LOG_WARNING, &quot;Unable to add step at priority 'hint' of extension '%s'\n&quot;,
+ 						exten-&gt;name);
+@@ -3266,7 +3272,7 @@
+ 				label = 0;
+ 			
+ 			
+-			if (ast_add_extension2(context, 0 /*no replace*/, exten-&gt;name, pr-&gt;priority_num, (label?label:NULL), NULL, 
++			if (ast_add_extension2(context, 0 /*no replace*/, exten-&gt;name, pr-&gt;priority_num, (label?label:NULL), exten-&gt;cidmatch, 
+ 								  app, strdup(appargs), FREE, registrar)) {
+ 				ast_log(LOG_WARNING, &quot;Unable to add step at priority '%d' of extension '%s'\n&quot;, pr-&gt;priority_num, 
+ 						exten-&gt;name);
+@@ -3340,11 +3346,18 @@
+ 			/* contexts contain: ignorepat, includes, switches, eswitches, extensions,  */
+ 			for (p2=p-&gt;u2.statements; p2; p2=p2-&gt;next) {
+ 				pval *p3;
++				char *s3;
+ 				
+ 				switch (p2-&gt;type) {
+ 				case PV_EXTENSION:
+ 					exten = new_exten();
+ 					exten-&gt;name = strdup(p2-&gt;u1.str);
++					if( (s3=strchr(exten-&gt;name, '/') ) != 0 )
++					{
++						*s3 = 0;
++						exten-&gt;cidmatch = s3+1;
++					}
++					
+ 					if ( p2-&gt;u3.hints )
+ 						exten-&gt;hints = strdup(p2-&gt;u3.hints);
+ 					exten-&gt;regexten = p2-&gt;u4.regexten;
+
+Modified: trunk/res/res_jabber.c
+===================================================================
+--- trunk/res/res_jabber.c	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/res/res_jabber.c	2006-06-28 01:40:14 UTC (rev 377)
+@@ -1031,22 +1031,24 @@
+ {
+ 	struct aji_message *insert, *tmp;
+ 	int flag = 0;
+-	insert = ast_calloc(1,sizeof(struct aji_message));
++
++	if (!(insert = ast_calloc(1, sizeof(struct aji_message))))
++		return;
+ 	time(&amp;insert-&gt;arrived);
+ 	insert-&gt;message = ast_strdup(iks_find_cdata(pak-&gt;x, &quot;body&quot;));
+ 	ast_copy_string(insert-&gt;id, pak-&gt;id, sizeof(insert-&gt;message));
+ 	insert-&gt;from = ast_strdup(pak-&gt;from-&gt;full);
+ 	AST_LIST_LOCK(&amp;client-&gt;messages);
+ 	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;client-&gt;messages, tmp, list) {
+-		if(flag) {
+-			AST_LIST_REMOVE_CURRENT(&amp;client-&gt;messages,list);
++		if (flag) {
++			AST_LIST_REMOVE_CURRENT(&amp;client-&gt;messages, list);
+ 			if (tmp-&gt;from)
+ 				free(tmp-&gt;from);
+ 			if (tmp-&gt;message)
+ 				free(tmp-&gt;message);
+ 		} else if (difftime(time(NULL), tmp-&gt;arrived) &gt;= client-&gt;message_timeout) {
+ 			flag = 1;
+-			AST_LIST_REMOVE_CURRENT(&amp;client-&gt;messages,list);
++			AST_LIST_REMOVE_CURRENT(&amp;client-&gt;messages, list);
+ 			if (tmp-&gt;from)
+ 				free(tmp-&gt;from);
+ 			if (tmp-&gt;message)
+@@ -1054,9 +1056,10 @@
+ 		}
+ 	}
+ 	AST_LIST_TRAVERSE_SAFE_END;
+-	AST_LIST_INSERT_HEAD(&amp;client-&gt;messages,insert,list);
++	AST_LIST_INSERT_HEAD(&amp;client-&gt;messages, insert, list);
+ 	AST_LIST_UNLOCK(&amp;client-&gt;messages);
+ }
++
+ static void aji_handle_presence(struct aji_client *client, ikspak *pak)
+ {
+ 	int status, priority;
+
+Modified: trunk/say.c
+===================================================================
+--- trunk/say.c	2006-06-28 01:39:28 UTC (rev 376)
++++ trunk/say.c	2006-06-28 01:40:14 UTC (rev 377)
+@@ -4702,7 +4702,11 @@
+ 			case 'e':
+ 				/* First - Thirtyfirst */
+ 				remainder = tm.tm_mday;
+-				if (tm.tm_mday &gt; 20) {
++				if (tm.tm_mday &gt; 30) {
++					res = wait_file(chan, ints, &quot;digits/h-30&quot;, lang);
++					remainder -= 30;
++				}
++				if (tm.tm_mday &gt; 20 &amp;&amp; tm.tm_mday &lt; 30) {
+ 					res = wait_file(chan, ints, &quot;digits/h-20&quot;, lang);
+ 					remainder -= 20;
+ 				}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000371.html">[solid-pbx-svn] r376 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000373.html">[solid-pbx-svn] r378 - in trunk: channels configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#372">[ date ]</a>
+              <a href="thread.html#372">[ thread ]</a>
+              <a href="subject.html#372">[ subject ]</a>
+              <a href="author.html#372">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,276 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r180 - in trunk: . apps channels pbx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r180%20-%20in%20trunk%3A%20.%20apps%20channels%20pbx&In-Reply-To=%3C200605252048.k4PKmWJb023273%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000174.html">
+   <LINK REL="Next"  HREF="000176.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r180 - in trunk: . apps channels pbx</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r180%20-%20in%20trunk%3A%20.%20apps%20channels%20pbx&In-Reply-To=%3C200605252048.k4PKmWJb023273%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r180 - in trunk: . apps channels pbx">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May 25 22:48:32 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000174.html">[solid-pbx-svn] r179 - in trunk: . apps channels include/asterisk utils
+</A></li>
+        <LI>Next message: <A HREF="000176.html">[solid-pbx-svn] r181 - in trunk: . apps build_tools cdr channels channels/misdn codecs codecs/gsm configs doc funcs include include/asterisk pbx res utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#175">[ date ]</a>
+              <a href="thread.html#175">[ thread ]</a>
+              <a href="subject.html#175">[ subject ]</a>
+              <a href="author.html#175">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-25 22:48:20 +0200 (Thu, 25 May 2006)
+New Revision: 180
+
+Modified:
+   trunk/apps/app_voicemail.c
+   trunk/channels/chan_sip.c
+   trunk/channels/chan_zap.c
+   trunk/pbx/pbx_spool.c
+   trunk/sample.call
+Log:
+Update to Asterisk SVN trunk r28864
+
+------------------------------------------------------------------------
+r28832 | russell | 2006-05-20 00:51:44 +0200 (Sat, 20 May 2006) | 4 lines
+
+Make the new behavior where the timestamp is checked on the call file before
+deleting it optional, defaulting to the old behavior, where it is always
+deleted (issue #6750, jcollie)
+
+------------------------------------------------------------------------
+r28833 | kpfleming | 2006-05-20 00:55:02 +0200 (Sat, 20 May 2006) | 2 lines
+
+let's use the proper variable here, instead of segfaulting (don't know how this worked for anyone at all)
+
+------------------------------------------------------------------------
+r28834 | russell | 2006-05-20 00:55:09 +0200 (Sat, 20 May 2006) | 2 lines
+
+allow chan_h323 to build (issue #7006, casper)
+
+------------------------------------------------------------------------
+r28863 | kpfleming | 2006-05-20 01:08:47 +0200 (Sat, 20 May 2006) | 2 lines
+
+attributes need trailing CR-LF
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-19 21:15:13 UTC (rev 179)
++++ trunk/apps/app_voicemail.c	2006-05-25 20:48:20 UTC (rev 180)
+@@ -2236,7 +2236,7 @@
+ 	char tmp[256], *tmp2 = tmp, *mbox, *context;
+ 	ast_copy_string(tmp, mailbox, sizeof(tmp));
+ 	while ((mbox = strsep(&amp;tmp2, &quot;,&quot;))) {
+-		if ((context = strchr(tmp2, '@')))
++		if ((context = strchr(mbox, '@')))
+ 			*context++ = '\0';
+ 		else
+ 			context = &quot;default&quot;;
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-19 21:15:13 UTC (rev 179)
++++ trunk/channels/chan_sip.c	2006-05-25 20:48:20 UTC (rev 180)
+@@ -4923,9 +4923,9 @@
+ 	ast_build_string(&amp;m_video_next, &amp;m_video_left, &quot;m=video %d RTP/AVP&quot;, ntohs(vdest.sin_port));
+ 
+ 	if (ast_test_flag(&amp;p-&gt;flags[0], SIP_CALL_ONHOLD))
+-		hold = &quot;a=recvonly&quot;;
++		hold = &quot;a=recvonly\r\n&quot;;
+ 	else
+-		hold = &quot;a=sendrecv&quot;;
++		hold = &quot;a=sendrecv\r\n&quot;;
+ 
+ 	/* Prefer the codec we were requested to use, first, no matter what */
+ 	if (capability &amp; p-&gt;prefcodec) {
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-05-19 21:15:13 UTC (rev 179)
++++ trunk/channels/chan_zap.c	2006-05-25 20:48:20 UTC (rev 180)
+@@ -6495,18 +6495,18 @@
+ 	case ZT_EVENT_NOALARM:
+ 		i-&gt;inalarm = 0;
+ 		ast_log(LOG_NOTICE, &quot;Alarm cleared on channel %d\n&quot;, i-&gt;channel);
++		manager_event(EVENT_FLAG_SYSTEM, &quot;AlarmClear&quot;,
++			&quot;Channel: %d\r\n&quot;, i-&gt;channel);
+ 		break;
+-               manager_event(EVENT_FLAG_SYSTEM, &quot;AlarmClear&quot;,
+-                                                       &quot;Channel: %d\r\n&quot;, i-&gt;channel);
+ 	case ZT_EVENT_ALARM:
+ 		i-&gt;inalarm = 1;
+ 		res = get_alarms(i);
+ 		ast_log(LOG_WARNING, &quot;Detected alarm on channel %d: %s\n&quot;, i-&gt;channel, alarm2str(res));
++		manager_event(EVENT_FLAG_SYSTEM, &quot;Alarm&quot;,
++			&quot;Alarm: %s\r\n&quot;
++			&quot;Channel: %d\r\n&quot;,
++			alarm2str(res), i-&gt;channel);
+ 		/* fall thru intentionally */
+-               manager_event(EVENT_FLAG_SYSTEM, &quot;Alarm&quot;,
+-                                                       &quot;Alarm: %s\r\n&quot;
+-                                                       &quot;Channel: %d\r\n&quot;,
+-                                                       alarm2str(res), i-&gt;channel);
+ 	case ZT_EVENT_ONHOOK:
+ 		if (i-&gt;radio) break;
+ 		/* Back on hook.  Hang up. */
+
+Modified: trunk/pbx/pbx_spool.c
+===================================================================
+--- trunk/pbx/pbx_spool.c	2006-05-19 21:15:13 UTC (rev 179)
++++ trunk/pbx/pbx_spool.c	2006-05-25 20:48:20 UTC (rev 180)
+@@ -53,6 +53,14 @@
+  * The spool file contains a header 
+  */
+ 
++enum {
++	/*! Always delete the call file after a call succeeds or the
++	 * maximum number of retries is exceeded, even if the
++	 * modification time of the call file is in the future.
++	 */
++	SPOOL_FLAG_ALWAYS_DELETE = (1 &lt;&lt; 0)
++};
++
+ static char qdir[255];
+ 
+ struct outgoing {
+@@ -93,6 +101,9 @@
+ 	
+ 	/* Maximum length of call */
+ 	int maxlen;
++
++	/* options */
++	struct ast_flags options;
+ };
+ 
+ static void init_outgoing(struct outgoing *o)
+@@ -101,6 +112,7 @@
+ 	o-&gt;priority = 1;
+ 	o-&gt;retrytime = 300;
+ 	o-&gt;waittime = 45;
++	ast_set_flag(&amp;o-&gt;options, SPOOL_FLAG_ALWAYS_DELETE);
+ }
+ 
+ static void free_outgoing(struct outgoing *o)
+@@ -214,6 +226,8 @@
+ 						ast_log(LOG_WARNING, &quot;Malformed \&quot;%s\&quot; argument.  Should be \&quot;%s: variable=value\&quot;\n&quot;, buf, buf);
+ 				} else if (!strcasecmp(buf, &quot;account&quot;)) {
+ 					ast_copy_string(o-&gt;account, c, sizeof(o-&gt;account));
++				} else if (!strcasecmp(buf, &quot;alwaysdelete&quot;)) {
++					ast_set2_flag(&amp;o-&gt;options, ast_true(c), SPOOL_FLAG_ALWAYS_DELETE);
+ 				} else {
+ 					ast_log(LOG_WARNING, &quot;Unknown keyword '%s' at line %d of %s\n&quot;, buf, lineno, fn);
+ 				}
+@@ -250,11 +264,23 @@
+ 	}
+ }
+ 
++static void check_unlink(struct outgoing *o)
++{
++	if (ast_test_flag(&amp;o-&gt;options, SPOOL_FLAG_ALWAYS_DELETE))
++		unlink(o-&gt;fn);
++	else {
++		struct stat current_file_status;
++	
++		if (!stat(o-&gt;fn, &amp;current_file_status))
++			if (time(NULL) &gt;= current_file_status.st_mtime)
++				unlink(o-&gt;fn);
++	}
++}
++
+ static void *attempt_thread(void *data)
+ {
+ 	struct outgoing *o = data;
+ 	int res, reason;
+-	struct stat current_file_status;
+ 	if (!ast_strlen_zero(o-&gt;app)) {
+ 		if (option_verbose &gt; 2)
+ 			ast_verbose(VERBOSE_PREFIX_3 &quot;Attempting call on %s/%s for application %s(%s) (Retry %d)\n&quot;, o-&gt;tech, o-&gt;dest, o-&gt;app, o-&gt;data, o-&gt;retries);
+@@ -269,7 +295,7 @@
+ 		if (o-&gt;retries &gt;= o-&gt;maxretries + 1) {
+ 			/* Max retries exceeded */
+ 			ast_log(LOG_EVENT, &quot;Queued call to %s/%s expired without completion after %d attempt%s\n&quot;, o-&gt;tech, o-&gt;dest, o-&gt;retries - 1, ((o-&gt;retries - 1) != 1) ? &quot;s&quot; : &quot;&quot;);
+-			unlink(o-&gt;fn);
++			check_unlink(o);
+ 		} else {
+ 			/* Notate that the call is still active */
+ 			safe_append(o, time(NULL), &quot;EndRetry&quot;);
+@@ -277,10 +303,7 @@
+ 	} else {
+ 		ast_log(LOG_NOTICE, &quot;Call completed to %s/%s\n&quot;, o-&gt;tech, o-&gt;dest);
+ 		ast_log(LOG_EVENT, &quot;Queued call to %s/%s completed\n&quot;, o-&gt;tech, o-&gt;dest);
+-		if (!stat(o-&gt;fn, &amp;current_file_status)) {
+-			if (time(NULL) &gt;= current_file_status.st_atime)
+-				unlink(o-&gt;fn);
+-		}
++		check_unlink(o);
+ 	}
+ 	free_outgoing(o);
+ 	return NULL;
+
+Modified: trunk/sample.call
+===================================================================
+--- trunk/sample.call	2006-05-19 21:15:13 UTC (rev 179)
++++ trunk/sample.call	2006-05-25 20:48:20 UTC (rev 180)
+@@ -50,6 +50,17 @@
+ #Account: mysuperfunaccountcode
+ 
+ #
++# Normally, a call file is always deleted after the call is successful
++# or the maximum number of tries is reached even if the modification
++# time of the call file was changed during the call to be in the
++# future.  By Setting AlwaysDelete to No the modification time of the
++# call file will be checked after the call is completed or the maximum
++# number of retries is reached.  If the modification time is in the
++# future, the call file will not be deleted.
++#
++#AlwaysDelete: Yes
++
++#
+ # You can set channel variables that will be passed to the channel.
+ # This includes writable dialplan functions. To set a writable dialplan
+ # function, the module containing this function *must* be loaded.
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000174.html">[solid-pbx-svn] r179 - in trunk: . apps channels include/asterisk utils
+</A></li>
+	<LI>Next message: <A HREF="000176.html">[solid-pbx-svn] r181 - in trunk: . apps build_tools cdr channels channels/misdn codecs codecs/gsm configs doc funcs include include/asterisk pbx res utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#175">[ date ]</a>
+              <a href="thread.html#175">[ thread ]</a>
+              <a href="subject.html#175">[ subject ]</a>
+              <a href="author.html#175">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

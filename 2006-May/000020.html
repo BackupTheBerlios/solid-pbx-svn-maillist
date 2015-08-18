@@ -1,0 +1,122 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r23 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r23%20-%20trunk/channels&In-Reply-To=%3C200605010418.k414I1P8013364%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000019.html">
+   <LINK REL="Next"  HREF="000021.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r23 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r23%20-%20trunk/channels&In-Reply-To=%3C200605010418.k414I1P8013364%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r23 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  1 06:18:01 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000019.html">[solid-pbx-svn] r22 - in trunk: . apps
+</A></li>
+        <LI>Next message: <A HREF="000021.html">[solid-pbx-svn] r24 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#20">[ date ]</a>
+              <a href="thread.html#20">[ thread ]</a>
+              <a href="subject.html#20">[ subject ]</a>
+              <a href="author.html#20">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-01 06:17:57 +0200 (Mon, 01 May 2006)
+New Revision: 23
+
+Modified:
+   trunk/channels/chan_misdn.c
+Log:
+Update to Asterisk SVN trunk r23874
+
+------------------------------------------------------------------------
+r23854 | tilghman | 2006-05-01 05:58:13 +0200 (Mon, 01 May 2006) | 2 lines
+
+Don't return stack pointers from functions (especially since the code will attempt to free() them later)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_misdn.c
+===================================================================
+--- trunk/channels/chan_misdn.c	2006-05-01 03:18:07 UTC (rev 22)
++++ trunk/channels/chan_misdn.c	2006-05-01 04:17:57 UTC (rev 23)
+@@ -930,7 +930,7 @@
+ 		c = ast_channel_walk_locked(c);
+ 	}
+ 	if (c) {
+-		ret = ast_strdupa(c-&gt;name);
++		ret = strdup(c-&gt;name);
+ 		ast_mutex_unlock(&amp;c-&gt;lock);
+ 	} else
+ 		ret = NULL;
+@@ -949,12 +949,12 @@
+ 
+ 	switch (pos) {
+ 	case 4: if (*word == 'p')
+-				return ast_strdupa(&quot;port&quot;);
++				return strdup(&quot;port&quot;);
+ 			else if (*word == 'o')
+-				return ast_strdupa(&quot;only&quot;);
++				return strdup(&quot;only&quot;);
+ 			break;
+ 	case 6: if (*word == 'o')
+-				return ast_strdupa(&quot;only&quot;);
++				return strdup(&quot;only&quot;);
+ 			break;
+ 	}
+ 	return NULL;
+@@ -1512,8 +1512,11 @@
+ 			ast_set_callerid(ast, bc-&gt;oad, NULL, bc-&gt;oad);
+ 		}
+ 		
+-		if ( !ast_strlen_zero(bc-&gt;rad) ) 
+-			ast-&gt;cid.cid_rdnis=ast_strdupa(bc-&gt;rad);
++		if ( !ast_strlen_zero(bc-&gt;rad) ) {
++			if (ast-&gt;cid.cid_rdnis)
++				free(ast-&gt;cid.cid_rdnis);
++			ast-&gt;cid.cid_rdnis = strdup(bc-&gt;rad);
++		}
+ 	}
+ 	return 0;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000019.html">[solid-pbx-svn] r22 - in trunk: . apps
+</A></li>
+	<LI>Next message: <A HREF="000021.html">[solid-pbx-svn] r24 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#20">[ date ]</a>
+              <a href="thread.html#20">[ thread ]</a>
+              <a href="subject.html#20">[ subject ]</a>
+              <a href="author.html#20">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

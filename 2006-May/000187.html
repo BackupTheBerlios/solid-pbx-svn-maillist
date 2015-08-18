@@ -1,0 +1,209 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r192 - in trunk: . apps channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r192%20-%20in%20trunk%3A%20.%20apps%20channels&In-Reply-To=%3C200605301825.k4UIPm5W032169%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000186.html">
+   <LINK REL="Next"  HREF="000188.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r192 - in trunk: . apps channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r192%20-%20in%20trunk%3A%20.%20apps%20channels&In-Reply-To=%3C200605301825.k4UIPm5W032169%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r192 - in trunk: . apps channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May 30 20:25:48 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000186.html">[solid-pbx-svn] r191 - in trunk: . utils
+</A></li>
+        <LI>Next message: <A HREF="000188.html">[solid-pbx-svn] r193 - trunk/codecs/gsm
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#187">[ date ]</a>
+              <a href="thread.html#187">[ thread ]</a>
+              <a href="subject.html#187">[ subject ]</a>
+              <a href="author.html#187">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-30 20:25:43 +0200 (Tue, 30 May 2006)
+New Revision: 192
+
+Modified:
+   trunk/UPGRADE.txt
+   trunk/apps/app_meetme.c
+   trunk/apps/app_queue.c
+   trunk/channels/chan_iax2.c
+Log:
+Update to Asterisk SVN trunk r30860
+
+------------------------------------------------------------------------
+r30835 | file | 2006-05-30 19:33:37 +0200 (Tue, 30 May 2006) | 2 lines
+
+Remove ourselves from the userlist a little bit earlier
+
+------------------------------------------------------------------------
+r30837 | kpfleming | 2006-05-30 19:52:49 +0200 (Tue, 30 May 2006) | 2 lines
+
+officially deprecate the 'roundrobin' queue strategy in favor of 'rrmemory'
+
+------------------------------------------------------------------------
+r30847 | kpfleming | 2006-05-30 20:01:52 +0200 (Tue, 30 May 2006) | 2 lines
+
+when we receive an IAX2 registration request with both a plaintext secret and an MD5 challenge, prefer the MD5 challenge for authentation (reported on asterisk-dev)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/UPGRADE.txt
+===================================================================
+--- trunk/UPGRADE.txt	2006-05-30 17:27:44 UTC (rev 191)
++++ trunk/UPGRADE.txt	2006-05-30 18:25:43 UTC (rev 192)
+@@ -119,6 +119,11 @@
+   record conversations queue members are having with queue callers. Please
+   see configs/queues.conf.sample for more information on this option.
+ 
++* The app_queue application strategy called 'roundrobin' has been deprecated
++  for this release. Users are encouraged to use 'rrmemory' instead, since it
++  provides more 'true' round-robin call delivery. For the Asterisk 1.6 release,
++  'rrmemory' will be renamed 'roundrobin'.
++
+ * app_meetme: The 'm' option (monitor) is renamed to 'l' (listen only), and
+   the 'm' option now provides the functionality of &quot;initially muted&quot;. 
+   In practice, most existing dialplans using the 'm' flag should not notice
+
+Modified: trunk/apps/app_meetme.c
+===================================================================
+--- trunk/apps/app_meetme.c	2006-05-30 17:27:44 UTC (rev 191)
++++ trunk/apps/app_meetme.c	2006-05-30 18:25:43 UTC (rev 192)
+@@ -1730,12 +1730,12 @@
+ 		ast_update_realtime(&quot;meetme&quot;, &quot;confno&quot;, conf-&gt;confno, &quot;members&quot;, members, NULL);
+ 		if (confflags &amp; CONFFLAG_MARKEDUSER) 
+ 			conf-&gt;markedusers--;
++		/* Remove ourselves from the list */
++		AST_LIST_REMOVE(&amp;conf-&gt;userlist, user, list);
+ 		if (AST_LIST_EMPTY(&amp;conf-&gt;userlist)) {
+ 			/* close this one when no more users and no references*/
+ 			if (!conf-&gt;refcount)
+ 				conf_free(conf);
+-		} else {
+-			AST_LIST_REMOVE(&amp;conf-&gt;userlist, user, list);
+ 		}
+ 		/* Return the number of seconds the user was in the conf */
+ 		snprintf(meetmesecs, sizeof(meetmesecs), &quot;%d&quot;, (int) (time(NULL) - user-&gt;jointime));
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-05-30 17:27:44 UTC (rev 191)
++++ trunk/apps/app_queue.c	2006-05-30 18:25:43 UTC (rev 192)
+@@ -395,6 +395,16 @@
+ 
+ static int set_member_paused(char *queuename, char *interface, int paused);
+ 
++static void rr_dep_warning(void)
++{
++	static unsigned int warned = 0;
++
++	if (!warned) {
++		ast_log(LOG_NOTICE, &quot;The 'roundrobin' queue strategy is deprecated. Please use the 'rrmemory' strategy instead.\n&quot;);
++		warned = 1;
++	}
++}
++
+ static void set_queue_result(struct ast_channel *chan, enum queue_result res)
+ {
+ 	int i;
+@@ -1028,6 +1038,9 @@
+ 		v = v-&gt;next;
+ 	}
+ 
++	if (q-&gt;strategy == QUEUE_STRATEGY_ROUNDROBIN)
++		rr_dep_warning();
++
+ 	/* Temporarily set non-dynamic members dead so we can detect deleted ones. */
+ 	m = q-&gt;members;
+ 	while (m) {
+@@ -3692,6 +3705,9 @@
+ 					}
+ 				}
+ 
++				if (q-&gt;strategy == QUEUE_STRATEGY_ROUNDROBIN)
++					rr_dep_warning();
++
+ 				if (new) {
+ 					AST_LIST_INSERT_HEAD(&amp;queues, q, list);
+ 				} else
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-05-30 17:27:44 UTC (rev 191)
++++ trunk/channels/chan_iax2.c	2006-05-30 18:25:43 UTC (rev 192)
+@@ -5052,16 +5052,6 @@
+ 				destroy_peer(p);
+ 			return -1;
+ 		}
+-	} else if (!ast_strlen_zero(secret) &amp;&amp; (p-&gt;authmethods &amp; IAX_AUTH_PLAINTEXT)) {
+-		/* They've provided a plain text password and we support that */
+-		if (strcmp(secret, p-&gt;secret)) {
+-			if (authdebug)
+-				ast_log(LOG_NOTICE, &quot;Host %s did not provide proper plaintext password for '%s'\n&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), sin-&gt;sin_addr), p-&gt;name);
+-			if (ast_test_flag(p, IAX_TEMPONLY))
+-				destroy_peer(p);
+-			return -1;
+-		} else
+-			ast_set_flag(&amp;iaxs[callno]-&gt;state, IAX_STATE_AUTHENTICATED);
+ 	} else if (!ast_strlen_zero(md5secret) &amp;&amp; (p-&gt;authmethods &amp; IAX_AUTH_MD5) &amp;&amp; !ast_strlen_zero(iaxs[callno]-&gt;challenge)) {
+ 		struct MD5Context md5;
+ 		unsigned char digest[16];
+@@ -5088,6 +5078,16 @@
+ 				destroy_peer(p);
+ 			return -1;
+ 		}
++	} else if (!ast_strlen_zero(secret) &amp;&amp; (p-&gt;authmethods &amp; IAX_AUTH_PLAINTEXT)) {
++		/* They've provided a plain text password and we support that */
++		if (strcmp(secret, p-&gt;secret)) {
++			if (authdebug)
++				ast_log(LOG_NOTICE, &quot;Host %s did not provide proper plaintext password for '%s'\n&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), sin-&gt;sin_addr), p-&gt;name);
++			if (ast_test_flag(p, IAX_TEMPONLY))
++				destroy_peer(p);
++			return -1;
++		} else
++			ast_set_flag(&amp;iaxs[callno]-&gt;state, IAX_STATE_AUTHENTICATED);
+ 	} else if (!ast_strlen_zero(md5secret) || !ast_strlen_zero(secret)) {
+ 		if (authdebug)
+ 			ast_log(LOG_NOTICE, &quot;Inappropriate authentication received\n&quot;);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000186.html">[solid-pbx-svn] r191 - in trunk: . utils
+</A></li>
+	<LI>Next message: <A HREF="000188.html">[solid-pbx-svn] r193 - trunk/codecs/gsm
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#187">[ date ]</a>
+              <a href="thread.html#187">[ thread ]</a>
+              <a href="subject.html#187">[ subject ]</a>
+              <a href="author.html#187">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

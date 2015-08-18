@@ -1,0 +1,457 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r286 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r286%20-%20trunk/channels&In-Reply-To=%3C200606182237.k5IMbtem022353%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000280.html">
+   <LINK REL="Next"  HREF="000282.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r286 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r286%20-%20trunk/channels&In-Reply-To=%3C200606182237.k5IMbtem022353%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r286 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon Jun 19 00:37:55 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000280.html">[solid-pbx-svn] r285 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000282.html">[solid-pbx-svn] r287 - in trunk/channels: . misdn
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#281">[ date ]</a>
+              <a href="thread.html#281">[ thread ]</a>
+              <a href="subject.html#281">[ subject ]</a>
+              <a href="author.html#281">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-19 00:37:53 +0200 (Mon, 19 Jun 2006)
+New Revision: 286
+
+Modified:
+   trunk/channels/chan_zap.c
+Log:
+Update to Asterisk SVN trunk r32763
+
+------------------------------------------------------------------------
+r32759 | russell | 2006-06-07 01:22:12 +0200 (Wed, 07 Jun 2006) | 7 lines
+
+revert my changes to convert fields of zt_pvt to use stringfields.  When I did
+this, I was not keeping in mind the fact that after a stringfield is overwritten
+by another string, the memory used by the old string can not be recovered.  I
+would like to go back through these changes and make sure that stringfields are
+not used for fields that are written to many times before these changes are
+committed.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-06-18 22:34:37 UTC (rev 285)
++++ trunk/channels/chan_zap.c	2006-06-18 22:37:53 UTC (rev 286)
+@@ -618,31 +618,25 @@
+ 
+ 	struct zt_distRings drings;
+ 
+-	AST_DECLARE_STRING_FIELDS(
+-		AST_STRING_FIELD(language);
+-		AST_STRING_FIELD(musicclass);
+-		AST_STRING_FIELD(accountcode);
+-		AST_STRING_FIELD(mailbox);
+-		AST_STRING_FIELD(call_forward);
+-		AST_STRING_FIELD(cid_num);
+-		AST_STRING_FIELD(cid_name);
+-		AST_STRING_FIELD(lastcid_num);
+-		AST_STRING_FIELD(lastcid_name);
+-		AST_STRING_FIELD(dnid);
+-		AST_STRING_FIELD(callwait_num);
+-		AST_STRING_FIELD(callwait_name);
+-		AST_STRING_FIELD(finaldial);
+-		AST_STRING_FIELD(context);
+-		AST_STRING_FIELD(defcontext);
+-		AST_STRING_FIELD(exten);
++	char context[AST_MAX_CONTEXT];
++	char defcontext[AST_MAX_CONTEXT];
++	char exten[AST_MAX_EXTENSION];
++	char language[MAX_LANGUAGE];
++	char musicclass[MAX_MUSICCLASS];
+ #ifdef PRI_ANI
+-		AST_STRING_FIELD(cid_ani);
++	char cid_ani[AST_MAX_EXTENSION];
+ #endif
+-	);
++	char cid_num[AST_MAX_EXTENSION];
+ 	int cid_ton;					/*!&lt; Type Of Number (TON) */
++	char cid_name[AST_MAX_EXTENSION];
++	char lastcid_num[AST_MAX_EXTENSION];
++	char lastcid_name[AST_MAX_EXTENSION];
+ 	char *origcid_num;				/*!&lt; malloced original callerid */
+ 	char *origcid_name;				/*!&lt; malloced original callerid */
++	char callwait_num[AST_MAX_EXTENSION];
++	char callwait_name[AST_MAX_EXTENSION];
+ 	char rdnis[AST_MAX_EXTENSION];
++	char dnid[AST_MAX_EXTENSION];
+ 	unsigned int group;
+ 	int law;
+ 	int confno;					/*!&lt; Our conference */
+@@ -678,8 +672,12 @@
+ 	int cref;					/*!&lt; Call reference number */
+ 	ZT_DIAL_OPERATION dop;
+ 	int whichwink;					/*!&lt; SIG_FEATDMF_TA Which wink are we on? */
++	char finaldial[64];
++	char accountcode[AST_MAX_ACCOUNT_CODE];		/*!&lt; Account code */
+ 	int amaflags;					/*!&lt; AMA Flags */
+ 	struct tdd_state *tdd;				/*!&lt; TDD flag */
++	char call_forward[AST_MAX_EXTENSION];
++	char mailbox[AST_MAX_EXTENSION];
+ 	char dialdest[256];
+ 	int onhooktime;
+ 	int msgstate;
+@@ -1825,13 +1823,13 @@
+ 			/* Call waiting call */
+ 			p-&gt;callwaitrings = 0;
+ 			if (ast-&gt;cid.cid_num)
+-				ast_string_field_set(p, callwait_num, ast-&gt;cid.cid_num);
++				ast_copy_string(p-&gt;callwait_num, ast-&gt;cid.cid_num, sizeof(p-&gt;callwait_num));
+ 			else
+-				ast_string_field_set(p, callwait_num, &quot;&quot;);
++				p-&gt;callwait_num[0] = '\0';
+ 			if (ast-&gt;cid.cid_name)
+-				ast_string_field_set(p, callwait_name, ast-&gt;cid.cid_name);
++				ast_copy_string(p-&gt;callwait_name, ast-&gt;cid.cid_name, sizeof(p-&gt;callwait_name));
+ 			else
+-				ast_string_field_set(p, callwait_name, &quot;&quot;);
++				p-&gt;callwait_name[0] = '\0';
+ 			/* Call waiting tone instead */
+ 			if (zt_callwait(ast)) {
+ 				ast_mutex_unlock(&amp;p-&gt;lock);
+@@ -1845,13 +1843,13 @@
+ 		n = ast-&gt;cid.cid_name;
+ 		l = ast-&gt;cid.cid_num;
+ 		if (l)
+-			ast_string_field_set(p, lastcid_num, l);
++			ast_copy_string(p-&gt;lastcid_num, l, sizeof(p-&gt;lastcid_num));
+ 		else
+-			ast_string_field_set(p, lastcid_num, &quot;&quot;);
++			p-&gt;lastcid_num[0] = '\0';
+ 		if (n)
+-			ast_string_field_set(p, lastcid_name, n);
++			ast_copy_string(p-&gt;lastcid_name, n, sizeof(p-&gt;lastcid_name));
+ 		else
+-			ast_string_field_set(p, lastcid_name, &quot;&quot;);
++			p-&gt;lastcid_name[0] = '\0';
+ 		ast_setstate(ast, AST_STATE_RINGING);
+ 		index = zt_get_index(ast, p, 0);
+ 		if (index &gt; -1) {
+@@ -1939,7 +1937,7 @@
+ 				return -1;
+ 			}
+ 			snprintf(p-&gt;dop.dialstr, sizeof(p-&gt;dop.dialstr), &quot;M*%s%s#&quot;, ozz, cic);
+-			ast_string_field_build(p, finaldial, &quot;M*%s#&quot;, c);
++			snprintf(p-&gt;finaldial, sizeof(p-&gt;finaldial), &quot;M*%s#&quot;, c);
+ 			p-&gt;whichwink = 0;
+ 		}
+ 			break;
+@@ -2154,7 +2152,6 @@
+ 		ASTOBJ_UNREF(p-&gt;smdi_iface, ast_smdi_interface_destroy);
+ #endif
+ 	ast_mutex_destroy(&amp;p-&gt;lock);
+-	ast_string_field_free_all(p);
+ 	free(p);
+ 	*pvt = NULL;
+ }
+@@ -2373,19 +2370,19 @@
+ 	zt_confmute(p, 0);
+ 	restore_gains(p);
+ 	if (p-&gt;origcid_num) {
+-		ast_string_field_set(p, cid_num, p-&gt;origcid_num);
++		ast_copy_string(p-&gt;cid_num, p-&gt;origcid_num, sizeof(p-&gt;cid_num));
+ 		free(p-&gt;origcid_num);
+ 		p-&gt;origcid_num = NULL;
+-	}
++	}	
+ 	if (p-&gt;origcid_name) {
+-		ast_string_field_set(p, cid_name, p-&gt;origcid_name);
++		ast_copy_string(p-&gt;cid_name, p-&gt;origcid_name, sizeof(p-&gt;cid_name));
+ 		free(p-&gt;origcid_name);
+ 		p-&gt;origcid_name = NULL;
+ 	}	
+ 	if (p-&gt;dsp)
+ 		ast_dsp_digitmode(p-&gt;dsp,DSP_DIGITMODE_DTMF | p-&gt;dtmfrelax);
+-	if (!ast_strlen_zero(p-&gt;exten))
+-		ast_string_field_set(p, exten, &quot;&quot;);
++	if (p-&gt;exten)
++		p-&gt;exten[0] = '\0';
+ 
+ 	ast_log(LOG_DEBUG, &quot;Hangup: channel: %d index = %d, normal = %d, callwait = %d, thirdcall = %d\n&quot;,
+ 		p-&gt;channel, index, p-&gt;subs[SUB_REAL].zfd, p-&gt;subs[SUB_CALLWAIT].zfd, p-&gt;subs[SUB_THREEWAY].zfd);
+@@ -4099,8 +4096,8 @@
+ 								p-&gt;origcid_num = ast_strdup(p-&gt;cid_num);
+ 							if (!p-&gt;origcid_name)
+ 								p-&gt;origcid_name = ast_strdup(p-&gt;cid_name);
+-							ast_string_field_set(p, cid_num, cid_num);
+-							ast_string_field_set(p, cid_name, cid_name);
++							ast_copy_string(p-&gt;cid_num, cid_num, sizeof(p-&gt;cid_num));
++							ast_copy_string(p-&gt;cid_name, cid_name, sizeof(p-&gt;cid_name));
+ 						}
+ 						/* Swap things around between the three-way and real call */
+ 						swap_subs(p, SUB_THREEWAY, SUB_REAL);
+@@ -5346,7 +5343,7 @@
+ 			ast_log(LOG_DEBUG, &quot;No such possible extension '%s' in context '%s'\n&quot;, exten, chan-&gt;context);
+ 			chan-&gt;hangupcause = AST_CAUSE_UNALLOCATED;
+ 			ast_hangup(chan);
+-			ast_string_field_set(p, exten, &quot;&quot;);
++			p-&gt;exten[0] = '\0';
+ 			/* Since we send release complete here, we won't get one */
+ 			p-&gt;call = NULL;
+ 		}
+@@ -5660,7 +5657,7 @@
+ 				if (!res || !ast_matchmore_extension(chan, chan-&gt;context, exten, 1, p-&gt;cid_num)) {
+ 					if (getforward) {
+ 						/* Record this as the forwarding extension */
+-						ast_string_field_set(p, call_forward, exten); 
++						ast_copy_string(p-&gt;call_forward, exten, sizeof(p-&gt;call_forward)); 
+ 						if (option_verbose &gt; 2)
+ 							ast_verbose(VERBOSE_PREFIX_3 &quot;Setting call forward to '%s' on channel %d\n&quot;, p-&gt;call_forward, p-&gt;channel);
+ 						res = tone_zone_play_tone(p-&gt;subs[index].zfd, ZT_TONE_DIALRECALL);
+@@ -5809,7 +5806,7 @@
+ 				if (option_verbose &gt; 2)
+ 					ast_verbose(VERBOSE_PREFIX_3 &quot;Cancelling call forwarding on channel %d\n&quot;, p-&gt;channel);
+ 				res = tone_zone_play_tone(p-&gt;subs[index].zfd, ZT_TONE_DIALRECALL);
+-				ast_string_field_set(p, call_forward, &quot;&quot;);
++				memset(p-&gt;call_forward, 0, sizeof(p-&gt;call_forward));
+ 				getforward = 0;
+ 				memset(exten, 0, sizeof(exten));
+ 				len = 0;
+@@ -6112,9 +6109,9 @@
+ 						counter = 0;
+ 						counter1 = 0;
+ 						/* Check to see if context is what it should be, if not set to be. */
+-						if (!strcmp(p-&gt;context, p-&gt;defcontext)) {
+-							ast_string_field_set(p, context, p-&gt;defcontext);
+-							ast_copy_string(chan-&gt;context, p-&gt;defcontext, sizeof(chan-&gt;context));
++						if (strcmp(p-&gt;context,p-&gt;defcontext) != 0) {
++							ast_copy_string(p-&gt;context, p-&gt;defcontext, sizeof(p-&gt;context));
++							ast_copy_string(chan-&gt;context,p-&gt;defcontext,sizeof(chan-&gt;context));
+ 						}
+ 		
+ 						for (;;) {	
+@@ -6172,10 +6169,10 @@
+ 							}
+ 							if (distMatches == 3) {
+ 								/* The ring matches, set the context to whatever is for distinctive ring.. */
+-								ast_string_field_set(p, context, p-&gt;drings.ringContext[counter].contextData);
++								ast_copy_string(p-&gt;context, p-&gt;drings.ringContext[counter].contextData, sizeof(p-&gt;context));
+ 								ast_copy_string(chan-&gt;context, p-&gt;drings.ringContext[counter].contextData, sizeof(chan-&gt;context));
+ 								if (option_verbose &gt; 2)
+-									ast_verbose( VERBOSE_PREFIX_3 &quot;Distinctive Ring matched context %s\n&quot;, p-&gt;context);
++									ast_verbose( VERBOSE_PREFIX_3 &quot;Distinctive Ring matched context %s\n&quot;,p-&gt;context);
+ 								break;
+ 							}
+ 						}
+@@ -6214,9 +6211,9 @@
+ 				counter = 0;
+ 				counter1 = 0;
+ 				/* Check to see if context is what it should be, if not set to be. */
+-				if (!strcmp(p-&gt;context, p-&gt;defcontext)) {
+-					ast_string_field_set(p, context, p-&gt;defcontext);
+-					ast_copy_string(chan-&gt;context, p-&gt;defcontext, sizeof(chan-&gt;context));
++				if (strcmp(p-&gt;context,p-&gt;defcontext) != 0) {
++					ast_copy_string(p-&gt;context, p-&gt;defcontext, sizeof(p-&gt;context));
++					ast_copy_string(chan-&gt;context,p-&gt;defcontext,sizeof(chan-&gt;context));
+ 				}
+ 
+ 				/* Take out of linear mode for Caller*ID processing */
+@@ -6345,10 +6342,10 @@
+ 						}
+ 						if (distMatches == 3) {
+ 							/* The ring matches, set the context to whatever is for distinctive ring.. */
+-							ast_string_field_set(p, context, p-&gt;drings.ringContext[counter].contextData);
++							ast_copy_string(p-&gt;context, p-&gt;drings.ringContext[counter].contextData, sizeof(p-&gt;context));
+ 							ast_copy_string(chan-&gt;context, p-&gt;drings.ringContext[counter].contextData, sizeof(chan-&gt;context));
+ 							if (option_verbose &gt; 2)
+-								ast_verbose(VERBOSE_PREFIX_3 &quot;Distinctive Ring matched context %s\n&quot;, p-&gt;context);
++								ast_verbose( VERBOSE_PREFIX_3 &quot;Distinctive Ring matched context %s\n&quot;,p-&gt;context);
+ 							break;
+ 						}
+ 					}
+@@ -7007,10 +7004,6 @@
+ 			destroy_zt_pvt(&amp;tmp);
+ 			return NULL;
+ 		}
+-		if (ast_string_field_init(tmp, 256)) {
+-			destroy_zt_pvt(&amp;tmp);
+-			return NULL;
+-		}
+ 		ast_mutex_init(&amp;tmp-&gt;lock);
+ 		ifcount++;
+ 		for (x = 0; x &lt; 3; x++)
+@@ -7315,7 +7308,7 @@
+ 		}
+ #endif
+ 
+-		ast_string_field_set(tmp, accountcode, accountcode);
++		ast_copy_string(tmp-&gt;accountcode, accountcode, sizeof(tmp-&gt;accountcode));
+ 		tmp-&gt;amaflags = amaflags;
+ 		if (!here) {
+ 			tmp-&gt;confno = -1;
+@@ -7323,14 +7316,14 @@
+ 		}
+ 		tmp-&gt;canpark = canpark;
+ 		tmp-&gt;transfer = transfer;
+-		ast_string_field_set(tmp, defcontext, context);
+-		ast_string_field_set(tmp, language, language);
+-		ast_string_field_set(tmp, musicclass, musicclass);
+-		ast_string_field_set(tmp, context, context);
+-		ast_string_field_set(tmp, cid_num, cid_num);
++		ast_copy_string(tmp-&gt;defcontext,context,sizeof(tmp-&gt;defcontext));
++		ast_copy_string(tmp-&gt;language, language, sizeof(tmp-&gt;language));
++		ast_copy_string(tmp-&gt;musicclass, musicclass, sizeof(tmp-&gt;musicclass));
++		ast_copy_string(tmp-&gt;context, context, sizeof(tmp-&gt;context));
++		ast_copy_string(tmp-&gt;cid_num, cid_num, sizeof(tmp-&gt;cid_num));
+ 		tmp-&gt;cid_ton = 0;
+-		ast_string_field_set(tmp, cid_name, cid_name);
+-		ast_string_field_set(tmp, mailbox, mailbox);
++		ast_copy_string(tmp-&gt;cid_name, cid_name, sizeof(tmp-&gt;cid_name));
++		ast_copy_string(tmp-&gt;mailbox, mailbox, sizeof(tmp-&gt;mailbox));
+ 		tmp-&gt;msgstate = -1;
+ 		tmp-&gt;group = cur_group;
+ 		tmp-&gt;callgroup=cur_callergroup;
+@@ -8572,22 +8565,22 @@
+ 					apply_plan_to_number(plancallingnum, sizeof(plancallingnum), pri, e-&gt;ring.callingnum, e-&gt;ring.callingplan);
+ 					if (pri-&gt;pvts[chanpos]-&gt;use_callerid) {
+ 						ast_shrink_phone_number(plancallingnum);
+-						ast_string_field_set(pri-&gt;pvts[chanpos], cid_num, plancallingnum);
++						ast_copy_string(pri-&gt;pvts[chanpos]-&gt;cid_num, plancallingnum, sizeof(pri-&gt;pvts[chanpos]-&gt;cid_num));
+ #ifdef PRI_ANI
+ 						if (!ast_strlen_zero(e-&gt;ring.callingani)) {
+ 							apply_plan_to_number(plancallingani, sizeof(plancallingani), pri, e-&gt;ring.callingani, e-&gt;ring.callingplanani);
+ 							ast_shrink_phone_number(plancallingani);
+-							ast_string_field_set(pri-&gt;pvts[chanpos], cid_ani, plancallingani);
++							ast_copy_string(pri-&gt;pvts[chanpos]-&gt;cid_ani, plancallingani, sizeof(pri-&gt;pvts[chanpos]-&gt;cid_ani));
+ 						} else {
+-							ast_string_field_set(pri-&gt;pvts[chanpos], cid_ani, &quot;&quot;);
++							pri-&gt;pvts[chanpos]-&gt;cid_ani[0] = '\0';
+ 						}
+ #endif
+-						ast_string_field_set(pri-&gt;pvts[chanpos], cid_name, e-&gt;ring.callingname);
++						ast_copy_string(pri-&gt;pvts[chanpos]-&gt;cid_name, e-&gt;ring.callingname, sizeof(pri-&gt;pvts[chanpos]-&gt;cid_name));
+ 						pri-&gt;pvts[chanpos]-&gt;cid_ton = e-&gt;ring.callingplan; /* this is the callingplan (TON/NPI), e-&gt;ring.callingplan&gt;&gt;4 would be the TON */
+ 					} else {
+-						ast_string_field_set(pri-&gt;pvts[chanpos], cid_num, &quot;&quot;);
+-						ast_string_field_set(pri-&gt;pvts[chanpos], cid_ani, &quot;&quot;);
+-						ast_string_field_set(pri-&gt;pvts[chanpos], cid_name, &quot;&quot;);
++						pri-&gt;pvts[chanpos]-&gt;cid_num[0] = '\0';
++						pri-&gt;pvts[chanpos]-&gt;cid_ani[0] = '\0';
++						pri-&gt;pvts[chanpos]-&gt;cid_name[0] = '\0';
+ 						pri-&gt;pvts[chanpos]-&gt;cid_ton = 0;
+ 					}
+ 					apply_plan_to_number(pri-&gt;pvts[chanpos]-&gt;rdnis, sizeof(pri-&gt;pvts[chanpos]-&gt;rdnis), pri,
+@@ -8596,22 +8589,24 @@
+ 					if (pri-&gt;pvts[chanpos]-&gt;immediate) {
+ 						if (option_verbose &gt; 2)
+ 							ast_verbose(VERBOSE_PREFIX_3 &quot;Going to extension s|1 because of immediate=yes\n&quot;);
+-						ast_string_field_set(pri-&gt;pvts[chanpos], exten, &quot;s&quot;);
++						pri-&gt;pvts[chanpos]-&gt;exten[0] = 's';
++						pri-&gt;pvts[chanpos]-&gt;exten[1] = '\0';
+ 					}
+ 					/* Get called number */
+ 					else if (!ast_strlen_zero(e-&gt;ring.callednum)) {
+-						ast_string_field_set(pri-&gt;pvts[chanpos], exten, e-&gt;ring.callednum);
+-						ast_string_field_set(pri-&gt;pvts[chanpos], dnid, e-&gt;ring.callednum);
++						ast_copy_string(pri-&gt;pvts[chanpos]-&gt;exten, e-&gt;ring.callednum, sizeof(pri-&gt;pvts[chanpos]-&gt;exten));
++						ast_copy_string(pri-&gt;pvts[chanpos]-&gt;dnid, e-&gt;ring.callednum, sizeof(pri-&gt;pvts[chanpos]-&gt;dnid));
+ 					} else
+-						ast_string_field_set(pri-&gt;pvts[chanpos], exten, &quot;&quot;);
++						pri-&gt;pvts[chanpos]-&gt;exten[0] = '\0';
+ 					/* Set DNID on all incoming calls -- even immediate */
+ 					if (!ast_strlen_zero(e-&gt;ring.callednum))
+-						ast_string_field_set(pri-&gt;pvts[chanpos], dnid, e-&gt;ring.callednum);
++						ast_copy_string(pri-&gt;pvts[chanpos]-&gt;dnid, e-&gt;ring.callednum, sizeof(pri-&gt;pvts[chanpos]-&gt;dnid));
+ 					/* No number yet, but received &quot;sending complete&quot;? */
+ 					if (e-&gt;ring.complete &amp;&amp; (ast_strlen_zero(e-&gt;ring.callednum))) {
+ 						if (option_verbose &gt; 2)
+ 							ast_verbose(VERBOSE_PREFIX_3 &quot;Going to extension s|1 because of Complete received\n&quot;);
+-						ast_string_field_set(pri-&gt;pvts[chanpos], exten, &quot;s&quot;);
++						pri-&gt;pvts[chanpos]-&gt;exten[0] = 's';
++						pri-&gt;pvts[chanpos]-&gt;exten[1] = '\0';
+ 					}
+ 					/* Make sure extension exists (or in overlap dial mode, can exist) */
+ 					if ((pri-&gt;overlapdial &amp;&amp; ast_canmatch_extension(NULL, pri-&gt;pvts[chanpos]-&gt;context, pri-&gt;pvts[chanpos]-&gt;exten, 1, pri-&gt;pvts[chanpos]-&gt;cid_num)) ||
+@@ -8736,7 +8731,7 @@
+ 									pri-&gt;pvts[chanpos]-&gt;prioffset, pri-&gt;span);
+ 						pri_hangup(pri-&gt;pri, e-&gt;ring.call, PRI_CAUSE_UNALLOCATED);
+ 						pri-&gt;pvts[chanpos]-&gt;call = NULL;
+-						ast_string_field_set(pri-&gt;pvts[chanpos], exten, &quot;&quot;);
++						pri-&gt;pvts[chanpos]-&gt;exten[0] = '\0';
+ 					}
+ 					if (crv)
+ 						ast_mutex_unlock(&amp;crv-&gt;lock);
+@@ -8874,8 +8869,8 @@
+ 					} else {
+ 						/* Re-use *69 field for PRI */
+ 						ast_mutex_lock(&amp;pri-&gt;pvts[chanpos]-&gt;lock);
+-						ast_string_field_set(pri-&gt;pvts[chanpos], lastcid_num, e-&gt;facname.callingnum);
+-						ast_string_field_set(pri-&gt;pvts[chanpos], lastcid_name, e-&gt;facname.callingname);
++						ast_copy_string(pri-&gt;pvts[chanpos]-&gt;lastcid_num, e-&gt;facname.callingnum, sizeof(pri-&gt;pvts[chanpos]-&gt;lastcid_num));
++						ast_copy_string(pri-&gt;pvts[chanpos]-&gt;lastcid_name, e-&gt;facname.callingname, sizeof(pri-&gt;pvts[chanpos]-&gt;lastcid_name));
+ 						pri-&gt;pvts[chanpos]-&gt;subs[SUB_REAL].needcallerid =1;
+ 						zt_enable_ec(pri-&gt;pvts[chanpos]);
+ 						ast_mutex_unlock(&amp;pri-&gt;pvts[chanpos]-&gt;lock);
+@@ -10398,7 +10393,6 @@
+ 				if (cur_outsignalling &lt; 0) cur_outsignalling = cur_signalling;
+ 				for (x = start; x &lt;= finish; x++) {
+ #ifdef HAVE_LIBPRI
+-					ast_verbose(&quot;channel: %d  cur_sig: %d  cur_outsig: %d  cur_radio: %d\n&quot;, x, cur_signalling, cur_outsignalling, cur_radio);
+ 					tmp = mkintf(x, cur_signalling, cur_outsignalling, cur_radio, pri, reload);
+ #else					
+ 					tmp = mkintf(x, cur_signalling, cur_outsignalling, cur_radio, NULL, reload);
+@@ -10415,9 +10409,9 @@
+ 						}
+ 					} else {
+ 						if (reload == 1)
+-							ast_log(LOG_ERROR, &quot;Unable to reconfigure channel '%d'\n&quot;, x);
++							ast_log(LOG_ERROR, &quot;Unable to reconfigure channel '%s'\n&quot;, v-&gt;value);
+ 						else
+-							ast_log(LOG_ERROR, &quot;Unable to register channel '%d'\n&quot;, x);
++							ast_log(LOG_ERROR, &quot;Unable to register channel '%s'\n&quot;, v-&gt;value);
+ 						ast_config_destroy(cfg);
+ 						ast_mutex_unlock(&amp;iflock);
+ 						return -1;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000280.html">[solid-pbx-svn] r285 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000282.html">[solid-pbx-svn] r287 - in trunk/channels: . misdn
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#281">[ date ]</a>
+              <a href="thread.html#281">[ thread ]</a>
+              <a href="subject.html#281">[ subject ]</a>
+              <a href="author.html#281">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,1478 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r171 - in trunk: . apps channels channels/misdn configs funcs include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r171%20-%20in%20trunk%3A%20.%20apps%20channels%20channels/misdn%20configs%20funcs%20include/asterisk&In-Reply-To=%3C200605182320.k4INKRwR007542%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000165.html">
+   <LINK REL="Next"  HREF="000167.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r171 - in trunk: . apps channels channels/misdn configs funcs include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r171%20-%20in%20trunk%3A%20.%20apps%20channels%20channels/misdn%20configs%20funcs%20include/asterisk&In-Reply-To=%3C200605182320.k4INKRwR007542%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r171 - in trunk: . apps channels channels/misdn configs funcs include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May 19 01:20:27 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000165.html">[solid-pbx-svn] r170 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000167.html">[solid-pbx-svn] r172 - in trunk: agi apps cdr channels codecs formats funcs pbx res stdtime utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#166">[ date ]</a>
+              <a href="thread.html#166">[ thread ]</a>
+              <a href="subject.html#166">[ subject ]</a>
+              <a href="author.html#166">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-19 01:19:53 +0200 (Fri, 19 May 2006)
+New Revision: 171
+
+Modified:
+   trunk/.cleancount
+   trunk/Makefile
+   trunk/app.c
+   trunk/apps/app_hasnewvoicemail.c
+   trunk/apps/app_meetme.c
+   trunk/apps/app_queue.c
+   trunk/apps/app_voicemail.c
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_sip.c
+   trunk/channels/misdn/isdn_lib.c
+   trunk/configs/sip.conf.sample
+   trunk/enum.c
+   trunk/funcs/func_strings.c
+   trunk/include/asterisk/app.h
+Log:
+Update to Asterisk SVN trunk r28433
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/.cleancount
+===================================================================
+--- trunk/.cleancount	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/.cleancount	2006-05-18 23:19:53 UTC (rev 171)
+@@ -1 +1 @@
+-16
++17
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/Makefile	2006-05-18 23:19:53 UTC (rev 171)
+@@ -281,7 +281,8 @@
+ ASTCFLAGS+=$(MALLOC_DEBUG)$(BUSYDETECT)$(OPTIONS)
+ 
+ MOD_SUBDIRS=res channels pbx apps codecs formats cdr funcs
+-SUBDIRS:=$(MOD_SUBDIRS) utils stdtime agi
++OTHER_SUBDIRS=utils stdtime agi
++SUBDIRS:=$(MOD_SUBDIRS) $(OTHER_SUBDIRS)
+ 
+ OBJS=io.o sched.o logger.o frame.o loader.o config.o channel.o \
+ 	translate.o file.o pbx.o cli.o md5.o term.o \
+@@ -868,7 +869,8 @@
+ valgrind: dont-optimize
+ 
+ depend: include/asterisk/version.h include/asterisk/buildopts.h .depend defaults.h 
+-	@for x in $(SUBDIRS); do $(MAKE) -C $$x depend || exit 1 ; done
++	@for x in $(MOD_SUBDIRS); do CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C $$x depend || exit 1 ; done
++	@for x in $(OTHER_SUBDIRS); do CFLAGS=&quot;$(OTHER_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C $$x depend || exit 1 ; done
+ 
+ .depend: include/asterisk/version.h include/asterisk/buildopts.h defaults.h
+ 	build_tools/mkdep $(CFLAGS) $(wildcard *.c)
+
+Modified: trunk/app.c
+===================================================================
+--- trunk/app.c	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/app.c	2006-05-18 23:19:53 UTC (rev 171)
+@@ -146,18 +146,22 @@
+ 
+ static int (*ast_has_voicemail_func)(const char *mailbox, const char *folder) = NULL;
+ static int (*ast_messagecount_func)(const char *mailbox, int *newmsgs, int *oldmsgs) = NULL;
++static int (*ast_messagecount2_func)(const char *context, const char *mailbox, const char *folder) = NULL;
+ 
+ void ast_install_vm_functions(int (*has_voicemail_func)(const char *mailbox, const char *folder),
+-			      int (*messagecount_func)(const char *mailbox, int *newmsgs, int *oldmsgs))
++			      int (*messagecount_func)(const char *mailbox, int *newmsgs, int *oldmsgs),
++			      int (*messagecount2_func)(const char *context, const char *mailbox, const char *folder))
+ {
+ 	ast_has_voicemail_func = has_voicemail_func;
+ 	ast_messagecount_func = messagecount_func;
++	ast_messagecount2_func = messagecount2_func;
+ }
+ 
+ void ast_uninstall_vm_functions(void)
+ {
+ 	ast_has_voicemail_func = NULL;
+ 	ast_messagecount_func = NULL;
++	ast_messagecount2_func = NULL;
+ }
+ 
+ int ast_app_has_voicemail(const char *mailbox, const char *folder)
+
+Modified: trunk/apps/app_hasnewvoicemail.c
+===================================================================
+--- trunk/apps/app_hasnewvoicemail.c	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/apps/app_hasnewvoicemail.c	2006-05-18 23:19:53 UTC (rev 171)
+@@ -79,26 +79,6 @@
+ 
+ LOCAL_USER_DECL;
+ 
+-static int hasvoicemail_internal(char *context, char *box, char *folder)
+-{
+-	char vmpath[256];
+-	DIR *vmdir;
+-	struct dirent *vment;
+-	int count=0;
+-
+-	snprintf(vmpath,sizeof(vmpath), &quot;%s/voicemail/%s/%s/%s&quot;, (char *)ast_config_AST_SPOOL_DIR, context, box, folder);
+-	if ((vmdir = opendir(vmpath))) {
+-		/* No matter what the format of VM, there will always be a .txt file for each message. */
+-		while ((vment = readdir(vmdir))) {
+-			if (!strncmp(vment-&gt;d_name + 7, &quot;.txt&quot;, 4)) {
+-				count++;
+-			}
+-		}
+-		closedir(vmdir);
+-	}
+-	return count;
+-}
+-
+ static int hasvoicemail_exec(struct ast_channel *chan, void *data)
+ {
+ 	struct localuser *u;
+@@ -130,12 +110,11 @@
+ 
+ 	AST_STANDARD_APP_ARGS(args, input);
+ 
+-	if ((vmbox = strsep(&amp;args.vmbox, &quot;@&quot;)))
+-		if (!ast_strlen_zero(args.vmbox))
+-			context = args.vmbox;
+-	if (!vmbox)
+-		vmbox = args.vmbox;
++	vmbox = strsep(&amp;args.vmbox, &quot;@&quot;);
+ 
++	if (!ast_strlen_zero(args.vmbox))
++		context = args.vmbox;
++
+ 	vmfolder = strchr(vmbox, '/');
+ 	if (vmfolder) {
+ 		*vmfolder = '\0';
+@@ -149,7 +128,7 @@
+ 			priority_jump = 1;
+ 	}
+ 
+-	vmcount = hasvoicemail_internal(context, vmbox, vmfolder);
++	vmcount = ast_app_messagecount2(context, vmbox, vmfolder);
+ 	/* Set the count in the channel variable */
+ 	if (varname) {
+ 		snprintf(tmp, sizeof(tmp), &quot;%d&quot;, vmcount);
+@@ -198,7 +177,7 @@
+ 		args.folder = &quot;INBOX&quot;;
+ 	}
+ 
+-	snprintf(buf, len, &quot;%d&quot;, hasvoicemail_internal(context, args.vmbox, args.folder));
++	snprintf(buf, len, &quot;%d&quot;, ast_app_messagecount2(context, args.vmbox, args.folder));
+ 
+ 	LOCAL_USER_REMOVE(u);
+ 	
+
+Modified: trunk/apps/app_meetme.c
+===================================================================
+--- trunk/apps/app_meetme.c	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/apps/app_meetme.c	2006-05-18 23:19:53 UTC (rev 171)
+@@ -109,7 +109,6 @@
+ &quot;      's' -- Present menu (user or admin) when '*' is received ('send' to menu)\n&quot;
+ &quot;      't' -- set talk only mode. (Talk only, no listening)\n&quot;
+ &quot;      'T' -- set talker detection (sent to manager interface and meetme list)\n&quot;
+-&quot;      'v' -- video mode\n&quot;
+ &quot;      'w' -- wait until the marked user enters the conference\n&quot;
+ &quot;      'x' -- close the conference when last marked user exits\n&quot;
+ &quot;      'X' -- allow user to exit the conference by entering a valid single\n&quot;
+@@ -233,7 +232,7 @@
+ #define CONFFLAG_STARMENU (1 &lt;&lt; 4)		/* If set asterisk will provide a menu to the user when '*' is pressed */
+ #define CONFFLAG_TALKER (1 &lt;&lt; 5)		/* If set the use can only send audio to the conference */
+ #define CONFFLAG_QUIET (1 &lt;&lt; 6)			/* If set there will be no enter or leave sounds */
+-#define CONFFLAG_VIDEO (1 &lt;&lt; 7)			/* Set to enable video mode */
++#define CONFFLAG_ANNOUNCEUSERCOUNT (1 &lt;&lt; 7)	/* If set, when user joins the conference, they will be told the number of users that are already in */
+ #define CONFFLAG_AGI (1 &lt;&lt; 8)			/* Set to run AGI Script in Background */
+ #define CONFFLAG_MOH (1 &lt;&lt; 9)			/* Set to have music on hold when user is alone in conference */
+ #define CONFFLAG_MARKEDEXIT (1 &lt;&lt; 10)		/* If set the MeetMe will return if all marked with this flag left */
+@@ -248,10 +247,9 @@
+ #define CONFFLAG_EMPTY (1 &lt;&lt; 19)
+ #define CONFFLAG_EMPTYNOPIN (1 &lt;&lt; 20)
+ #define CONFFLAG_ALWAYSPROMPT (1 &lt;&lt; 21)
+-#define CONFFLAG_ANNOUNCEUSERCOUNT (1 &lt;&lt; 22)	/* If set, when user joins the conference, they will be told the number of users that are already in */
+-#define CONFFLAG_OPTIMIZETALKER (1 &lt;&lt; 23)	/* If set, treats talking users as muted users */
+-#define CONFFLAG_NOONLYPERSON (1 &lt;&lt; 24)		/* If set, won't speak the extra prompt when the first person enters the conference */
+-#define CONFFLAG_INTROUSERNOREVIEW (1 &lt;&lt; 25) /* If set, user will be asked to record name on entry of conference without review */
++#define CONFFLAG_OPTIMIZETALKER (1 &lt;&lt; 22)	/* If set, treats talking users as muted users */
++#define CONFFLAG_NOONLYPERSON (1 &lt;&lt; 23)		/* If set, won't speak the extra prompt when the first person enters the conference */
++#define CONFFLAG_INTROUSERNOREVIEW (1 &lt;&lt; 24)	/* If set, user will be asked to record name on entry of conference without review */
+ 
+ AST_APP_OPTIONS(meetme_opts, {
+ 	AST_APP_OPTION('A', CONFFLAG_MARKEDUSER ),
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/apps/app_queue.c	2006-05-18 23:19:53 UTC (rev 171)
+@@ -1895,11 +1895,10 @@
+ 	int res;
+ 
+ 	if (!qe-&gt;parent-&gt;autofill) {
+-
+ 		/* Atomically read the parent head -- does not need a lock */
+ 		ch = qe-&gt;parent-&gt;head;
+ 		/* If we are now at the top of the head, break out */
+-		if ((ch == qe) || (qe-&gt;parent-&gt;autofill)) {
++		if (ch == qe) {
+ 			if (option_debug)
+ 				ast_log(LOG_DEBUG, &quot;It's our turn (%s).\n&quot;, qe-&gt;chan-&gt;name);
+ 			res = 1;
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/apps/app_voicemail.c	2006-05-18 23:19:53 UTC (rev 171)
+@@ -2014,7 +2014,7 @@
+ #ifdef USE_ODBC_STORAGE
+ static int messagecount(const char *mailbox, int *newmsgs, int *oldmsgs)
+ {
+-	int x = 0;
++	int x = -1;
+ 	int res;
+ 	SQLHSTMT stmt;
+ 	char sql[256];
+@@ -2027,6 +2027,7 @@
+                 *newmsgs = 0;
+         if (oldmsgs)
+                 *oldmsgs = 0;
++
+         /* If no mailbox, return immediately */
+         if (ast_strlen_zero(mailbox))
+                 return 0;
+@@ -2118,7 +2119,7 @@
+ 		SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+ 		odbc_release_obj(obj);
+ 		*oldmsgs = atoi(rowdata);
+-		x = 1;
++		x = 0;
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;Failed to obtain database object for '%s'!\n&quot;, odbc_database);
+ 		
+@@ -2126,76 +2127,73 @@
+ 	return x;
+ }
+ 
+-static int has_voicemail(const char *mailbox, const char *folder)
++static int messagecount2(const char *context, const char *mailbox, const char *folder)
+ {
+-	struct odbc_obj *obj;
++	struct odbc_obj *obj = NULL;
+ 	int nummsgs = 0;
+-        int res;
+-        SQLHSTMT stmt;
+-        char sql[256];
+-        char rowdata[20];
+-        char tmp[256]=&quot;&quot;;
+-        char *context;
++	int res;
++	SQLHSTMT stmt = NULL;
++	char sql[256];
++	char rowdata[20];
+ 	if (!folder)
+-                folder = &quot;INBOX&quot;;
++		folder = &quot;INBOX&quot;;
+ 	/* If no mailbox, return immediately */
+-        if (ast_strlen_zero(mailbox))
+-                return 0;
++	if (ast_strlen_zero(mailbox))
++		return 0;
+ 
+-	ast_copy_string(tmp, mailbox, sizeof(tmp));
+-                        
+-        context = strchr(tmp, '@');
+-        if (context) {
+-                *context = '\0';
+-                context++;
+-        } else
+-                context = &quot;default&quot;;
++	obj = odbc_request_obj(odbc_database, 0);
++	if (obj) {
++		res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
++		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
++			ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
++			goto yuck;
++		}
++		snprintf(sql, sizeof(sql), &quot;SELECT COUNT(*) FROM %s WHERE dir = '%s%s/%s/%s'&quot;, odbc_table, VM_SPOOL_DIR, context, mailbox, folder);
++		res = SQLPrepare(stmt, sql, SQL_NTS);
++		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {  
++			ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
++			SQLFreeHandle(SQL_HANDLE_STMT, stmt);
++			goto yuck;
++		}
++		res = odbc_smart_execute(obj, stmt);
++		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
++			ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s]\n\n&quot;, sql);
++			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			goto yuck;
++		}
++		res = SQLFetch(stmt);
++		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
++			ast_log(LOG_WARNING, &quot;SQL Fetch error!\n[%s]\n\n&quot;, sql);
++			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			goto yuck;
++		}
++		res = SQLGetData(stmt, 1, SQL_CHAR, rowdata, sizeof(rowdata), NULL);
++		if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
++			ast_log(LOG_WARNING, &quot;SQL Get Data error!\n[%s]\n\n&quot;, sql);
++			SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++			goto yuck;
++		}
++		nummsgs = atoi(rowdata);
++		SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++	} else
++		ast_log(LOG_WARNING, &quot;Failed to obtain database object for '%s'!\n&quot;, odbc_database);
+ 
+-	obj = odbc_request_obj(odbc_database, 0);
+-        if (obj) {
+-                res = SQLAllocHandle(SQL_HANDLE_STMT, obj-&gt;con, &amp;stmt);
+-                if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+-                        ast_log(LOG_WARNING, &quot;SQL Alloc Handle failed!\n&quot;);
+-			odbc_release_obj(obj);
+-                        goto yuck;
+-                }
+-		snprintf(sql, sizeof(sql), &quot;SELECT COUNT(*) FROM %s WHERE dir = '%s%s/%s/%s'&quot;, odbc_table, VM_SPOOL_DIR, context, tmp, &quot;INBOX&quot;);
+-                res = SQLPrepare(stmt, sql, SQL_NTS);
+-                if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {  
+-                        ast_log(LOG_WARNING, &quot;SQL Prepare failed![%s]\n&quot;, sql);
+-                        SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+-			odbc_release_obj(obj);
+-                        goto yuck;
+-                }
+-                res = odbc_smart_execute(obj, stmt);
+-                if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+-                        ast_log(LOG_WARNING, &quot;SQL Execute error!\n[%s]\n\n&quot;, sql);
+-                        SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+-			odbc_release_obj(obj);
+-                        goto yuck;
+-                }
+-                res = SQLFetch(stmt);
+-                if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+-                        ast_log(LOG_WARNING, &quot;SQL Fetch error!\n[%s]\n\n&quot;, sql);
+-                        SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+-			odbc_release_obj(obj);
+-                        goto yuck;
+-                }
+-                res = SQLGetData(stmt, 1, SQL_CHAR, rowdata, sizeof(rowdata), NULL);
+-                if ((res != SQL_SUCCESS) &amp;&amp; (res != SQL_SUCCESS_WITH_INFO)) {
+-                        ast_log(LOG_WARNING, &quot;SQL Get Data error!\n[%s]\n\n&quot;, sql);
+-                        SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+-			odbc_release_obj(obj);
+-                        goto yuck;
+-                }
+-                nummsgs = atoi(rowdata);
+-                SQLFreeHandle (SQL_HANDLE_STMT, stmt);
++yuck:
++	if (obj)
+ 		odbc_release_obj(obj);
+-       } else
+-                ast_log(LOG_WARNING, &quot;Failed to obtain database object for '%s'!\n&quot;, odbc_database);
++	return nummsgs;
++}
+ 
+-yuck:
+-	if (nummsgs&gt;=1)
++static int has_voicemail(const char *mailbox, const char *folder)
++{
++	char *context, tmp[256];
++	ast_copy_string(tmp, mailbox, sizeof(tmp));
++	if ((context = strchr(tmp, '@')))
++		*context++ = '\0';
++	else
++		context = &quot;default&quot;;
++
++	if (messagecount2(context, tmp, folder))
+ 		return 1;
+ 	else
+ 		return 0;
+@@ -2203,7 +2201,7 @@
+ 
+ #else
+ 
+-static int has_voicemail(const char *mailbox, const char *folder)
++static int __has_voicemail(const char *mailbox, const char *folder, int shortcircuit)
+ {
+ 	DIR *dir;
+ 	struct dirent *de;
+@@ -2211,7 +2209,7 @@
+ 	char tmp[256]=&quot;&quot;;
+ 	char *mb, *cur;
+ 	char *context;
+-	int ret;
++	int ret = 0;
+ 	if (!folder)
+ 		folder = &quot;INBOX&quot;;
+ 	/* If no mailbox, return immediately */
+@@ -2223,11 +2221,13 @@
+ 		ret = 0;
+ 		while((cur = strsep(&amp;mb, &quot;,&quot;))) {
+ 			if (!ast_strlen_zero(cur)) {
+-				if (has_voicemail(cur, folder))
+-					return 1; 
++				if ((ret += __has_voicemail(cur, folder, shortcircuit))) {
++					if (shortcircuit)
++						return 1; 
++				}
+ 			}
+ 		}
+-		return 0;
++		return ret;
+ 	}
+ 	ast_copy_string(tmp, mailbox, sizeof(tmp));
+ 	context = strchr(tmp, '@');
+@@ -2241,16 +2241,30 @@
+ 	if (!dir)
+ 		return 0;
+ 	while ((de = readdir(dir))) {
+-		if (!strncasecmp(de-&gt;d_name, &quot;msg&quot;, 3))
+-			break;
++		if (!strncasecmp(de-&gt;d_name, &quot;msg&quot;, 3)) {
++			if (shortcircuit) {
++				ret = 1;
++				break;
++			} else if (!strncasecmp(de-&gt;d_name + 8, &quot;txt&quot;, 3))
++				ret++;
++		}
+ 	}
+ 	closedir(dir);
+-	if (de)
+-		return 1;
+-	return 0;
++	return ret;
+ }
+ 
++static int has_voicemail(const char *mailbox, const char *folder)
++{
++	return __has_voicemail(mailbox, folder, 1);
++}
+ 
++static int messagecount2(const char *context, const char *mailbox, const char *folder)
++{
++	char tmp[256];
++	snprintf(tmp, sizeof(tmp), &quot;%s@%s&quot;, mailbox, context);
++	return __has_voicemail(tmp, folder, 0);
++}
++
+ static int messagecount(const char *mailbox, int *newmsgs, int *oldmsgs)
+ {
+ 	DIR *dir;
+@@ -6640,7 +6654,7 @@
+ 	/* compute the location of the voicemail spool directory */
+ 	snprintf(VM_SPOOL_DIR, sizeof(VM_SPOOL_DIR), &quot;%s/voicemail/&quot;, ast_config_AST_SPOOL_DIR);
+ 
+-	ast_install_vm_functions(has_voicemail, messagecount);
++	ast_install_vm_functions(has_voicemail, messagecount, messagecount2);
+ 
+ #if defined(USE_ODBC_STORAGE) &amp;&amp; !defined(EXTENDED_ODBC_STORAGE)
+ 	ast_log(LOG_WARNING, &quot;The current ODBC storage table format will be changed soon.&quot;
+@@ -6826,12 +6840,13 @@
+ 					res = ast_play_and_wait(chan, &quot;vm-star-cancel&quot;);
+ 				if (!res)
+ 					res = ast_waitfordigit(chan, 6000);
+-				if (!res)
++				if (!res) {
+ 					retries++;
+-				if (retries &gt; 3)
+-					res = 't';
++					if (retries &gt; 3)
++						res = 't';
++				}
+ 				break; 
+-
++				
+ 			}
+ 			if (res == 't')
+ 				res = 0;
+@@ -6839,7 +6854,7 @@
+ 				res = -1;
+ 		}
+ 		break;
+-
++		
+ 	case 1:	/* Reply */
+ 		/* Send reply directly to sender */
+ 		if (ast_strlen_zero(cid))
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/channels/chan_iax2.c	2006-05-18 23:19:53 UTC (rev 171)
+@@ -412,7 +412,7 @@
+ 	int expire;				/*!&lt; Sched ID of expiration */
+ 	int refresh;				/*!&lt; How often to refresh */
+ 	enum iax_reg_state regstate;
+-	int messages;				/*!&lt; Message count */
++	int messages;				/*!&lt; Message count, low 8 bits = new, high 8 bits = old */
+ 	int callno;				/*!&lt; Associated call number if applicable */
+ 	struct sockaddr_in us;			/*!&lt; Who the server thinks we are */
+ 	struct iax2_registry *next;
+@@ -476,7 +476,10 @@
+ 	int maxtime;
+ 	/*! Peer Address */
+ 	struct sockaddr_in addr;
++	/*! Actual used codec preferences */
+ 	struct ast_codec_pref prefs;
++	/*! Requested codec preferences */
++	struct ast_codec_pref rprefs;
+ 	/*! Our call number */
+ 	unsigned short callno;
+ 	/*! Peer callno */
+@@ -4693,9 +4696,12 @@
+ 	if (ies-&gt;version)
+ 		version = ies-&gt;version;
+ 
+-	if(ies-&gt;codec_prefs)
++	/* Use provided preferences until told otherwise for actual preferences */
++	if(ies-&gt;codec_prefs) {
++		ast_codec_pref_convert(&amp;iaxs[callno]-&gt;rprefs, ies-&gt;codec_prefs, 32, 0);
+ 		ast_codec_pref_convert(&amp;iaxs[callno]-&gt;prefs, ies-&gt;codec_prefs, 32, 0);
+-	
++	}
++
+ 	if (!gotcapability) 
+ 		iaxs[callno]-&gt;peercapability = iaxs[callno]-&gt;peerformat;
+ 	if (version &gt; IAX_PROTO_VERSION) {
+@@ -5404,7 +5410,7 @@
+ 		return -1;
+ 	}
+ 	memcpy(&amp;reg-&gt;us, &amp;us, sizeof(reg-&gt;us));
+-	reg-&gt;messages = ies-&gt;msgcount;
++	reg-&gt;messages = ies-&gt;msgcount &amp; 0xffff;		/* only low 16 bits are used in the transmission of the IE */
+ 	/* always refresh the registration at the interval requested by the server
+ 	   we are registering to
+ 	*/
+@@ -5414,12 +5420,12 @@
+ 	reg-&gt;expire = ast_sched_add(sched, (5 * reg-&gt;refresh / 6) * 1000, iax2_do_register_s, reg);
+ 	if (inaddrcmp(&amp;oldus, &amp;reg-&gt;us) || (reg-&gt;messages != oldmsgs)) {
+ 		if (option_verbose &gt; 2) {
+-			if (reg-&gt;messages &gt; 65534)
+-				snprintf(msgstatus, sizeof(msgstatus), &quot; with message(s) waiting\n&quot;);
++			if (reg-&gt;messages &gt; 255)
++				snprintf(msgstatus, sizeof(msgstatus), &quot; with %d new and %d old messages waiting&quot;, reg-&gt;messages &amp; 0xff, reg-&gt;messages &gt;&gt; 8);
+ 			else if (reg-&gt;messages &gt; 1)
+-				snprintf(msgstatus, sizeof(msgstatus), &quot; with %d messages waiting\n&quot;, reg-&gt;messages);
++				snprintf(msgstatus, sizeof(msgstatus), &quot; with %d new messages waiting\n&quot;, reg-&gt;messages);
+ 			else if (reg-&gt;messages &gt; 0)
+-				snprintf(msgstatus, sizeof(msgstatus), &quot; with 1 message waiting\n&quot;);
++				snprintf(msgstatus, sizeof(msgstatus), &quot; with 1 new message waiting\n&quot;);
+ 			else
+ 				snprintf(msgstatus, sizeof(msgstatus), &quot; with no messages waiting\n&quot;);
+ 			snprintf(ourip, sizeof(ourip), &quot;%s:%d&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), reg-&gt;us.sin_addr), ntohs(reg-&gt;us.sin_port));
+@@ -6297,7 +6303,7 @@
+ 	struct iax_frame *duped_fr;
+ 	char host_pref_buf[128];
+ 	char caller_pref_buf[128];
+-	struct ast_codec_pref pref,rpref;
++	struct ast_codec_pref pref;
+ 	char *using_prefs = &quot;mine&quot;;
+ 
+ 	dblbuf[0] = 0;	/* Keep GCC from whining */
+@@ -6817,20 +6823,22 @@
+ 							strcpy(host_pref_buf, &quot;disabled&quot;);
+ 						} else {
+ 							using_prefs = &quot;mine&quot;;
+-							if(ies.codec_prefs) {
+-								ast_codec_pref_convert(&amp;rpref, ies.codec_prefs, 32, 0);
++							/* If the information elements are in here... use them */
++							if (ies.codec_prefs)
++								ast_codec_pref_convert(&amp;iaxs[fr.callno]-&gt;rprefs, ies.codec_prefs, 32, 0);
++							if (ast_codec_pref_index(&amp;iaxs[fr.callno]-&gt;rprefs, 0)) {
+ 								/* If we are codec_first_choice we let the caller have the 1st shot at picking the codec.*/
+ 								if (ast_test_flag(iaxs[fr.callno], IAX_CODEC_USER_FIRST)) {
+-									pref = rpref;
++									pref = iaxs[fr.callno]-&gt;rprefs;
+ 									using_prefs = &quot;caller&quot;;
+ 								} else {
+ 									pref = iaxs[fr.callno]-&gt;prefs;
+ 								}
+ 							} else
+ 								pref = iaxs[fr.callno]-&gt;prefs;
+-						
++							
+ 							format = ast_codec_choose(&amp;pref, iaxs[fr.callno]-&gt;capability &amp; iaxs[fr.callno]-&gt;peercapability, 0);
+-							ast_codec_pref_string(&amp;rpref, caller_pref_buf, sizeof(caller_pref_buf) - 1);
++							ast_codec_pref_string(&amp;iaxs[fr.callno]-&gt;rprefs, caller_pref_buf, sizeof(caller_pref_buf) - 1);
+ 							ast_codec_pref_string(&amp;iaxs[fr.callno]-&gt;prefs, host_pref_buf, sizeof(host_pref_buf) - 1);
+ 						}
+ 						if (!format) {
+@@ -6861,12 +6869,12 @@
+ 										strcpy(host_pref_buf,&quot;disabled&quot;);
+ 									} else {
+ 										using_prefs = &quot;mine&quot;;
+-										if(ies.codec_prefs) {
++										if (ast_codec_pref_index(&amp;iaxs[fr.callno]-&gt;rprefs, 0)) {
+ 											/* Do the opposite of what we tried above. */
+ 											if (ast_test_flag(iaxs[fr.callno], IAX_CODEC_USER_FIRST)) {
+ 												pref = iaxs[fr.callno]-&gt;prefs;								
+ 											} else {
+-												pref = rpref;
++												pref = iaxs[fr.callno]-&gt;rprefs;
+ 												using_prefs = &quot;caller&quot;;
+ 											}
+ 											format = ast_codec_choose(&amp;pref, iaxs[fr.callno]-&gt;peercapability &amp; iaxs[fr.callno]-&gt;capability, 1);
+@@ -7219,11 +7227,11 @@
+ 						strcpy(host_pref_buf, &quot;disabled&quot;);
+ 					} else {
+ 						using_prefs = &quot;mine&quot;;
+-						if(ies.codec_prefs) {
+-							/* If we are codec_first_choice we let the caller have the 1st shot at picking the codec.*/
+-							ast_codec_pref_convert(&amp;rpref, ies.codec_prefs, 32, 0);
++						if (ies.codec_prefs)
++							ast_codec_pref_convert(&amp;iaxs[fr.callno]-&gt;rprefs, ies.codec_prefs, 32, 0);
++						if (ast_codec_pref_index(&amp;iaxs[fr.callno]-&gt;rprefs, 0)) {
+ 							if (ast_test_flag(iaxs[fr.callno], IAX_CODEC_USER_FIRST)) {
+-								ast_codec_pref_convert(&amp;pref, ies.codec_prefs, 32, 0);
++								pref = iaxs[fr.callno]-&gt;rprefs;
+ 								using_prefs = &quot;caller&quot;;
+ 							} else {
+ 								pref = iaxs[fr.callno]-&gt;prefs;
+@@ -7232,7 +7240,7 @@
+ 							pref = iaxs[fr.callno]-&gt;prefs;
+ 					
+ 						format = ast_codec_choose(&amp;pref, iaxs[fr.callno]-&gt;capability &amp; iaxs[fr.callno]-&gt;peercapability, 0);
+-						ast_codec_pref_string(&amp;rpref, caller_pref_buf, sizeof(caller_pref_buf) - 1);
++						ast_codec_pref_string(&amp;iaxs[fr.callno]-&gt;rprefs, caller_pref_buf, sizeof(caller_pref_buf) - 1);
+ 						ast_codec_pref_string(&amp;iaxs[fr.callno]-&gt;prefs, host_pref_buf, sizeof(host_pref_buf) - 1);
+ 					}
+ 					if (!format) {
+@@ -7266,12 +7274,12 @@
+ 									strcpy(host_pref_buf,&quot;disabled&quot;);
+ 								} else {
+ 									using_prefs = &quot;mine&quot;;
+-									if(ies.codec_prefs) {
++									if (ast_codec_pref_index(&amp;iaxs[fr.callno]-&gt;rprefs, 0)) {
+ 										/* Do the opposite of what we tried above. */
+ 										if (ast_test_flag(iaxs[fr.callno], IAX_CODEC_USER_FIRST)) {
+ 											pref = iaxs[fr.callno]-&gt;prefs;						
+ 										} else {
+-											pref = rpref;
++											pref = iaxs[fr.callno]-&gt;rprefs;
+ 											using_prefs = &quot;caller&quot;;
+ 										}
+ 										format = ast_codec_choose(&amp;pref, iaxs[fr.callno]-&gt;peercapability &amp; iaxs[fr.callno]-&gt;capability, 1);
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/channels/chan_sip.c	2006-05-18 23:19:53 UTC (rev 171)
+@@ -519,11 +519,13 @@
+ 	int len;		/*!&lt; Length */
+ 	int headers;		/*!&lt; # of SIP Headers */
+ 	int method;		/*!&lt; Method of this request */
+-	int lines;		/*!&lt; SDP Content */
++	int lines;		/*!&lt; Body Content */
+ 	unsigned int flags;	/*!&lt; SIP_PKT Flags for this packet */
+ 	char *header[SIP_MAX_HEADERS];
+ 	char *line[SIP_MAX_LINES];
+ 	char data[SIP_MAX_PACKET];
++	unsigned int sdp_start; /*!&lt; the line number where the SDP begins */
++	unsigned int sdp_end;	/*!&lt; the line number where the SDP ends */
+ };
+ 
+ /*
+@@ -636,21 +638,22 @@
+ #define SIP_NAT_ROUTE		(2 &lt;&lt; 18)	/*!&lt; NAT Only ROUTE */
+ #define SIP_NAT_ALWAYS		(3 &lt;&lt; 18)	/*!&lt; NAT Both ROUTE and RFC3581 */
+ /* re-INVITE related settings */
+-#define SIP_REINVITE		(3 &lt;&lt; 20)	/*!&lt; two bits used */
++#define SIP_REINVITE		(7 &lt;&lt; 20)	/*!&lt; three bits used */
+ #define SIP_CAN_REINVITE	(1 &lt;&lt; 20)	/*!&lt; allow peers to be reinvited to send media directly p2p */
+-#define SIP_REINVITE_UPDATE	(2 &lt;&lt; 20)	/*!&lt; use UPDATE (RFC3311) when reinviting this peer */
++#define SIP_CAN_REINVITE_NAT	(2 &lt;&lt; 20)	/*!&lt; allow media reinvite when new peer is behind NAT */
++#define SIP_REINVITE_UPDATE	(4 &lt;&lt; 20)	/*!&lt; use UPDATE (RFC3311) when reinviting this peer */
+ /* &quot;insecure&quot; settings */
+-#define SIP_INSECURE_PORT	(1 &lt;&lt; 22)	/*!&lt; don't require matching port for incoming requests */
+-#define SIP_INSECURE_INVITE	(1 &lt;&lt; 23)	/*!&lt; don't require authentication for incoming INVITEs */
++#define SIP_INSECURE_PORT	(1 &lt;&lt; 23)	/*!&lt; don't require matching port for incoming requests */
++#define SIP_INSECURE_INVITE	(1 &lt;&lt; 24)	/*!&lt; don't require authentication for incoming INVITEs */
+ /* Sending PROGRESS in-band settings */
+-#define SIP_PROG_INBAND		(3 &lt;&lt; 24)	/*!&lt; three settings, uses two bits */
+-#define SIP_PROG_INBAND_NEVER	(0 &lt;&lt; 24)
+-#define SIP_PROG_INBAND_NO	(1 &lt;&lt; 24)
+-#define SIP_PROG_INBAND_YES	(2 &lt;&lt; 24)
+-#define SIP_CALL_ONHOLD		(1 &lt;&lt; 26)	/*!&lt; Call states */
+-#define SIP_CALL_LIMIT		(1 &lt;&lt; 27)	/*!&lt; Call limit enforced for this call */
+-#define SIP_SENDRPID		(1 &lt;&lt; 28)	/*!&lt; Remote Party-ID Support */
+-#define SIP_INC_COUNT		(1 &lt;&lt; 29)	/*!&lt; Did this connection increment the counter of in-use calls? */
++#define SIP_PROG_INBAND		(3 &lt;&lt; 25)	/*!&lt; three settings, uses two bits */
++#define SIP_PROG_INBAND_NEVER	(0 &lt;&lt; 25)
++#define SIP_PROG_INBAND_NO	(1 &lt;&lt; 25)
++#define SIP_PROG_INBAND_YES	(2 &lt;&lt; 25)
++#define SIP_CALL_ONHOLD		(1 &lt;&lt; 27)	/*!&lt; Call states */
++#define SIP_CALL_LIMIT		(1 &lt;&lt; 28)	/*!&lt; Call limit enforced for this call */
++#define SIP_SENDRPID		(1 &lt;&lt; 29)	/*!&lt; Remote Party-ID Support */
++#define SIP_INC_COUNT		(1 &lt;&lt; 30)	/*!&lt; Did this connection increment the counter of in-use calls? */
+ 
+ #define SIP_FLAGS_TO_COPY \
+ 	(SIP_PROMISCREDIR | SIP_TRUSTRPID | SIP_SENDRPID | SIP_DTMF | SIP_REINVITE | \
+@@ -1090,9 +1093,9 @@
+ 
+ /*--- Codec handling / SDP */
+ static void try_suggested_sip_codec(struct sip_pvt *p);
+-static const char *get_sdp_by_line(const char* line, const char *name, int nameLen);
+ static const char* get_sdp_iterate(int* start, struct sip_request *req, const char *name);
+ static const char *get_sdp(struct sip_request *req, const char *name);
++static int find_sdp(struct sip_request *req);
+ static int process_sdp(struct sip_pvt *p, struct sip_request *req);
+ static void add_codec_to_sdp(const struct sip_pvt *p, int codec, int sample_rate,
+ 			     char **m_buf, size_t *m_size, char **a_buf, size_t *a_size,
+@@ -1942,17 +1945,30 @@
+ static void register_peer_exten(struct sip_peer *peer, int onoff)
+ {
+ 	char multi[256];
+-	char *stringp, *ext;
++	char *stringp, *ext, *context;
+ 	if (!ast_strlen_zero(global_regcontext)) {
+ 
+ 		ast_copy_string(multi, S_OR(peer-&gt;regexten, peer-&gt;name), sizeof(multi));
+ 		stringp = multi;
+ 		while((ext = strsep(&amp;stringp, &quot;&amp;&quot;))) {
++ 			if((context = strchr(ext, '@'))) {
++				context++;
++				if (!ast_context_find(context)) {
++					ast_log(LOG_WARNING, &quot;Context %s must exist in regcontext!\n&quot;, context);
++					continue;
++				}
++				ext = strsep(&amp;ext, &quot;@&quot;);
++				if (onoff)
++					ast_add_extension(context, 1, ext, 1, NULL, NULL, &quot;Noop&quot;,					  ast_strdup(peer-&gt;name), free, &quot;SIP&quot;);
++				else
++					ast_context_remove_extension(context, ext, 1, NULL);
++			} else {
+ 			if (onoff)
+ 				ast_add_extension(global_regcontext, 1, ext, 1, NULL, NULL, &quot;Noop&quot;,
+ 						  ast_strdup(peer-&gt;name), free, &quot;SIP&quot;);
+ 			else
+ 				ast_context_remove_extension(global_regcontext, ext, 1, NULL);
++			}
+ 		}
+ 	}
+ }
+@@ -3256,37 +3272,55 @@
+ }
+ 
+ /*! \brief Reads one line of SIP message body */
+-static const char *get_sdp_by_line(const char* line, const char *name, int nameLen)
++static char *get_body_by_line(const char *line, const char *name, int nameLen)
+ {
+ 	if (strncasecmp(line, name, nameLen) == 0 &amp;&amp; line[nameLen] == '=')
+ 		return ast_skip_blanks(line + nameLen + 1);
++
+ 	return &quot;&quot;;
+ }
+ 
+-/*! \brief get_sdp_iterate: lookup 'name' in the request starting
++/*! \brief Lookup 'name' in the SDP starting
+  * at the 'start' line. Returns the matching line, and 'start'
+  * is updated with the next line number.
+  */
+-static const char* get_sdp_iterate(int* start, struct sip_request *req, const char *name)
++static const char *get_sdp_iterate(int *start, struct sip_request *req, const char *name)
+ {
+ 	int len = strlen(name);
+ 
+-	while (*start &lt; req-&gt;lines) {
+-		const char *r = get_sdp_by_line(req-&gt;line[(*start)++], name, len);
++	while (*start &lt; req-&gt;sdp_end) {
++		const char *r = get_body_by_line(req-&gt;line[(*start)++], name, len);
+ 		if (r[0] != '\0')
+ 			return r;
+ 	}
++
+ 	return &quot;&quot;;
+ }
+ 
+-/*! \brief  get_sdp: Gets all kind of SIP message bodies, including SDP,
+-   but the name wrongly applies _only_ sdp */
++/*! \brief Get a line from an SDP message body */
+ static const char *get_sdp(struct sip_request *req, const char *name) 
+ {
+ 	int dummy = 0;
++
+ 	return get_sdp_iterate(&amp;dummy, req, name);
+ }
+ 
++/*! \brief Get a specific line from the message body */
++static char *get_body(struct sip_request *req, char *name) 
++{
++	int x;
++	int len = strlen(name);
++	char *r;
++
++	for (x = 0; x &lt; req-&gt;lines; x++) {
++		r = get_body_by_line(req-&gt;line[x], name, len);
++		if (r[0] != '\0')
++			return r;
++	}
++
++	return &quot;&quot;;
++}
++
+ /*! \brief Find compressed SIP alias */
+ static const char *find_alias(const char *name, const char *_default)
+ {
+@@ -3315,9 +3349,11 @@
+ 		{ &quot;Session-Expires&quot;,     &quot;x&quot; },
+ 	};
+ 	int x;
++
+ 	for (x=0; x&lt;sizeof(aliases) / sizeof(aliases[0]); x++) 
+ 		if (!strcasecmp(aliases[x].fullname, name))
+ 			return aliases[x].shortname;
++
+ 	return _default;
+ }
+ 
+@@ -3846,7 +3882,69 @@
+ 	determine_firstline_parts(req);
+ }
+ 
+-/*! \brief Process SIP SDP and activate RTP channels*/
++/*!
++  \brief Determine whether a SIP message contains an SDP in its body
++  \param req the SIP request to process
++  \return 1 if SDP found, 0 if not found
++
++  Also updates req-&gt;sdp_start and req-&gt;sdp_end to indicate where the SDP
++  lives in the message body.
++*/
++static int find_sdp(struct sip_request *req)
++{
++	const char *content_type;
++	const char *search;
++	char *boundary;
++	unsigned int x;
++
++	content_type = get_header(req, &quot;Content-Type&quot;);
++
++	/* if the body contains only SDP, this is easy */
++	if (!strcasecmp(content_type, &quot;application/sdp&quot;)) {
++		req-&gt;sdp_start = 0;
++		req-&gt;sdp_end = req-&gt;lines;
++		return 1;
++	}
++
++	/* if it's not multipart/mixed, there cannot be an SDP */
++	if (strncasecmp(content_type, &quot;multipart/mixed&quot;, 15))
++		return 0;
++
++	/* if there is no boundary marker, it's invalid */
++	if (!(search = strcasestr(content_type, &quot;;boundary=&quot;)))
++		return 0;
++
++	search += 10;
++
++	if (ast_strlen_zero(search))
++		return 0;
++
++	/* make a duplicate of the string, with two extra characters
++	   at the beginning */
++	boundary = ast_strdupa(search - 2);
++	boundary[0] = boundary[1] = '-';
++
++	/* search for the boundary marker, but stop when there are not enough
++	   lines left for it, the Content-Type header and at least one line of
++	   body */
++	for (x = 0; x &lt; (req-&gt;lines - 2); x++) {
++		if (!strncasecmp(req-&gt;line[x], boundary, strlen(boundary)) &amp;&amp;
++		    !strcasecmp(req-&gt;line[x + 1], &quot;Content-Type: application/sdp&quot;)) {
++			req-&gt;sdp_start = x + 2;
++			/* search for the end of the body part */
++			for ( ; x &lt; req-&gt;lines; x++) {
++				if (!strncasecmp(req-&gt;line[x], boundary, strlen(boundary)))
++					break;
++			}
++			req-&gt;sdp_end = x;
++			return 1;
++		}
++	}
++
++	return 0;
++}
++
++/*! \brief Process SIP SDP and activate RTP channels---*/
+ static int process_sdp(struct sip_pvt *p, struct sip_request *req)
+ {
+ 	const char *m;
+@@ -3880,13 +3978,8 @@
+ 	time(&amp;p-&gt;lastrtprx);
+ 	time(&amp;p-&gt;lastrtptx);
+ 
+-	/* Get codec and RTP info from SDP */
+-	if (strcasecmp(get_header(req, &quot;Content-Type&quot;), &quot;application/sdp&quot;)) {
+-		ast_log(LOG_NOTICE, &quot;Content is '%s', not 'application/sdp'\n&quot;, get_header(req, &quot;Content-Type&quot;));
+-		return -1;
+-	}
+ 	m = get_sdp(req, &quot;m&quot;);
+-	destiterator = 0;
++	destiterator = req-&gt;sdp_start;
+ 	c = get_sdp_iterate(&amp;destiterator, req, &quot;c&quot;);
+ 	if (ast_strlen_zero(m) || ast_strlen_zero(c)) {
+ 		ast_log(LOG_WARNING, &quot;Insufficient information for SDP (m = '%s', c = '%s')\n&quot;, m, c);
+@@ -3902,7 +3995,7 @@
+ 		ast_log(LOG_WARNING, &quot;Unable to lookup host in c= line, '%s'\n&quot;, c);
+ 		return -1;
+ 	}
+-	iterator = 0;
++	iterator = req-&gt;sdp_start;
+ 	ast_set_flag(&amp;p-&gt;flags[0], SIP_NOVIDEO);	
+ 	while ((m = get_sdp_iterate(&amp;iterator, req, &quot;m&quot;))[0] != '\0') {
+ 		int found = 0;
+@@ -4001,7 +4094,7 @@
+ 	/* Next, scan through each &quot;a=rtpmap:&quot; line, noting each
+ 	 * specified RTP payload type (with corresponding MIME subtype):
+ 	 */
+-	iterator = 0;
++	iterator = req-&gt;sdp_start;
+ 	while ((a = get_sdp_iterate(&amp;iterator, req, &quot;a&quot;))[0] != '\0') {
+ 		char* mimeSubtype = ast_strdupa(a); /* ensures we have enough space */
+ 		if (!strcasecmp(a, &quot;sendonly&quot;)) {
+@@ -8105,6 +8198,32 @@
+ 		return &quot;no&quot;;
+ }
+ 
++/*! \brief cleanup_stale_contexts:  Destroy disused contexts between reloads
++	Only used in reload_config so the code for regcontext doesn't get ugly
++*/
++static void cleanup_stale_contexts(char *new, char *old)
++{
++	char *oldcontext, *newcontext, *stalecontext, *stringp, newlist[AST_MAX_CONTEXT];
++
++	while ((oldcontext = strsep(&amp;old, &quot;&amp;&quot;))) {
++		stalecontext = '\0';
++		ast_copy_string(newlist, new, sizeof(newlist));
++		stringp = newlist;
++		while ((newcontext = strsep(&amp;stringp, &quot;&amp;&quot;))) {
++			if (strcmp(newcontext, oldcontext) == 0) {
++				/* This is not the context you're looking for */
++				stalecontext = '\0';
++				break;
++			} else if (strcmp(newcontext, oldcontext)) {
++				stalecontext = oldcontext;
++			}
++			
++		}
++		if (stalecontext)
++			ast_context_destroy(ast_context_find(stalecontext), &quot;SIP&quot;);
++	}
++}
++
+ /*! \brief  sip_prune_realtime: Remove temporary realtime objects from memory (CLI) */
+ static int sip_prune_realtime(int fd, int argc, char *argv[])
+ {
+@@ -9102,7 +9221,7 @@
+ 	    !strcasecmp(c, &quot;application/vnd.nortelnetworks.digits&quot;)) {
+ 
+ 		/* Try getting the &quot;signal=&quot; part */
+-		if (ast_strlen_zero(c = get_sdp(req, &quot;Signal&quot;)) &amp;&amp; ast_strlen_zero(c = get_sdp(req, &quot;d&quot;))) {
++		if (ast_strlen_zero(c = get_body(req, &quot;Signal&quot;)) &amp;&amp; ast_strlen_zero(c = get_body(req, &quot;d&quot;))) {
+ 			ast_log(LOG_WARNING, &quot;Unable to retrieve DTMF signal from INFO message from %s\n&quot;, p-&gt;callid);
+ 			transmit_response(p, &quot;200 OK&quot;, req); /* Should return error */
+ 			return;
+@@ -9962,7 +10081,7 @@
+ 			if (p-&gt;owner-&gt;_state != AST_STATE_UP)
+ 				ast_setstate(p-&gt;owner, AST_STATE_RINGING);
+ 		}
+-		if (!strcasecmp(get_header(req, &quot;Content-Type&quot;), &quot;application/sdp&quot;)) {
++		if (find_sdp(req)) {
+ 			process_sdp(p, req);
+ 			if (!ast_test_flag(req, SIP_PKT_IGNORE) &amp;&amp; p-&gt;owner) {
+ 				/* Queue a progress frame only if we have SDP in 180 */
+@@ -9974,7 +10093,7 @@
+ 		if (!ast_test_flag(req, SIP_PKT_IGNORE))
+ 			sip_cancel_destroy(p);
+ 		/* Ignore 183 Session progress without SDP */
+-		if (!strcasecmp(get_header(req, &quot;Content-Type&quot;), &quot;application/sdp&quot;)) {
++		if (find_sdp(req)) {
+ 			process_sdp(p, req);
+ 			if (!ast_test_flag(req, SIP_PKT_IGNORE) &amp;&amp; p-&gt;owner) {
+ 				/* Queue a progress frame */
+@@ -9986,7 +10105,7 @@
+ 		if (!ast_test_flag(req, SIP_PKT_IGNORE))
+ 			sip_cancel_destroy(p);
+ 		p-&gt;authtries = 0;
+-		if (!strcasecmp(get_header(req, &quot;Content-Type&quot;), &quot;application/sdp&quot;)) 
++		if (find_sdp(req))
+ 			process_sdp(p, req);
+ 
+ 		/* Parse contact header for continued conversation */
+@@ -10554,7 +10673,7 @@
+ 			} else if ((resp &gt;= 100) &amp;&amp; (resp &lt; 200)) {
+ 				if (sipmethod == SIP_INVITE) {
+ 					sip_cancel_destroy(p);
+-					if (!ast_strlen_zero(get_header(req, &quot;Content-Type&quot;)))
++					if (find_sdp(req))
+ 						process_sdp(p, req);
+ 					if (p-&gt;owner) {
+ 						/* Queue a progress frame */
+@@ -11115,7 +11234,7 @@
+ 			parse_ok_contact(p, req);
+ 		} else {	/* Re-invite on existing call */
+ 			/* Handle SDP here if we already have an owner */
+-			if (!strcasecmp(get_header(req, &quot;Content-Type&quot;), &quot;application/sdp&quot;)) {
++			if (find_sdp(req)) {
+ 				if (process_sdp(p, req)) {
+ 					transmit_response(p, &quot;488 Not acceptable here&quot;, req);
+ 					if (!p-&gt;lastinvite)
+@@ -11146,7 +11265,7 @@
+ 		}
+ 
+ 		/* We have a succesful authentication, process the SDP portion if there is one */
+-		if (!strcasecmp(get_header(req, &quot;Content-Type&quot;), &quot;application/sdp&quot;) ) {
++		if (find_sdp(req)) {
+ 			if (process_sdp(p, req)) {
+ 				/* Unacceptable codecs */
+ 				transmit_response_reliable(p, &quot;488 Not acceptable here&quot;, req);
+@@ -11946,7 +12065,7 @@
+ 		if (seqno == p-&gt;pendinginvite) {
+ 			p-&gt;pendinginvite = 0;
+ 			__sip_ack(p, seqno, FLAG_RESPONSE, 0, FALSE);
+-			if (!ast_strlen_zero(get_header(req, &quot;Content-Type&quot;))) {
++			if (find_sdp(req)) {
+ 				if (process_sdp(p, req))
+ 					return -1;
+ 			} 
+@@ -12573,10 +12692,24 @@
+ 	} else if (!strcasecmp(v-&gt;name, &quot;canreinvite&quot;)) {
+ 		ast_set_flag(&amp;mask[0], SIP_REINVITE);
+ 		ast_clear_flag(&amp;flags[0], SIP_REINVITE);
+-		if (!strcasecmp(v-&gt;value, &quot;update&quot;))
+-			ast_set_flag(&amp;flags[0], SIP_REINVITE_UPDATE | SIP_CAN_REINVITE);
+-		else
+-			ast_set2_flag(&amp;flags[0], ast_true(v-&gt;value), SIP_CAN_REINVITE);
++		if (ast_true(v-&gt;value)) {
++			ast_set_flag(&amp;flags[0], SIP_CAN_REINVITE | SIP_CAN_REINVITE_NAT);
++		} else if (!ast_false(v-&gt;value)) {
++			char buf[64];
++			char *word, *next = buf;
++
++			ast_copy_string(buf, v-&gt;value, sizeof(buf));
++			while ((word = strsep(&amp;next, &quot;,&quot;))) {
++				if (!strcasecmp(word, &quot;update&quot;)) {
++					ast_set_flag(&amp;flags[0], SIP_REINVITE_UPDATE | SIP_CAN_REINVITE);
++				} else if (!strcasecmp(word, &quot;nonat&quot;)) {
++					ast_set_flag(&amp;flags[0], SIP_CAN_REINVITE);
++					ast_clear_flag(&amp;flags[0], SIP_CAN_REINVITE_NAT);
++				} else {
++					ast_log(LOG_WARNING, &quot;Unknown canreinvite mode '%s' on line %d\n&quot;, v-&gt;value, v-&gt;lineno);
++				}
++			}
++		}
+ 	} else if (!strcasecmp(v-&gt;name, &quot;insecure&quot;)) {
+ 		ast_set_flag(&amp;mask[0], SIP_INSECURE_PORT | SIP_INSECURE_INVITE);
+ 		ast_clear_flag(&amp;flags[0], SIP_INSECURE_PORT | SIP_INSECURE_INVITE);
+@@ -13197,7 +13330,8 @@
+ 	struct sip_peer *peer;
+ 	struct sip_user *user;
+ 	struct ast_hostent ahp;
+-	char *cat;
++	char *cat, *stringp, *context, *oldregcontext;
++	char newcontexts[AST_MAX_CONTEXT], oldcontexts[AST_MAX_CONTEXT];
+ 	struct hostent *hp;
+ 	int format;
+ 	char iabuf[INET_ADDRSTRLEN];
+@@ -13216,6 +13350,10 @@
+ 		return -1;
+ 	}
+ 	
++	/* Initialize copy of current global_regcontext for later use in removing stale contexts */
++	ast_copy_string(oldcontexts, global_regcontext, sizeof(oldcontexts));
++	oldregcontext = oldcontexts;
++
+ 	/* Clear all flags before setting default values */
+ 	/* Preserve debugging settings for console */
+ 	ast_copy_flags(&amp;debugflag, &amp;global_flags[1], SIP_PAGE2_DEBUG_CONSOLE);
+@@ -13361,10 +13499,16 @@
+ 		} else if (!strcasecmp(v-&gt;name, &quot;language&quot;)) {
+ 			ast_copy_string(default_language, v-&gt;value, sizeof(default_language));
+ 		} else if (!strcasecmp(v-&gt;name, &quot;regcontext&quot;)) {
++			ast_copy_string(newcontexts, v-&gt;value, sizeof(newcontexts));
++			stringp = newcontexts;
++			/* Let's remove any contexts that are no longer defined in regcontext */
++			cleanup_stale_contexts(stringp, oldregcontext);
++			/* Create contexts if they don't exist already */
++			while ((context = strsep(&amp;stringp, &quot;&amp;&quot;))) {
++				if (!ast_context_find(context))
++					ast_context_create(NULL, context,&quot;SIP&quot;);
++			}
+ 			ast_copy_string(global_regcontext, v-&gt;value, sizeof(global_regcontext));
+-			/* Create context if it doesn't exist already */
+-			if (!ast_context_find(global_regcontext))
+-				ast_context_create(NULL, global_regcontext, &quot;SIP&quot;);
+ 		} else if (!strcasecmp(v-&gt;name, &quot;callerid&quot;)) {
+ 			ast_copy_string(default_callerid, v-&gt;value, sizeof(default_callerid));
+ 		} else if (!strcasecmp(v-&gt;name, &quot;fromdomain&quot;)) {
+@@ -13688,6 +13832,15 @@
+ 		ast_mutex_unlock(&amp;p-&gt;lock);
+ 		return 0;
+ 	}
++
++	/* if this peer cannot handle reinvites of the media stream to devices
++	   that are known to be behind a NAT, then stop the process now
++	*/
++	if (nat_active &amp;&amp; !ast_test_flag(&amp;p-&gt;flags[0], SIP_CAN_REINVITE_NAT)) {
++		ast_mutex_unlock(&amp;p-&gt;lock);
++		return 0;
++	}
++
+ 	if (rtp) 
+ 		changed |= ast_rtp_get_peer(rtp, &amp;p-&gt;redirip);
+ 	else
+@@ -13702,8 +13855,8 @@
+ 	}
+ 	if (changed &amp;&amp; !ast_test_flag(&amp;p-&gt;flags[0], SIP_GOTREFER)) {
+ 		if (chan-&gt;_state != AST_STATE_UP) {
+-				char iabuf[INET_ADDRSTRLEN];
+-				ast_log(LOG_DEBUG, &quot;Early media setting SIP '%s' - Sending early media to %s\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf), rtp ? p-&gt;redirip.sin_addr : p-&gt;ourip));
++			char iabuf[INET_ADDRSTRLEN];
++			ast_log(LOG_DEBUG, &quot;Early media setting SIP '%s' - Sending early media to %s\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf), rtp ? p-&gt;redirip.sin_addr : p-&gt;ourip));
+ 		} else if (!p-&gt;pendinginvite) {
+ 			if (option_debug &gt; 2) {
+ 				char iabuf[INET_ADDRSTRLEN];
+
+Modified: trunk/channels/misdn/isdn_lib.c
+===================================================================
+--- trunk/channels/misdn/isdn_lib.c	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/channels/misdn/isdn_lib.c	2006-05-18 23:19:53 UTC (rev 171)
+@@ -2581,7 +2581,7 @@
+ 		if (r&lt;0) {
+ 			if (errno == EAGAIN) {
+ 				/*we wait for mISDN here*/
+-				cb_log(-1,0,&quot;mISDN_read wants us to wait\n&quot;);
++				cb_log(4,0,&quot;mISDN_read wants us to wait\n&quot;);
+ 				usleep(5000);
+ 				goto AGAIN;
+ 			}
+
+Modified: trunk/configs/sip.conf.sample
+===================================================================
+--- trunk/configs/sip.conf.sample	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/configs/sip.conf.sample	2006-05-18 23:19:53 UTC (rev 171)
+@@ -139,9 +139,12 @@
+ ;
+ ; If regcontext is specified, Asterisk will dynamically create and destroy a
+ ; NoOp priority 1 extension for a given peer who registers or unregisters with
+-; us.  The actual extension is the 'regexten' parameter of the registering
+-; peer or its name if 'regexten' is not provided.  More than one regexten may
+-; be supplied if they are separated by '&amp;'.  Patterns may be used in regexten.
++; us.  Multiple contexts may be specified by separating them with '&amp;'. The 
++; actual extension is the 'regexten' parameter of the registering peer or its
++; name if 'regexten' is not provided.  If more than one context is provided,
++; the context must be specified within regexten by appending the desired
++; context after '@'.  More than one regexten may be supplied if they are 
++; separated by '&amp;'.  Patterns may be used in regexten.
+ ;
+ ;regcontext=sipregistrations
+ ;
+@@ -220,13 +223,21 @@
+ ;canreinvite=yes		; Asterisk by default tries to redirect the
+ 				; RTP media stream (audio) to go directly from
+ 				; the caller to the callee.  Some devices do not
+-				; support this (especially if one of them is 
+-				; behind a NAT).
++				; support this (especially if one of them is behind a NAT).
+ 				; The default setting is YES. If you have all clients
+-				; behind a NAT, or for some other reason wants
+-				; Asterisk to stay in the audio path,
+-				; you may want to turn this off
++				; behind a NAT, or for some other reason wants Asterisk to
++				; stay in the audio path, you may want to turn this off.
+ 
++;canreinvite=nonat		; An additional option is to allow media path redirection
++				; (reinvite) but only when the peer where the media is being
++				; sent is known to not be behind a NAT (as the RTP core can
++				; determine it based on the apparent IP address the media
++				; arrives from).
++
++;canreinvite=update		; Yet a third option... use UPDATE for media path redirection,
++				; instead of INVITE. This can be combined with 'nonat', as
++				; 'canreinvite=update,nonat'. It implies 'yes'.
++
+ ;----------------------------------------- REALTIME SUPPORT ------------------------
+ ; For additional information on ARA, the Asterisk Realtime Architecture,
+ ; please read realtime.txt and extconfig.txt in the /doc directory of the
+
+Modified: trunk/enum.c
+===================================================================
+--- trunk/enum.c	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/enum.c	2006-05-18 23:19:53 UTC (rev 171)
+@@ -95,27 +95,29 @@
+ } __attribute__ ((__packed__));
+ 
+ /*! \brief Parse NAPTR record information elements */
+-static int parse_ie(unsigned char *data, int maxdatalen, unsigned char *src, int srclen)
++static unsigned int parse_ie(char *data, unsigned int maxdatalen, char *src, unsigned int srclen)
+ {
+-	int len, olen;
++	unsigned int len, olen;
+ 
+-	len = olen = (int)src[0];
++	len = olen = (unsigned int) src[0];
+ 	src++;
+ 	srclen--;
+-	if (len &gt; srclen || len &lt; 0 ) {
++
++	if (len &gt; srclen) {
+ 		ast_log(LOG_WARNING, &quot;ENUM parsing failed: Wanted %d characters, got %d\n&quot;, len, srclen);
+ 		return -1;
+ 	}
++
+ 	if (len &gt; maxdatalen)
+ 		len = maxdatalen;
+ 	memcpy(data, src, len);
++
+ 	return olen + 1;
+ }
+ 
+ /*! \brief Parse DNS NAPTR record used in ENUM ---*/
+ static int parse_naptr(unsigned char *dst, int dstsize, char *tech, int techsize, unsigned char *answer, int len, unsigned char *naptrinput)
+ {
+-
+ 	char tech_return[80];
+ 	char *oanswer = answer;
+ 	char flags[512] = &quot;&quot;;
+
+Modified: trunk/funcs/func_strings.c
+===================================================================
+--- trunk/funcs/func_strings.c	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/funcs/func_strings.c	2006-05-18 23:19:53 UTC (rev 171)
+@@ -204,6 +204,149 @@
+ 		&quot;entire argument, since Set can take multiple arguments itself.\n&quot;,
+ };
+ 
++static int acf_sprintf(struct ast_channel *chan, char *cmd, char *data, char *buf, size_t len)
++{
++#define SPRINTF_FLAG	0
++#define SPRINTF_WIDTH	1
++#define SPRINTF_PRECISION	2
++#define SPRINTF_LENGTH	3
++#define SPRINTF_CONVERSION	4
++	int i, state = -1, argcount = 0;
++	char *formatstart = NULL, *bufptr = buf;
++	char formatbuf[256] = &quot;&quot;;
++	int tmpi;
++	double tmpd;
++	AST_DECLARE_APP_ARGS(arg,
++				AST_APP_ARG(format);
++				AST_APP_ARG(var)[100];
++	);
++
++	AST_STANDARD_APP_ARGS(arg, data);
++
++	/* Scan the format, converting each argument into the requisite format type. */
++	for (i = 0; arg.format[i]; i++) {
++		switch (state) {
++		case SPRINTF_FLAG:
++			if (strchr(&quot;#0- +'I&quot;, arg.format[i]))
++				break;
++			state = SPRINTF_WIDTH;
++		case SPRINTF_WIDTH:
++			if (arg.format[i] &gt;= '0' &amp;&amp; arg.format[i] &lt;= '9')
++				break;
++
++			/* Next character must be a period to go into a precision */
++			if (arg.format[i] == '.') {
++				state = SPRINTF_PRECISION;
++			} else {
++				state = SPRINTF_LENGTH;
++				i--;
++			}
++			break;
++		case SPRINTF_PRECISION:
++			if (arg.format[i] &gt;= '0' &amp;&amp; arg.format[i] &lt;= '9')
++				break;
++			state = SPRINTF_LENGTH;
++		case SPRINTF_LENGTH:
++			if (strchr(&quot;hl&quot;, arg.format[i])) {
++				if (arg.format[i + 1] == arg.format[i])
++					i++;
++				state = SPRINTF_CONVERSION;
++				break;
++			} else if (strchr(&quot;Lqjzt&quot;, arg.format[i]))
++				state = SPRINTF_CONVERSION;
++				break;
++			state = SPRINTF_CONVERSION;
++		case SPRINTF_CONVERSION:
++			if (strchr(&quot;diouxXc&quot;, arg.format[i])) {
++				/* Integer */
++
++				/* Isolate this format alone */
++				ast_copy_string(formatbuf, formatstart, sizeof(formatbuf));
++				formatbuf[&amp;arg.format[i] - formatstart + 1] = '\0';
++
++				/* Convert the argument into the required type */
++				if (sscanf(arg.var[argcount++], &quot;%i&quot;, &amp;tmpi) != 1) {
++					ast_log(LOG_ERROR, &quot;Argument '%s' is not an integer number for format '%s'\n&quot;, arg.var[argcount - 1], formatbuf);
++					goto sprintf_fail;
++				}
++
++				/* Format the argument */
++				snprintf(bufptr, buf + len - bufptr, formatbuf, tmpi);
++
++				/* Update the position of the next parameter to print */
++				bufptr = strchr(buf, '\0');
++			} else if (strchr(&quot;eEfFgGaA&quot;, arg.format[i])) {
++				/* Double */
++
++				/* Isolate this format alone */
++				ast_copy_string(formatbuf, formatstart, sizeof(formatbuf));
++				formatbuf[&amp;arg.format[i] - formatstart + 1] = '\0';
++
++				/* Convert the argument into the required type */
++				if (sscanf(arg.var[argcount++], &quot;%lf&quot;, &amp;tmpd) != 1) {
++					ast_log(LOG_ERROR, &quot;Argument '%s' is not a floating point number for format '%s'\n&quot;, arg.var[argcount - 1], formatbuf);
++					goto sprintf_fail;
++				}
++
++				/* Format the argument */
++				snprintf(bufptr, buf + len - bufptr, formatbuf, tmpd);
++
++				/* Update the position of the next parameter to print */
++				bufptr = strchr(buf, '\0');
++			} else if (arg.format[i] == 's') {
++				/* String */
++
++				/* Isolate this format alone */
++				ast_copy_string(formatbuf, formatstart, sizeof(formatbuf));
++				formatbuf[&amp;arg.format[i] - formatstart + 1] = '\0';
++
++				/* Format the argument */
++				snprintf(bufptr, buf + len - bufptr, formatbuf, arg.var[argcount++]);
++
++				/* Update the position of the next parameter to print */
++				bufptr = strchr(buf, '\0');
++			} else if (arg.format[i] == '%') {
++				/* Literal data to copy */
++				*bufptr++ = arg.format[i];
++			} else {
++				/* Not supported */
++
++				/* Isolate this format alone */
++				ast_copy_string(formatbuf, formatstart, sizeof(formatbuf));
++				formatbuf[&amp;arg.format[i] - formatstart + 1] = '\0';
++
++				ast_log(LOG_ERROR, &quot;Format type not supported: '%s' with argument '%s'\n&quot;, formatbuf, arg.var[argcount++]);
++				goto sprintf_fail;
++			}
++			state = -1;
++			break;
++		default:
++			if (arg.format[i] == '%') {
++				state = SPRINTF_FLAG;
++				formatstart = &amp;arg.format[i];
++				break;
++			} else {
++				/* Literal data to copy */
++				*bufptr++ = arg.format[i];
++			}
++		}
++	}
++	return 0;
++sprintf_fail:
++	return -1;
++}
++
++static struct ast_custom_function sprintf_function = {
++	.name = &quot;SPRINTF&quot;,
++	.synopsis = &quot;Format a variable according to a format string&quot;,
++	.syntax = &quot;SPRINTF(&lt;format&gt;,&lt;arg1&gt;[,...&lt;argN&gt;])&quot;,
++	.read = acf_sprintf,
++	.desc =
++&quot;Parses the format string specified and returns a string matching that format.\n&quot;
++&quot;Supports most options supported by sprintf(3).  Returns a shortened string if\n&quot;
++&quot;a format specifier is not recognized.\n&quot;,
++};
++
+ static int quote(struct ast_channel *chan, char *cmd, char *data, char *buf, size_t len)
+ {
+ 	char *bufptr = buf, *dataptr = data;
+@@ -438,6 +581,7 @@
+ 	res |= ast_custom_function_unregister(&amp;strptime_function);
+ 	res |= ast_custom_function_unregister(&amp;eval_function);
+ 	res |= ast_custom_function_unregister(&amp;keypadhash_function);
++	res |= ast_custom_function_unregister(&amp;sprintf_function);
+ 
+ 	return res;
+ }
+@@ -456,6 +600,7 @@
+ 	res |= ast_custom_function_register(&amp;strptime_function);
+ 	res |= ast_custom_function_register(&amp;eval_function);
+ 	res |= ast_custom_function_register(&amp;keypadhash_function);
++	res |= ast_custom_function_register(&amp;sprintf_function);
+ 
+ 	return res;
+ }
+
+Modified: trunk/include/asterisk/app.h
+===================================================================
+--- trunk/include/asterisk/app.h	2006-05-17 22:36:30 UTC (rev 170)
++++ trunk/include/asterisk/app.h	2006-05-18 23:19:53 UTC (rev 171)
+@@ -100,7 +100,8 @@
+ int ast_app_getdata_full(struct ast_channel *c, char *prompt, char *s, int maxlen, int timeout, int audiofd, int ctrlfd);
+ 
+ void ast_install_vm_functions(int (*has_voicemail_func)(const char *mailbox, const char *folder),
+-			      int (*messagecount_func)(const char *mailbox, int *newmsgs, int *oldmsgs));
++			      int (*messagecount_func)(const char *mailbox, int *newmsgs, int *oldmsgs),
++			      int (*messagecount2_func)(const char *context, const char *mailbox, const char *folder));
+   
+ void ast_uninstall_vm_functions(void);
+ 
+@@ -110,6 +111,9 @@
+ /*! Determine number of new/old messages in a mailbox */
+ int ast_app_messagecount(const char *mailbox, int *newmsgs, int *oldmsgs);
+ 
++/*! Determine number of messages in a given mailbox and folder */
++int ast_app_messagecount2(const char *context, const char *mailbox, const char *folder);
++
+ /*! Safely spawn an external program while closing file descriptors 
+ 	\note This replaces the \b system call in all Asterisk modules
+ */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000165.html">[solid-pbx-svn] r170 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000167.html">[solid-pbx-svn] r172 - in trunk: agi apps cdr channels codecs formats funcs pbx res stdtime utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#166">[ date ]</a>
+              <a href="thread.html#166">[ thread ]</a>
+              <a href="subject.html#166">[ subject ]</a>
+              <a href="author.html#166">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

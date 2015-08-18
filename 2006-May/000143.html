@@ -1,0 +1,217 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r148 - in trunk: agi apps cdr channels codecs formats funcs pbx res stdtime utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r148%20-%20in%20trunk%3A%20agi%20apps%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res%20stdtime%20utils&In-Reply-To=%3C200605142015.k4EKF0nY027692%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000142.html">
+   <LINK REL="Next"  HREF="000144.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r148 - in trunk: agi apps cdr channels codecs formats funcs pbx res stdtime utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r148%20-%20in%20trunk%3A%20agi%20apps%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res%20stdtime%20utils&In-Reply-To=%3C200605142015.k4EKF0nY027692%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r148 - in trunk: agi apps cdr channels codecs formats funcs pbx res stdtime utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun May 14 22:15:00 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000142.html">[solid-pbx-svn] r147 - trunk/build_tools
+</A></li>
+        <LI>Next message: <A HREF="000144.html">[solid-pbx-svn] r149 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#143">[ date ]</a>
+              <a href="thread.html#143">[ thread ]</a>
+              <a href="subject.html#143">[ subject ]</a>
+              <a href="author.html#143">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-14 22:14:54 +0200 (Sun, 14 May 2006)
+New Revision: 148
+
+Modified:
+   trunk/agi/Makefile
+   trunk/apps/Makefile
+   trunk/cdr/Makefile
+   trunk/channels/Makefile
+   trunk/codecs/Makefile
+   trunk/formats/Makefile
+   trunk/funcs/Makefile
+   trunk/pbx/Makefile
+   trunk/res/Makefile
+   trunk/stdtime/Makefile
+   trunk/utils/Makefile
+Log:
+Fix dependency system (Asterisk bug #7138, casper)
+
+Modified: trunk/agi/Makefile
+===================================================================
+--- trunk/agi/Makefile	2006-05-14 20:12:38 UTC (rev 147)
++++ trunk/agi/Makefile	2006-05-14 20:14:54 UTC (rev 148)
+@@ -49,4 +49,4 @@
+ depend: .depend
+ 
+ .depend:
+-	../build_tools/mkdep $(CFLAGS) `ls *.c`
++	../build_tools/mkdep $(OTHER_SUBDIR_CFLAGS) `ls *.c`
+
+Modified: trunk/apps/Makefile
+===================================================================
+--- trunk/apps/Makefile	2006-05-14 20:12:38 UTC (rev 147)
++++ trunk/apps/Makefile	2006-05-14 20:14:54 UTC (rev 148)
+@@ -59,7 +59,7 @@
+ depend: .depend
+ 
+ .depend:
+-	../build_tools/mkdep $(CFLAGS) `ls *.c`
++	../build_tools/mkdep $(MOD_SUBDIR_CFLAGS) `ls *.c`
+ 
+ env:
+ 	env
+
+Modified: trunk/cdr/Makefile
+===================================================================
+--- trunk/cdr/Makefile	2006-05-14 20:12:38 UTC (rev 147)
++++ trunk/cdr/Makefile	2006-05-14 20:14:54 UTC (rev 148)
+@@ -82,4 +82,4 @@
+ depend: .depend
+ 
+ .depend:
+-	../build_tools/mkdep $(CFLAGS) `ls *.c`
++	../build_tools/mkdep $(MOD_SUBDIR_CFLAGS) `ls *.c`
+
+Modified: trunk/channels/Makefile
+===================================================================
+--- trunk/channels/Makefile	2006-05-14 20:12:38 UTC (rev 147)
++++ trunk/channels/Makefile	2006-05-14 20:14:54 UTC (rev 148)
+@@ -159,7 +159,7 @@
+ depend: .depend
+ 
+ .depend:
+-	../build_tools/mkdep $(CFLAGS) `ls *.c`
++	../build_tools/mkdep $(MOD_SUBDIR_CFLAGS) `ls *.c`
+ 
+ env:
+ 	env
+
+Modified: trunk/codecs/Makefile
+===================================================================
+--- trunk/codecs/Makefile	2006-05-14 20:12:38 UTC (rev 147)
++++ trunk/codecs/Makefile	2006-05-14 20:14:54 UTC (rev 148)
+@@ -110,4 +110,4 @@
+ depend: .depend
+ 
+ .depend:
+-	../build_tools/mkdep $(CFLAGS) `ls *.c`
++	../build_tools/mkdep $(MOD_SUBDIR_CFLAGS) `ls *.c`
+
+Modified: trunk/formats/Makefile
+===================================================================
+--- trunk/formats/Makefile	2006-05-14 20:12:38 UTC (rev 147)
++++ trunk/formats/Makefile	2006-05-14 20:14:54 UTC (rev 148)
+@@ -44,4 +44,4 @@
+ depend: .depend
+ 
+ .depend:
+-	../build_tools/mkdep $(CFLAGS) `ls *.c`
++	../build_tools/mkdep $(MOD_SUBDIR_CFLAGS) `ls *.c`
+
+Modified: trunk/funcs/Makefile
+===================================================================
+--- trunk/funcs/Makefile	2006-05-14 20:12:38 UTC (rev 147)
++++ trunk/funcs/Makefile	2006-05-14 20:14:54 UTC (rev 148)
+@@ -60,7 +60,7 @@
+ depend: .depend
+ 
+ .depend:
+-	../build_tools/mkdep $(CFLAGS) `ls *.c`
++	../build_tools/mkdep $(MOD_SUBDIR_CFLAGS) `ls *.c`
+ 
+ env:
+ 	env
+
+Modified: trunk/pbx/Makefile
+===================================================================
+--- trunk/pbx/Makefile	2006-05-14 20:12:38 UTC (rev 147)
++++ trunk/pbx/Makefile	2006-05-14 20:14:54 UTC (rev 148)
+@@ -83,4 +83,4 @@
+ depend: .depend
+ 
+ .depend:
+-	../build_tools/mkdep $(CFLAGS) `ls *.c`
++	../build_tools/mkdep $(MOD_SUBDIR_CFLAGS) `ls *.c`
+
+Modified: trunk/res/Makefile
+===================================================================
+--- trunk/res/Makefile	2006-05-14 20:12:38 UTC (rev 147)
++++ trunk/res/Makefile	2006-05-14 20:14:54 UTC (rev 148)
+@@ -101,7 +101,7 @@
+ depend: .depend
+ 
+ .depend:
+-	../build_tools/mkdep $(CFLAGS) `ls *.c`	
++	../build_tools/mkdep $(MOD_SUBDIR_CFLAGS) `ls *.c`	
+ 
+ env:
+ 	env
+
+Modified: trunk/stdtime/Makefile
+===================================================================
+--- trunk/stdtime/Makefile	2006-05-14 20:12:38 UTC (rev 147)
++++ trunk/stdtime/Makefile	2006-05-14 20:14:54 UTC (rev 148)
+@@ -19,7 +19,7 @@
+ depend: .depend
+ 
+ .depend:
+-	../build_tools/mkdep $(CFLAGS) *.c
++	../build_tools/mkdep $(MOD_SUBDIR_CFLAGS) *.c
+ 
+ test: test.c
+ 	${CC} ${CFLAGS} -o test test.c
+
+Modified: trunk/utils/Makefile
+===================================================================
+--- trunk/utils/Makefile	2006-05-14 20:12:38 UTC (rev 147)
++++ trunk/utils/Makefile	2006-05-14 20:14:54 UTC (rev 148)
+@@ -108,5 +108,5 @@
+ depend: .depend
+ 
+ .depend:
+-	../build_tools/mkdep $(CFLAGS) `ls *.c`
++	../build_tools/mkdep $(OTHER_SUBDIR_CFLAGS) `ls *.c`
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000142.html">[solid-pbx-svn] r147 - trunk/build_tools
+</A></li>
+	<LI>Next message: <A HREF="000144.html">[solid-pbx-svn] r149 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#143">[ date ]</a>
+              <a href="thread.html#143">[ thread ]</a>
+              <a href="subject.html#143">[ subject ]</a>
+              <a href="author.html#143">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

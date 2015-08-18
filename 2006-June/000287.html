@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r292 - in trunk: apps include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r292%20-%20in%20trunk%3A%20apps%20include/asterisk&In-Reply-To=%3C200606231723.k5NHNgDn022450%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000286.html">
+   <LINK REL="Next"  HREF="000288.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r292 - in trunk: apps include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r292%20-%20in%20trunk%3A%20apps%20include/asterisk&In-Reply-To=%3C200606231723.k5NHNgDn022450%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r292 - in trunk: apps include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri Jun 23 19:23:42 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000286.html">[solid-pbx-svn] r291 - in trunk: . include include/asterisk utils
+</A></li>
+        <LI>Next message: <A HREF="000288.html">[solid-pbx-svn] r293 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#287">[ date ]</a>
+              <a href="thread.html#287">[ thread ]</a>
+              <a href="subject.html#287">[ subject ]</a>
+              <a href="author.html#287">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-23 19:23:38 +0200 (Fri, 23 Jun 2006)
+New Revision: 292
+
+Modified:
+   trunk/apps/app_followme.c
+   trunk/include/asterisk/astmm.h
+Log:
+Update to Asterisk SVN trunk r32873
+
+------------------------------------------------------------------------
+r32864 | kpfleming | 2006-06-07 21:06:30 +0200 (Wed, 07 Jun 2006) | 2 lines
+
+put the proper filename into the ignore property
+
+------------------------------------------------------------------------
+r32867 | russell | 2006-06-07 21:42:37 +0200 (Wed, 07 Jun 2006) | 4 lines
+
+fix an incorrect usage of scanf, where it should be using sscanf, instead,
+which was causing asterisk to hang when loading this module
+(reported by blitzrage on IRC)
+
+------------------------------------------------------------------------
+r32868 | russell | 2006-06-07 21:53:03 +0200 (Wed, 07 Jun 2006) | 2 lines
+
+fix the build with astmm enabled
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_followme.c
+===================================================================
+--- trunk/apps/app_followme.c	2006-06-23 17:20:16 UTC (rev 291)
++++ trunk/apps/app_followme.c	2006-06-23 17:23:38 UTC (rev 292)
+@@ -308,9 +308,10 @@
+ 	}
+ 	featuredigittostr = ast_variable_retrieve(cfg, &quot;general&quot;, &quot;featuredigittimeout&quot;);
+ 	
+-	if (!ast_strlen_zero(featuredigittostr)) 
+-		if (!scanf(&quot;%d&quot;, &amp;featuredigittimeout))
++	if (!ast_strlen_zero(featuredigittostr)) {
++		if (!sscanf(featuredigittostr, &quot;%d&quot;, &amp;featuredigittimeout))
+ 			featuredigittimeout = 5000;
++	}
+ 
+ 	takecallstr = ast_variable_retrieve(cfg, &quot;general&quot;, &quot;takecall&quot;);
+ 	if (!ast_strlen_zero(takecallstr))
+
+Modified: trunk/include/asterisk/astmm.h
+===================================================================
+--- trunk/include/asterisk/astmm.h	2006-06-23 17:20:16 UTC (rev 291)
++++ trunk/include/asterisk/astmm.h	2006-06-23 17:23:38 UTC (rev 292)
+@@ -25,11 +25,14 @@
+ 
+ #define __AST_DEBUG_MALLOC
+ 
++#include &quot;asterisk.h&quot;
++
+ /* Include these now to prevent them from being needed later */
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;stdio.h&gt;
++#include &lt;stdarg.h&gt;
+ 
+ /* Undefine any macros */
+ #undef malloc
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000286.html">[solid-pbx-svn] r291 - in trunk: . include include/asterisk utils
+</A></li>
+	<LI>Next message: <A HREF="000288.html">[solid-pbx-svn] r293 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#287">[ date ]</a>
+              <a href="thread.html#287">[ thread ]</a>
+              <a href="subject.html#287">[ subject ]</a>
+              <a href="author.html#287">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

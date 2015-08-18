@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r346 - in trunk: . configs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r346%20-%20in%20trunk%3A%20.%20configs&In-Reply-To=%3C200606280103.k5S13RiJ008948%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000340.html">
+   <LINK REL="Next"  HREF="000342.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r346 - in trunk: . configs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r346%20-%20in%20trunk%3A%20.%20configs&In-Reply-To=%3C200606280103.k5S13RiJ008948%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r346 - in trunk: . configs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:03:27 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000340.html">[solid-pbx-svn] r345 - in trunk: . channels
+</A></li>
+        <LI>Next message: <A HREF="000342.html">[solid-pbx-svn] r347 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#341">[ date ]</a>
+              <a href="thread.html#341">[ thread ]</a>
+              <a href="subject.html#341">[ subject ]</a>
+              <a href="author.html#341">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:03:22 +0200 (Wed, 28 Jun 2006)
+New Revision: 346
+
+Modified:
+   trunk/CREDITS
+   trunk/configs/sip.conf.sample
+   trunk/frame.c
+Log:
+Update to Asterisk SVN trunk r33913
+
+------------------------------------------------------------------------
+r33911 | mogorman | 2006-06-13 21:22:34 +0200 (Tue, 13 Jun 2006) | 1 line
+
+added thanks to voipsupply and steve underwood
+------------------------------------------------------------------------
+r33912 | file | 2006-06-13 21:38:41 +0200 (Tue, 13 Jun 2006) | 2 lines
+
+Allow AST_FRAME_MODEM frames to be dumped, and document T.38 passthrough support
+
+------------------------------------------------------------------------
+r33913 | mogorman | 2006-06-13 21:58:39 +0200 (Tue, 13 Jun 2006) | 1 line
+
+I am the king of typos....
+------------------------------------------------------------------------
+
+
+Modified: trunk/CREDITS
+===================================================================
+--- trunk/CREDITS	2006-06-28 01:02:35 UTC (rev 345)
++++ trunk/CREDITS	2006-06-28 01:03:22 UTC (rev 346)
+@@ -27,6 +27,9 @@
+ * Thanks to QuickNet Technologies for their donation of an Internet
+ PhoneJack and Linejack card to the project.  (<A HREF="http://www.quicknet.net">http://www.quicknet.net</A>)
+ 
++* Thanks to VoipSupply for their donation of Sipuras to the project for
++	t38 testing. (<A HREF="http://www.voipsupply.com">http://www.voipsupply.com</A>)
++
+ === MISCELLANEOUS PATCHES ===
+ Jim Dixon - Zapata Telephony and app_rpt
+ 	<A HREF="http://www.zapatatelephony.org/app_rpt.html">http://www.zapatatelephony.org/app_rpt.html</A>
+@@ -124,6 +127,8 @@
+ 
+ John Martin, Aupix - Improved video support in the SIP channel
+ 
++Steve Underwood - Provided T.38 pass through support.
++
+ === OTHER CONTRIBUTIONS ===
+ John Todd - Monkey sounds and associated teletorture prompt
+ Michael Jerris - bug marshaling
+
+Modified: trunk/configs/sip.conf.sample
+===================================================================
+--- trunk/configs/sip.conf.sample	2006-06-28 01:02:35 UTC (rev 345)
++++ trunk/configs/sip.conf.sample	2006-06-28 01:03:22 UTC (rev 346)
+@@ -151,7 +151,14 @@
+ ; separated by '&amp;'.  Patterns may be used in regexten.
+ ;
+ ;regcontext=sipregistrations
++;----------------------------------------- T.38 FAX PASSTHROUGH SUPPORT -----------------------
+ ;
++; These settings are available in the [general] section as well as in device configurations
++;
++; t38pt_udptl = yes            ; Default false
++; t38pt_rtp = yes              ; Default false
++; t38pt_tcp = yes              ; Default false, not yet used
++;
+ ;----------------------------------------- OUTBOUND SIP REGISTRATIONS  ------------------------
+ ; Asterisk can register as a SIP user agent to a SIP proxy (provider)
+ ; Format for the register statement is:
+
+Modified: trunk/frame.c
+===================================================================
+--- trunk/frame.c	2006-06-28 01:02:35 UTC (rev 345)
++++ trunk/frame.c	2006-06-28 01:03:22 UTC (rev 346)
+@@ -816,6 +816,20 @@
+ 			break;
+ 		}
+ 		break;
++	case AST_FRAME_MODEM:
++		strcpy(ftype, &quot;Modem&quot;);
++		switch (f-&gt;subclass) {
++		case AST_MODEM_T38:
++			strcpy(subclass, &quot;T.38&quot;);
++			break;
++		case AST_MODEM_V150:
++			strcpy(subclass, &quot;V.150&quot;);
++			break;
++		default:
++			snprintf(subclass, sizeof(subclass), &quot;Unknown MODEM frame '%d'\n&quot;, f-&gt;subclass);
++			break;
++		}
++		break;
+ 	default:
+ 		snprintf(ftype, sizeof(ftype), &quot;Unknown Frametype '%d'&quot;, f-&gt;frametype);
+ 	}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000340.html">[solid-pbx-svn] r345 - in trunk: . channels
+</A></li>
+	<LI>Next message: <A HREF="000342.html">[solid-pbx-svn] r347 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#341">[ date ]</a>
+              <a href="thread.html#341">[ thread ]</a>
+              <a href="subject.html#341">[ subject ]</a>
+              <a href="author.html#341">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,1359 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r291 - in trunk: . include include/asterisk utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r291%20-%20in%20trunk%3A%20.%20include%20include/asterisk%20utils&In-Reply-To=%3C200606231720.k5NHKXMe021198%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000285.html">
+   <LINK REL="Next"  HREF="000287.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r291 - in trunk: . include include/asterisk utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r291%20-%20in%20trunk%3A%20.%20include%20include/asterisk%20utils&In-Reply-To=%3C200606231720.k5NHKXMe021198%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r291 - in trunk: . include include/asterisk utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri Jun 23 19:20:33 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000285.html">[solid-pbx-svn] r290 - in trunk: . apps build_tools cdr channels codecs doc formats funcs include include/asterisk pbx pbx/ael res stdtime utils
+</A></li>
+        <LI>Next message: <A HREF="000287.html">[solid-pbx-svn] r292 - in trunk: apps include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#286">[ date ]</a>
+              <a href="thread.html#286">[ thread ]</a>
+              <a href="subject.html#286">[ subject ]</a>
+              <a href="author.html#286">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-23 19:20:16 +0200 (Fri, 23 Jun 2006)
+New Revision: 291
+
+Added:
+   trunk/include/asterisk/autoconfig.h.in
+Removed:
+   trunk/include/autoconfig.h.in
+Modified:
+   trunk/Makefile
+   trunk/acl.c
+   trunk/configure.ac
+   trunk/include/asterisk.h
+   trunk/pbx.c
+   trunk/utils/ael_main.c
+   trunk/utils/astman.c
+   trunk/utils/smsq.c
+Log:
+Update to Asterisk SVN trunk r32863
+
+------------------------------------------------------------------------
+r32860 | kpfleming | 2006-06-07 21:05:35 +0200 (Wed, 07 Jun 2006) | 3 lines
+
+move autoconfig.h to the include/asterisk directory so it will get installed
+install asterisk.h include the system's default include directory
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-23 17:05:10 UTC (rev 290)
++++ trunk/Makefile	2006-06-23 17:20:16 UTC (rev 291)
+@@ -635,6 +635,7 @@
+ 		chmod 755 $(DESTDIR)$(ASTSBINDIR)/safe_asterisk;\
+ 	fi
+ 	$(INSTALL) -d $(DESTDIR)$(ASTHEADERDIR)
++	$(INSTALL) -m 644 include/asterisk.h $(DESTDIR)$(includedir)
+ 	$(INSTALL) -m 644 include/asterisk/*.h $(DESTDIR)$(ASTHEADERDIR)
+ 	if [ -n &quot;$(OLDHEADERS)&quot; ]; then \
+ 		rm -f $(addprefix $(DESTDIR)$(ASTHEADERDIR)/,$(OLDHEADERS)) ;\
+
+Modified: trunk/acl.c
+===================================================================
+--- trunk/acl.c	2006-06-23 17:05:10 UTC (rev 290)
++++ trunk/acl.c	2006-06-23 17:20:16 UTC (rev 291)
+@@ -73,7 +73,6 @@
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/lock.h&quot;
+ #include &quot;asterisk/srv.h&quot;
+-#include &quot;asterisk/compat.h&quot;
+ 
+ struct ast_ha {
+ 	/* Host access rule */
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-06-23 17:05:10 UTC (rev 290)
++++ trunk/configure.ac	2006-06-23 17:20:16 UTC (rev 291)
+@@ -17,7 +17,7 @@
+ AC_CONFIG_SRCDIR([asterisk.c])
+ 
+ # specify output header file
+-AC_CONFIG_HEADER(include/autoconfig.h)
++AC_CONFIG_HEADER(include/asterisk/autoconfig.h)
+ 
+ AC_COPYRIGHT(&quot;Asterisk&quot;)
+ AC_REVISION($Revision$)
+
+Added: trunk/include/asterisk/autoconfig.h.in
+===================================================================
+--- trunk/include/asterisk/autoconfig.h.in	2006-06-23 17:05:10 UTC (rev 290)
++++ trunk/include/asterisk/autoconfig.h.in	2006-06-23 17:20:16 UTC (rev 291)
+@@ -0,0 +1,577 @@
++/* include/asterisk/autoconfig.h.in.  Generated from configure.ac by autoheader.  */
++
++#ifndef ASTERISK_AUTOCONFIG_H
++#define ASTERISK_AUTOCONFIG_H
++
++#ifndef MENUSELECT
++#include &quot;asterisk/buildopts.h&quot;
++#endif
++
++#ifndef _REENTRANT
++#define _REENTRANT
++#endif
++
++
++/* Define to 1 if the `closedir' function returns void instead of `int'. */
++#undef CLOSEDIR_VOID
++
++/* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
++   systems. This function is required for `alloca.c' support on those systems.
++   */
++#undef CRAY_STACKSEG_END
++
++/* Define to 1 if using `alloca.c'. */
++#undef C_ALLOCA
++
++/* Define according to your operating system type. */
++#undef Darwin
++
++/* Define according to your operating system type. */
++#undef FreeBSD
++
++/* Define to 1 if you have the `alarm' function. */
++#undef HAVE_ALARM
++
++/* Define to 1 if you have `alloca', as a function or macro. */
++#undef HAVE_ALLOCA
++
++/* Define to 1 if you have &lt;alloca.h&gt; and it should be used (not on Ultrix).
++   */
++#undef HAVE_ALLOCA_H
++
++/* Define to indicate the Advanced Linux Sound Architecture library */
++#undef HAVE_ALSA
++
++/* Define to 1 if you have the &lt;arpa/inet.h&gt; header file. */
++#undef HAVE_ARPA_INET_H
++
++/* Define to 1 if you have the `asprintf' function. */
++#undef HAVE_ASPRINTF
++
++/* Define to 1 if you have the `atexit' function. */
++#undef HAVE_ATEXIT
++
++/* Define to 1 if you have the `bzero' function. */
++#undef HAVE_BZERO
++
++/* Define to 1 if your system has a working `chown' function. */
++#undef HAVE_CHOWN
++
++/* Define if your system has the curl libraries. */
++#undef HAVE_CURL
++
++/* Define to indicate the curses library */
++#undef HAVE_CURSES
++
++/* Define to 1 if you have the &lt;dirent.h&gt; header file, and it defines `DIR'.
++   */
++#undef HAVE_DIRENT_H
++
++/* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
++#undef HAVE_DOPRNT
++
++/* Define to 1 if you have the `dup2' function. */
++#undef HAVE_DUP2
++
++/* Define to 1 if you have the `endpwent' function. */
++#undef HAVE_ENDPWENT
++
++/* Define to 1 if you have the &lt;fcntl.h&gt; header file. */
++#undef HAVE_FCNTL_H
++
++/* Define to 1 if you have the `floor' function. */
++#undef HAVE_FLOOR
++
++/* Define to 1 if you have the `fork' function. */
++#undef HAVE_FORK
++
++/* Define to indicate the FreeTDS library */
++#undef HAVE_FREETDS
++
++/* Define to 1 if fseeko (and presumably ftello) exists and is declared. */
++#undef HAVE_FSEEKO
++
++/* Define to 1 if you have the `ftruncate' function. */
++#undef HAVE_FTRUNCATE
++
++/* Define to 1 if you have the `getcwd' function. */
++#undef HAVE_GETCWD
++
++/* Define to 1 if you have the `gethostbyname' function. */
++#undef HAVE_GETHOSTBYNAME
++
++/* Define to 1 if you have the `gethostname' function. */
++#undef HAVE_GETHOSTNAME
++
++/* Define to 1 if you have the `getpagesize' function. */
++#undef HAVE_GETPAGESIZE
++
++/* Define to 1 if you have the `gettimeofday' function. */
++#undef HAVE_GETTIMEOFDAY
++
++/* Define to indicate the GSM library */
++#undef HAVE_GSM
++
++/* Define if your system has the GTK libraries. */
++#undef HAVE_GTK
++
++/* Define to indicate the Iksemel Jabber Library library */
++#undef HAVE_IKSEMEL
++
++/* Define to 1 if you have the `inet_ntoa' function. */
++#undef HAVE_INET_NTOA
++
++/* Define to 1 if you have the &lt;inttypes.h&gt; header file. */
++#undef HAVE_INTTYPES_H
++
++/* Define to 1 if you have the `isascii' function. */
++#undef HAVE_ISASCII
++
++/* Define to 1 if you have the &lt;libintl.h&gt; header file. */
++#undef HAVE_LIBINTL_H
++
++/* Define if your system has the KDE library */
++#undef HAVE_LIBKDE
++
++/* Define to indicate the ISDN PRI library */
++#undef HAVE_LIBPRI
++
++/* Define if your system has the pwlib libraries. */
++#undef HAVE_LIBPWLIB
++
++/* Define if your system has the Qt library */
++#undef HAVE_LIBQT
++
++/* Define if your system has the VoiceTronix (vpb) libraries. */
++#undef HAVE_LIBVPB
++
++/* Define to 1 if you have the &lt;limits.h&gt; header file. */
++#undef HAVE_LIMITS_H
++
++/* Define to 1 if you have the &lt;locale.h&gt; header file. */
++#undef HAVE_LOCALE_H
++
++/* Define to 1 if you have the `localtime_r' function. */
++#undef HAVE_LOCALTIME_R
++
++/* Define to 1 if your system has a GNU libc compatible `malloc' function, and
++   to 0 otherwise. */
++#undef HAVE_MALLOC
++
++/* Define to 1 if you have the &lt;malloc.h&gt; header file. */
++#undef HAVE_MALLOC_H
++
++/* Define to 1 if you have the `memchr' function. */
++#undef HAVE_MEMCHR
++
++/* Define to 1 if you have the `memmove' function. */
++#undef HAVE_MEMMOVE
++
++/* Define to 1 if you have the &lt;memory.h&gt; header file. */
++#undef HAVE_MEMORY_H
++
++/* Define to 1 if you have the `memset' function. */
++#undef HAVE_MEMSET
++
++/* Define to 1 if you have the `mkdir' function. */
++#undef HAVE_MKDIR
++
++/* Define to 1 if you have a working `mmap' system call. */
++#undef HAVE_MMAP
++
++/* Define to 1 if you have the `munmap' function. */
++#undef HAVE_MUNMAP
++
++/* Define to indicate the Network Broadcast Sound library */
++#undef HAVE_NBS
++
++/* Define to indicate the ncurses library */
++#undef HAVE_NCURSES
++
++/* Define to 1 if you have the &lt;ndir.h&gt; header file, and it defines `DIR'. */
++#undef HAVE_NDIR_H
++
++/* Define to 1 if you have the &lt;netdb.h&gt; header file. */
++#undef HAVE_NETDB_H
++
++/* Define to 1 if you have the &lt;netinet/in.h&gt; header file. */
++#undef HAVE_NETINET_IN_H
++
++/* Define to indicate the newt library */
++#undef HAVE_NEWT
++
++/* Define to indicate the OGG library */
++#undef HAVE_OGG
++
++/* Define to indicate the OpenSSL library */
++#undef HAVE_OPENSSL
++
++/* Define to indicate the OSP Toolkit library */
++#undef HAVE_OSPTK
++
++/* Define to indicate the Open Sound System library */
++#undef HAVE_OSS
++
++/* Define to indicate the popt library */
++#undef HAVE_POPT
++
++/* Define to 1 if you have the `pow' function. */
++#undef HAVE_POW
++
++/* Define to indicate the PostgreSQL library */
++#undef HAVE_PQ
++
++/* Define to 1 if the system has the type `ptrdiff_t'. */
++#undef HAVE_PTRDIFF_T
++
++/* Define to 1 if you have the `putenv' function. */
++#undef HAVE_PUTENV
++
++/* Define to indicate the Radius Client library */
++#undef HAVE_RADIUSCLIENT
++
++/* Define to 1 if your system has a GNU libc compatible `realloc' function,
++   and to 0 otherwise. */
++#undef HAVE_REALLOC
++
++/* Define to 1 if you have the `regcomp' function. */
++#undef HAVE_REGCOMP
++
++/* Define to 1 if you have the `re_comp' function. */
++#undef HAVE_RE_COMP
++
++/* Define to 1 if you have the `rint' function. */
++#undef HAVE_RINT
++
++/* Define to 1 if you have the `select' function. */
++#undef HAVE_SELECT
++
++/* Define to 1 if you have the `setenv' function. */
++#undef HAVE_SETENV
++
++/* Define to 1 if you have the `socket' function. */
++#undef HAVE_SOCKET
++
++/* Define to indicate the Speex library */
++#undef HAVE_SPEEX
++
++/* Define to indicate the SQLite library */
++#undef HAVE_SQLITE
++
++/* Define to 1 if you have the `sqrt' function. */
++#undef HAVE_SQRT
++
++/* Define to 1 if `stat' has the bug that it succeeds when given the
++   zero-length file name argument. */
++#undef HAVE_STAT_EMPTY_STRING_BUG
++
++/* Define to 1 if stdbool.h conforms to C99. */
++#undef HAVE_STDBOOL_H
++
++/* Define to 1 if you have the &lt;stddef.h&gt; header file. */
++#undef HAVE_STDDEF_H
++
++/* Define to 1 if you have the &lt;stdint.h&gt; header file. */
++#undef HAVE_STDINT_H
++
++/* Define to 1 if you have the &lt;stdlib.h&gt; header file. */
++#undef HAVE_STDLIB_H
++
++/* Define to 1 if you have the `strcasecmp' function. */
++#undef HAVE_STRCASECMP
++
++/* Define to 1 if you have the `strcasestr' function. */
++#undef HAVE_STRCASESTR
++
++/* Define to 1 if you have the `strchr' function. */
++#undef HAVE_STRCHR
++
++/* Define to 1 if you have the `strcoll' function and it is properly defined.
++   */
++#undef HAVE_STRCOLL
++
++/* Define to 1 if you have the `strcspn' function. */
++#undef HAVE_STRCSPN
++
++/* Define to 1 if you have the `strdup' function. */
++#undef HAVE_STRDUP
++
++/* Define to 1 if you have the `strerror' function. */
++#undef HAVE_STRERROR
++
++/* Define to 1 if you have the `strftime' function. */
++#undef HAVE_STRFTIME
++
++/* Define to 1 if you have the &lt;strings.h&gt; header file. */
++#undef HAVE_STRINGS_H
++
++/* Define to 1 if you have the &lt;string.h&gt; header file. */
++#undef HAVE_STRING_H
++
++/* Define to 1 if you have the `strncasecmp' function. */
++#undef HAVE_STRNCASECMP
++
++/* Define to 1 if you have the `strndup' function. */
++#undef HAVE_STRNDUP
++
++/* Define to 1 if you have the `strrchr' function. */
++#undef HAVE_STRRCHR
++
++/* Define to 1 if you have the `strsep' function. */
++#undef HAVE_STRSEP
++
++/* Define to 1 if you have the `strspn' function. */
++#undef HAVE_STRSPN
++
++/* Define to 1 if you have the `strstr' function. */
++#undef HAVE_STRSTR
++
++/* Define to 1 if you have the `strtol' function. */
++#undef HAVE_STRTOL
++
++/* Define to 1 if you have the `strtoq' function. */
++#undef HAVE_STRTOQ
++
++/* Define to 1 if `st_blksize' is member of `struct stat'. */
++#undef HAVE_STRUCT_STAT_ST_BLKSIZE
++
++/* Define to 1 if you have the &lt;syslog.h&gt; header file. */
++#undef HAVE_SYSLOG_H
++
++/* Define to 1 if you have the &lt;sys/dir.h&gt; header file, and it defines `DIR'.
++   */
++#undef HAVE_SYS_DIR_H
++
++/* Define to 1 if you have the &lt;sys/file.h&gt; header file. */
++#undef HAVE_SYS_FILE_H
++
++/* Define to 1 if you have the &lt;sys/ioctl.h&gt; header file. */
++#undef HAVE_SYS_IOCTL_H
++
++/* Define to 1 if you have the &lt;sys/ndir.h&gt; header file, and it defines `DIR'.
++   */
++#undef HAVE_SYS_NDIR_H
++
++/* Define to 1 if you have the &lt;sys/param.h&gt; header file. */
++#undef HAVE_SYS_PARAM_H
++
++/* Define to 1 if you have the &lt;sys/select.h&gt; header file. */
++#undef HAVE_SYS_SELECT_H
++
++/* Define to 1 if you have the &lt;sys/socket.h&gt; header file. */
++#undef HAVE_SYS_SOCKET_H
++
++/* Define to 1 if you have the &lt;sys/stat.h&gt; header file. */
++#undef HAVE_SYS_STAT_H
++
++/* Define to 1 if you have the &lt;sys/time.h&gt; header file. */
++#undef HAVE_SYS_TIME_H
++
++/* Define to 1 if you have the &lt;sys/types.h&gt; header file. */
++#undef HAVE_SYS_TYPES_H
++
++/* Define to 1 if you have &lt;sys/wait.h&gt; that is POSIX.1 compatible. */
++#undef HAVE_SYS_WAIT_H
++
++/* Define to indicate the Termcap library */
++#undef HAVE_TERMCAP
++
++/* Define to 1 if you have the &lt;termios.h&gt; header file. */
++#undef HAVE_TERMIOS_H
++
++/* Define to indicate the Term Info library */
++#undef HAVE_TINFO
++
++/* Define to 1 if you have the &lt;unistd.h&gt; header file. */
++#undef HAVE_UNISTD_H
++
++/* Define to indicate the unixODBC library */
++#undef HAVE_UNIXODBC
++
++/* Define to 1 if you have the `unsetenv' function. */
++#undef HAVE_UNSETENV
++
++/* Define to 1 if you have the `utime' function. */
++#undef HAVE_UTIME
++
++/* Define to 1 if you have the &lt;utime.h&gt; header file. */
++#undef HAVE_UTIME_H
++
++/* Define to 1 if `utime(file, NULL)' sets file's timestamp to the present. */
++#undef HAVE_UTIME_NULL
++
++/* Define to 1 if you have the `vasprintf' function. */
++#undef HAVE_VASPRINTF
++
++/* Define to 1 if you have the `vfork' function. */
++#undef HAVE_VFORK
++
++/* Define to 1 if you have the &lt;vfork.h&gt; header file. */
++#undef HAVE_VFORK_H
++
++/* Define to indicate the Vorbis library */
++#undef HAVE_VORBIS
++
++/* Define to 1 if you have the `vprintf' function. */
++#undef HAVE_VPRINTF
++
++/* Define to 1 if `fork' works. */
++#undef HAVE_WORKING_FORK
++
++/* Define to 1 if `vfork' works. */
++#undef HAVE_WORKING_VFORK
++
++/* Define to indicate the Zaptel library */
++#undef HAVE_ZAPTEL
++
++/* Define to indicate the zlib library */
++#undef HAVE_ZLIB
++
++/* Define to 1 if the system has the type `_Bool'. */
++#undef HAVE__BOOL
++
++/* Define to 1 if `lstat' dereferences a symlink specified with a trailing
++   slash. */
++#undef LSTAT_FOLLOWS_SLASHED_SYMLINK
++
++/* Define according to your operating system type. */
++#undef Linux
++
++/* Define according to your operating system type. */
++#undef NetBSD
++
++/* Define according to your operating system type. */
++#undef OpenBSD
++
++/* Define to the address where bug reports for this package should be sent. */
++#undef PACKAGE_BUGREPORT
++
++/* Define to the full name of this package. */
++#undef PACKAGE_NAME
++
++/* Define to the full name and version of this package. */
++#undef PACKAGE_STRING
++
++/* Define to the one symbol short name of this package. */
++#undef PACKAGE_TARNAME
++
++/* Define to the version of this package. */
++#undef PACKAGE_VERSION
++
++/* Define this to be the name of the CPU of your system. */
++#undef PBX_CPU
++
++/* Define this to be the name of the OS of your system. */
++#undef PBX_OS
++
++/* Define this to be the canonical name (cpu-vendor-os) of your system. */
++#undef PBX_PLATFORM
++
++/* Define this to be the name of the vendor of your system. */
++#undef PBX_VENDOR
++
++/* Define to 1 if the C compiler supports function prototypes. */
++#undef PROTOTYPES
++
++/* Define as the return type of signal handlers (`int' or `void'). */
++#undef RETSIGTYPE
++
++/* Define to the type of arg 1 for `select'. */
++#undef SELECT_TYPE_ARG1
++
++/* Define to the type of args 2, 3 and 4 for `select'. */
++#undef SELECT_TYPE_ARG234
++
++/* Define to the type of arg 5 for `select'. */
++#undef SELECT_TYPE_ARG5
++
++/* Define to 1 if the `setvbuf' function takes the buffering type as its
++   second argument and the buffer pointer as the third, as on System V before
++   release 3. */
++#undef SETVBUF_REVERSED
++
++/* If using the C implementation of alloca, define if you know the
++   direction of stack growth for your system; otherwise it will be
++   automatically deduced at runtime.
++	STACK_DIRECTION &gt; 0 =&gt; grows toward higher addresses
++	STACK_DIRECTION &lt; 0 =&gt; grows toward lower addresses
++	STACK_DIRECTION = 0 =&gt; direction of growth unknown */
++#undef STACK_DIRECTION
++
++/* Define to 1 if you have the ANSI C header files. */
++#undef STDC_HEADERS
++
++/* Define according to your operating system type. */
++#undef SunOS
++
++/* Define to 1 if you can safely include both &lt;sys/time.h&gt; and &lt;time.h&gt;. */
++#undef TIME_WITH_SYS_TIME
++
++/* Define to 1 if your &lt;sys/time.h&gt; declares `struct tm'. */
++#undef TM_IN_SYS_TIME
++
++/* Define according to your operating system type. */
++#undef Unix
++
++/* Define according to your operating system type. */
++#undef Win32
++
++/* Number of bits in a file offset, on hosts where this is settable. */
++#undef _FILE_OFFSET_BITS
++
++/* Enable GNU extensions on systems that have them.  */
++#ifndef _GNU_SOURCE
++# undef _GNU_SOURCE
++#endif
++
++/* Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
++#undef _LARGEFILE_SOURCE
++
++/* Define for large files, on AIX-style hosts. */
++#undef _LARGE_FILES
++
++/* Define like PROTOTYPES; this can be used by system headers. */
++#undef __PROTOTYPES
++
++/* Define to empty if `const' does not conform to ANSI C. */
++#undef const
++
++/* Define to `int' if &lt;sys/types.h&gt; doesn't define. */
++#undef gid_t
++
++/* Define to `__inline__' or `__inline' if that's what the C compiler
++   calls it, or to nothing if 'inline' is not supported under any name.  */
++#ifndef __cplusplus
++#undef inline
++#endif
++
++/* Define to rpl_malloc if the replacement function should be used. */
++#undef malloc
++
++/* Define to `int' if &lt;sys/types.h&gt; does not define. */
++#undef mode_t
++
++/* Define to `long int' if &lt;sys/types.h&gt; does not define. */
++#undef off_t
++
++/* Define to `int' if &lt;sys/types.h&gt; does not define. */
++#undef pid_t
++
++/* Define to rpl_realloc if the replacement function should be used. */
++#undef realloc
++
++/* Define to `unsigned int' if &lt;sys/types.h&gt; does not define. */
++#undef size_t
++
++/* Define to `int' if &lt;sys/types.h&gt; doesn't define. */
++#undef uid_t
++
++/* Define as `fork' if `vfork' does not work. */
++#undef vfork
++
++/* Define to empty if the keyword `volatile' does not work. Warning: valid
++   code using `volatile' can become incorrect without. Disable with care. */
++#undef volatile
++
++#endif
++
+
+Modified: trunk/include/asterisk.h
+===================================================================
+--- trunk/include/asterisk.h	2006-06-23 17:05:10 UTC (rev 290)
++++ trunk/include/asterisk.h	2006-06-23 17:20:16 UTC (rev 291)
+@@ -18,7 +18,7 @@
+ #ifndef _ASTERISK_H
+ #define _ASTERISK_H
+ 
+-#include &quot;autoconfig.h&quot;
++#include &quot;asterisk/autoconfig.h&quot;
+ 
+ #include &quot;asterisk/compat.h&quot;
+ 
+
+Deleted: trunk/include/autoconfig.h.in
+===================================================================
+--- trunk/include/autoconfig.h.in	2006-06-23 17:05:10 UTC (rev 290)
++++ trunk/include/autoconfig.h.in	2006-06-23 17:20:16 UTC (rev 291)
+@@ -1,574 +0,0 @@
+-/* include/autoconfig.h.in.  Generated from configure.ac by autoheader.  */
+-
+-#ifndef ASTERISK_AUTOCONFIG_H
+-#define ASTERISK_AUTOCONFIG_H
+-
+-#ifndef MENUSELECT
+-#include &quot;asterisk/buildopts.h&quot;
+-#endif
+-
+-#ifndef _REENTRANT
+-#define _REENTRANT
+-#endif
+-
+-
+-/* Define to 1 if the `closedir' function returns void instead of `int'. */
+-#undef CLOSEDIR_VOID
+-
+-/* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
+-   systems. This function is required for `alloca.c' support on those systems.
+-   */
+-#undef CRAY_STACKSEG_END
+-
+-/* Define to 1 if using `alloca.c'. */
+-#undef C_ALLOCA
+-
+-/* Define according to your operating system type. */
+-#undef Darwin
+-
+-/* Define according to your operating system type. */
+-#undef FreeBSD
+-
+-/* Define to 1 if you have the `alarm' function. */
+-#undef HAVE_ALARM
+-
+-/* Define to 1 if you have `alloca', as a function or macro. */
+-#undef HAVE_ALLOCA
+-
+-/* Define to 1 if you have &lt;alloca.h&gt; and it should be used (not on Ultrix).
+-   */
+-#undef HAVE_ALLOCA_H
+-
+-/* Define to indicate the Advanced Linux Sound Architecture library */
+-#undef HAVE_ALSA
+-
+-/* Define to 1 if you have the &lt;arpa/inet.h&gt; header file. */
+-#undef HAVE_ARPA_INET_H
+-
+-/* Define to 1 if you have the `asprintf' function. */
+-#undef HAVE_ASPRINTF
+-
+-/* Define to 1 if you have the `atexit' function. */
+-#undef HAVE_ATEXIT
+-
+-/* Define to 1 if you have the `bzero' function. */
+-#undef HAVE_BZERO
+-
+-/* Define to 1 if your system has a working `chown' function. */
+-#undef HAVE_CHOWN
+-
+-/* Define if your system has the curl libraries. */
+-#undef HAVE_CURL
+-
+-/* Define to indicate the curses library */
+-#undef HAVE_CURSES
+-
+-/* Define to 1 if you have the &lt;dirent.h&gt; header file, and it defines `DIR'.
+-   */
+-#undef HAVE_DIRENT_H
+-
+-/* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
+-#undef HAVE_DOPRNT
+-
+-/* Define to 1 if you have the `dup2' function. */
+-#undef HAVE_DUP2
+-
+-/* Define to 1 if you have the `endpwent' function. */
+-#undef HAVE_ENDPWENT
+-
+-/* Define to 1 if you have the &lt;fcntl.h&gt; header file. */
+-#undef HAVE_FCNTL_H
+-
+-/* Define to 1 if you have the `floor' function. */
+-#undef HAVE_FLOOR
+-
+-/* Define to 1 if you have the `fork' function. */
+-#undef HAVE_FORK
+-
+-/* Define to indicate the FreeTDS library */
+-#undef HAVE_FREETDS
+-
+-/* Define to 1 if fseeko (and presumably ftello) exists and is declared. */
+-#undef HAVE_FSEEKO
+-
+-/* Define to 1 if you have the `ftruncate' function. */
+-#undef HAVE_FTRUNCATE
+-
+-/* Define to 1 if you have the `getcwd' function. */
+-#undef HAVE_GETCWD
+-
+-/* Define to 1 if you have the `gethostbyname' function. */
+-#undef HAVE_GETHOSTBYNAME
+-
+-/* Define to 1 if you have the `gethostname' function. */
+-#undef HAVE_GETHOSTNAME
+-
+-/* Define to 1 if you have the `getpagesize' function. */
+-#undef HAVE_GETPAGESIZE
+-
+-/* Define to 1 if you have the `gettimeofday' function. */
+-#undef HAVE_GETTIMEOFDAY
+-
+-/* Define to indicate the GSM library */
+-#undef HAVE_GSM
+-
+-/* Define if your system has the GTK libraries. */
+-#undef HAVE_GTK
+-
+-/* Define to indicate the Iksemel Jabber Library library */
+-#undef HAVE_IKSEMEL
+-
+-/* Define to 1 if you have the `inet_ntoa' function. */
+-#undef HAVE_INET_NTOA
+-
+-/* Define to 1 if you have the &lt;inttypes.h&gt; header file. */
+-#undef HAVE_INTTYPES_H
+-
+-/* Define to 1 if you have the `isascii' function. */
+-#undef HAVE_ISASCII
+-
+-/* Define to 1 if you have the &lt;libintl.h&gt; header file. */
+-#undef HAVE_LIBINTL_H
+-
+-/* Define if your system has the KDE library */
+-#undef HAVE_LIBKDE
+-
+-/* Define to indicate the ISDN PRI library */
+-#undef HAVE_LIBPRI
+-
+-/* Define if your system has the Qt library */
+-#undef HAVE_LIBQT
+-
+-/* Define if your system has the VoiceTronix (vpb) libraries. */
+-#undef HAVE_LIBVPB
+-
+-/* Define to 1 if you have the &lt;limits.h&gt; header file. */
+-#undef HAVE_LIMITS_H
+-
+-/* Define to 1 if you have the &lt;locale.h&gt; header file. */
+-#undef HAVE_LOCALE_H
+-
+-/* Define to 1 if you have the `localtime_r' function. */
+-#undef HAVE_LOCALTIME_R
+-
+-/* Define to 1 if your system has a GNU libc compatible `malloc' function, and
+-   to 0 otherwise. */
+-#undef HAVE_MALLOC
+-
+-/* Define to 1 if you have the &lt;malloc.h&gt; header file. */
+-#undef HAVE_MALLOC_H
+-
+-/* Define to 1 if you have the `memchr' function. */
+-#undef HAVE_MEMCHR
+-
+-/* Define to 1 if you have the `memmove' function. */
+-#undef HAVE_MEMMOVE
+-
+-/* Define to 1 if you have the &lt;memory.h&gt; header file. */
+-#undef HAVE_MEMORY_H
+-
+-/* Define to 1 if you have the `memset' function. */
+-#undef HAVE_MEMSET
+-
+-/* Define to 1 if you have the `mkdir' function. */
+-#undef HAVE_MKDIR
+-
+-/* Define to 1 if you have a working `mmap' system call. */
+-#undef HAVE_MMAP
+-
+-/* Define to 1 if you have the `munmap' function. */
+-#undef HAVE_MUNMAP
+-
+-/* Define to indicate the Network Broadcast Sound library */
+-#undef HAVE_NBS
+-
+-/* Define to indicate the ncurses library */
+-#undef HAVE_NCURSES
+-
+-/* Define to 1 if you have the &lt;ndir.h&gt; header file, and it defines `DIR'. */
+-#undef HAVE_NDIR_H
+-
+-/* Define to 1 if you have the &lt;netdb.h&gt; header file. */
+-#undef HAVE_NETDB_H
+-
+-/* Define to 1 if you have the &lt;netinet/in.h&gt; header file. */
+-#undef HAVE_NETINET_IN_H
+-
+-/* Define to indicate the newt library */
+-#undef HAVE_NEWT
+-
+-/* Define to indicate the OGG library */
+-#undef HAVE_OGG
+-
+-/* Define to indicate the OpenSSL library */
+-#undef HAVE_OPENSSL
+-
+-/* Define to indicate the OSP Toolkit library */
+-#undef HAVE_OSPTK
+-
+-/* Define to indicate the Open Sound System library */
+-#undef HAVE_OSS
+-
+-/* Define to indicate the popt library */
+-#undef HAVE_POPT
+-
+-/* Define to 1 if you have the `pow' function. */
+-#undef HAVE_POW
+-
+-/* Define to indicate the PostgreSQL library */
+-#undef HAVE_PQ
+-
+-/* Define to 1 if the system has the type `ptrdiff_t'. */
+-#undef HAVE_PTRDIFF_T
+-
+-/* Define to 1 if you have the `putenv' function. */
+-#undef HAVE_PUTENV
+-
+-/* Define to indicate the Radius Client library */
+-#undef HAVE_RADIUSCLIENT
+-
+-/* Define to 1 if your system has a GNU libc compatible `realloc' function,
+-   and to 0 otherwise. */
+-#undef HAVE_REALLOC
+-
+-/* Define to 1 if you have the `regcomp' function. */
+-#undef HAVE_REGCOMP
+-
+-/* Define to 1 if you have the `re_comp' function. */
+-#undef HAVE_RE_COMP
+-
+-/* Define to 1 if you have the `rint' function. */
+-#undef HAVE_RINT
+-
+-/* Define to 1 if you have the `select' function. */
+-#undef HAVE_SELECT
+-
+-/* Define to 1 if you have the `setenv' function. */
+-#undef HAVE_SETENV
+-
+-/* Define to 1 if you have the `socket' function. */
+-#undef HAVE_SOCKET
+-
+-/* Define to indicate the Speex library */
+-#undef HAVE_SPEEX
+-
+-/* Define to indicate the SQLite library */
+-#undef HAVE_SQLITE
+-
+-/* Define to 1 if you have the `sqrt' function. */
+-#undef HAVE_SQRT
+-
+-/* Define to 1 if `stat' has the bug that it succeeds when given the
+-   zero-length file name argument. */
+-#undef HAVE_STAT_EMPTY_STRING_BUG
+-
+-/* Define to 1 if stdbool.h conforms to C99. */
+-#undef HAVE_STDBOOL_H
+-
+-/* Define to 1 if you have the &lt;stddef.h&gt; header file. */
+-#undef HAVE_STDDEF_H
+-
+-/* Define to 1 if you have the &lt;stdint.h&gt; header file. */
+-#undef HAVE_STDINT_H
+-
+-/* Define to 1 if you have the &lt;stdlib.h&gt; header file. */
+-#undef HAVE_STDLIB_H
+-
+-/* Define to 1 if you have the `strcasecmp' function. */
+-#undef HAVE_STRCASECMP
+-
+-/* Define to 1 if you have the `strcasestr' function. */
+-#undef HAVE_STRCASESTR
+-
+-/* Define to 1 if you have the `strchr' function. */
+-#undef HAVE_STRCHR
+-
+-/* Define to 1 if you have the `strcoll' function and it is properly defined.
+-   */
+-#undef HAVE_STRCOLL
+-
+-/* Define to 1 if you have the `strcspn' function. */
+-#undef HAVE_STRCSPN
+-
+-/* Define to 1 if you have the `strdup' function. */
+-#undef HAVE_STRDUP
+-
+-/* Define to 1 if you have the `strerror' function. */
+-#undef HAVE_STRERROR
+-
+-/* Define to 1 if you have the `strftime' function. */
+-#undef HAVE_STRFTIME
+-
+-/* Define to 1 if you have the &lt;strings.h&gt; header file. */
+-#undef HAVE_STRINGS_H
+-
+-/* Define to 1 if you have the &lt;string.h&gt; header file. */
+-#undef HAVE_STRING_H
+-
+-/* Define to 1 if you have the `strncasecmp' function. */
+-#undef HAVE_STRNCASECMP
+-
+-/* Define to 1 if you have the `strndup' function. */
+-#undef HAVE_STRNDUP
+-
+-/* Define to 1 if you have the `strrchr' function. */
+-#undef HAVE_STRRCHR
+-
+-/* Define to 1 if you have the `strsep' function. */
+-#undef HAVE_STRSEP
+-
+-/* Define to 1 if you have the `strspn' function. */
+-#undef HAVE_STRSPN
+-
+-/* Define to 1 if you have the `strstr' function. */
+-#undef HAVE_STRSTR
+-
+-/* Define to 1 if you have the `strtol' function. */
+-#undef HAVE_STRTOL
+-
+-/* Define to 1 if you have the `strtoq' function. */
+-#undef HAVE_STRTOQ
+-
+-/* Define to 1 if `st_blksize' is member of `struct stat'. */
+-#undef HAVE_STRUCT_STAT_ST_BLKSIZE
+-
+-/* Define to 1 if you have the &lt;syslog.h&gt; header file. */
+-#undef HAVE_SYSLOG_H
+-
+-/* Define to 1 if you have the &lt;sys/dir.h&gt; header file, and it defines `DIR'.
+-   */
+-#undef HAVE_SYS_DIR_H
+-
+-/* Define to 1 if you have the &lt;sys/file.h&gt; header file. */
+-#undef HAVE_SYS_FILE_H
+-
+-/* Define to 1 if you have the &lt;sys/ioctl.h&gt; header file. */
+-#undef HAVE_SYS_IOCTL_H
+-
+-/* Define to 1 if you have the &lt;sys/ndir.h&gt; header file, and it defines `DIR'.
+-   */
+-#undef HAVE_SYS_NDIR_H
+-
+-/* Define to 1 if you have the &lt;sys/param.h&gt; header file. */
+-#undef HAVE_SYS_PARAM_H
+-
+-/* Define to 1 if you have the &lt;sys/select.h&gt; header file. */
+-#undef HAVE_SYS_SELECT_H
+-
+-/* Define to 1 if you have the &lt;sys/socket.h&gt; header file. */
+-#undef HAVE_SYS_SOCKET_H
+-
+-/* Define to 1 if you have the &lt;sys/stat.h&gt; header file. */
+-#undef HAVE_SYS_STAT_H
+-
+-/* Define to 1 if you have the &lt;sys/time.h&gt; header file. */
+-#undef HAVE_SYS_TIME_H
+-
+-/* Define to 1 if you have the &lt;sys/types.h&gt; header file. */
+-#undef HAVE_SYS_TYPES_H
+-
+-/* Define to 1 if you have &lt;sys/wait.h&gt; that is POSIX.1 compatible. */
+-#undef HAVE_SYS_WAIT_H
+-
+-/* Define to indicate the Termcap library */
+-#undef HAVE_TERMCAP
+-
+-/* Define to 1 if you have the &lt;termios.h&gt; header file. */
+-#undef HAVE_TERMIOS_H
+-
+-/* Define to indicate the Term Info library */
+-#undef HAVE_TINFO
+-
+-/* Define to 1 if you have the &lt;unistd.h&gt; header file. */
+-#undef HAVE_UNISTD_H
+-
+-/* Define to indicate the unixODBC library */
+-#undef HAVE_UNIXODBC
+-
+-/* Define to 1 if you have the `unsetenv' function. */
+-#undef HAVE_UNSETENV
+-
+-/* Define to 1 if you have the `utime' function. */
+-#undef HAVE_UTIME
+-
+-/* Define to 1 if you have the &lt;utime.h&gt; header file. */
+-#undef HAVE_UTIME_H
+-
+-/* Define to 1 if `utime(file, NULL)' sets file's timestamp to the present. */
+-#undef HAVE_UTIME_NULL
+-
+-/* Define to 1 if you have the `vasprintf' function. */
+-#undef HAVE_VASPRINTF
+-
+-/* Define to 1 if you have the `vfork' function. */
+-#undef HAVE_VFORK
+-
+-/* Define to 1 if you have the &lt;vfork.h&gt; header file. */
+-#undef HAVE_VFORK_H
+-
+-/* Define to indicate the Vorbis library */
+-#undef HAVE_VORBIS
+-
+-/* Define to 1 if you have the `vprintf' function. */
+-#undef HAVE_VPRINTF
+-
+-/* Define to 1 if `fork' works. */
+-#undef HAVE_WORKING_FORK
+-
+-/* Define to 1 if `vfork' works. */
+-#undef HAVE_WORKING_VFORK
+-
+-/* Define to indicate the Zaptel library */
+-#undef HAVE_ZAPTEL
+-
+-/* Define to indicate the zlib library */
+-#undef HAVE_ZLIB
+-
+-/* Define to 1 if the system has the type `_Bool'. */
+-#undef HAVE__BOOL
+-
+-/* Define to 1 if `lstat' dereferences a symlink specified with a trailing
+-   slash. */
+-#undef LSTAT_FOLLOWS_SLASHED_SYMLINK
+-
+-/* Define according to your operating system type. */
+-#undef Linux
+-
+-/* Define according to your operating system type. */
+-#undef NetBSD
+-
+-/* Define according to your operating system type. */
+-#undef OpenBSD
+-
+-/* Define to the address where bug reports for this package should be sent. */
+-#undef PACKAGE_BUGREPORT
+-
+-/* Define to the full name of this package. */
+-#undef PACKAGE_NAME
+-
+-/* Define to the full name and version of this package. */
+-#undef PACKAGE_STRING
+-
+-/* Define to the one symbol short name of this package. */
+-#undef PACKAGE_TARNAME
+-
+-/* Define to the version of this package. */
+-#undef PACKAGE_VERSION
+-
+-/* Define this to be the name of the CPU of your system. */
+-#undef PBX_CPU
+-
+-/* Define this to be the name of the OS of your system. */
+-#undef PBX_OS
+-
+-/* Define this to be the canonical name (cpu-vendor-os) of your system. */
+-#undef PBX_PLATFORM
+-
+-/* Define this to be the name of the vendor of your system. */
+-#undef PBX_VENDOR
+-
+-/* Define to 1 if the C compiler supports function prototypes. */
+-#undef PROTOTYPES
+-
+-/* Define as the return type of signal handlers (`int' or `void'). */
+-#undef RETSIGTYPE
+-
+-/* Define to the type of arg 1 for `select'. */
+-#undef SELECT_TYPE_ARG1
+-
+-/* Define to the type of args 2, 3 and 4 for `select'. */
+-#undef SELECT_TYPE_ARG234
+-
+-/* Define to the type of arg 5 for `select'. */
+-#undef SELECT_TYPE_ARG5
+-
+-/* Define to 1 if the `setvbuf' function takes the buffering type as its
+-   second argument and the buffer pointer as the third, as on System V before
+-   release 3. */
+-#undef SETVBUF_REVERSED
+-
+-/* If using the C implementation of alloca, define if you know the
+-   direction of stack growth for your system; otherwise it will be
+-   automatically deduced at runtime.
+-	STACK_DIRECTION &gt; 0 =&gt; grows toward higher addresses
+-	STACK_DIRECTION &lt; 0 =&gt; grows toward lower addresses
+-	STACK_DIRECTION = 0 =&gt; direction of growth unknown */
+-#undef STACK_DIRECTION
+-
+-/* Define to 1 if you have the ANSI C header files. */
+-#undef STDC_HEADERS
+-
+-/* Define according to your operating system type. */
+-#undef SunOS
+-
+-/* Define to 1 if you can safely include both &lt;sys/time.h&gt; and &lt;time.h&gt;. */
+-#undef TIME_WITH_SYS_TIME
+-
+-/* Define to 1 if your &lt;sys/time.h&gt; declares `struct tm'. */
+-#undef TM_IN_SYS_TIME
+-
+-/* Define according to your operating system type. */
+-#undef Unix
+-
+-/* Define according to your operating system type. */
+-#undef Win32
+-
+-/* Number of bits in a file offset, on hosts where this is settable. */
+-#undef _FILE_OFFSET_BITS
+-
+-/* Enable GNU extensions on systems that have them.  */
+-#ifndef _GNU_SOURCE
+-# undef _GNU_SOURCE
+-#endif
+-
+-/* Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
+-#undef _LARGEFILE_SOURCE
+-
+-/* Define for large files, on AIX-style hosts. */
+-#undef _LARGE_FILES
+-
+-/* Define like PROTOTYPES; this can be used by system headers. */
+-#undef __PROTOTYPES
+-
+-/* Define to empty if `const' does not conform to ANSI C. */
+-#undef const
+-
+-/* Define to `int' if &lt;sys/types.h&gt; doesn't define. */
+-#undef gid_t
+-
+-/* Define to `__inline__' or `__inline' if that's what the C compiler
+-   calls it, or to nothing if 'inline' is not supported under any name.  */
+-#ifndef __cplusplus
+-#undef inline
+-#endif
+-
+-/* Define to rpl_malloc if the replacement function should be used. */
+-#undef malloc
+-
+-/* Define to `int' if &lt;sys/types.h&gt; does not define. */
+-#undef mode_t
+-
+-/* Define to `long int' if &lt;sys/types.h&gt; does not define. */
+-#undef off_t
+-
+-/* Define to `int' if &lt;sys/types.h&gt; does not define. */
+-#undef pid_t
+-
+-/* Define to rpl_realloc if the replacement function should be used. */
+-#undef realloc
+-
+-/* Define to `unsigned int' if &lt;sys/types.h&gt; does not define. */
+-#undef size_t
+-
+-/* Define to `int' if &lt;sys/types.h&gt; doesn't define. */
+-#undef uid_t
+-
+-/* Define as `fork' if `vfork' does not work. */
+-#undef vfork
+-
+-/* Define to empty if the keyword `volatile' does not work. Warning: valid
+-   code using `volatile' can become incorrect without. Disable with care. */
+-#undef volatile
+-
+-#endif
+-
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-06-23 17:05:10 UTC (rev 290)
++++ trunk/pbx.c	2006-06-23 17:20:16 UTC (rev 291)
+@@ -62,7 +62,6 @@
+ #include &quot;asterisk/musiconhold.h&quot;
+ #include &quot;asterisk/app.h&quot;
+ #include &quot;asterisk/devicestate.h&quot;
+-#include &quot;asterisk/compat.h&quot;
+ #include &quot;asterisk/stringfields.h&quot;
+ 
+ /*!
+
+Modified: trunk/utils/ael_main.c
+===================================================================
+--- trunk/utils/ael_main.c	2006-06-23 17:05:10 UTC (rev 290)
++++ trunk/utils/ael_main.c	2006-06-23 17:20:16 UTC (rev 291)
+@@ -1,4 +1,4 @@
+-#include &quot;autoconfig.h&quot;
++#include &quot;asterisk/autoconfig.h&quot;
+ 
+ #include &lt;sys/types.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/utils/astman.c
+===================================================================
+--- trunk/utils/astman.c	2006-06-23 17:05:10 UTC (rev 290)
++++ trunk/utils/astman.c	2006-06-23 17:20:16 UTC (rev 291)
+@@ -22,7 +22,7 @@
+  *
+  */
+  
+-#include &quot;autoconfig.h&quot;
++#include &quot;asterisk/autoconfig.h&quot;
+ 
+ #include &lt;newt.h&gt;
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/utils/smsq.c
+===================================================================
+--- trunk/utils/smsq.c	2006-06-23 17:05:10 UTC (rev 290)
++++ trunk/utils/smsq.c	2006-06-23 17:20:16 UTC (rev 291)
+@@ -17,7 +17,7 @@
+  * at the top of the source tree.
+  */
+ 
+-#include &quot;autoconfig.h&quot;
++#include &quot;asterisk/autoconfig.h&quot;
+ 
+ #include &lt;stdio.h&gt;
+ #include &lt;popt.h&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000285.html">[solid-pbx-svn] r290 - in trunk: . apps build_tools cdr channels codecs doc formats funcs include include/asterisk pbx pbx/ael res stdtime utils
+</A></li>
+	<LI>Next message: <A HREF="000287.html">[solid-pbx-svn] r292 - in trunk: apps include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#286">[ date ]</a>
+              <a href="thread.html#286">[ thread ]</a>
+              <a href="subject.html#286">[ subject ]</a>
+              <a href="author.html#286">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r337 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r337%20-%20trunk/channels&In-Reply-To=%3C200606280049.k5S0n0U9006131%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000331.html">
+   <LINK REL="Next"  HREF="000333.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r337 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r337%20-%20trunk/channels&In-Reply-To=%3C200606280049.k5S0n0U9006131%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r337 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 02:49:00 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000331.html">[solid-pbx-svn] r336 - trunk/res
+</A></li>
+        <LI>Next message: <A HREF="000333.html">[solid-pbx-svn] r338 - in trunk: . apps include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#332">[ date ]</a>
+              <a href="thread.html#332">[ thread ]</a>
+              <a href="subject.html#332">[ subject ]</a>
+              <a href="author.html#332">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 02:48:50 +0200 (Wed, 28 Jun 2006)
+New Revision: 337
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r33713
+
+------------------------------------------------------------------------
+r33706 | russell | 2006-06-12 23:01:48 +0200 (Mon, 12 Jun 2006) | 5 lines
+
+only set the QOS variables if the pvt has an owner so that they are not
+created as global variables.  (The fact that these were getting created on
+my system probably means that these are in the wrong place so oej, you may
+want to look at this again.)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-28 00:47:20 UTC (rev 336)
++++ trunk/channels/chan_sip.c	2006-06-28 00:48:50 UTC (rev 337)
+@@ -3132,9 +3132,9 @@
+ 					if (p-&gt;vrtp)
+ 						append_history(p, &quot;RTCPvideo&quot;, &quot;Quality:%s&quot;, videoqos);
+ 				}
+-				if (p-&gt;rtp)
++				if (p-&gt;rtp &amp;&amp; p-&gt;owner)
+ 					pbx_builtin_setvar_helper(p-&gt;owner, &quot;RTPAUDIOQOS&quot;, audioqos);
+-				if (p-&gt;vrtp)
++				if (p-&gt;vrtp &amp;&amp; p-&gt;owner)
+ 					pbx_builtin_setvar_helper(p-&gt;owner, &quot;RTPVIDEOQOS&quot;, videoqos);
+ 			} else {
+ 				/* Note we will need a BYE when this all settles out
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000331.html">[solid-pbx-svn] r336 - trunk/res
+</A></li>
+	<LI>Next message: <A HREF="000333.html">[solid-pbx-svn] r338 - in trunk: . apps include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#332">[ date ]</a>
+              <a href="thread.html#332">[ thread ]</a>
+              <a href="subject.html#332">[ subject ]</a>
+              <a href="author.html#332">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r177 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r177%20-%20trunk/channels&In-Reply-To=%3C200605191719.k4JHJmwE025289%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000171.html">
+   <LINK REL="Next"  HREF="000173.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r177 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r177%20-%20trunk/channels&In-Reply-To=%3C200605191719.k4JHJmwE025289%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r177 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May 19 19:19:48 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000171.html">[solid-pbx-svn] r176 - in trunk: . apps
+</A></li>
+        <LI>Next message: <A HREF="000173.html">[solid-pbx-svn] r178 - in trunk: channels pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#172">[ date ]</a>
+              <a href="thread.html#172">[ thread ]</a>
+              <a href="subject.html#172">[ subject ]</a>
+              <a href="author.html#172">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-19 19:19:15 +0200 (Fri, 19 May 2006)
+New Revision: 177
+
+Modified:
+   trunk/channels/chan_zap.c
+Log:
+Update to Asterisk SVN trunk r28703
+
+------------------------------------------------------------------------
+r28703 | file | 2006-05-19 19:05:22 +0200 (Fri, 19 May 2006) | 10 lines
+
+Merged revisions 28698 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r28698 | file | 2006-05-19 14:04:02 -0300 (Fri, 19 May 2006) | 2 lines
+
+Make the minidle option actually exist as documented (issue #7159 reported by imran)
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-05-19 16:19:01 UTC (rev 176)
++++ trunk/channels/chan_zap.c	2006-05-19 17:19:15 UTC (rev 177)
+@@ -10847,6 +10847,8 @@
+ 						v-&gt;value, v-&gt;lineno);
+ 			} else if (!strcasecmp(v-&gt;name, &quot;minunused&quot;)) {
+ 				minunused = atoi(v-&gt;value);
++			} else if (!strcasecmp(v-&gt;name, &quot;minidle&quot;)) {
++				minidle = atoi(v-&gt;value); 
+ 			} else if (!strcasecmp(v-&gt;name, &quot;idleext&quot;)) {
+ 				ast_copy_string(idleext, v-&gt;value, sizeof(idleext));
+ 			} else if (!strcasecmp(v-&gt;name, &quot;idledial&quot;)) {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000171.html">[solid-pbx-svn] r176 - in trunk: . apps
+</A></li>
+	<LI>Next message: <A HREF="000173.html">[solid-pbx-svn] r178 - in trunk: channels pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#172">[ date ]</a>
+              <a href="thread.html#172">[ thread ]</a>
+              <a href="subject.html#172">[ subject ]</a>
+              <a href="author.html#172">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

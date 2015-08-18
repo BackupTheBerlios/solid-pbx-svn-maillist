@@ -1,0 +1,182 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r40 - in trunk: . apps doc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r40%20-%20in%20trunk%3A%20.%20apps%20doc&In-Reply-To=%3C200605022018.k42KILSi030176%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000036.html">
+   <LINK REL="Next"  HREF="000038.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r40 - in trunk: . apps doc</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r40%20-%20in%20trunk%3A%20.%20apps%20doc&In-Reply-To=%3C200605022018.k42KILSi030176%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r40 - in trunk: . apps doc">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  2 22:18:21 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000036.html">[solid-pbx-svn] r39 - trunk/pbx/ael
+</A></li>
+        <LI>Next message: <A HREF="000038.html">[solid-pbx-svn] r41 - in trunk: . configs include/asterisk pbx/ael
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#37">[ date ]</a>
+              <a href="thread.html#37">[ thread ]</a>
+              <a href="subject.html#37">[ subject ]</a>
+              <a href="author.html#37">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-02 22:18:16 +0200 (Tue, 02 May 2006)
+New Revision: 40
+
+Modified:
+   trunk/UPGRADE.txt
+   trunk/apps/app_queue.c
+   trunk/doc/queuelog.txt
+   trunk/file.c
+Log:
+Update to Asterisk SVN trunk r24337
+
+------------------------------------------------------------------------
+r24293 | bweschke | 2006-05-02 21:18:36 +0200 (Tue, 02 May 2006) | 3 lines
+
+ Record bridge channel unique id in &quot;CONNECT&quot; queue_log entry and the corresponding manager event. #6522 (nording) w/ documentation additions where appropriate 
+
+
+------------------------------------------------------------------------
+r24314 | bweschke | 2006-05-02 22:03:35 +0200 (Tue, 02 May 2006) | 3 lines
+
+ Don't bring in r24295 into /trunk since it's going to have it's own different patch.
+
+
+------------------------------------------------------------------------
+r24329 | bweschke | 2006-05-02 22:06:21 +0200 (Tue, 02 May 2006) | 3 lines
+
+ Make certain ast_stopstream() sets the channel's stream members to NULL after closing them. #7067 (jcomellas)
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/UPGRADE.txt
+===================================================================
+--- trunk/UPGRADE.txt	2006-05-02 19:24:30 UTC (rev 39)
++++ trunk/UPGRADE.txt	2006-05-02 20:18:16 UTC (rev 40)
+@@ -68,6 +68,11 @@
+ 
+ * OSPAuth is added to authenticate OSP tokens in in_bound call setup messages.
+ 
++* The CONNECT event in the queue_log from app_queue now has a second field 
++  in addition to the holdtime field. It contains the unique ID of the 
++  queue member channel that is taking the call. This is useful when trying 
++  to link recording filenames back to a particular call from the queue.  
++
+ Manager:
+ 
+ * After executing the 'status' manager action, the &quot;Status&quot; manager events
+@@ -77,6 +82,11 @@
+   until after the release of 1.4, when it will be removed.  Please use the time
+   during the 1.4 release to make this transition.
+ 
++* The AgentConnect event now has an additional field called &quot;BridgedChannel&quot; 
++  which contains the unique ID of the queue member channel that is taking the 
++  call. This is useful when trying to link recording filenames back to 
++  a particular call from the queue.
++
+ Variables:
+ 
+ * The builtin variables ${CALLERID}, ${CALLERIDNAME}, ${CALLERIDNUM},
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-05-02 19:24:30 UTC (rev 39)
++++ trunk/apps/app_queue.c	2006-05-02 20:18:16 UTC (rev 40)
+@@ -2241,16 +2241,17 @@
+ 	 			ast_log(LOG_DEBUG, &quot;app_queue: sendurl=%s.\n&quot;, url);
+  			ast_channel_sendurl(peer, url);
+  		}
+-		ast_queue_log(queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, &quot;CONNECT&quot;, &quot;%ld&quot;, (long)time(NULL) - qe-&gt;start);
++		ast_queue_log(queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, &quot;CONNECT&quot;, &quot;%ld|%s&quot;, (long)time(NULL) - qe-&gt;start, peer-&gt;uniqueid);
+ 		if (qe-&gt;parent-&gt;eventwhencalled)
+ 			manager_event(EVENT_FLAG_AGENT, &quot;AgentConnect&quot;,
+ 				      &quot;Queue: %s\r\n&quot;
+ 				      &quot;Uniqueid: %s\r\n&quot;
+ 				      &quot;Channel: %s\r\n&quot;
+ 				      &quot;Member: %s\r\n&quot;
+-				      &quot;Holdtime: %ld\r\n&quot;,
++				      &quot;Holdtime: %ld\r\n&quot;
++				      &quot;BridgedChannel: %s\r\n&quot;,
+ 				      queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, member-&gt;interface,
+-				      (long)time(NULL) - qe-&gt;start);
++				      (long)time(NULL) - qe-&gt;start,peer-&gt;uniqueid);
+ 		ast_copy_string(oldcontext, qe-&gt;chan-&gt;context, sizeof(oldcontext));
+ 		ast_copy_string(oldexten, qe-&gt;chan-&gt;exten, sizeof(oldexten));
+ 		time(&amp;callstart);
+
+Modified: trunk/doc/queuelog.txt
+===================================================================
+--- trunk/doc/queuelog.txt	2006-05-02 19:24:30 UTC (rev 39)
++++ trunk/doc/queuelog.txt	2006-05-02 20:18:16 UTC (rev 40)
+@@ -50,9 +50,12 @@
+ CONFIGRELOAD
+ The configuration has been reloaded (e.g. with asterisk -rx reload)
+ 
+-CONNECT(holdtime)
++CONNECT(holdtime|bridgedchanneluniqueid)
+ The caller was connected to an agent.  Hold time represents the amount
+-of time the caller was on hold.
++of time the caller was on hold. The bridged channel unique ID contains
++the unique ID of the queue member channel that is taking the call. This
++is useful when trying to link recording filenames to a particular
++call in the queue.
+ 
+ ENTERQUEUE(url|callerid)
+ A call has entered the queue.  URL (if specified) and Caller*ID are placed
+
+Modified: trunk/file.c
+===================================================================
+--- trunk/file.c	2006-05-02 19:24:30 UTC (rev 39)
++++ trunk/file.c	2006-05-02 20:18:16 UTC (rev 40)
+@@ -143,6 +143,7 @@
+ 	/* Stop a running stream if there is one */
+ 	if (tmp-&gt;stream) {
+ 		ast_closestream(tmp-&gt;stream);
++		tmp-&gt;stream = NULL;
+ 		if (tmp-&gt;oldwriteformat &amp;&amp; ast_set_write_format(tmp, tmp-&gt;oldwriteformat))
+ 			ast_log(LOG_WARNING, &quot;Unable to restore format back to %d\n&quot;, tmp-&gt;oldwriteformat);
+ 	}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000036.html">[solid-pbx-svn] r39 - trunk/pbx/ael
+</A></li>
+	<LI>Next message: <A HREF="000038.html">[solid-pbx-svn] r41 - in trunk: . configs include/asterisk pbx/ael
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#37">[ date ]</a>
+              <a href="thread.html#37">[ thread ]</a>
+              <a href="subject.html#37">[ subject ]</a>
+              <a href="author.html#37">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

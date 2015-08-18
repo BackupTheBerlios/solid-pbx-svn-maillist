@@ -1,0 +1,373 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r272 - in trunk/channels: . misdn
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r272%20-%20in%20trunk/channels%3A%20.%20misdn&In-Reply-To=%3C200606182101.k5IL1xRe011989%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000266.html">
+   <LINK REL="Next"  HREF="000268.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r272 - in trunk/channels: . misdn</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r272%20-%20in%20trunk/channels%3A%20.%20misdn&In-Reply-To=%3C200606182101.k5IL1xRe011989%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r272 - in trunk/channels: . misdn">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 23:01:59 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000266.html">[solid-pbx-svn] r271 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000268.html">[solid-pbx-svn] r273 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#267">[ date ]</a>
+              <a href="thread.html#267">[ thread ]</a>
+              <a href="subject.html#267">[ subject ]</a>
+              <a href="author.html#267">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 23:01:57 +0200 (Sun, 18 Jun 2006)
+New Revision: 272
+
+Modified:
+   trunk/channels/chan_misdn.c
+   trunk/channels/misdn/isdn_lib.c
+Log:
+Update to Asterisk SVN trunk r32533
+
+------------------------------------------------------------------------
+r32524 | crichter | 2006-06-06 11:40:41 +0200 (Tue, 06 Jun 2006) | 1 line
+
+added select before write to avoid deadlock on full buffer. added some defines for deadlock debugging. added code snippet for generating silence if we don't have data to write.
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_misdn.c
+===================================================================
+--- trunk/channels/chan_misdn.c	2006-06-18 20:55:40 UTC (rev 271)
++++ trunk/channels/chan_misdn.c	2006-06-18 21:01:57 UTC (rev 272)
+@@ -2352,7 +2352,6 @@
+ 		break;
+ 	case TONE_FILE:
+ 		break;
+-
+ 	case TONE_NONE:
+ 		chan_misdn_log(3,cl-&gt;bc-&gt;port,&quot; --&gt; None\n&quot;);
+ 		misdn_lib_tone_generator_stop(cl-&gt;bc);
+@@ -3285,7 +3284,6 @@
+ 				
+ 				ast_queue_frame(ch-&gt;ast, &amp;fr);
+ 			}
+-			
+ 		}
+ 	}
+ 	break;
+@@ -3694,7 +3692,7 @@
+ 		int (*generate)(struct ast_channel *chan, void *tmp, int datalen, int samples);
+ 
+ 		chan_misdn_log(9,bc-&gt;port,&quot;TONE_GEN: len:%d\n&quot;);
+-		
++
+ 		if (!ast-&gt;generator) break;
+ 		
+ 		tmp = ast-&gt;generatordata;
+@@ -3702,13 +3700,13 @@
+ 		generate = ast-&gt;generator-&gt;generate;
+ 		res = generate(ast, tmp, tone_len, tone_len);
+ 		ast-&gt;generatordata = tmp;
++		
+ 		if (res) {
+ 			ast_log(LOG_WARNING, &quot;Auto-deactivating generator\n&quot;);
+ 			ast_deactivate_generator(ast);
+ 		} else {
+ 			bc-&gt;tone_cnt=0;
+ 		}
+-		
+ 	}
+ 	break;
+ 		
+@@ -3728,11 +3726,36 @@
+ 			
+ 			ast_queue_frame(ch-&gt;ast,&amp;frame);
+ 		} else {
+-			int ret=write(ch-&gt;pipe[1], bc-&gt;bframe, bc-&gt;bframe_len);
++			fd_set wrfs;
++			struct timeval tv;
++			tv.tv_sec=0;
++			tv.tv_usec=0;
++			
++			
++			FD_ZERO(&amp;wrfs);
++			FD_SET(ch-&gt;pipe[1],&amp;wrfs);
++			
++			int t=select(FD_SETSIZE,NULL,&amp;wrfs,NULL,&amp;tv);
+ 
+-			if (ret&lt;=0) {
+-				chan_misdn_log(1, bc-&gt;port, &quot;Write returned &lt;=0 (err=%s)\n&quot;,strerror(errno));
++			if (!t) {
++				chan_misdn_log(9, bc-&gt;port, &quot;Select Timed out\n&quot;);
++				break;
+ 			}
++			
++			if (t&lt;0) {
++				chan_misdn_log(-1, bc-&gt;port, &quot;Select Error (err=%s)\n&quot;,strerror(errno));
++				break;
++			}
++			
++			if (FD_ISSET(ch-&gt;pipe[1],&amp;wrfs)) {
++				int ret=write(ch-&gt;pipe[1], bc-&gt;bframe, bc-&gt;bframe_len);
++				
++				if (ret&lt;=0) {
++					chan_misdn_log(-1, bc-&gt;port, &quot;Write returned &lt;=0 (err=%s)\n&quot;,strerror(errno));
++				}
++			} else {
++				chan_misdn_log(1, bc-&gt;port, &quot;Wripe Pipe full!\n&quot;);
++			}
+ 		}
+ 	}
+ 	break;
+
+Modified: trunk/channels/misdn/isdn_lib.c
+===================================================================
+--- trunk/channels/misdn/isdn_lib.c	2006-06-18 20:55:40 UTC (rev 271)
++++ trunk/channels/misdn/isdn_lib.c	2006-06-18 21:01:57 UTC (rev 272)
+@@ -599,7 +599,7 @@
+ 	cb_log(3, stack-&gt;port, &quot;$$$ CLEARING STACK\n&quot;);
+ 	
+ 	ret=mISDN_clear_stack(stack-&gt;midev,bc-&gt;b_stid);
+-	if (ret&lt;0) {
++	if (ret&lt;0 &amp;&amp; errno) {
+ 		cb_log(-1,stack-&gt;port,&quot;clear stack failed [%s]\n&quot;,strerror(errno));
+ 	}
+ 
+@@ -1986,7 +1986,7 @@
+ 	
+ 	if (bc-&gt;generate_tone) {
+ 		cb_event(EVENT_TONE_GENERATE, bc, glob_mgr-&gt;user_data);
+-
++		
+ 		if ( !bc-&gt;nojitter ) {
+ 			misdn_tx_jitter(bc,len);
+ 		}
+@@ -2002,13 +2002,14 @@
+ void misdn_tx_jitter(struct misdn_bchannel *bc, int len)
+ {
+ 	char buf[4096 + mISDN_HEADER_LEN];
++	char *data=&amp;buf[mISDN_HEADER_LEN];
+ 	iframe_t *txfrm= (iframe_t*)buf;
+ 	int jlen, r;
+ 	
+-	jlen=cb_jb_empty(bc,&amp;buf[mISDN_HEADER_LEN],len);
++	jlen=cb_jb_empty(bc,data,len);
+ 	
+ 	if (jlen) {
+-		flip_buf_bits( &amp;buf[mISDN_HEADER_LEN], jlen);
++		flip_buf_bits( data, jlen);
+ 		
+ 		if (jlen &lt; len) {
+ 			cb_log(5,bc-&gt;port,&quot;Jitterbuffer Underrun.\n&quot;);
+@@ -2024,6 +2025,33 @@
+ 		cb_log(9, bc-&gt;port, &quot;Transmitting %d samples 2 misdn\n&quot;, txfrm-&gt;len);
+ 		
+ 		r=mISDN_write( glob_mgr-&gt;midev, buf, txfrm-&gt;len + mISDN_HEADER_LEN, 8000 );
++	} else {
++#ifdef MISDN_GEN_SILENCE
++		int cnt=len/TONE_SILENCE_SIZE;
++		int rest=len%TONE_SILENCE_SIZE;
++		int i;
++
++		for (i=0; i&lt;cnt; i++) {
++			memcpy(data, tone_silence_flip, TONE_SILENCE_SIZE );
++			data +=TONE_SILENCE_SIZE;
++		}
++
++		if (rest) {
++			memcpy(data, tone_silence_flip, rest);
++		}
++
++		txfrm-&gt;prim = DL_DATA|REQUEST;
++
++		txfrm-&gt;dinfo = 0;
++
++		txfrm-&gt;addr = bc-&gt;addr|FLG_MSG_DOWN; /*  | IF_DOWN; */
++
++		txfrm-&gt;len =len;
++		cb_log(9, bc-&gt;port, &quot;Transmitting %d samples 2 misdn\n&quot;, txfrm-&gt;len);
++
++		r=mISDN_write( glob_mgr-&gt;midev, buf, txfrm-&gt;len + mISDN_HEADER_LEN, 8000 );
++#endif
++
+ 	}
+ }
+ 
+@@ -2201,15 +2229,39 @@
+ #endif
+ 		
+ 		if ( (bc-&gt;bc_state == BCHAN_ACTIVATED) &amp;&amp; frm-&gt;len &gt; 0) {
+-			if (  !do_tone(bc, frm-&gt;len)   ) {
++			int t;
++
++#ifdef MISDN_B_DEBUG
++			cb_log(0,bc-&gt;port,&quot;do_tone START\n&quot;);
++#endif
++			t=do_tone(bc,frm-&gt;len);
++
++#ifdef MISDN_B_DEBUG
++			cb_log(0,bc-&gt;port,&quot;do_tone STOP (%d)\n&quot;,t);
++#endif
++			if (  !t ) {
+ 				
+ 				if ( misdn_cap_is_speech(bc-&gt;capability)) {
+ 					if ( !bc-&gt;nojitter ) {
++#ifdef MISDN_B_DEBUG
++						cb_log(0,bc-&gt;port,&quot;tx_jitter START\n&quot;);
++#endif
+ 						misdn_tx_jitter(bc,frm-&gt;len);
++#ifdef MISDN_B_DEBUG
++						cb_log(0,bc-&gt;port,&quot;tx_jitter STOP\n&quot;);
++#endif
+ 					}
+ 				}
++
++#ifdef MISDN_B_DEBUG	
++				cb_log(0,bc-&gt;port,&quot;EVENT_B_DATA START\n&quot;);
++#endif
+ 				
+ 				int i=cb_event( EVENT_BCHAN_DATA, bc, glob_mgr-&gt;user_data);
++#ifdef MISDN_B_DEBUG	
++				cb_log(0,bc-&gt;port,&quot;EVENT_B_DATA STOP\n&quot;);
++#endif
++				
+ 				if (i&lt;0) {
+ 					cb_log(10,stack-&gt;port,&quot;cb_event returned &lt;0\n&quot;);
+ 					/*clean_up_bc(bc);*/
+@@ -2262,7 +2314,8 @@
+ 	if (!stack || !stack-&gt;nt) {
+ 		return 0;
+ 	}
+-  
++
++	
+ 	if ((err=stack-&gt;nst.l1_l2(&amp;stack-&gt;nst,msg))) {
+     
+ 		if (nt_err_cnt &gt; 0 ) {
+@@ -2520,6 +2573,8 @@
+ 		case SSTATUS_L1_DEACTIVATED:
+ 			cb_log(1, 0, &quot;MGMT: SSTATUS: L1_DEACTIVATED \n&quot;);
+ 			stack-&gt;l1link=0;
++
++			clear_l3(stack);
+ 			break;
+ 
+ 		case SSTATUS_L2_ESTABLISHED:
+@@ -3096,10 +3151,20 @@
+ 	}
+ 
+ 	if ( ((frm-&gt;addr | ISDN_PID_BCHANNEL_BIT )&gt;&gt; 28 ) == 0x5) {
+-		if (handle_bchan(msg)) 
++#ifdef MISDN_HANDLER_DEBUG
++		cb_log(0,0,&quot;handle_bchan START\n&quot;);
++#endif
++		if (handle_bchan(msg)) {
++#ifdef MISDN_HANDLER_DEBUG
++			cb_log(0,0,&quot;handle_bchan STOP\n&quot;);
++#endif
+ 			return 0 ;
++		}
++#ifdef MISDN_HANDLER_DEBUG
++		cb_log(0,0,&quot;handle_bchan NOTSTOP\n&quot;);
++#endif	
+ 	}	
+-
++	
+ 	if (handle_timers(msg)) 
+ 		return 0 ;
+ 	
+@@ -3112,16 +3177,46 @@
+ 	/* Its important to handle l1 AFTER l2  */
+ 	if (handle_l1(msg)) 
+ 		return 0 ;
+-
+-	if (handle_frm_nt(msg)) 
++	
++#ifdef MISDN_HANDLER_DEBUG
++	cb_log(0,0,&quot;handle_frm_nt START\n&quot;);
++#endif
++	if (handle_frm_nt(msg)) {
++#ifdef MISDN_HANDLER_DEBUG
++		cb_log(0,0,&quot;handle_frm_nt STOP\n&quot;);
++#endif
+ 		return 0;
+-
+-	if (handle_frm(msg))
++	}
++#ifdef MISDN_HANDLER_DEBUG
++	cb_log(0,0,&quot;handle_frm_nt NOTSTOP\n&quot;);
++	
++	cb_log(0,0,&quot;handle_frm START\n&quot;);
++#endif
++	
++	if (handle_frm(msg)) {
++#ifdef MISDN_HANDLER_DEBUG
++		cb_log(0,0,&quot;handle_frm STOP\n&quot;);
++#endif
++		
+ 		return 0;
+-
+-	if (handle_err(msg)) 
++	}
++#ifdef MISDN_HANDLER_DEBUG
++	cb_log(0,0,&quot;handle_frm NOTSTOP\n&quot;);	
++	
++	cb_log(0,0,&quot;handle_err START\n&quot;);
++#endif
++	
++	if (handle_err(msg)) {
++#ifdef MISDN_HANDLER_DEBUG
++		cb_log(0,0,&quot;handle_err STOP\n&quot;);
++#endif
+ 		return 0 ;
++	}
++#ifdef MISDN_HANDLER_DEBUG
++	cb_log(0,0,&quot;handle_err NOTSTOP\n&quot;);
++#endif
+ 
++	
+ 	cb_log(-1, 0, &quot;Unhandled Message: prim %x len %d from addr %x, dinfo %x on this port.\n&quot;,frm-&gt;prim, frm-&gt;len, frm-&gt;addr, frm-&gt;dinfo);		
+ 	free_msg(msg);
+ 	
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000266.html">[solid-pbx-svn] r271 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000268.html">[solid-pbx-svn] r273 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#267">[ date ]</a>
+              <a href="thread.html#267">[ thread ]</a>
+              <a href="subject.html#267">[ subject ]</a>
+              <a href="author.html#267">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

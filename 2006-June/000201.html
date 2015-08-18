@@ -1,0 +1,204 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r206 - in trunk: channels configs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r206%20-%20in%20trunk%3A%20channels%20configs&In-Reply-To=%3C200606010525.k515Phh2023119%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000200.html">
+   <LINK REL="Next"  HREF="000202.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r206 - in trunk: channels configs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r206%20-%20in%20trunk%3A%20channels%20configs&In-Reply-To=%3C200606010525.k515Phh2023119%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r206 - in trunk: channels configs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu Jun  1 07:25:43 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000200.html">[solid-pbx-svn] r205 - in trunk: . cdr res
+</A></li>
+        <LI>Next message: <A HREF="000202.html">[solid-pbx-svn] r207 - in trunk: channels configs include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#201">[ date ]</a>
+              <a href="thread.html#201">[ thread ]</a>
+              <a href="subject.html#201">[ subject ]</a>
+              <a href="author.html#201">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-01 07:25:31 +0200 (Thu, 01 Jun 2006)
+New Revision: 206
+
+Modified:
+   trunk/channels/chan_skinny.c
+   trunk/configs/skinny.conf.sample
+Log:
+Update to Asterisk SVN trunk r31273
+
+------------------------------------------------------------------------
+r31250 | north | 2006-06-01 06:35:00 +0200 (Thu, 01 Jun 2006) | 4 lines
+
+Nobody saw this coming, I bet.
+
+jitterbuffer!
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_skinny.c
+===================================================================
+--- trunk/channels/chan_skinny.c	2006-06-01 00:25:36 UTC (rev 205)
++++ trunk/channels/chan_skinny.c	2006-06-01 05:25:31 UTC (rev 206)
+@@ -69,6 +69,7 @@
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/dsp.h&quot;
+ #include &quot;asterisk/stringfields.h&quot;
++#include &quot;asterisk/abstract_jb.h&quot;
+ 
+ /*************************************
+  * Skinny/Asterisk Protocol Settings *
+@@ -116,6 +117,15 @@
+ #define htoles(x) __bswap_16(x)
+ #endif
+ 
++/*! Global jitterbuffer configuration - by default, jb is disabled */
++static struct ast_jb_conf default_jbconf =
++{
++	.flags = 0,
++	.max_size = -1,
++	.resync_threshold = -1,
++	.impl = &quot;&quot;
++};
++static struct ast_jb_conf global_jbconf;
+ 
+ /*********************
+  * Protocol Messages *
+@@ -816,6 +826,8 @@
+ 	int nat;
+ 	int outgoing;
+ 	int alreadygone;
++	struct ast_jb_conf jbconf;
++
+ 	struct skinny_subchannel *next;
+ };
+ 
+@@ -1603,6 +1615,10 @@
+ 							callnums++;
+ 							sub-&gt;cxmode = SKINNY_CX_INACTIVE;
+ 							sub-&gt;nat = nat;
++
++							/* Assign default jb conf to the new skinny_subchannel */
++							memcpy(&amp;sub-&gt;jbconf, &amp;global_jbconf, sizeof(struct ast_jb_conf));
++
+ 							sub-&gt;next = l-&gt;sub;
+ 							l-&gt;sub = sub;
+ 						} else {
+@@ -2292,6 +2308,10 @@
+ 				tmp = NULL;
+ 			}
+ 		}
++
++		/* Configure the new channel jb */
++		if (tmp &amp;&amp; sub &amp;&amp; sub-&gt;rtp)
++			ast_jb_configure(tmp, &amp;sub-&gt;jbconf);
+ 	} else {
+ 		ast_log(LOG_WARNING, &quot;Unable to allocate channel structure\n&quot;);
+ 	}
+@@ -3094,10 +3114,21 @@
+ 		ast_log(LOG_NOTICE, &quot;Unable to load config %s, Skinny disabled\n&quot;, config);
+ 		return 0;
+ 	}
++	memset(&amp;bindaddr, 0, sizeof(bindaddr));
++
++	/* Copy the default jb config over global_jbconf */
++	memcpy(&amp;global_jbconf, &amp;default_jbconf, sizeof(struct ast_jb_conf));
++
+ 	/* load the general section */
+-	memset(&amp;bindaddr, 0, sizeof(bindaddr));
+ 	v = ast_variable_browse(cfg, &quot;general&quot;);
+ 	while(v) {
++		/* handle jb conf */
++		if (!ast_jb_read_conf(&amp;global_jbconf, v-&gt;name, v-&gt;value))
++		{
++			v = v-&gt;next;
++			continue;
++		}
++
+ 		/* Create the interface list */
+ 		if (!strcasecmp(v-&gt;name, &quot;bindaddr&quot;)) {
+ 			if (!(hp = ast_gethostbyname(v-&gt;value, &amp;ahp))) {
+
+Modified: trunk/configs/skinny.conf.sample
+===================================================================
+--- trunk/configs/skinny.conf.sample	2006-06-01 00:25:36 UTC (rev 205)
++++ trunk/configs/skinny.conf.sample	2006-06-01 05:25:31 UTC (rev 206)
+@@ -10,7 +10,34 @@
+ ;allow=all
+ ;disallow=
+ 
++;------------------------------ JITTER BUFFER CONFIGURATION --------------------------
++;jbenable = yes              ; Enables the use of a jitterbuffer on the receiving side of a
++                             ; skinny channel. Defaults to &quot;no&quot;. An enabled jitterbuffer will
++                             ; be used only if the sending side can create and the receiving
++                             ; side can not accept jitter. The skinny channel can accept
++                             ; jitter, thus a jitterbuffer on the receive skinny side will be
++                             ; used only if it is forced and enabled.
+ 
++;jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a skinny
++                             ; channel. Defaults to &quot;no&quot;.
++
++;jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
++
++;jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
++                             ; resynchronized. Useful to improve the quality of the voice, with
++                             ; big jumps in/broken timestamps, usualy sent from exotic devices
++                             ; and programs. Defaults to 1000.
++
++;jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a
++                             ; skinny channel. Two implementation are currently available
++                             ; - &quot;fixed&quot; (with size always equals to jbmaxsize)
++                             ; - &quot;adaptive&quot; (with variable size, actually the new jb of IAX2).
++                             ; Defaults to fixed.
++
++;jblog = no                  ; Enables jitterbuffer frame logging. Defaults to &quot;no&quot;.
++;-----------------------------------------------------------------------------------
++
++
+ ; Typical config for 12SP+
+ ;[florian]
+ ;device=SEP00D0BA847E6B
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000200.html">[solid-pbx-svn] r205 - in trunk: . cdr res
+</A></li>
+	<LI>Next message: <A HREF="000202.html">[solid-pbx-svn] r207 - in trunk: channels configs include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#201">[ date ]</a>
+              <a href="thread.html#201">[ thread ]</a>
+              <a href="subject.html#201">[ subject ]</a>
+              <a href="author.html#201">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

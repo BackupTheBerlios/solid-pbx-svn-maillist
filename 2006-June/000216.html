@@ -1,0 +1,242 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r221 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r221%20-%20trunk&In-Reply-To=%3C200606170339.k5H3d6uQ028195%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000215.html">
+   <LINK REL="Next"  HREF="000217.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r221 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r221%20-%20trunk&In-Reply-To=%3C200606170339.k5H3d6uQ028195%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r221 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 17 05:39:06 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000215.html">[solid-pbx-svn] r220 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000217.html">[solid-pbx-svn] r222 - in trunk: . include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#216">[ date ]</a>
+              <a href="thread.html#216">[ thread ]</a>
+              <a href="subject.html#216">[ subject ]</a>
+              <a href="author.html#216">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-17 05:39:04 +0200 (Sat, 17 Jun 2006)
+New Revision: 221
+
+Modified:
+   trunk/frame.c
+Log:
+Update to Asterisk SVN trunk r31498
+
+------------------------------------------------------------------------
+r31496 | oej | 2006-06-01 21:28:01 +0200 (Thu, 01 Jun 2006) | 2 lines
+
+Doxygen reformatting
+
+------------------------------------------------------------------------
+r31497 | oej | 2006-06-01 21:48:31 +0200 (Thu, 01 Jun 2006) | 2 lines
+
+Formatting fixes
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/frame.c
+===================================================================
+--- trunk/frame.c	2006-06-17 03:38:37 UTC (rev 220)
++++ trunk/frame.c	2006-06-17 03:39:04 UTC (rev 221)
+@@ -18,7 +18,7 @@
+ 
+ /*! \file
+  *
+- * \brief Frame manipulation routines
++ * \brief Frame and codec manipulation routines
+  *
+  * \author Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt; 
+  */
+@@ -91,7 +91,7 @@
+ 	{ 1, AST_FORMAT_LPC10, &quot;lpc10&quot;, &quot;LPC10&quot; },	/*!&lt; codec_lpc10.c */
+ 	{ 1, AST_FORMAT_G729A, &quot;g729&quot;, &quot;G.729A&quot; },	/*!&lt; Binary commercial distribution */
+ 	{ 1, AST_FORMAT_SPEEX, &quot;speex&quot;, &quot;SpeeX&quot; },	/*!&lt; codec_speex.c */
+-	{ 1, AST_FORMAT_ILBC, &quot;ilbc&quot;, &quot;iLBC&quot;},	/*!&lt; codec_ilbc.c */
++	{ 1, AST_FORMAT_ILBC, &quot;ilbc&quot;, &quot;iLBC&quot;},		/*!&lt; codec_ilbc.c */
+ 	{ 0, 0, &quot;nothing&quot;, &quot;undefined&quot; },
+ 	{ 0, 0, &quot;nothing&quot;, &quot;undefined&quot; },
+ 	{ 0, 0, &quot;nothing&quot;, &quot;undefined&quot; },
+@@ -198,6 +198,7 @@
+ {
+ 	struct ast_frame *opt;
+ 	int len;
++
+ 	/* IF we have an optimization frame, send it */
+ 	if (s-&gt;opt) {
+ 		if (s-&gt;opt-&gt;offset &lt; AST_FRIENDLY_OFFSET)
+@@ -480,13 +481,14 @@
+ }
+ 
+ #endif /* unused functions */
++
+ void ast_swapcopy_samples(void *dst, const void *src, int samples)
+ {
+ 	int i;
+ 	unsigned short *dst_s = dst;
+ 	const unsigned short *src_s = src;
+ 
+-	for (i=0; i&lt;samples; i++)
++	for (i = 0; i &lt; samples; i++)
+ 		dst_s[i] = (src_s[i]&lt;&lt;8) | (src_s[i]&gt;&gt;8);
+ }
+ 
+@@ -515,12 +517,14 @@
+ 	return ret;
+ }
+ 
+-char *ast_getformatname_multiple(char *buf, size_t size, int format) {
+-
++char *ast_getformatname_multiple(char *buf, size_t size, int format)
++{
+ 	int x;
+ 	unsigned len;
+ 	char *start, *end = buf;
+-	if (!size) return buf;
++
++	if (!size)
++		return buf;
+ 	snprintf(end, size, &quot;0x%x (&quot;, format);
+ 	len = strlen(end);
+ 	end += len;
+@@ -544,13 +548,13 @@
+ static struct ast_codec_alias_table {
+ 	char *alias;
+ 	char *realname;
+-
+ } ast_codec_alias_table[] = {
+-	{&quot;slinear&quot;,&quot;slin&quot;},
+-	{&quot;g723.1&quot;,&quot;g723&quot;},
++	{ &quot;slinear&quot;, &quot;slin&quot;},
++	{ &quot;g723.1&quot;, &quot;g723&quot;},
+ };
+ 
+-static const char *ast_expand_codec_alias(const char *in) {
++static const char *ast_expand_codec_alias(const char *in)
++{
+ 	int x;
+ 
+ 	for (x = 0; x &lt; sizeof(ast_codec_alias_table) / sizeof(ast_codec_alias_table[0]); x++) {
+@@ -567,8 +571,8 @@
+ 	all = strcasecmp(name, &quot;all&quot;) ? 0 : 1;
+ 	for (x = 0; x &lt; sizeof(AST_FORMAT_LIST) / sizeof(AST_FORMAT_LIST[0]); x++) {
+ 		if(AST_FORMAT_LIST[x].visible &amp;&amp; (all || 
+-										  !strcasecmp(AST_FORMAT_LIST[x].name,name) ||
+-										  !strcasecmp(AST_FORMAT_LIST[x].name,ast_expand_codec_alias(name)))) {
++			  !strcasecmp(AST_FORMAT_LIST[x].name,name) ||
++			  !strcasecmp(AST_FORMAT_LIST[x].name,ast_expand_codec_alias(name)))) {
+ 			format |= AST_FORMAT_LIST[x].bits;
+ 			if(!all)
+ 				break;
+@@ -578,7 +582,8 @@
+ 	return format;
+ }
+ 
+-char *ast_codec2str(int codec) {
++char *ast_codec2str(int codec)
++{
+ 	int x;
+ 	char *ret = &quot;unknown&quot;;
+ 	for (x = 0; x &lt; sizeof(AST_FORMAT_LIST) / sizeof(AST_FORMAT_LIST[0]); x++) {
+@@ -648,13 +653,13 @@
+ 	if (sscanf(argv[2],&quot;%d&quot;,&amp;codec) != 1)
+ 		return RESULT_SHOWUSAGE;
+ 
+-	for (i=0;i&lt;32;i++)
++	for (i = 0; i &lt; 32; i++)
+ 		if (codec &amp; (1 &lt;&lt; i)) {
+ 			found = 1;
+ 			ast_cli(fd, &quot;%11u (1 &lt;&lt; %2d)  %s\n&quot;,1 &lt;&lt; i,i,ast_codec2str(1&lt;&lt;i));
+ 		}
+ 
+-	if (! found)
++	if (!found)
+ 		ast_cli(fd, &quot;Codec %d not found\n&quot;, codec);
+ 
+ 	return RESULT_SUCCESS;
+@@ -938,7 +943,7 @@
+ 	return slot ? AST_FORMAT_LIST[slot-1].bits : 0;
+ }
+ 
+-/*! \brief ast_codec_pref_remove: Remove codec from pref list ---*/
++/*! \brief Remove codec from pref list */
+ void ast_codec_pref_remove(struct ast_codec_pref *pref, int format)
+ {
+ 	struct ast_codec_pref oldorder;
+@@ -961,7 +966,7 @@
+ 	
+ }
+ 
+-/*! \brief ast_codec_pref_append: Append codec to list ---*/
++/*! \brief Append codec to list */
+ int ast_codec_pref_append(struct ast_codec_pref *pref, int format)
+ {
+ 	int x, newindex = -1;
+@@ -988,7 +993,7 @@
+ }
+ 
+ 
+-/*! \brief ast_codec_choose: Pick a codec ---*/
++/*! \brief Pick a codec */
+ int ast_codec_choose(struct ast_codec_pref *pref, int formats, int find_best)
+ {
+ 	int x, ret = 0, slot;
+@@ -996,9 +1001,9 @@
+ 	for (x = 0; x &lt; sizeof(AST_FORMAT_LIST) / sizeof(AST_FORMAT_LIST[0]); x++) {
+ 		slot = pref-&gt;order[x];
+ 
+-		if(!slot)
++		if (!slot)
+ 			break;
+-		if ( formats &amp; AST_FORMAT_LIST[slot-1].bits ) {
++		if (formats &amp; AST_FORMAT_LIST[slot-1].bits) {
+ 			ret = AST_FORMAT_LIST[slot-1].bits;
+ 			break;
+ 		}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000215.html">[solid-pbx-svn] r220 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000217.html">[solid-pbx-svn] r222 - in trunk: . include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#216">[ date ]</a>
+              <a href="thread.html#216">[ thread ]</a>
+              <a href="subject.html#216">[ subject ]</a>
+              <a href="author.html#216">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

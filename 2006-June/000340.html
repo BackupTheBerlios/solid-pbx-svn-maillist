@@ -1,0 +1,1367 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r345 - in trunk: . channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r345%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200606280102.k5S12nTj008860%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000339.html">
+   <LINK REL="Next"  HREF="000341.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r345 - in trunk: . channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r345%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200606280102.k5S12nTj008860%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r345 - in trunk: . channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:02:49 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000339.html">[solid-pbx-svn] r344 - trunk/utils
+</A></li>
+        <LI>Next message: <A HREF="000341.html">[solid-pbx-svn] r346 - in trunk: . configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#340">[ date ]</a>
+              <a href="thread.html#340">[ thread ]</a>
+              <a href="subject.html#340">[ subject ]</a>
+              <a href="author.html#340">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:02:35 +0200 (Wed, 28 Jun 2006)
+New Revision: 345
+
+Modified:
+   trunk/channel.c
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r33893
+
+------------------------------------------------------------------------
+r33890 | mogorman | 2006-06-13 20:35:53 +0200 (Tue, 13 Jun 2006) | 4 lines
+
+adds support for t38 pass through patch brought up to trunk from
+bug 5090 by josh colp.  Thanks to everyone who help get this patch through
+especially to the author Steven Underwood.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-06-28 01:01:35 UTC (rev 344)
++++ trunk/channel.c	2006-06-28 01:02:35 UTC (rev 345)
+@@ -2385,6 +2385,10 @@
+ 		res = (chan-&gt;tech-&gt;write_video == NULL) ? 0 :
+ 			chan-&gt;tech-&gt;write_video(chan, fr);
+ 		break;
++	case AST_FRAME_MODEM:
++		res = (chan-&gt;tech-&gt;write == NULL) ? 0 :
++			chan-&gt;tech-&gt;write(chan, fr);
++		break;
+ 	case AST_FRAME_VOICE:
+ 		if (chan-&gt;tech-&gt;write == NULL)
+ 			break;	/*! \todo XXX should return 0 maybe ? */
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-28 01:01:35 UTC (rev 344)
++++ trunk/channels/chan_sip.c	2006-06-28 01:02:35 UTC (rev 345)
+@@ -122,6 +122,7 @@
+ #include &quot;asterisk/sched.h&quot;
+ #include &quot;asterisk/io.h&quot;
+ #include &quot;asterisk/rtp.h&quot;
++#include &quot;asterisk/udptl.h&quot;
+ #include &quot;asterisk/acl.h&quot;
+ #include &quot;asterisk/manager.h&quot;
+ #include &quot;asterisk/callerid.h&quot;
+@@ -722,9 +723,13 @@
+ #define SIP_PAGE2_ALLOWOVERLAP		(1 &lt;&lt; 11)	/*!&lt; Allow overlap dialing ? */
+ #define SIP_PAGE2_SUBSCRIBEMWIONLY	(1 &lt;&lt; 12)	/*!&lt; Only issue MWI notification if subscribed to */
+ #define SIP_PAGE2_INC_RINGING		(1 &lt;&lt; 13)	/*!&lt; Did this connection increment the counter of in-use calls? */
++#define SIP_PAGE2_T38SUPPORT		(7 &lt;&lt; 14)	/*!&lt; T38 Fax Passthrough Support */
++#define SIP_PAGE2_T38SUPPORT_UDPTL	(1 &lt;&lt; 14)	/*!&lt; 14: T38 Fax Passthrough Support */
++#define SIP_PAGE2_T38SUPPORT_RTP	(2 &lt;&lt; 14)	/*!&lt; 15: T38 Fax Passthrough Support */
++#define SIP_PAGE2_T38SUPPORT_TCP	(4 &lt;&lt; 14)	/*!&lt; 16: T38 Fax Passthrough Support */
+ 
+ #define SIP_PAGE2_FLAGS_TO_COPY \
+-	(SIP_PAGE2_ALLOWSUBSCRIBE | SIP_PAGE2_ALLOWOVERLAP | SIP_PAGE2_VIDEOSUPPORT)
++	(SIP_PAGE2_ALLOWSUBSCRIBE | SIP_PAGE2_ALLOWOVERLAP | SIP_PAGE2_VIDEOSUPPORT | SIP_PAGE2_T38SUPPORT)
+ 
+ /* SIP packet flags */
+ #define SIP_PKT_DEBUG		(1 &lt;&lt; 0)	/*!&lt; Debug this packet */
+@@ -733,10 +738,55 @@
+ #define SIP_PKT_IGNORE_RESP	(1 &lt;&lt; 3)	/*!&lt; Resp ignore - ??? */
+ #define SIP_PKT_IGNORE_REQ	(1 &lt;&lt; 4)	/*!&lt; Req ignore - ??? */
+ 
++/* T.38 set of flags */
++#define T38FAX_FILL_BIT_REMOVAL		(1 &lt;&lt; 0)	/*!&lt; Default: 0 (unset)*/
++#define T38FAX_TRANSCODING_MMR			(1 &lt;&lt; 1)	/*!&lt; Default: 0 (unset)*/
++#define T38FAX_TRANSCODING_JBIG		(1 &lt;&lt; 2)	/*!&lt; Default: 0 (unset)*/
++/* Rate management */
++#define T38FAX_RATE_MANAGEMENT_TRANSFERED_TCF	(0 &lt;&lt; 3)
++#define T38FAX_RATE_MANAGEMENT_LOCAL_TCF	(1 &lt;&lt; 3)	/*!&lt; Unset for transferredTCF (UDPTL), set for localTCF (TPKT) */
++/* UDP Error correction */
++#define T38FAX_UDP_EC_NONE			(0 &lt;&lt; 4)	/*!&lt; two bits, if unset NO t38UDPEC field in T38 SDP*/
++#define T38FAX_UDP_EC_FEC			(1 &lt;&lt; 4)	/*!&lt; Set for t38UDPFEC */
++#define T38FAX_UDP_EC_REDUNDANCY		(2 &lt;&lt; 4)	/*!&lt; Set for t38UDPRedundancy */
++/* T38 Spec version */
++#define T38FAX_VERSION				(3 &lt;&lt; 6)	/*!&lt; two bits, 2 values so far, up to 4 values max */
++#define T38FAX_VERSION_0			(0 &lt;&lt; 6)	/*!&lt; Version 0 */
++#define T38FAX_VERSION_1			(1 &lt;&lt; 6)	/*!&lt; Version 1 */
++/* Maximum Fax Rate */
++#define T38FAX_RATE_2400			(1 &lt;&lt; 8)	/*!&lt; 2400 bps t38FaxRate */
++#define T38FAX_RATE_4800			(1 &lt;&lt; 9)	/*!&lt; 4800 bps t38FaxRate */
++#define T38FAX_RATE_7200			(1 &lt;&lt; 10)	/*!&lt; 7200 bps t38FaxRate */
++#define T38FAX_RATE_9600			(1 &lt;&lt; 11)	/*!&lt; 9600 bps t38FaxRate */
++#define T38FAX_RATE_12000			(1 &lt;&lt; 12)	/*!&lt; 12000 bps t38FaxRate */
++#define T38FAX_RATE_14400			(1 &lt;&lt; 13)	/*!&lt; 14400 bps t38FaxRate */
++
++/*!&lt; This is default: NO MMR and JBIG trancoding, NO fill bit removal, transferredTCF TCF, UDP FEC, Version 0 and 9600 max fax rate */
++static int global_t38_capability = T38FAX_VERSION_0 | T38FAX_RATE_2400 | T38FAX_RATE_4800 | T38FAX_RATE_7200 | T38FAX_RATE_9600;
++
+ #define sipdebug		ast_test_flag(&amp;global_flags[1], SIP_PAGE2_DEBUG)
+ #define sipdebug_config		ast_test_flag(&amp;global_flags[1], SIP_PAGE2_DEBUG_CONFIG)
+ #define sipdebug_console	ast_test_flag(&amp;global_flags[1], SIP_PAGE2_DEBUG_CONSOLE)
+ 
++/*! \brief T38 Sates for a call */
++enum t38state {
++	T38_DISABLED = 0,		/*! Not enabled */
++	T38_LOCAL_DIRECT,		/*! Offered from local */
++	T38_LOCAL_REINVITE,		/*! Offered from local - REINVITE */
++	T38_PEER_DIRECT,		/*! Offered from peer */
++	T38_PEER_REINVITE,		/*! Offered from peer - REINVITE */
++	T38_ENABLED			/*! Negotiated (enabled) */
++};
++
++/*! \brief T.38 channel settings (at some point we need to make this alloc'ed */
++struct t38properties {
++	struct ast_flags t38support;	/*!&lt; Flag for udptl, rtp or tcp support for this session */
++	int capability;			/*!&lt; Our T38 capability */
++	int peercapability;		/*!&lt; Peers T38 capability */
++	int jointcapability;		/*!&lt; Supported T38 capability at both ends */
++	enum t38state state;		/*!&lt; T.38 state */
++};
++
+ /*! \brief Parameters to know status of transfer */
+ enum referstatus {
+ 	REFER_IDLE,		/*!&lt; No REFER is in progress */
+@@ -841,6 +891,9 @@
+ 	int noncodeccapability;			/*!&lt; DTMF RFC2833 telephony-event */
+ 	int redircodecs;			/*!&lt; Redirect codecs */
+ 	int maxcallbitrate;			/*!&lt; Maximum Call Bitrate for Video Calls */	
++	struct t38properties t38;		/*!&lt; T38 settings */
++	struct sockaddr_in udptlredirip;	/*!&lt; Where our T.38 UDPTL should be going if not to us */
++	struct ast_udptl *udptl;		/*!&lt; T.38 UDPTL session */
+ 	int callingpres;			/*!&lt; Calling presentation */
+ 	int authtries;				/*!&lt; Times we've tried to authenticate */
+ 	int expiry;				/*!&lt; How long we take to expire */
+@@ -1413,8 +1466,14 @@
+ static struct ast_rtp *sip_get_rtp_peer(struct ast_channel *chan);
+ static struct ast_rtp *sip_get_vrtp_peer(struct ast_channel *chan);
+ static int sip_get_codec(struct ast_channel *chan);
+-static struct ast_frame *sip_rtp_read(struct ast_channel *ast, struct sip_pvt *p);
++static struct ast_frame *sip_rtp_read(struct ast_channel *ast, struct sip_pvt *p, int *faxdetect);
+ 
++/*------ T38 Support --------- */
++static int sip_handle_t38_reinvite(struct ast_channel *chan, struct sip_pvt *pvt, int reinvite); /*!&lt; T38 negotiation helper function */
++static int transmit_response_with_t38_sdp(struct sip_pvt *p, char *msg, struct sip_request *req, int retrans);
++static int transmit_reinvite_with_t38_sdp(struct sip_pvt *p);
++static struct ast_udptl *sip_get_udptl_peer(struct ast_channel *chan);
++static int sip_set_udptl_peer(struct ast_channel *chan, struct ast_udptl *udptl);
+ 
+ /*! \brief Definition of this channel for PBX channel registration */
+ static const struct ast_channel_tech sip_tech = {
+@@ -1456,6 +1515,13 @@
+ 	get_codec: sip_get_codec,
+ };
+ 
++/*! \brief Interface structure with callbacks used to connect to UDPTL module*/
++static struct ast_udptl_protocol sip_udptl = {
++	type: &quot;SIP&quot;,
++	get_udptl_info: sip_get_udptl_peer,
++	set_udptl_peer: sip_set_udptl_peer,
++};
++
+ /*! \brief Convert transfer status to string */
+ static char *referstatus2str(enum referstatus rstatus)
+ {
+@@ -2391,6 +2457,24 @@
+ 		r-&gt;vrtp = NULL;
+ 	}
+ 	r-&gt;prefs = peer-&gt;prefs;
++	if (ast_test_flag(&amp;r-&gt;flags[1], SIP_PAGE2_T38SUPPORT)) {
++		r-&gt;t38.capability = global_t38_capability;
++		if (r-&gt;udptl) {
++			if (ast_udptl_get_error_correction_scheme(r-&gt;udptl) == UDPTL_ERROR_CORRECTION_FEC )
++				r-&gt;t38.capability |= T38FAX_UDP_EC_FEC;
++			else if (ast_udptl_get_error_correction_scheme(r-&gt;udptl) == UDPTL_ERROR_CORRECTION_REDUNDANCY )
++				r-&gt;t38.capability |= T38FAX_UDP_EC_REDUNDANCY;
++			else if (ast_udptl_get_error_correction_scheme(r-&gt;udptl) == UDPTL_ERROR_CORRECTION_NONE )
++				r-&gt;t38.capability |= T38FAX_UDP_EC_NONE;
++			r-&gt;t38.capability |= T38FAX_RATE_MANAGEMENT_TRANSFERED_TCF;
++			if (option_debug &gt; 1)
++				ast_log(LOG_DEBUG,&quot;Our T38 capability (%d)\n&quot;, r-&gt;t38.capability);
++		}
++		r-&gt;t38.jointcapability = r-&gt;t38.capability;
++	} else if (r-&gt;udptl) {
++		ast_udptl_destroy(r-&gt;udptl);
++		r-&gt;udptl = NULL;
++	}
+ 	natflags = ast_test_flag(&amp;r-&gt;flags[0], SIP_NAT) &amp; SIP_NAT_ROUTE;
+ 	if (r-&gt;rtp) {
+ 		if (option_debug)
+@@ -2404,6 +2488,11 @@
+ 		ast_rtp_setnat(r-&gt;vrtp, natflags);
+ 		ast_rtp_setdtmf(r-&gt;vrtp, 0);
+ 	}
++	if (r-&gt;udptl) {
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Setting NAT on UDPTL to %s\n&quot;, natflags ? &quot;On&quot; : &quot;Off&quot;);
++		ast_udptl_setnat(r-&gt;udptl, natflags);
++	}
+ 	ast_string_field_set(r, peername, peer-&gt;username);
+ 	ast_string_field_set(r, authname, peer-&gt;username);
+ 	ast_string_field_set(r, username, peer-&gt;username);
+@@ -2567,7 +2656,12 @@
+ 		} else if (!strcasecmp(ast_var_name(current),&quot;SIPTRANSFER_REPLACES&quot;)) {
+ 			/* We're replacing a call. */
+ 			p-&gt;options-&gt;replaces = ast_var_value(current);
++		} else if (!strcasecmp(ast_var_name(current),&quot;T38CALL&quot;)) {
++			p-&gt;t38.state = T38_LOCAL_DIRECT;
++			if (option_debug)
++				ast_log(LOG_DEBUG,&quot;T38State change to %d on channel %s\n&quot;, p-&gt;t38.state, ast-&gt;name);
+ 		}
++
+ 	}
+ 	
+ 	res = 0;
+@@ -2592,6 +2686,9 @@
+ 	if ( res != -1 ) {
+ 		p-&gt;callingpres = ast-&gt;cid.cid_pres;
+ 		p-&gt;jointcapability = p-&gt;capability;
++		p-&gt;t38.jointcapability = p-&gt;t38.capability;
++		if (option_debug)
++			ast_log(LOG_DEBUG,&quot;Our T38 capability (%d), joint T38 capability (%d)\n&quot;, p-&gt;t38.capability, p-&gt;t38.jointcapability);
+ 		transmit_invite(p, SIP_INVITE, 1, 2);
+ 		if (p-&gt;maxtime) {
+ 			/* Initialize auto-congest time */
+@@ -2659,6 +2756,8 @@
+ 		ast_rtp_destroy(p-&gt;rtp);
+ 	if (p-&gt;vrtp)
+ 		ast_rtp_destroy(p-&gt;vrtp);
++	if (p-&gt;udptl)
++		ast_udptl_destroy(p-&gt;udptl);
+ 	if (p-&gt;refer)
+ 		free(p-&gt;refer);
+ 	if (p-&gt;route) {
+@@ -3186,7 +3285,14 @@
+ 		ast_setstate(ast, AST_STATE_UP);
+ 		if (option_debug)
+ 			ast_log(LOG_DEBUG, &quot;SIP answering channel: %s\n&quot;, ast-&gt;name);
+-		res = transmit_response_with_sdp(p, &quot;200 OK&quot;, &amp;p-&gt;initreq, XMIT_CRITICAL);
++		if (p-&gt;t38.state == T38_PEER_DIRECT) {
++			p-&gt;t38.state = T38_ENABLED;
++			if (option_debug &gt; 1)
++				ast_log(LOG_DEBUG,&quot;T38State change to %d on channel %s\n&quot;, p-&gt;t38.state, ast-&gt;name);
++			res = transmit_response_with_t38_sdp(p, &quot;200 OK&quot;, &amp;p-&gt;initreq, XMIT_CRITICAL);
++		} else {
++			res = transmit_response_with_sdp(p, &quot;200 OK&quot;, &amp;p-&gt;initreq, XMIT_CRITICAL);
++		}
+ 	}
+ 	ast_mutex_unlock(&amp;p-&gt;lock);
+ 	return res;
+@@ -3241,6 +3347,21 @@
+ 	case AST_FRAME_IMAGE:
+ 		return 0;
+ 		break;
++	case AST_FRAME_MODEM:
++		if (p) {
++			ast_mutex_lock(&amp;p-&gt;lock);
++			if (p-&gt;udptl) {
++				if ((ast-&gt;_state != AST_STATE_UP) &amp;&amp;
++					!ast_test_flag(&amp;p-&gt;flags[0], SIP_PROGRESS_SENT) &amp;&amp; 
++				    !ast_test_flag(&amp;p-&gt;flags[0], SIP_OUTGOING)) {
++					transmit_response_with_t38_sdp(p, &quot;183 Session Progress&quot;, &amp;p-&gt;initreq, XMIT_RELIABLE);
++					ast_set_flag(&amp;p-&gt;flags[0], SIP_PROGRESS_SENT);
++				}
++				res = ast_udptl_write(p-&gt;udptl, frame);
++			}
++			ast_mutex_unlock(&amp;p-&gt;lock);
++		}
++		break;
+ 	default: 
+ 		ast_log(LOG_WARNING, &quot;Can't send %d type frames with SIP write\n&quot;, frame-&gt;frametype);
+ 		return 0;
+@@ -3508,6 +3629,9 @@
+ 		tmp-&gt;fds[2] = ast_rtp_fd(i-&gt;vrtp);
+ 		tmp-&gt;fds[3] = ast_rtcp_fd(i-&gt;vrtp);
+ 	}
++	if (i-&gt;udptl) {
++		tmp-&gt;fds[5] = ast_udptl_fd(i-&gt;udptl);
++	}
+ 	if (state == AST_STATE_RING)
+ 		tmp-&gt;rings = 1;
+ 	tmp-&gt;adsicpe = AST_ADSI_UNAVAILABLE;
+@@ -3701,7 +3825,7 @@
+ }
+ 
+ /*! \brief Read RTP from network */
+-static struct ast_frame *sip_rtp_read(struct ast_channel *ast, struct sip_pvt *p)
++static struct ast_frame *sip_rtp_read(struct ast_channel *ast, struct sip_pvt *p, int *faxdetect)
+ {
+ 	/* Retrieve audio/etc from channel.  Assumes p-&gt;lock is already held. */
+ 	struct ast_frame *f;
+@@ -3724,6 +3848,9 @@
+ 	case 3:
+ 		f = ast_rtcp_read(p-&gt;vrtp);	/* RTCP Control Channel for video */
+ 		break;
++	case 5:
++		f = ast_udptl_read(p-&gt;udptl);	/* UDPTL for T.38 */
++		break;
+ 	default:
+ 		f = &amp;ast_null_frame;
+ 	}
+@@ -3744,8 +3871,15 @@
+ 			}
+ 			if ((ast_test_flag(&amp;p-&gt;flags[0], SIP_DTMF) == SIP_DTMF_INBAND) &amp;&amp; p-&gt;vad) {
+ 				f = ast_dsp_process(p-&gt;owner, p-&gt;vad, f);
+-				if (option_debug &amp;&amp; f &amp;&amp; (f-&gt;frametype == AST_FRAME_DTMF)) 
+-					ast_log(LOG_DEBUG, &quot;* Detected inband DTMF '%c'\n&quot;, f-&gt;subclass);
++				if (f &amp;&amp; f-&gt;frametype == AST_FRAME_DTMF) {
++					if (ast_test_flag(&amp;p-&gt;t38.t38support, SIP_PAGE2_T38SUPPORT_UDPTL) &amp;&amp; f-&gt;subclass == 'f') {
++						if (option_debug)
++							ast_log(LOG_DEBUG, &quot;Fax CNG detected on %s\n&quot;, ast-&gt;name);
++						*faxdetect = 1;
++					} else if (option_debug) {
++						ast_log(LOG_DEBUG, &quot;* Detected inband DTMF '%c'\n&quot;, f-&gt;subclass);
++					}
++				}
+ 			}
+ 		}
+ 	}
+@@ -3757,10 +3891,31 @@
+ {
+ 	struct ast_frame *fr;
+ 	struct sip_pvt *p = ast-&gt;tech_pvt;
++	int faxdetected = 0;
+ 
+ 	ast_mutex_lock(&amp;p-&gt;lock);
+-	fr = sip_rtp_read(ast, p);
++	fr = sip_rtp_read(ast, p, &amp;faxdetected);
+ 	p-&gt;lastrtprx = time(NULL);
++
++	/* If we are NOT bridged to another channel, and we have detected fax tone we issue T38 re-invite to a peer */
++	/* If we are bridged then it is the responsibility of the SIP device to issue T38 re-invite if it detects CNG or fax preamble */
++	if (faxdetected &amp;&amp; ast_test_flag(&amp;p-&gt;t38.t38support, SIP_PAGE2_T38SUPPORT_UDPTL) &amp;&amp; (p-&gt;t38.state == T38_DISABLED) &amp;&amp; !(ast_bridged_channel(ast))) {
++		if (!ast_test_flag(&amp;p-&gt;flags[0], SIP_GOTREFER)) {
++			if (!p-&gt;pendinginvite) {
++				if (option_debug &gt; 2)
++					ast_log(LOG_DEBUG, &quot;Sending reinvite on SIP (%s) for T.38 negotiation.\n&quot;,ast-&gt;name);
++				p-&gt;t38.state = T38_LOCAL_REINVITE;
++				transmit_reinvite_with_t38_sdp(p);
++				if (option_debug &gt; 1)
++					ast_log(LOG_DEBUG, &quot;T38 state changed to %d on channel %s&quot;, p-&gt;t38.state, ast-&gt;name);
++			}
++		} else if (!ast_test_flag(&amp;p-&gt;flags[0], SIP_PENDINGBYE)) {
++			if (option_debug &gt; 2)
++				ast_log(LOG_DEBUG, &quot;Deferring reinvite on SIP (%s) - it will be re-negotiated for T.38\n&quot;, ast-&gt;name);
++			ast_set_flag(&amp;p-&gt;flags[0], SIP_NEEDREINVITE);
++		}
++	}
++
+ 	ast_mutex_unlock(&amp;p-&gt;lock);
+ 	return fr;
+ }
+@@ -3854,6 +4009,8 @@
+ 		/* If the global videosupport flag is on, we always create a RTP interface for video */
+ 		if (ast_test_flag(&amp;p-&gt;flags[1], SIP_PAGE2_VIDEOSUPPORT))
+ 			p-&gt;vrtp = ast_rtp_new_with_bindaddr(sched, io, 1, 0, bindaddr.sin_addr);
++		if (ast_test_flag(&amp;p-&gt;flags[1], SIP_PAGE2_T38SUPPORT))
++			p-&gt;udptl = ast_udptl_new_with_bindaddr(sched, io, 0, bindaddr.sin_addr);
+ 		if (!p-&gt;rtp || (ast_test_flag(&amp;p-&gt;flags[1], SIP_PAGE2_VIDEOSUPPORT) &amp;&amp; !p-&gt;vrtp)) {
+ 			ast_log(LOG_WARNING, &quot;Unable to create RTP audio %s session: %s\n&quot;,
+ 				ast_test_flag(&amp;p-&gt;flags[1], SIP_PAGE2_VIDEOSUPPORT) ? &quot;and video&quot; : &quot;&quot;, strerror(errno));
+@@ -3871,6 +4028,9 @@
+ 			ast_rtp_settos(p-&gt;vrtp, global_tos_video);
+ 			ast_rtp_setdtmf(p-&gt;vrtp, 0);
+ 		}
++		if (p-&gt;udptl) {
++			ast_udptl_settos(p-&gt;udptl, global_tos_audio);
++		}
+ 		p-&gt;rtptimeout = global_rtptimeout;
+ 		p-&gt;rtpholdtimeout = global_rtpholdtimeout;
+ 		p-&gt;rtpkeepalive = global_rtpkeepalive;
+@@ -3887,6 +4047,8 @@
+ 			ast_rtp_setnat(p-&gt;rtp, natflags);
+ 		if (p-&gt;vrtp)
+ 			ast_rtp_setnat(p-&gt;vrtp, natflags);
++		if (p-&gt;udptl)
++			ast_udptl_setnat(p-&gt;udptl, natflags);
+ 	}
+ 
+ 	if (p-&gt;method != SIP_REGISTER)
+@@ -3903,6 +4065,17 @@
+ 	if ((ast_test_flag(&amp;p-&gt;flags[0], SIP_DTMF) == SIP_DTMF_RFC2833) ||
+ 	    (ast_test_flag(&amp;p-&gt;flags[0], SIP_DTMF) == SIP_DTMF_AUTO))
+ 		p-&gt;noncodeccapability |= AST_RTP_DTMF;
++	if (p-&gt;udptl) {
++		p-&gt;t38.capability = global_t38_capability;
++		if (ast_udptl_get_error_correction_scheme(p-&gt;udptl) == UDPTL_ERROR_CORRECTION_REDUNDANCY)
++			p-&gt;t38.capability |= T38FAX_UDP_EC_REDUNDANCY;
++		else if (ast_udptl_get_error_correction_scheme(p-&gt;udptl) == UDPTL_ERROR_CORRECTION_FEC)
++			p-&gt;t38.capability |= T38FAX_UDP_EC_FEC;
++		else if (ast_udptl_get_error_correction_scheme(p-&gt;udptl) == UDPTL_ERROR_CORRECTION_NONE)
++			p-&gt;t38.capability |= T38FAX_UDP_EC_NONE;
++		p-&gt;t38.capability |= T38FAX_RATE_MANAGEMENT_TRANSFERED_TCF;
++		p-&gt;t38.jointcapability = p-&gt;t38.capability;
++	}
+ 	ast_string_field_set(p, context, default_context);
+ 
+ 	/* Add to active dialog list */
+@@ -4260,6 +4433,10 @@
+ 	int len = -1;
+ 	int portno = -1;		/*!&lt; RTP Audio port number */
+ 	int vportno = -1;		/*!&lt; RTP Video port number */
++	int udptlportno = -1;
++	int peert38capability = 0;
++	char s[256];
++	int old = 0;
+ 
+ 	/* Peer capability is the capability in the SDP, non codec is RFC2833 DTMF (101) */	
+ 	int peercapability, peernoncodeccapability;
+@@ -4370,6 +4547,20 @@
+ 					ast_verbose(&quot;Found RTP video format %d\n&quot;, codec);
+ 				ast_rtp_set_m_type(newvideortp, codec);
+ 			}
++		} else if (p-&gt;udptl &amp;&amp; (sscanf(m, &quot;image %d udptl t38 %n&quot;, &amp;x, &amp;len) == 1)) {
++			if (debug)
++				ast_verbose(&quot;Got T.38 offer in SDP\n&quot;);
++			udptlportno = x;
++			
++			if (p-&gt;owner &amp;&amp; p-&gt;lastinvite) {
++				p-&gt;t38.state = T38_PEER_REINVITE; /* T38 Offered in re-invite from remote party */
++				if (option_debug &gt; 1)
++					ast_log(LOG_DEBUG, &quot;T38 state changed to %d on channel %s\n&quot;, p-&gt;t38.state, p-&gt;owner ? p-&gt;owner-&gt;name : &quot;&lt;none&gt;&quot; );
++			} else {
++				p-&gt;t38.state = T38_PEER_DIRECT; /* T38 Offered directly from peer in first invite */
++				if (option_debug &gt; 1)
++					ast_log(LOG_DEBUG, &quot;T38 state changed to %d on channel %s\n&quot;, p-&gt;t38.state, p-&gt;owner ? p-&gt;owner-&gt;name : &quot;&lt;none&gt;&quot;);
++			}
+ 		} else 
+ 			ast_log(LOG_WARNING, &quot;Unsupported SDP media type in offer: %s\n&quot;, m);
+ 		if (numberofports &gt; 1)
+@@ -4392,7 +4583,7 @@
+ 
+ 		}
+ 	}
+-	if (portno == -1 &amp;&amp; vportno == -1)
++	if (portno == -1 &amp;&amp; vportno == -1 &amp;&amp; udptlportno == -1)
+ 		/* No acceptable offer found in SDP  - we have no ports */
+ 		/* Do not change RTP or VRTP if this is a re-invite */
+ 		return -2;
+@@ -4408,13 +4599,36 @@
+ 	if (vhp)
+ 		memcpy(&amp;vsin.sin_addr, vhp-&gt;h_addr, sizeof(vsin.sin_addr));
+ 		
+-
+-	/* Setup audio port number */
+-	sin.sin_port = htons(portno);
++	if (p-&gt;rtp) {
++		if (portno &gt; 0) {
++			sin.sin_port = htons(portno);
++			ast_rtp_set_peer(p-&gt;rtp, &amp;sin);
++			if (debug)
++				ast_verbose(&quot;Peer audio RTP is at port %s:%d\n&quot;, ast_inet_ntoa(iabuf,sizeof(iabuf), sin.sin_addr), ntohs(sin.sin_port));
++		} else {
++			ast_rtp_stop(p-&gt;rtp);
++			if (debug)
++				ast_verbose(&quot;Peer doesn't provide audio\n&quot;);
++		}
++	}
+ 	/* Setup video port number */
+ 	if (vportno != -1)
+ 		vsin.sin_port = htons(vportno);
+ 
++	/* Setup UDPTL port number */
++	if (p-&gt;udptl) {
++		if (udptlportno &gt; 0) {
++			sin.sin_port = htons(udptlportno);
++			ast_udptl_set_peer(p-&gt;udptl, &amp;sin);
++			if (debug)
++				ast_log(LOG_DEBUG,&quot;Peer T.38 UDPTL is at port %s:%d\n&quot;,ast_inet_ntoa(iabuf, sizeof(iabuf), sin.sin_addr), ntohs(sin.sin_port));
++		} else {
++			ast_udptl_stop(p-&gt;udptl);
++			if (debug)
++				ast_log(LOG_DEBUG, &quot;Peer doesn't provide T.38 UDPTL\n&quot;);
++		}
++	}
++
+ 	/* Next, scan through each &quot;a=rtpmap:&quot; line, noting each
+ 	 * specified RTP payload type (with corresponding MIME subtype):
+ 	 */
+@@ -4478,6 +4692,123 @@
+ 		if (p-&gt;vrtp)
+ 			ast_rtp_set_rtpmap_type(newvideortp, codec, &quot;video&quot;, mimeSubtype);
+ 	}
++	
++	if (udptlportno != -1) {
++		int found = 0, x;
++		
++		old = 0;
++		
++		/* Scan trough the a= lines for T38 attributes and set apropriate fileds */
++		iterator = req-&gt;sdp_start;
++		while ((a = get_sdp_iterate(&amp;iterator, req, &quot;a&quot;))[0] != '\0') {
++			if ((sscanf(a, &quot;T38FaxMaxBuffer:%d&quot;, &amp;x) == 1)) {
++				found = 1;
++				if (option_debug &gt; 2)
++					ast_log(LOG_DEBUG,&quot;MaxBufferSize:%d\n&quot;,x);
++			}
++			if ((sscanf(a, &quot;T38MaxBitRate:%d&quot;, &amp;x) == 1)) {
++				found = 1;
++				if (option_debug &gt; 2)
++					ast_log(LOG_DEBUG,&quot;T38MaxBitRate: %d\n&quot;,x);
++				switch (x) {
++				case 14400:
++					peert38capability |= T38FAX_RATE_14400 | T38FAX_RATE_12000 | T38FAX_RATE_9600 | T38FAX_RATE_7200 | T38FAX_RATE_4800 | T38FAX_RATE_2400;
++					break;
++				case 12000:
++					peert38capability |= T38FAX_RATE_12000 | T38FAX_RATE_9600 | T38FAX_RATE_7200 | T38FAX_RATE_4800 | T38FAX_RATE_2400;
++					break;
++				case 9600:
++					peert38capability |= T38FAX_RATE_9600 | T38FAX_RATE_7200 | T38FAX_RATE_4800 | T38FAX_RATE_2400;
++					break;
++				case 7200:
++					peert38capability |= T38FAX_RATE_7200 | T38FAX_RATE_4800 | T38FAX_RATE_2400;
++					break;
++				case 4800:
++					peert38capability |= T38FAX_RATE_4800 | T38FAX_RATE_2400;
++					break;
++				case 2400:
++					peert38capability |= T38FAX_RATE_2400;
++					break;
++				}
++			}
++			if ((sscanf(a, &quot;T38FaxVersion:%d&quot;, &amp;x) == 1)) {
++				found = 1;
++				if (option_debug &gt; 2)
++					ast_log(LOG_DEBUG,&quot;FaxVersion: %d\n&quot;,x);
++				if (x == 0)
++					peert38capability |= T38FAX_VERSION_0;
++				else if (x == 1)
++					peert38capability |= T38FAX_VERSION_1;
++			}
++			if ((sscanf(a, &quot;T38FaxMaxDatagram:%d&quot;, &amp;x) == 1)) {
++				found = 1;
++				if (option_debug &gt; 2)
++					ast_log(LOG_DEBUG,&quot;FaxMaxDatagram: %d\n&quot;,x);
++				ast_udptl_set_far_max_datagram(p-&gt;udptl, x);
++				ast_udptl_set_local_max_datagram(p-&gt;udptl, x);
++			}
++			if ((sscanf(a, &quot;T38FaxFillBitRemoval:%d&quot;, &amp;x) == 1)) {
++				found = 1;
++				if (option_debug &gt; 2)
++					ast_log(LOG_DEBUG,&quot;FillBitRemoval: %d\n&quot;,x);
++				if (x == 1)
++					peert38capability |= T38FAX_FILL_BIT_REMOVAL;
++			}
++			if ((sscanf(a, &quot;T38FaxTranscodingMMR:%d&quot;, &amp;x) == 1)) {
++				found = 1;
++				if (option_debug &gt; 2)
++					ast_log(LOG_DEBUG,&quot;Transcoding MMR: %d\n&quot;,x);
++				if (x == 1)
++					peert38capability |= T38FAX_TRANSCODING_MMR;
++			}
++			if ((sscanf(a, &quot;T38FaxTranscodingJBIG:%d&quot;, &amp;x) == 1)) {
++				found = 1;
++				if (option_debug &gt; 2)
++					ast_log(LOG_DEBUG,&quot;Transcoding JBIG: %d\n&quot;,x);
++				if (x == 1)
++					peert38capability |= T38FAX_TRANSCODING_JBIG;
++			}
++			if ((sscanf(a, &quot;T38FaxRateManagement:%s&quot;, s) == 1)) {
++				found = 1;
++				if (option_debug &gt; 2)
++					ast_log(LOG_DEBUG,&quot;RateMangement: %s\n&quot;, s);
++				if (!strcasecmp(s, &quot;localTCF&quot;))
++					peert38capability |= T38FAX_RATE_MANAGEMENT_LOCAL_TCF;
++				else if (!strcasecmp(s, &quot;transferredTCF&quot;))
++					peert38capability |= T38FAX_RATE_MANAGEMENT_TRANSFERED_TCF;
++			}
++			if ((sscanf(a, &quot;T38FaxUdpEC:%s&quot;, s) == 1)) {
++				found = 1;
++				if (option_debug &gt; 2)
++					ast_log(LOG_DEBUG,&quot;UDP EC: %s\n&quot;, s);
++				if (!strcasecmp(s, &quot;t38UDPRedundancy&quot;)) {
++					peert38capability |= T38FAX_UDP_EC_REDUNDANCY;
++					ast_udptl_set_error_correction_scheme(p-&gt;udptl, UDPTL_ERROR_CORRECTION_REDUNDANCY);
++				} else if (!strcasecmp(s, &quot;t38UDPFEC&quot;)) {
++					peert38capability |= T38FAX_UDP_EC_FEC;
++					ast_udptl_set_error_correction_scheme(p-&gt;udptl, UDPTL_ERROR_CORRECTION_FEC);
++				} else {
++					peert38capability |= T38FAX_UDP_EC_NONE;
++					ast_udptl_set_error_correction_scheme(p-&gt;udptl, UDPTL_ERROR_CORRECTION_NONE);
++				}
++			}
++		}
++		if (found) { /* Some cisco equipment returns nothing beside c= and m= lines in 200 OK T38 SDP */
++			p-&gt;t38.peercapability = peert38capability;
++			p-&gt;t38.jointcapability = (peert38capability &amp; 255); /* Put everything beside supported speeds settings */
++			peert38capability &amp;= (T38FAX_RATE_14400 | T38FAX_RATE_12000 | T38FAX_RATE_9600 | T38FAX_RATE_7200 | T38FAX_RATE_4800 | T38FAX_RATE_2400);
++			p-&gt;t38.jointcapability |= (peert38capability &amp; p-&gt;t38.capability); /* Put the lower of our's and peer's speed */
++		}
++		if (debug)
++			ast_log(LOG_DEBUG,&quot;Our T38 capability = (%d), peer T38 capability (%d), joint T38 capability (%d)\n&quot;,
++				p-&gt;t38.capability,
++				p-&gt;t38.peercapability,
++				p-&gt;t38.jointcapability);
++	} else {
++		p-&gt;t38.state = T38_DISABLED;
++		if (option_debug &gt; 1)
++			ast_log(LOG_DEBUG, &quot;T38 state changed to %d on channel %s\n&quot;, p-&gt;t38.state, p-&gt;owner ? p-&gt;owner-&gt;name : &quot;&lt;none&gt;&quot;);
++	}
+ 
+ 	/* Now gather all of the codecs that we are asked for: */
+ 	ast_rtp_get_current_formats(newaudiortp, &amp;peercapability, &amp;peernoncodeccapability);
+@@ -5213,6 +5544,142 @@
+ 		ast_build_string(a_buf, a_size, &quot;a=fmtp:%d annexb=no\r\n&quot;, rtp_code);
+ }
+ 
++/*! \brief Get Max T.38 Transmision rate from T38 capabilities */
++static int t38_get_rate(int t38cap)
++{
++	int maxrate = (t38cap &amp; (T38FAX_RATE_14400 | T38FAX_RATE_12000 | T38FAX_RATE_9600 | T38FAX_RATE_7200 | T38FAX_RATE_4800 | T38FAX_RATE_2400));
++	
++	if (maxrate &amp; T38FAX_RATE_14400) {
++		if (option_debug &gt; 1)
++			ast_log(LOG_DEBUG, &quot;T38MaxFaxRate 14400 found\n&quot;);
++		return 14400;
++	} else if (maxrate &amp; T38FAX_RATE_12000) {
++		if (option_debug &gt; 1)
++			ast_log(LOG_DEBUG, &quot;T38MaxFaxRate 12000 found\n&quot;);
++		return 12000;
++	} else if (maxrate &amp; T38FAX_RATE_9600) {
++		if (option_debug &gt; 1)
++			ast_log(LOG_DEBUG, &quot;T38MaxFaxRate 9600 found\n&quot;);
++		return 9600;
++	} else if (maxrate &amp; T38FAX_RATE_7200) {
++		if (option_debug &gt; 1)
++			ast_log(LOG_DEBUG, &quot;T38MaxFaxRate 7200 found\n&quot;);
++		return 7200;
++	} else if (maxrate &amp; T38FAX_RATE_4800) {
++		if (option_debug &gt; 1)
++			ast_log(LOG_DEBUG, &quot;T38MaxFaxRate 4800 found\n&quot;);
++		return 4800;
++	} else if (maxrate &amp; T38FAX_RATE_2400) {
++		if (option_debug &gt; 1)
++			ast_log(LOG_DEBUG, &quot;T38MaxFaxRate 2400 found\n&quot;);
++		return 2400;
++	} else {
++		if (option_debug &gt; 1)
++			ast_log(LOG_DEBUG, &quot;Strange, T38MaxFaxRate NOT found in peers T38 SDP.\n&quot;);
++		return 0;
++	}
++}
++
++/*! \brief Add T.38 Session Description Protocol message */
++static int add_t38_sdp(struct sip_request *resp, struct sip_pvt *p)
++{
++	int len = 0;
++	int x = 0;
++	struct sockaddr_in udptlsin;
++	char v[256] = &quot;&quot;;
++	char s[256] = &quot;&quot;;
++	char o[256] = &quot;&quot;;
++	char c[256] = &quot;&quot;;
++	char t[256] = &quot;&quot;;
++	char m_modem[256];
++	char a_modem[1024];
++	char *m_modem_next = m_modem;
++	size_t m_modem_left = sizeof(m_modem);
++	char *a_modem_next = a_modem;
++	size_t a_modem_left = sizeof(a_modem);
++	char iabuf[INET_ADDRSTRLEN];
++	struct sockaddr_in udptldest = { 0, };
++	int debug;
++	
++	debug = sip_debug_test_pvt(p);
++	len = 0;
++	if (!p-&gt;udptl) {
++		ast_log(LOG_WARNING, &quot;No way to add SDP without an UDPTL structure\n&quot;);
++		return -1;
++	}
++	
++	if (!p-&gt;sessionid) {
++		p-&gt;sessionid = getpid();
++		p-&gt;sessionversion = p-&gt;sessionid;
++	} else
++		p-&gt;sessionversion++;
++	
++	/* Our T.38 end is */
++	ast_udptl_get_us(p-&gt;udptl, &amp;udptlsin);
++	
++	/* Determine T.38 UDPTL destination */
++	if (p-&gt;udptlredirip.sin_addr.s_addr) {
++		udptldest.sin_port = p-&gt;udptlredirip.sin_port;
++		udptldest.sin_addr = p-&gt;udptlredirip.sin_addr;
++	} else {
++		udptldest.sin_addr = p-&gt;ourip;
++		udptldest.sin_port = udptlsin.sin_port;
++	}
++	
++	if (debug) {
++		ast_log(LOG_DEBUG, &quot;T.38 UDPTL is at %s port %d\n&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), p-&gt;ourip), ntohs(udptlsin.sin_port));
++	}
++	
++	/* We break with the &quot;recommendation&quot; and send our IP, in order that our
++	   peer doesn't have to ast_gethostbyname() us */
++	
++	if (debug) {
++		ast_log(LOG_DEBUG, &quot;Our T38 capability (%d), peer T38 capability (%d), joint capability (%d)\n&quot;,
++			p-&gt;t38.capability,
++			p-&gt;t38.peercapability,
++			p-&gt;t38.jointcapability);
++	}
++	snprintf(v, sizeof(v), &quot;v=0\r\n&quot;);
++	snprintf(o, sizeof(o), &quot;o=root %d %d IN IP4 %s\r\n&quot;, p-&gt;sessionid, p-&gt;sessionversion, ast_inet_ntoa(iabuf, sizeof(iabuf), udptldest.sin_addr));
++	snprintf(s, sizeof(s), &quot;s=session\r\n&quot;);
++	snprintf(c, sizeof(c), &quot;c=IN IP4 %s\r\n&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), udptldest.sin_addr));
++	snprintf(t, sizeof(t), &quot;t=0 0\r\n&quot;);
++	ast_build_string(&amp;m_modem_next, &amp;m_modem_left, &quot;m=image %d udptl t38\r\n&quot;, ntohs(udptldest.sin_port));
++	
++	if ((p-&gt;t38.jointcapability &amp; T38FAX_VERSION) == T38FAX_VERSION_0)
++		ast_build_string(&amp;a_modem_next, &amp;a_modem_left, &quot;a=T38FaxVersion:0\r\n&quot;);
++	if ((p-&gt;t38.jointcapability &amp; T38FAX_VERSION) == T38FAX_VERSION_1)
++		ast_build_string(&amp;a_modem_next, &amp;a_modem_left, &quot;a=T38FaxVersion:1\r\n&quot;);
++	if ((x = t38_get_rate(p-&gt;t38.jointcapability)))
++		ast_build_string(&amp;a_modem_next, &amp;a_modem_left, &quot;a=T38MaxBitRate:%d\r\n&quot;,x);
++	ast_build_string(&amp;a_modem_next, &amp;a_modem_left, &quot;a=T38FaxFillBitRemoval:%d\r\n&quot;, (p-&gt;t38.jointcapability &amp; T38FAX_FILL_BIT_REMOVAL) ? 1 : 0);
++	ast_build_string(&amp;a_modem_next, &amp;a_modem_left, &quot;a=T38FaxTranscodingMMR:%d\r\n&quot;, (p-&gt;t38.jointcapability &amp; T38FAX_TRANSCODING_MMR) ? 1 : 0);
++	ast_build_string(&amp;a_modem_next, &amp;a_modem_left, &quot;a=T38FaxTranscodingJBIG:%d\r\n&quot;, (p-&gt;t38.jointcapability &amp; T38FAX_TRANSCODING_JBIG) ? 1 : 0);
++	ast_build_string(&amp;a_modem_next, &amp;a_modem_left, &quot;a=T38FaxRateManagement:%s\r\n&quot;, (p-&gt;t38.jointcapability &amp; T38FAX_RATE_MANAGEMENT_LOCAL_TCF) ? &quot;localTCF&quot; : &quot;transferredTCF&quot;);
++	x = ast_udptl_get_local_max_datagram(p-&gt;udptl);
++	ast_build_string(&amp;a_modem_next, &amp;a_modem_left, &quot;a=T38FaxMaxBuffer:%d\r\n&quot;,x);
++	ast_build_string(&amp;a_modem_next, &amp;a_modem_left, &quot;a=T38FaxMaxDatagram:%d\r\n&quot;,x);
++	if (p-&gt;t38.jointcapability != T38FAX_UDP_EC_NONE)
++		ast_build_string(&amp;a_modem_next, &amp;a_modem_left, &quot;a=T38FaxUdpEC:%s\r\n&quot;, (p-&gt;t38.jointcapability &amp; T38FAX_UDP_EC_REDUNDANCY) ? &quot;t38UDPRedundancy&quot; : &quot;t38UDPFEC&quot;);
++	if (p-&gt;udptl)
++		len = strlen(m_modem) + strlen(a_modem);
++	add_header(resp, &quot;Content-Type&quot;, &quot;application/sdp&quot;);
++	add_header_contentLength(resp, len);
++	add_line(resp, v);
++	add_line(resp, o);
++	add_line(resp, s);
++	add_line(resp, c);
++	add_line(resp, t);
++	add_line(resp, m_modem);
++	add_line(resp, a_modem);
++	
++	/* Update lastrtprx when we send our SDP */
++	p-&gt;lastrtprx = p-&gt;lastrtptx = time(NULL);
++	
++	return 0;
++}
++
++
+ /*! \brief Add RFC 2833 DTMF offer to SDP */
+ static void add_noncodec_to_sdp(const struct sip_pvt *p, int format, int sample_rate,
+ 				char **m_buf, size_t *m_size, char **a_buf, size_t *a_size,
+@@ -5310,6 +5777,11 @@
+ 		ast_log(LOG_DEBUG, &quot;** Our capability: %s Video flag: %s\n&quot;, ast_getformatname_multiple(codecbuf, sizeof(codecbuf), capability), ast_test_flag(&amp;p-&gt;flags[0], SIP_NOVIDEO) ? &quot;True&quot; : &quot;False&quot;);
+ 		ast_log(LOG_DEBUG, &quot;** Our prefcodec: %s \n&quot;, ast_getformatname_multiple(codecbuf, sizeof(codecbuf), p-&gt;prefcodec));
+ 	}
++	
++	if ((ast_test_flag(&amp;p-&gt;t38.t38support, SIP_PAGE2_T38SUPPORT_RTP))) {
++		ast_build_string(&amp;m_audio_next, &amp;m_audio_left, &quot; %d&quot;, 191);
++		ast_build_string(&amp;a_audio_next, &amp;a_audio_left, &quot;a=rtpmap:%d %s/%d\r\n&quot;, 191, &quot;t38&quot;, 8000);
++	}
+ 
+ 	/* Check if we need video in this call */
+ 	if((capability &amp; AST_FORMAT_VIDEO_MASK) &amp;&amp; !ast_test_flag(&amp;p-&gt;flags[0], SIP_NOVIDEO)) {
+@@ -5498,6 +5970,26 @@
+ 	return 0;
+ }
+ 
++/*--- transmit_response_with_t38_sdp: Used for 200 OK and 183 early media ---*/
++static int transmit_response_with_t38_sdp(struct sip_pvt *p, char *msg, struct sip_request *req, int retrans)
++{
++	struct sip_request resp;
++	int seqno;
++	
++	if (sscanf(get_header(req, &quot;CSeq&quot;), &quot;%d &quot;, &amp;seqno) != 1) {
++		ast_log(LOG_WARNING, &quot;Unable to get seqno from '%s'\n&quot;, get_header(req, &quot;CSeq&quot;));
++		return -1;
++	}
++	respprep(&amp;resp, p, msg, req);
++	if (p-&gt;udptl) {
++		ast_udptl_offered_from_local(p-&gt;udptl, 0);
++		add_t38_sdp(&amp;resp, p);
++	} else {
++		ast_log(LOG_ERROR, &quot;Can't add SDP to response, since we have no UDPTL session allocated. Call-ID %s\n&quot;, p-&gt;callid);
++	}
++	return send_response(p, &amp;resp, retrans, seqno);
++}
++
+ /*! \brief copy SIP request (mostly used to save request for responses) */
+ static void copy_request(struct sip_request *dst, const struct sip_request *src)
+ {
+@@ -5599,6 +6091,31 @@
+ 	return send_request(p, &amp;req, 1, p-&gt;ocseq);
+ }
+ 
++/*--- transmit_reinvite_with_t38_sdp: Transmit reinvite with T38 SDP ---*/
++/*     A re-invite is basically a new INVITE with the same CALL-ID and TAG as the
++       INVITE that opened the SIP dialogue
++       We reinvite so that the T38 processing can take place.
++       SIP Signalling stays with * in the path.
++*/
++static int transmit_reinvite_with_t38_sdp(struct sip_pvt *p)
++{
++	struct sip_request req;
++
++	reqprep(&amp;req, p, ast_test_flag(&amp;p-&gt;flags[0], SIP_REINVITE_UPDATE) ?  SIP_UPDATE : SIP_INVITE, 0, 1);
++	
++	add_header(&amp;req, &quot;Allow&quot;, ALLOWED_METHODS);
++	add_header(&amp;req, &quot;Supported&quot;, SUPPORTED_EXTENSIONS);
++	if (sipdebug)
++		add_header(&amp;req, &quot;X-asterisk-info&quot;, &quot;SIP re-invite (T38 switchover)&quot;);
++	ast_udptl_offered_from_local(p-&gt;udptl, 1);
++	add_t38_sdp(&amp;req, p);
++	/* Use this as the basis */
++	initialize_initreq(p, &amp;req);
++	p-&gt;lastinvite = p-&gt;ocseq;
++	ast_set_flag(&amp;p-&gt;flags[0], SIP_OUTGOING);
++	return send_request(p, &amp;req, 1, p-&gt;ocseq);
++}
++
+ /*! \brief Check Contact: URI of SIP message */
+ static void extract_uri(struct sip_pvt *p, struct sip_request *req)
+ {
+@@ -5928,8 +6445,15 @@
+ 			}
+ 		}
+ 	}
+-	if (sdp &amp;&amp; p-&gt;rtp) {
+-		add_sdp(&amp;req, p);
++	if (sdp) {
++		if (p-&gt;udptl &amp;&amp; p-&gt;t38.state == T38_LOCAL_DIRECT) {
++			ast_udptl_offered_from_local(p-&gt;udptl, 1);
++			if (option_debug)
++				ast_log(LOG_DEBUG, &quot;T38 is in state %d on channel %s\n&quot;, p-&gt;t38.state, p-&gt;owner ? p-&gt;owner-&gt;name : &quot;&lt;none&gt;&quot;);
++			add_t38_sdp(&amp;req, p);
++		} else if (p-&gt;rtp) {
++			add_sdp(&amp;req, p);
++		}
+ 	} else {
+ 		add_header_contentLength(&amp;req, 0);
+ 	}
+@@ -8081,6 +8605,11 @@
+ 				ast_log(LOG_DEBUG, &quot;Setting NAT on VRTP to %s\n&quot;, usenatroute ? &quot;On&quot; : &quot;Off&quot;);
+ 			ast_rtp_setnat(p-&gt;vrtp, usenatroute);
+ 		}
++		if (p-&gt;udptl) {
++			if (option_debug)
++				ast_log(LOG_DEBUG, &quot;Setting NAT on UDPTL to %s\n&quot;, usenatroute ? &quot;On&quot; : &quot;Off&quot;);
++			ast_udptl_setnat(p-&gt;udptl, usenatroute);
++		}
+ 		if (!(res = check_auth(p, req, user-&gt;name, user-&gt;secret, user-&gt;md5secret, sipmethod, uri, reliable, ast_test_flag(req, SIP_PKT_IGNORE)))) {
+ 			sip_cancel_destroy(p);
+ 			ast_copy_flags(&amp;p-&gt;flags[0], &amp;user-&gt;flags[0], SIP_FLAGS_TO_COPY);
+@@ -8127,7 +8656,8 @@
+ 				p-&gt;noncodeccapability |= AST_RTP_DTMF;
+ 			else
+ 				p-&gt;noncodeccapability &amp;= ~AST_RTP_DTMF;
+-
++			if (p-&gt;t38.peercapability)
++				p-&gt;t38.jointcapability &amp;= p-&gt;t38.peercapability;
+ 			p-&gt;maxcallbitrate = user-&gt;maxcallbitrate;
+ 			/* If we do not support video, remove video from call structure */
+ 			if (!ast_test_flag(&amp;p-&gt;flags[1], SIP_PAGE2_VIDEOSUPPORT) &amp;&amp; p-&gt;vrtp) {
+@@ -8188,6 +8718,10 @@
+ 				ast_log(LOG_DEBUG, &quot;Setting NAT on VRTP to %s\n&quot;, usenatroute ? &quot;On&quot; : &quot;Off&quot;);
+ 				ast_rtp_setnat(p-&gt;vrtp, usenatroute);
+ 			}
++			if (p-&gt;udptl) {
++				ast_log(LOG_DEBUG, &quot;Setting NAT on UDPTL to %s\n&quot;, usenatroute ? &quot;On&quot; : &quot;Off&quot;);
++				ast_udptl_setnat(p-&gt;udptl, usenatroute);
++			}
+ 			ast_string_field_set(p, peersecret, peer-&gt;secret);
+ 			ast_string_field_set(p, peermd5secret, peer-&gt;md5secret);
+ 			ast_string_field_set(p, subscribecontext, peer-&gt;subscribecontext);
+@@ -8259,6 +8793,8 @@
+ 					p-&gt;noncodeccapability |= AST_RTP_DTMF;
+ 				else
+ 					p-&gt;noncodeccapability &amp;= ~AST_RTP_DTMF;
++				if (p-&gt;t38.peercapability)
++					p-&gt;t38.jointcapability &amp;= p-&gt;t38.peercapability;
+ 			}
+ 			ASTOBJ_UNREF(peer, sip_destroy_peer);
+ 		} else { 
+@@ -9059,6 +9595,9 @@
+ 		ast_cli(fd, &quot;  Insecure     : %s\n&quot;, insecure2str(ast_test_flag(&amp;peer-&gt;flags[0], SIP_INSECURE_PORT), ast_test_flag(&amp;peer-&gt;flags[0], SIP_INSECURE_INVITE)));
+ 		ast_cli(fd, &quot;  Nat          : %s\n&quot;, nat2str(ast_test_flag(&amp;peer-&gt;flags[0], SIP_NAT)));
+ 		ast_cli(fd, &quot;  ACL          : %s\n&quot;, (peer-&gt;ha?&quot;Yes&quot;:&quot;No&quot;));
++		ast_cli(fd, &quot;  T38 pt UDPTL : %s\n&quot;, ast_test_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_T38SUPPORT_UDPTL)?&quot;Yes&quot;:&quot;No&quot;);
++		ast_cli(fd, &quot;  T38 pt RTP   : %s\n&quot;, ast_test_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_T38SUPPORT_RTP)?&quot;Yes&quot;:&quot;No&quot;);
++		ast_cli(fd, &quot;  T38 pt TCP   : %s\n&quot;, ast_test_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_T38SUPPORT_TCP)?&quot;Yes&quot;:&quot;No&quot;);
+ 		ast_cli(fd, &quot;  CanReinvite  : %s\n&quot;, ast_test_flag(&amp;peer-&gt;flags[0], SIP_CAN_REINVITE)?&quot;Yes&quot;:&quot;No&quot;);
+ 		ast_cli(fd, &quot;  PromiscRedir : %s\n&quot;, ast_test_flag(&amp;peer-&gt;flags[0], SIP_PROMISCREDIR)?&quot;Yes&quot;:&quot;No&quot;);
+ 		ast_cli(fd, &quot;  User=Phone   : %s\n&quot;, ast_test_flag(&amp;peer-&gt;flags[0], SIP_USEREQPHONE)?&quot;Yes&quot;:&quot;No&quot;);
+@@ -9328,6 +9867,9 @@
+ 	ast_cli(fd, &quot;  IP ToS SIP:             %s\n&quot;, ast_tos2str(global_tos_sip));
+ 	ast_cli(fd, &quot;  IP ToS RTP audio:       %s\n&quot;, ast_tos2str(global_tos_audio));
+ 	ast_cli(fd, &quot;  IP ToS RTP video:       %s\n&quot;, ast_tos2str(global_tos_video));
++	ast_cli(fd, &quot;  T38 fax pt UDPTL:       %s\n&quot;, ast_test_flag(&amp;global_flags[1], SIP_PAGE2_T38SUPPORT_UDPTL) ? &quot;Yes&quot; : &quot;No&quot;);
++	ast_cli(fd, &quot;  T38 fax pt RTP:         %s\n&quot;, ast_test_flag(&amp;global_flags[1], SIP_PAGE2_T38SUPPORT_RTP) ? &quot;Yes&quot; : &quot;No&quot;);
++	ast_cli(fd, &quot;  T38 fax pt TCP:         %s\n&quot;, ast_test_flag(&amp;global_flags[1], SIP_PAGE2_T38SUPPORT_TCP) ? &quot;Yes&quot; : &quot;No&quot;);
+ 	if (!realtimepeers &amp;&amp; !realtimeusers)
+ 		ast_cli(fd, &quot;  SIP realtime:           Disabled\n&quot; );
+ 	else
+@@ -10480,6 +11022,11 @@
+ 		ast_copy_string(buf, p-&gt;useragent, len);
+ 	} else  if (!strcasecmp(data, &quot;peername&quot;)) {
+ 		ast_copy_string(buf, p-&gt;peername, len);
++	} else if (!strcasecmp(data, &quot;t38passthrough&quot;)) {
++		if (p-&gt;t38.state == T38_DISABLED)
++			ast_copy_string(buf, &quot;0&quot;, sizeof(&quot;0&quot;));
++		else    /* T38 is offered or enabled in this call */
++			ast_copy_string(buf, &quot;1&quot;, sizeof(&quot;1&quot;));
+ 	} else {
+ 		ast_channel_unlock(chan);
+ 		return -1;
+@@ -10502,6 +11049,7 @@
+ 	&quot;- uri                   The URI from the Contact: header.\n&quot;
+ 	&quot;- useragent             The useragent.\n&quot;
+ 	&quot;- peername              The name of the peer.\n&quot;
++	&quot;- t38passthrough        1 if T38 is offered or enabled in this channel, otherwise 0\n&quot;
+ };
+ 
+ /*! \brief Parse 302 Moved temporalily response */
+@@ -10676,6 +11224,51 @@
+ 			build_route(p, req, 1);
+ 		}
+ 		
++		if (p-&gt;owner &amp;&amp; (p-&gt;owner-&gt;_state == AST_STATE_UP)) { /* if this is a re-invite */
++			struct ast_channel *bridgepeer = NULL;
++			struct sip_pvt *bridgepvt = NULL;
++
++			bridgepeer = ast_bridged_channel(p-&gt;owner);
++			if (!bridgepeer-&gt;tech) {
++				ast_log(LOG_WARNING, &quot;Ooooh.. no tech!  That's REALLY bad\n&quot;);
++				break;
++			}
++			if (!strcasecmp(bridgepeer-&gt;tech-&gt;type,&quot;SIP&quot;)) {
++				bridgepvt = (struct sip_pvt*)(bridgepeer-&gt;tech_pvt);
++				if (bridgepvt-&gt;udptl) {
++					if (p-&gt;t38.state == T38_PEER_REINVITE) {
++						sip_handle_t38_reinvite(bridgepeer, p, 0);
++					} else if (p-&gt;t38.state == T38_DISABLED &amp;&amp; bridgepeer &amp;&amp; (bridgepvt-&gt;t38.state == T38_ENABLED)) {
++						ast_log(LOG_WARNING, &quot;RTP re-inivte after T38 session not handled yet !\n&quot;);
++						/* Insted of this we should somehow re-invite the other side of the bridge to RTP */
++						ast_set_flag(&amp;p-&gt;flags[0], SIP_NEEDDESTROY);
++					}
++				} else {
++					ast_log(LOG_WARNING, &quot;Strange... The other side of the bridge don't have udptl struct\n&quot;);
++					ast_mutex_lock(&amp;bridgepvt-&gt;lock);
++					bridgepvt-&gt;t38.state = T38_DISABLED;
++					ast_mutex_unlock(&amp;bridgepvt-&gt;lock);
++					if (option_debug)
++						ast_log(LOG_DEBUG,&quot;T38 state changed to %d on channel %s\n&quot;, bridgepvt-&gt;t38.state, bridgepeer-&gt;tech-&gt;type);
++					p-&gt;t38.state = T38_DISABLED;
++					if (option_debug &gt; 1)
++						ast_log(LOG_DEBUG,&quot;T38 state changed to %d on channel %s\n&quot;, p-&gt;t38.state, p-&gt;owner ? p-&gt;owner-&gt;name : &quot;&lt;none&gt;&quot;);
++				}
++			} else {
++				/* Other side is not a SIP channel */
++				ast_log(LOG_WARNING, &quot;Strange... The other side of the bridge is not a SIP channel\n&quot;);
++				p-&gt;t38.state = T38_DISABLED;
++				if (option_debug &gt; 1)
++					ast_log(LOG_DEBUG,&quot;T38 state changed to %d on channel %s\n&quot;, p-&gt;t38.state, p-&gt;owner ? p-&gt;owner-&gt;name : &quot;&lt;none&gt;&quot;);
++			}
++		}
++		if ((p-&gt;t38.state == T38_LOCAL_REINVITE) || (p-&gt;t38.state == T38_LOCAL_DIRECT)) {
++			/* If there was T38 reinvite and we are supposed to answer with 200 OK than this should set us to T38 negotiated mode */
++			p-&gt;t38.state = T38_ENABLED;
++			if (option_debug)
++				ast_log(LOG_DEBUG, &quot;T38 changed state to %d on channel %s\n&quot;, p-&gt;t38.state, p-&gt;owner ? p-&gt;owner-&gt;name : &quot;&lt;none&gt;&quot;);
++		}
++
+ 		if (!ast_test_flag(req, SIP_PKT_IGNORE) &amp;&amp; p-&gt;owner) {
+ 			if (!reinvite) {
+ 				ast_queue_control(p-&gt;owner, AST_CONTROL_ANSWER);
+@@ -11168,6 +11761,10 @@
+ 					/* Immediately stop VRTP */
+ 					ast_rtp_stop(p-&gt;vrtp);
+ 				}
++				if (p-&gt;udptl) {
++					/* Immediately stop UDPTL */
++					ast_udptl_stop(p-&gt;udptl);
++				}
+ 				/* XXX Locking issues?? XXX */
+ 				switch(resp) {
+ 				case 300: /* Multiple Choices */
+@@ -12284,8 +12881,74 @@
+ 		case AST_STATE_UP:
+ 			if (option_debug &gt; 1)
+ 				ast_log(LOG_DEBUG, &quot;%s: New call is UP.... \n&quot;, c-&gt;name);
+-			transmit_response_with_sdp(p, &quot;200 OK&quot;, req, XMIT_CRITICAL);
+-
++			if (p-&gt;t38.state == T38_PEER_REINVITE) {
++				struct ast_channel *bridgepeer = NULL;
++				struct sip_pvt *bridgepvt = NULL;
++				
++				if ((bridgepeer = ast_bridged_channel(p-&gt;owner))) {
++					/* We have a bridge, and this is re-invite to switchover to T38 so we send re-invite with T38 SDP, to other side of bridge*/
++					/*! XXX: we should also check here does the other side supports t38 at all !!! XXX */
++					if (!strcasecmp(bridgepeer-&gt;tech-&gt;type, &quot;SIP&quot;)) { /* If we are bridged to SIP channel */
++						bridgepvt = (struct sip_pvt*)bridgepeer-&gt;tech_pvt;
++						if (bridgepvt-&gt;t38.state == T38_DISABLED) {
++							if (bridgepvt-&gt;udptl) { /* If everything is OK with other side's udptl struct */
++								/* Send re-invite to the bridged channel */
++								sip_handle_t38_reinvite(bridgepeer, p, 1);
++							} else { /* Something is wrong with peers udptl struct */
++								ast_log(LOG_WARNING, &quot;Strange... The other side of the bridge don't have udptl struct\n&quot;);
++								ast_mutex_lock(&amp;bridgepvt-&gt;lock);
++								bridgepvt-&gt;t38.state = T38_DISABLED;
++								ast_mutex_unlock(&amp;bridgepvt-&gt;lock);
++								if (option_debug &gt; 1)
++									ast_log(LOG_DEBUG,&quot;T38 state changed to %d on channel %s\n&quot;, bridgepvt-&gt;t38.state, bridgepeer-&gt;name);
++								if (ast_test_flag(req, SIP_PKT_IGNORE))
++									transmit_response(p, &quot;488 Not acceptable here&quot;, req);
++								else
++									transmit_response_reliable(p, &quot;488 Not acceptable here&quot;, req);
++								ast_set_flag(&amp;p-&gt;flags[0], SIP_NEEDDESTROY);
++							}
++						}
++					} else {
++						/* Other side is not a SIP channel */
++						if (ast_test_flag(req, SIP_PKT_IGNORE))
++							transmit_response(p, &quot;488 Not acceptable here&quot;, req);
++						else
++							transmit_response_reliable(p, &quot;488 Not acceptable here&quot;, req);
++						p-&gt;t38.state = T38_DISABLED;
++						if (option_debug &gt; 1)
++							ast_log(LOG_DEBUG,&quot;T38 state changed to %d on channel %s\n&quot;, p-&gt;t38.state, p-&gt;owner ? p-&gt;owner-&gt;name : &quot;&lt;none&gt;&quot;);
++						ast_set_flag(&amp;p-&gt;flags[0], SIP_NEEDDESTROY);
++					}
++				} else {
++					/* we are not bridged in a call */
++					transmit_response_with_t38_sdp(p, &quot;200 OK&quot;, req, XMIT_CRITICAL);
++					p-&gt;t38.state = T38_ENABLED;
++					if (option_debug)
++						ast_log(LOG_DEBUG,&quot;T38 state changed to %d on channel %s\n&quot;, p-&gt;t38.state, p-&gt;owner ? p-&gt;owner-&gt;name : &quot;&lt;none&gt;&quot;);
++				}
++			} else if (p-&gt;t38.state == T38_DISABLED) { /* Channel doesn't have T38 offered or enabled */
++				/* If we are bridged to a channel that has T38 enabled than this is a case of RTP re-invite after T38 session */
++				/* so handle it here (re-invite other party to RTP) */
++				struct ast_channel *bridgepeer = NULL;
++				struct sip_pvt *bridgepvt = NULL;
++				if ((bridgepeer = ast_bridged_channel(p-&gt;owner))) {
++					if (!strcasecmp(bridgepeer-&gt;tech-&gt;type, sip_tech.type)) {
++						bridgepvt = (struct sip_pvt*)bridgepeer-&gt;tech_pvt;
++						if (bridgepvt-&gt;t38.state == T38_ENABLED) {
++							ast_log(LOG_WARNING, &quot;RTP re-invite after T38 session not handled yet !\n&quot;);
++							/* Insted of this we should somehow re-invite the other side of the bridge to RTP */
++							if (ast_test_flag(req, SIP_PKT_IGNORE))
++								transmit_response(p, &quot;488 Not Acceptable Here (unsupported)&quot;, req);
++							else
++								transmit_response_reliable(p, &quot;488 Not Acceptable Here (unsupported)&quot;, req);
++							ast_set_flag(&amp;p-&gt;flags[0], SIP_NEEDDESTROY);
++						} else {
++							/* No bridged peer with T38 enabled*/
++							transmit_response_with_sdp(p, &quot;200 OK&quot;, req, XMIT_CRITICAL);
++						}
++					}
++				}
++			}
+ 			break;
+ 		default:
+ 			ast_log(LOG_WARNING, &quot;Don't know how to handle INVITE in state %d\n&quot;, c-&gt;_state);
+@@ -12784,6 +13447,10 @@
+ 		/* Immediately stop VRTP */
+ 		ast_rtp_stop(p-&gt;vrtp);
+ 	}
++	if (p-&gt;udptl) {
++		/* Immediately stop UDPTL */
++		ast_udptl_stop(p-&gt;udptl);
++	}
+ 	if (p-&gt;owner)
+ 		ast_queue_hangup(p-&gt;owner);
+ 	else
+@@ -12839,6 +13506,10 @@
+ 		/* Immediately stop VRTP */
+ 		ast_rtp_stop(p-&gt;vrtp);
+ 	}
++	if (p-&gt;udptl) {
++		/* Immediately stop UDPTL */
++		ast_udptl_stop(p-&gt;udptl);
++	}
+ 	if (!ast_strlen_zero(get_header(req, &quot;Also&quot;))) {
+ 		ast_log(LOG_NOTICE, &quot;Client '%s' using deprecated BYE/Also transfer method.  Ask vendor to support REFER instead\n&quot;,
+ 			ast_inet_ntoa(iabuf, sizeof(iabuf), p-&gt;recv.sin_addr));
+@@ -14067,6 +14738,15 @@
+ 	} else if (!strcasecmp(v-&gt;name, &quot;allowsubscribe&quot;)) {
+ 		ast_set_flag(&amp;mask[1], SIP_PAGE2_ALLOWSUBSCRIBE);
+ 		ast_set2_flag(&amp;flags[1], ast_true(v-&gt;value), SIP_PAGE2_ALLOWSUBSCRIBE);
++	} else if (!strcasecmp(v-&gt;name, &quot;t38pt_udptl&quot;)) {
++		ast_set_flag(&amp;mask[1], SIP_PAGE2_T38SUPPORT_UDPTL);
++		ast_set2_flag(&amp;flags[1], ast_true(v-&gt;value), SIP_PAGE2_T38SUPPORT_UDPTL);
++	} else if (!strcasecmp(v-&gt;name, &quot;t38pt_rtp&quot;)) {
++		ast_set_flag(&amp;mask[1], SIP_PAGE2_T38SUPPORT_RTP);
++		ast_set2_flag(&amp;flags[1], ast_true(v-&gt;value), SIP_PAGE2_T38SUPPORT_RTP);
++	} else if (!strcasecmp(v-&gt;name, &quot;t38pt_tcp&quot;)) {
++		ast_set_flag(&amp;mask[1], SIP_PAGE2_T38SUPPORT_TCP);
++		ast_set2_flag(&amp;flags[1], ast_true(v-&gt;value), SIP_PAGE2_T38SUPPORT_TCP);
+ 	}
+ 
+ 	return res;
+@@ -14313,7 +14993,22 @@
+ 			user-&gt;maxcallbitrate = atoi(v-&gt;value);
+ 			if (user-&gt;maxcallbitrate &lt; 0)
+ 				user-&gt;maxcallbitrate = default_maxcallbitrate;
+- 		}
++ 		} else if (!strcasecmp(v-&gt;name, &quot;t38pt_udptl&quot;)) {
++			if (ast_true(v-&gt;value)) {
++				ast_set_flag(&amp;user-&gt;flags[1], SIP_PAGE2_T38SUPPORT_UDPTL);
++			} else
++				ast_clear_flag(&amp;user-&gt;flags[1], SIP_PAGE2_T38SUPPORT_UDPTL);
++		} else if (!strcasecmp(v-&gt;name, &quot;t38pt_rtp&quot;)) {
++			if (ast_true(v-&gt;value)) {
++				ast_set_flag(&amp;user-&gt;flags[1], SIP_PAGE2_T38SUPPORT_RTP);
++			} else
++				ast_clear_flag(&amp;user-&gt;flags[1], SIP_PAGE2_T38SUPPORT_RTP);
++		} else if (!strcasecmp(v-&gt;name, &quot;t38pt_tcp&quot;)) {
++			if (ast_true(v-&gt;value)) {
++				ast_set_flag(&amp;user-&gt;flags[1], SIP_PAGE2_T38SUPPORT_TCP);
++			} else
++				ast_clear_flag(&amp;user-&gt;flags[1], SIP_PAGE2_T38SUPPORT_TCP);
++		}
+ 	}
+ 	ast_copy_flags(&amp;user-&gt;flags[0], &amp;userflags[0], mask[0].flags);
+ 	ast_copy_flags(&amp;user-&gt;flags[1], &amp;userflags[1], mask[1].flags);
+@@ -14595,6 +15290,21 @@
+ 			peer-&gt;maxcallbitrate = atoi(v-&gt;value);
+ 			if (peer-&gt;maxcallbitrate &lt; 0)
+ 				peer-&gt;maxcallbitrate = default_maxcallbitrate;
++		} else if (!strcasecmp(v-&gt;name, &quot;t38pt_udptl&quot;)) {
++			if (ast_true(v-&gt;value)) {
++				ast_set_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_T38SUPPORT_UDPTL);
++			} else
++				ast_clear_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_T38SUPPORT_UDPTL);
++		} else if (!strcasecmp(v-&gt;name, &quot;t38pt_rtp&quot;)) {
++			if (ast_true(v-&gt;value)) {
++				ast_set_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_T38SUPPORT_RTP);
++			} else
++				ast_clear_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_T38SUPPORT_RTP);
++		} else if (!strcasecmp(v-&gt;name, &quot;t38pt_tcp&quot;)) {
++			if (ast_true(v-&gt;value)) {
++				ast_set_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_T38SUPPORT_TCP);
++			} else
++				ast_clear_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_T38SUPPORT_TCP);
+ 		}
+ 	}
+ 	if (!ast_test_flag(&amp;global_flags[1], SIP_PAGE2_IGNOREREGEXPIRE) &amp;&amp; ast_test_flag(&amp;peer-&gt;flags[1], SIP_PAGE2_DYNAMIC) &amp;&amp; realtime) {
+@@ -14956,6 +15666,18 @@
+ 			default_maxcallbitrate = atoi(v-&gt;value);
+ 			if (default_maxcallbitrate &lt; 0)
+ 				default_maxcallbitrate = DEFAULT_MAX_CALL_BITRATE;
++		} else if (!strcasecmp(v-&gt;name, &quot;t38pt_udptl&quot;)) {
++			if (ast_true(v-&gt;value)) {
++				ast_set_flag(&amp;global_flags[1], SIP_PAGE2_T38SUPPORT_UDPTL);
++			}
++		} else if (!strcasecmp(v-&gt;name, &quot;t38pt_rtp&quot;)) {
++			if (ast_true(v-&gt;value)) {
++				ast_set_flag(&amp;global_flags[1], SIP_PAGE2_T38SUPPORT_RTP);
++			}
++		} else if (!strcasecmp(v-&gt;name, &quot;t38pt_tcp&quot;)) {
++			if (ast_true(v-&gt;value)) {
++				ast_set_flag(&amp;global_flags[1], SIP_PAGE2_T38SUPPORT_TCP);
++			}
+ 		}
+ 	}
+ 
+@@ -15097,6 +15819,131 @@
+ 	return 0;
+ }
+ 
++static struct ast_udptl *sip_get_udptl_peer(struct ast_channel *chan)
++{
++	struct sip_pvt *p;
++	struct ast_udptl *udptl = NULL;
++	
++	p = chan-&gt;tech_pvt;
++	if (!p)
++		return NULL;
++	
++	ast_mutex_lock(&amp;p-&gt;lock);
++	if (p-&gt;udptl &amp;&amp; ast_test_flag(&amp;p-&gt;flags[0], SIP_CAN_REINVITE))
++		udptl = p-&gt;udptl;
++	ast_mutex_unlock(&amp;p-&gt;lock);
++	return udptl;
++}
++
++static int sip_set_udptl_peer(struct ast_channel *chan, struct ast_udptl *udptl)
++{
++	struct sip_pvt *p;
++	
++	p = chan-&gt;tech_pvt;
++	if (!p)
++		return -1;
++	ast_mutex_lock(&amp;p-&gt;lock);
++	if (udptl)
++		ast_udptl_get_peer(udptl, &amp;p-&gt;udptlredirip);
++	else
++		memset(&amp;p-&gt;udptlredirip, 0, sizeof(p-&gt;udptlredirip));
++	if (!ast_test_flag(&amp;p-&gt;flags[0], SIP_GOTREFER)) {
++		if (!p-&gt;pendinginvite) {
++			if (option_debug &gt; 2) {
++				char iabuf[INET_ADDRSTRLEN];
++				ast_log(LOG_DEBUG, &quot;Sending reinvite on SIP '%s' - It's UDPTL soon redirected to IP %s:%d\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf), udptl ? p-&gt;udptlredirip.sin_addr : p-&gt;ourip), udptl ? ntohs(p-&gt;udptlredirip.sin_port) : 0);
++			}
++			transmit_reinvite_with_t38_sdp(p);
++		} else if (!ast_test_flag(&amp;p-&gt;flags[0], SIP_PENDINGBYE)) {
++			if (option_debug &gt; 2) {
++				char iabuf[INET_ADDRSTRLEN];
++				ast_log(LOG_DEBUG, &quot;Deferring reinvite on SIP '%s' - It's UDPTL will be redirected to IP %s:%d\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf),udptl ? p-&gt;udptlredirip.sin_addr : p-&gt;ourip), udptl ? ntohs(p-&gt;udptlredirip.sin_port) : 0);
++			}
++			ast_set_flag(&amp;p-&gt;flags[0], SIP_NEEDREINVITE);
++		}
++	}
++	/* Reset lastrtprx timer */
++	p-&gt;lastrtprx = p-&gt;lastrtptx = time(NULL);
++	ast_mutex_unlock(&amp;p-&gt;lock);
++	return 0;
++}
++
++static int sip_handle_t38_reinvite(struct ast_channel *chan, struct sip_pvt *pvt, int reinvite)
++{
++	struct sip_pvt *p;
++	int flag = 0;
++	
++	p = chan-&gt;tech_pvt;
++	if (!p || !pvt-&gt;udptl)
++		return -1;
++	
++	/* Setup everything on the other side like offered/responded from first side */
++	ast_mutex_lock(&amp;p-&gt;lock);
++	p-&gt;t38.jointcapability = p-&gt;t38.peercapability = pvt-&gt;t38.jointcapability;
++	ast_udptl_set_far_max_datagram(p-&gt;udptl, ast_udptl_get_local_max_datagram(pvt-&gt;udptl));
++	ast_udptl_set_local_max_datagram(p-&gt;udptl, ast_udptl_get_local_max_datagram(pvt-&gt;udptl));
++	ast_udptl_set_error_correction_scheme(p-&gt;udptl, ast_udptl_get_error_correction_scheme(pvt-&gt;udptl));
++	
++	if (reinvite) {		/* If we are handling sending re-invite to the other side of the bridge */
++		if (ast_test_flag(&amp;p-&gt;flags[0], SIP_CAN_REINVITE) &amp;&amp; ast_test_flag(&amp;pvt-&gt;flags[0], SIP_CAN_REINVITE)) {
++			ast_udptl_get_peer(pvt-&gt;udptl, &amp;p-&gt;udptlredirip);
++			flag =1;
++		} else {
++			memset(&amp;p-&gt;udptlredirip, 0, sizeof(p-&gt;udptlredirip));
++		}
++		if (!ast_test_flag(&amp;p-&gt;flags[0], SIP_GOTREFER)) {
++			if (!p-&gt;pendinginvite) {
++				if (option_debug &gt; 2) {
++					char iabuf[INET_ADDRSTRLEN];
++					if (flag)
++						ast_log(LOG_DEBUG, &quot;Sending reinvite on SIP '%s' - It's UDPTL soon redirected to IP %s:%d\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf), p-&gt;udptlredirip.sin_addr), ntohs(p-&gt;udptlredirip.sin_port));
++					else
++						ast_log(LOG_DEBUG, &quot;Sending reinvite on SIP '%s' - It's UDPTL soon redirected to us (IP %s)\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf), p-&gt;ourip));
++				}
++				transmit_reinvite_with_t38_sdp(p);
++			} else if (!ast_test_flag(&amp;p-&gt;flags[0], SIP_PENDINGBYE)) {
++				if (option_debug &gt; 2) {
++					char iabuf[INET_ADDRSTRLEN];
++					if (flag)
++						ast_log(LOG_DEBUG, &quot;Deferring reinvite on SIP '%s' - It's UDPTL will be redirected to IP %s:%d\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf), p-&gt;udptlredirip.sin_addr), ntohs(p-&gt;udptlredirip.sin_port));
++					else
++						ast_log(LOG_DEBUG, &quot;Deferring reinvite on SIP '%s' - It's UDPTL will be redirected to us (IP %s)\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf), p-&gt;ourip));
++				}
++				ast_set_flag(&amp;p-&gt;flags[0], SIP_NEEDREINVITE);
++			}
++		}
++		/* Reset lastrtprx timer */
++		p-&gt;lastrtprx = p-&gt;lastrtptx = time(NULL);
++		ast_mutex_unlock(&amp;p-&gt;lock);
++		return 0;
++	} else {	/* If we are handling sending 200 OK to the other side of the bridge */
++		if (ast_test_flag(&amp;p-&gt;flags[0], SIP_CAN_REINVITE) &amp;&amp; ast_test_flag(&amp;pvt-&gt;flags[0], SIP_CAN_REINVITE)) {
++			ast_udptl_get_peer(pvt-&gt;udptl, &amp;p-&gt;udptlredirip);
++			flag = 1;
++		} else {
++			memset(&amp;p-&gt;udptlredirip, 0, sizeof(p-&gt;udptlredirip));
++		}
++		if (option_debug &gt; 2) {
++			char iabuf[INET_ADDRSTRLEN];
++			if (flag)
++				ast_log(LOG_DEBUG, &quot;Responding 200 OK on SIP '%s' - It's UDPTL soon redirected to IP %s:%d\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf), p-&gt;udptlredirip.sin_addr), ntohs(p-&gt;udptlredirip.sin_port));
++			else
++				ast_log(LOG_DEBUG, &quot;Responding 200 OK on SIP '%s' - It's UDPTL soon redirected to us (IP %s)\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf), p-&gt;ourip));
++		}
++		pvt-&gt;t38.state = T38_ENABLED;
++		p-&gt;t38.state = T38_ENABLED;
++		if (option_debug &gt; 1) {
++			ast_log(LOG_DEBUG, &quot;T38 changed state to %d on channel %s\n&quot;, pvt-&gt;t38.state, pvt-&gt;owner ? pvt-&gt;owner-&gt;name : &quot;&lt;none&gt;&quot;);
++			ast_log(LOG_DEBUG, &quot;T38 changed state to %d on channel %s\n&quot;, p-&gt;t38.state, chan ? chan-&gt;name : &quot;&lt;none&gt;&quot;);
++		}
++		transmit_response_with_t38_sdp(p, &quot;200 OK&quot;, &amp;p-&gt;initreq, XMIT_CRITICAL);
++		p-&gt;lastrtprx = p-&gt;lastrtptx = time(NULL);
++		ast_mutex_unlock(&amp;p-&gt;lock);
++		return 0;
++	}
++}
++
++
+ /*! \brief Returns null if we can't reinvite audio (part of RTP interface) */
+ static struct ast_rtp *sip_get_rtp_peer(struct ast_channel *chan)
+ {
+@@ -15526,6 +16373,9 @@
+ 	/* Tell the RTP subdriver that we're here */
+ 	ast_rtp_proto_register(&amp;sip_rtp);
+ 
++	/* Tell the UDPTL subdriver that we're here */
++	ast_udptl_proto_register(&amp;sip_udptl);
++
+ 	/* Register dialplan applications */
+ 	ast_register_application(app_dtmfmode, sip_dtmfmode, synopsis_dtmfmode, descrip_dtmfmode);
+ 	ast_register_application(app_sipaddheader, sip_addheader, synopsis_sipaddheader, descrip_sipaddheader);
+@@ -15570,6 +16420,8 @@
+ 
+ 	ast_rtp_proto_unregister(&amp;sip_rtp);
+ 
++	ast_udptl_proto_unregister(&amp;sip_udptl);
++
+ 	ast_manager_unregister(&quot;SIPpeers&quot;);
+ 	ast_manager_unregister(&quot;SIPshowpeer&quot;);
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000339.html">[solid-pbx-svn] r344 - trunk/utils
+</A></li>
+	<LI>Next message: <A HREF="000341.html">[solid-pbx-svn] r346 - in trunk: . configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#340">[ date ]</a>
+              <a href="thread.html#340">[ thread ]</a>
+              <a href="subject.html#340">[ subject ]</a>
+              <a href="author.html#340">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

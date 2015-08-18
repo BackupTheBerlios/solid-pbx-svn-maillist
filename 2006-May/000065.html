@@ -1,0 +1,705 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r68 - in trunk: . apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r68%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605060318.k463IKcG025366%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000064.html">
+   <LINK REL="Next"  HREF="000066.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r68 - in trunk: . apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r68%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605060318.k463IKcG025366%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r68 - in trunk: . apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat May  6 05:18:20 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000064.html">[solid-pbx-svn] r67 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000066.html">[solid-pbx-svn] r69 - trunk/build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#65">[ date ]</a>
+              <a href="thread.html#65">[ thread ]</a>
+              <a href="subject.html#65">[ subject ]</a>
+              <a href="author.html#65">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-06 05:18:13 +0200 (Sat, 06 May 2006)
+New Revision: 68
+
+Modified:
+   trunk/apps/app_voicemail.c
+   trunk/frame.c
+   trunk/say.c
+Log:
+Update to Asterisk SVN trunk r25200
+
+------------------------------------------------------------------------
+r25162 | russell | 2006-05-06 04:26:38 +0200 (Sat, 06 May 2006) | 1 line
+
+
+------------------------------------------------------------------------
+r25164 | russell | 2006-05-06 04:31:22 +0200 (Sat, 06 May 2006) | 4 lines
+
+fix a problem where the frame's data pointer is overwritten by the newly
+allocated data buffer before the data can be copied from it.  This is in
+the ast_frisolate() function which is rarely used.  (issue #6732, stefankroon)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-06 00:19:15 UTC (rev 67)
++++ trunk/apps/app_voicemail.c	2006-05-06 03:18:13 UTC (rev 68)
+@@ -37,6 +37,8 @@
+  * 07-11-2005 : An issue with voicemail synchronization has been fixed by GDS Partners (www.gdspartners.com)
+  *				 Stojan Sljivic &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">stojan.sljivic at gdspartners.com</A>&gt;
+  *
++ * 12-04-2006 : Support for Polish added by DIR (www.dir.pl)
++ *				 Bartosz Supczinski &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">Bartosz.Supczinski at dir.pl</A>&gt;
+  */
+ 
+ #include &lt;stdlib.h&gt;
+@@ -161,6 +163,7 @@
+ 	\arg \b fr - French
+ 	\arg \b it = Italian
+ 	\arg \b nl - Dutch
++	\arg \b pt - Polish
+ 	\arg \b pt - Portuguese
+ 	\arg \b gr - Greek
+ 	\arg \b no - Norwegian
+@@ -180,6 +183,16 @@
+ \arg \b vm-INBOX	nieuwe (nl)
+ \arg \b vm-Old		oude (nl)
+ 
++Polish uses:
++\arg \b vm-new-a	'new', feminine singular accusative
++\arg \b vm-new-e	'new', feminine plural accusative
++\arg \b vm-new-ych	'new', feminine plural genitive
++\arg \b vm-old-a	'old', feminine singular accusative
++\arg \b vm-old-e	'old', feminine plural accusative
++\arg \b vm-old-ych	'old', feminine plural genitive
++\arg \b digits/1-a	'one', not always same as 'digits/1'
++\arg \b digits/2-ie	'two', not always same as 'digits/2'
++
+ Swedish uses:
+ \arg \b vm-nytt		singular of 'new'
+ \arg \b vm-nya		plural of 'new'
+@@ -3688,10 +3701,12 @@
+ #endif
+ 	if (the_zone)
+ 		res = ast_say_date_with_format(chan, t, AST_DIGIT_ANY, chan-&gt;language, the_zone-&gt;msg_format, the_zone-&gt;timezone);
+-       else if(!strcasecmp(chan-&gt;language,&quot;se&quot;))       /* SWEDISH syntax */
+-               res = ast_say_date_with_format(chan, t, AST_DIGIT_ANY, chan-&gt;language, &quot;'vm-received' dB 'digits/at' k 'and' M&quot;, NULL);
+-       else if(!strcasecmp(chan-&gt;language,&quot;no&quot;))       /* NORWEGIAN syntax */
+-               res = ast_say_date_with_format(chan, t, AST_DIGIT_ANY, chan-&gt;language, &quot;'vm-received' Q 'digits/at' HM&quot;, NULL);
++	else if(!strcasecmp(chan-&gt;language,&quot;pl&quot;))	/* POLISH syntax */
++		res = ast_say_date_with_format(chan, t, AST_DIGIT_ANY, chan-&gt;language, &quot;'vm-received' Q HM&quot;, NULL);
++	else if(!strcasecmp(chan-&gt;language,&quot;se&quot;))       /* SWEDISH syntax */
++		res = ast_say_date_with_format(chan, t, AST_DIGIT_ANY, chan-&gt;language, &quot;'vm-received' dB 'digits/at' k 'and' M&quot;, NULL);
++	else if(!strcasecmp(chan-&gt;language,&quot;no&quot;))       /* NORWEGIAN syntax */
++		res = ast_say_date_with_format(chan, t, AST_DIGIT_ANY, chan-&gt;language, &quot;'vm-received' Q 'digits/at' HM&quot;, NULL);
+ 	else if(!strcasecmp(chan-&gt;language,&quot;de&quot;))	/* GERMAN syntax */
+ 		res = ast_say_date_with_format(chan, t, AST_DIGIT_ANY, chan-&gt;language, &quot;'vm-received' Q 'digits/at' HM&quot;, NULL);
+ 	else if (!strcasecmp(chan-&gt;language,&quot;nl&quot;))	/* DUTCH syntax */
+@@ -3788,9 +3803,37 @@
+ 
+ 	ast_log(LOG_DEBUG, &quot;VM-Duration: duration is: %d seconds converted to: %d minutes\n&quot;, durations, durationm);
+ 
+-	if((!res)&amp;&amp;(durationm&gt;=minduration)) {
+-		res = ast_say_number(chan, durationm, AST_DIGIT_ANY, chan-&gt;language, (char *) NULL);
+-		res = wait_file2(chan, vms, &quot;vm-minutes&quot;);
++	if ((!res) &amp;&amp; (durationm &gt;= minduration)) {
++		res = wait_file2(chan, vms, &quot;vm-duration&quot;);
++
++		/* POLISH syntax */
++		if (!strcasecmp(chan-&gt;language, &quot;pl&quot;)) {
++			div_t num = div(durationm, 10);
++
++			if (durationm == 1) {
++				res = ast_play_and_wait(chan, &quot;digits/1z&quot;);
++				res = res ? res : ast_play_and_wait(chan, &quot;vm-minute-ta&quot;);
++			} else if (num.rem &gt; 1 &amp;&amp; num.rem &lt; 5 &amp;&amp; num.quot != 1) {
++				if (num.rem == 2) {
++					if (!num.quot) {
++						res = ast_play_and_wait(chan, &quot;digits/2-ie&quot;);
++					} else {
++						res = say_and_wait(chan, durationm - 2 , chan-&gt;language);
++						res = res ? res : ast_play_and_wait(chan, &quot;digits/2-ie&quot;);
++					}
++				} else {
++					res = say_and_wait(chan, durationm, chan-&gt;language);
++				}
++				res = res ? res : ast_play_and_wait(chan, &quot;vm-minute-ty&quot;);
++			} else {
++				res = say_and_wait(chan, durationm, chan-&gt;language);
++				res = res ? res : ast_play_and_wait(chan, &quot;vm-minute-t&quot;);
++			}
++		/* DEFAULT syntax */
++		} else {
++			res = ast_say_number(chan, durationm, AST_DIGIT_ANY, chan-&gt;language, NULL);
++			res = wait_file2(chan, vms, &quot;vm-minutes&quot;);
++		}
+ 	}
+ 	return res;
+ }
+@@ -3810,21 +3853,45 @@
+ 	else if (vms-&gt;curmsg == vms-&gt;lastmsg)
+ 		res = wait_file2(chan, vms, &quot;vm-last&quot;);		/* &quot;last&quot; */
+ 	if (!res) {
+-               if (!strcasecmp(chan-&gt;language, &quot;se&quot;)) {             /* SWEDISH syntax */
+-                       res = wait_file2(chan, vms, &quot;vm-meddelandet&quot;);  /* &quot;message&quot; */
+-               }
+-               else {
+-                       res = wait_file2(chan, vms, &quot;vm-message&quot;);      /* &quot;message&quot; */
+-               }
+-		if (vms-&gt;curmsg &amp;&amp; (vms-&gt;curmsg != vms-&gt;lastmsg)) {
++		/* POLISH syntax */
++		if (!strcasecmp(chan-&gt;language, &quot;pl&quot;)) { 
++			if (vms-&gt;curmsg &amp;&amp; (vms-&gt;curmsg != vms-&gt;lastmsg)) {
++				int ten, one;
++				char nextmsg[256];
++				ten = (vms-&gt;curmsg + 1) / 10;
++				one = (vms-&gt;curmsg + 1) % 10;
++				
++				if (vms-&gt;curmsg &lt; 20) {
++					snprintf(nextmsg, sizeof(nextmsg), &quot;digits/n-%d&quot;, vms-&gt;curmsg + 1);
++					res = wait_file2(chan, vms, nextmsg);
++				} else {
++					snprintf(nextmsg, sizeof(nextmsg), &quot;digits/n-%d&quot;, ten * 10);
++					res = wait_file2(chan, vms, nextmsg);
++					if (one &gt; 0) {
++						if (!res) {
++							snprintf(nextmsg, sizeof(nextmsg), &quot;digits/n-%d&quot;, one);
++							res = wait_file2(chan, vms, nextmsg);
++						}
++					}
++				}
++			}
+ 			if (!res)
+-				res = ast_say_number(chan, vms-&gt;curmsg + 1, AST_DIGIT_ANY, chan-&gt;language, (char *) NULL);
++				res = wait_file2(chan, vms, &quot;vm-message&quot;);
++		} else {
++			if (!strcasecmp(chan-&gt;language, &quot;se&quot;)) /* SWEDISH syntax */
++				res = wait_file2(chan, vms, &quot;vm-meddelandet&quot;);  /* &quot;message&quot; */
++			else /* DEFAULT syntax */
++				res = wait_file2(chan, vms, &quot;vm-message&quot;);
++			if (vms-&gt;curmsg &amp;&amp; (vms-&gt;curmsg != vms-&gt;lastmsg)) {
++				if (!res)
++					res = ast_say_number(chan, vms-&gt;curmsg + 1, AST_DIGIT_ANY, chan-&gt;language, NULL);
++			}
+ 		}
+ 	}
+ 
+ 	/* Retrieve info from VM attribute file */
+ 	make_file(vms-&gt;fn2, sizeof(vms-&gt;fn2), vms-&gt;curdir, vms-&gt;curmsg);
+-	snprintf(filename,sizeof(filename), &quot;%s.txt&quot;, vms-&gt;fn2);
++	snprintf(filename, sizeof(filename), &quot;%s.txt&quot;, vms-&gt;fn2);
+ 	RETRIEVE(vms-&gt;curdir, vms-&gt;curmsg);
+ 	msg_cfg = ast_config_load(filename);
+ 	if (!msg_cfg) {
+@@ -3980,33 +4047,43 @@
+ 
+ 	if (!strcasecmp(mbox, &quot;vm-INBOX&quot;) || !strcasecmp(mbox, &quot;vm-Old&quot;)){
+ 		cmd = ast_play_and_wait(chan, buf); /* &quot;NEA / PALIA&quot; */
+-		if (cmd)
+-		return cmd;
+-		return ast_play_and_wait(chan, &quot;vm-messages&quot;); /* &quot;messages&quot; -&gt; &quot;MYNHMATA&quot; */
++		return cmd ? cmd : ast_play_and_wait(chan, &quot;vm-messages&quot;); /* &quot;messages&quot; -&gt; &quot;MYNHMATA&quot; */
+ 	} else {
+ 		cmd = ast_play_and_wait(chan, &quot;vm-messages&quot;); /* &quot;messages&quot; -&gt; &quot;MYNHMATA&quot; */
+-	  	if (cmd)
+-			return cmd;
+-	  	return ast_play_and_wait(chan, mbox); /* friends/family/work... -&gt; &quot;FILWN&quot;/&quot;OIKOGENIAS&quot;/&quot;DOULEIAS&quot;*/
++	  	return cmd ? cmd : ast_play_and_wait(chan, mbox); /* friends/family/work... -&gt; &quot;FILWN&quot;/&quot;OIKOGENIAS&quot;/&quot;DOULEIAS&quot;*/
+ 	}
+ }
+ 
++static int vm_play_folder_name_pl(struct ast_channel *chan, char *mbox)
++{
++	int cmd;
++
++	if (!strcasecmp(mbox, &quot;vm-INBOX&quot;) || !strcasecmp(mbox, &quot;vm-Old&quot;)) {
++		if (!strcasecmp(mbox, &quot;vm-INBOX&quot;))
++			cmd = ast_play_and_wait(chan, &quot;vm-new-e&quot;);
++		else
++			cmd = ast_play_and_wait(chan, &quot;vm-old-e&quot;);
++		return cmd ? cmd : ast_play_and_wait(chan, &quot;vm-messages&quot;);
++	} else {
++		cmd = ast_play_and_wait(chan, &quot;vm-messages&quot;);
++	  	return cmd ? cmd : ast_play_and_wait(chan, mbox);
++	}
++}
++
+ static int vm_play_folder_name(struct ast_channel *chan, char *mbox)
+ {
+ 	int cmd;
+ 
+ 	if (!strcasecmp(chan-&gt;language, &quot;it&quot;) || !strcasecmp(chan-&gt;language, &quot;es&quot;) || !strcasecmp(chan-&gt;language, &quot;fr&quot;) || !strcasecmp(chan-&gt;language, &quot;pt&quot;)) { /* Italian, Spanish, French or Portuguese syntax */
+ 		cmd = ast_play_and_wait(chan, &quot;vm-messages&quot;); /* &quot;messages */
+-		if (cmd)
+-			return cmd;
+-		return ast_play_and_wait(chan, mbox);
++		return cmd ? cmd : ast_play_and_wait(chan, mbox);
+ 	} else if (!strcasecmp(chan-&gt;language, &quot;gr&quot;)){
+ 		return vm_play_folder_name_gr(chan, mbox);
++	} else if (!strcasecmp(chan-&gt;language, &quot;pl&quot;)){
++		return vm_play_folder_name_pl(chan, mbox);
+ 	} else {  /* Default English */
+ 		cmd = ast_play_and_wait(chan, mbox);
+-		if (cmd)
+-			return cmd;
+-		return ast_play_and_wait(chan, &quot;vm-messages&quot;); /* &quot;messages */
++		return cmd ? cmd : ast_play_and_wait(chan, &quot;vm-messages&quot;); /* &quot;messages */
+ 	}
+ }
+ 
+@@ -4138,6 +4215,77 @@
+ 	return res ? -1 : 0;
+ }
+ 
++/* POLISH syntax */
++static int vm_intro_pl(struct ast_channel *chan, struct vm_state *vms)
++{
++	/* Introduce messages they have */
++	int res;
++	div_t num;
++
++	if (!vms-&gt;oldmessages &amp;&amp; !vms-&gt;newmessages) {
++		res = ast_play_and_wait(chan, &quot;vm-no&quot;);
++		res = res ? res : ast_play_and_wait(chan, &quot;vm-messages&quot;);
++		return res;
++	} else {
++		res = ast_play_and_wait(chan, &quot;vm-youhave&quot;);
++	}
++
++	if (vms-&gt;newmessages) {
++		num = div(vms-&gt;newmessages, 10);
++		if (vms-&gt;newmessages == 1) {
++			res = ast_play_and_wait(chan, &quot;digits/1-a&quot;);
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-new-a&quot;);
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-message&quot;);
++		} else if (num.rem &gt; 1 &amp;&amp; num.rem &lt; 5 &amp;&amp; num.quot != 1) {
++			if (num.rem == 2) {
++				if (!num.quot) {
++					res = ast_play_and_wait(chan, &quot;digits/2-ie&quot;);
++				} else {
++					res = say_and_wait(chan, vms-&gt;newmessages - 2 , chan-&gt;language);
++					res = res ? res : ast_play_and_wait(chan, &quot;digits/2-ie&quot;);
++				}
++			} else {
++				res = say_and_wait(chan, vms-&gt;newmessages, chan-&gt;language);
++			}
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-new-e&quot;);
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-messages&quot;);
++		} else {
++			res = say_and_wait(chan, vms-&gt;newmessages, chan-&gt;language);
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-new-ych&quot;);
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-messages&quot;);
++		}
++		if (!res &amp;&amp; vms-&gt;oldmessages)
++			res = ast_play_and_wait(chan, &quot;vm-and&quot;);
++	}
++	if (!res &amp;&amp; vms-&gt;oldmessages) {
++		num = div(vms-&gt;oldmessages, 10);
++		if (vms-&gt;oldmessages == 1) {
++			res = ast_play_and_wait(chan, &quot;digits/1-a&quot;);
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-old-a&quot;);
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-message&quot;);
++		} else if (num.rem &gt; 1 &amp;&amp; num.rem &lt; 5 &amp;&amp; num.quot != 1) {
++			if (num.rem == 2) {
++				if (!num.quot) {
++					res = ast_play_and_wait(chan, &quot;digits/2-ie&quot;);
++				} else {
++					res = say_and_wait(chan, vms-&gt;oldmessages - 2 , chan-&gt;language);
++					res = res ? res : ast_play_and_wait(chan, &quot;digits/2-ie&quot;);
++				}
++			} else {
++				res = say_and_wait(chan, vms-&gt;oldmessages, chan-&gt;language);
++			}
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-old-e&quot;);
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-messages&quot;);
++		} else {
++			res = say_and_wait(chan, vms-&gt;oldmessages, chan-&gt;language);
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-old-ych&quot;);
++			res = res ? res : ast_play_and_wait(chan, &quot;vm-messages&quot;);
++		}
++	}
++
++	return res;
++}
++
+ /* SWEDISH syntax */
+ static int vm_intro_se(struct ast_channel *chan, struct vm_state *vms)
+ {
+@@ -4647,6 +4795,8 @@
+ 		return vm_intro_cz(chan, vms);
+ 	} else if (!strcasecmp(chan-&gt;language, &quot;gr&quot;)) {	/* GREEK syntax */
+ 		return vm_intro_gr(chan, vms);
++	} else if (!strcasecmp(chan-&gt;language, &quot;pl&quot;)) {	/* POLISH syntax */
++		return vm_intro_pl(chan, vms);
+ 	} else if (!strcasecmp(chan-&gt;language, &quot;se&quot;)) {	/* SWEDISH syntax */
+ 		return vm_intro_se(chan, vms);
+ 	} else if (!strcasecmp(chan-&gt;language, &quot;no&quot;)) {	/* NORWEGIAN syntax */
+
+Modified: trunk/frame.c
+===================================================================
+--- trunk/frame.c	2006-05-06 00:19:15 UTC (rev 67)
++++ trunk/frame.c	2006-05-06 03:18:13 UTC (rev 68)
+@@ -304,37 +304,41 @@
+ struct ast_frame *ast_frisolate(struct ast_frame *fr)
+ {
+ 	struct ast_frame *out;
++	void *newdata;
++	
+ 	if (!(fr-&gt;mallocd &amp; AST_MALLOCD_HDR)) {
+ 		/* Allocate a new header if needed */
+-		if (!(out = ast_frame_header_new())) {
++		if (!(out = ast_frame_header_new()))
+ 			return NULL;
+-		}
+ 		out-&gt;frametype = fr-&gt;frametype;
+ 		out-&gt;subclass = fr-&gt;subclass;
+ 		out-&gt;datalen = fr-&gt;datalen;
+ 		out-&gt;samples = fr-&gt;samples;
+ 		out-&gt;offset = fr-&gt;offset;
+-		out-&gt;src = NULL;
+ 		out-&gt;data = fr-&gt;data;
+-	} else {
++	} else
+ 		out = fr;
+-	}
++	
+ 	if (!(fr-&gt;mallocd &amp; AST_MALLOCD_SRC)) {
+ 		if (fr-&gt;src)
+ 			out-&gt;src = strdup(fr-&gt;src);
+ 	} else
+ 		out-&gt;src = fr-&gt;src;
++	
+ 	if (!(fr-&gt;mallocd &amp; AST_MALLOCD_DATA))  {
+-		if (!(out-&gt;data = ast_malloc(fr-&gt;datalen + AST_FRIENDLY_OFFSET))) {
++		if (!(newdata = ast_malloc(fr-&gt;datalen + AST_FRIENDLY_OFFSET))) {
+ 			free(out);
+ 			return NULL;
+ 		}
+-		out-&gt;data += AST_FRIENDLY_OFFSET;
++		newdata += AST_FRIENDLY_OFFSET;
+ 		out-&gt;offset = AST_FRIENDLY_OFFSET;
+ 		out-&gt;datalen = fr-&gt;datalen;
+-		memcpy(out-&gt;data, fr-&gt;data, fr-&gt;datalen);
++		memcpy(newdata, fr-&gt;data, fr-&gt;datalen);
++		out-&gt;data = newdata;
+ 	}
++
+ 	out-&gt;mallocd = AST_MALLOCD_HDR | AST_MALLOCD_SRC | AST_MALLOCD_DATA;
++	
+ 	return out;
+ }
+ 
+
+Modified: trunk/say.c
+===================================================================
+--- trunk/say.c	2006-05-06 00:19:15 UTC (rev 67)
++++ trunk/say.c	2006-05-06 03:18:13 UTC (rev 68)
+@@ -350,6 +350,7 @@
+ static int ast_say_date_with_format_fr(struct ast_channel *chan, time_t time, const char *ints, const char *lang, const char *format, const char *timezone);
+ static int ast_say_date_with_format_it(struct ast_channel *chan, time_t time, const char *ints, const char *lang, const char *format, const char *timezone);
+ static int ast_say_date_with_format_nl(struct ast_channel *chan, time_t time, const char *ints, const char *lang, const char *format, const char *timezone);
++static int ast_say_date_with_format_pl(struct ast_channel *chan, time_t time, const char *ints, const char *lang, const char *format, const char *timezone);
+ static int ast_say_date_with_format_pt(struct ast_channel *chan, time_t time, const char *ints, const char *lang, const char *format, const char *timezone);
+ static int ast_say_date_with_format_tw(struct ast_channel *chan, time_t time, const char *ints, const char *lang, const char *format, const char *timezone);
+ static int ast_say_date_with_format_gr(struct ast_channel *chan, time_t time, const char *ints, const char *lang, const char *format, const char *timezone);
+@@ -1666,6 +1667,7 @@
+ 	}
+ 	if (i == 0) {
+ 		pl_odtworz_plik(chan, language, audiofd, ctrlfd, ints, odm-&gt;cyfry[0]);
++		return;
+ 	}
+ 
+ 	m1000E6 = i % 1000000000;
+@@ -1755,7 +1757,7 @@
+ 19		dziewietnascie
+ 19m		dziewietnastu
+ 1z		jedna
+-2		dwie
++2		dwa
+ 20		dwadziescia
+ 200		dwiescie
+ 200m		dwustu
+@@ -1847,7 +1849,7 @@
+ 	if (odmiana_nieosobowa == NULL) {
+ 		odmiana_nieosobowa = (odmiana *) malloc(sizeof(odmiana));
+ 
+-		odmiana_nieosobowa-&gt;separator_dziesiatek = &quot;_&quot;;
++		odmiana_nieosobowa-&gt;separator_dziesiatek = &quot; &quot;;
+ 
+ 		memcpy(odmiana_nieosobowa-&gt;cyfry, nijaki_cyfry, sizeof(odmiana_nieosobowa-&gt;cyfry));
+ 		memcpy(odmiana_nieosobowa-&gt;cyfry2, nijaki_cyfry2, sizeof(odmiana_nieosobowa-&gt;cyfry));
+@@ -2926,6 +2928,8 @@
+ 		return(ast_say_date_with_format_it(chan, time, ints, lang, format, timezone));
+ 	} else if (!strcasecmp(lang, &quot;nl&quot;) ) {	/* Dutch syntax */
+ 		return(ast_say_date_with_format_nl(chan, time, ints, lang, format, timezone));
++	} else if (!strcasecmp(lang, &quot;pl&quot;) ) {	/* Polish syntax */
++		return(ast_say_date_with_format_pl(chan, time, ints, lang, format, timezone));
+ 	} else if (!strcasecmp(lang, &quot;pt&quot;) ) {	/* Portuguese syntax */
+ 		return(ast_say_date_with_format_pt(chan, time, ints, lang, format, timezone));
+ 	} else if (!strcasecmp(lang, &quot;tw&quot;) || !strcasecmp(lang, &quot;zh&quot;) ) {	/* Taiwanese / Chinese syntax */
+@@ -4651,6 +4655,220 @@
+ 	return res;
+ }
+ 
++/* Polish syntax */
++int ast_say_date_with_format_pl(struct ast_channel *chan, time_t time, const char *ints, const char *lang, const char *format, const char *timezone)
++{
++	struct tm tm;
++	int res=0, offset, sndoffset;
++	char sndfile[256], nextmsg[256];
++
++	ast_localtime(&amp;time,&amp;tm,timezone);
++
++	for (offset = 0 ; format[offset] != '\0' ; offset++) {
++		int remainder;
++		ast_log(LOG_DEBUG, &quot;Parsing %c (offset %d) in %s\n&quot;, format[offset], offset, format);
++		switch (format[offset]) {
++			/* NOTE:  if you add more options here, please try to be consistent with strftime(3) */
++			case '\'':
++				/* Literal name of a sound file */
++				sndoffset = 0;
++				for (sndoffset = 0 ; (format[++offset] != '\'') &amp;&amp; (sndoffset &lt; 256) ; sndoffset++)
++					sndfile[sndoffset] = format[offset];
++				sndfile[sndoffset] = '\0';
++				res = wait_file(chan, ints, sndfile, lang);
++				break;
++			case 'A':
++			case 'a':
++				/* Sunday - Saturday */
++				snprintf(nextmsg, sizeof(nextmsg), &quot;digits/day-%d&quot;, tm.tm_wday);
++				res = wait_file(chan, ints, nextmsg, lang);
++				break;
++			case 'B':
++			case 'b':
++			case 'h':
++				/* January - December */
++				snprintf(nextmsg, sizeof(nextmsg), &quot;digits/mon-%d&quot;, tm.tm_mon);
++				res = wait_file(chan, ints, nextmsg, lang);
++				break;
++			case 'm':
++				/* Month enumerated */
++				res = ast_say_enumeration(chan, (tm.tm_mon + 1), ints, lang, NULL);
++				break;
++			case 'd':
++			case 'e':
++				/* First - Thirtyfirst */
++				remainder = tm.tm_mday;
++				if (tm.tm_mday &gt; 20) {
++					res = wait_file(chan, ints, &quot;digits/h-20&quot;, lang);
++					remainder -= 20;
++				}
++				if (!res) {
++					snprintf(nextmsg, sizeof(nextmsg), &quot;digits/h-%d&quot;, remainder);
++					res = wait_file(chan, ints, nextmsg, lang);
++				}
++				break;
++			case 'Y':
++				/* Year */
++				if (tm.tm_year &gt; 100) {
++					res = wait_file(chan, ints, &quot;digits/2&quot;, lang);
++					if (!res)
++						res = wait_file(chan, ints, &quot;digits/1000.2&quot;,lang);
++					if (tm.tm_year &gt; 100) {
++						if (!res)
++							res = ast_say_enumeration(chan, tm.tm_year - 100, ints, lang, NULL);
++					}
++				} else if (tm.tm_year == 100) {
++					res = wait_file(chan, ints, &quot;digits/h-2000&quot;, lang);
++				} else {
++					if (tm.tm_year &lt; 1) {
++						/* I'm not going to handle 1900 and prior */
++						/* We'll just be silent on the year, instead of bombing out. */
++						break;
++					} else {
++						res = wait_file(chan, ints, &quot;digits/1000&quot;, lang);
++						if (!res) {
++							wait_file(chan, ints, &quot;digits/900&quot;, lang);
++							res = ast_say_enumeration(chan, tm.tm_year, ints, lang, NULL);
++						}
++					}
++				}
++				if (!res)
++					wait_file(chan, ints, &quot;digits/year&quot;, lang);
++				break;
++			case 'I':
++			case 'l':
++				/* 12-Hour */
++				if (tm.tm_hour == 0)
++					snprintf(nextmsg, sizeof(nextmsg), &quot;digits/t-12&quot;);
++				else if (tm.tm_hour &gt; 12)
++					snprintf(nextmsg, sizeof(nextmsg), &quot;digits/t-%d&quot;, tm.tm_hour - 12);
++				else 
++					snprintf(nextmsg, sizeof(nextmsg), &quot;digits/t-%d&quot;, tm.tm_hour);
++
++				res = wait_file(chan, ints, nextmsg, lang);
++				break;
++			case 'H':
++			case 'k':
++				/* 24-Hour */
++				if (tm.tm_hour != 0) {
++					snprintf(nextmsg, sizeof(nextmsg), &quot;digits/t-%d&quot;, tm.tm_hour);
++					res = wait_file(chan, ints, nextmsg, lang);
++				} else 
++					res = wait_file(chan, ints, &quot;digits/t-24&quot;, lang);
++				break;
++			case 'M':
++			case 'N':
++				/* Minute */
++				if (tm.tm_min == 0) {
++					if (format[offset] == 'M') {
++						res = wait_file(chan, ints, &quot;digits/oclock&quot;, lang);
++					} else {
++						res = wait_file(chan, ints, &quot;digits/100&quot;, lang);
++					}
++				} else
++					res = ast_say_number(chan, tm.tm_min, ints, lang, &quot;f&quot;); 
++				break;
++			case 'P':
++			case 'p':
++				/* AM/PM */
++				if (tm.tm_hour &gt; 11)
++					snprintf(nextmsg, sizeof(nextmsg), &quot;digits/p-m&quot;);
++				else
++					snprintf(nextmsg, sizeof(nextmsg), &quot;digits/a-m&quot;);
++				res = wait_file(chan, ints, nextmsg, lang);
++				break;
++			case 'Q':
++				/* Shorthand for &quot;Today&quot;, &quot;Yesterday&quot;, or AdBY */
++				{
++					struct timeval now;
++					struct tm tmnow;
++					time_t beg_today;
++
++					gettimeofday(&amp;now, NULL);
++					ast_localtime(&amp;now.tv_sec,&amp;tmnow, timezone);
++					/* This might be slightly off, if we transcend a leap second, but never more off than 1 second */
++					/* In any case, it saves not having to do ast_mktime() */
++					beg_today = now.tv_sec - (tmnow.tm_hour * 3600) - (tmnow.tm_min * 60) - (tmnow.tm_sec);
++					if (beg_today &lt; time) {
++						/* Today */
++						res = wait_file(chan, ints, &quot;digits/today&quot;, lang);
++					} else if (beg_today - 86400 &lt; time) {
++						/* Yesterday */
++						res = wait_file(chan, ints, &quot;digits/yesterday&quot;, lang);
++					} else {
++						res = ast_say_date_with_format(chan, time, ints, lang, &quot;AdBY&quot;, timezone);
++					}
++				}
++				break;
++			case 'q':
++				/* Shorthand for &quot;&quot; (today), &quot;Yesterday&quot;, A (weekday), or AdBY */
++				{
++					struct timeval now;
++					struct tm tmnow;
++					time_t beg_today;
++
++					gettimeofday(&amp;now, NULL);
++					ast_localtime(&amp;now.tv_sec, &amp;tmnow, timezone);
++					/* This might be slightly off, if we transcend a leap second, but never more off than 1 second */
++					/* In any case, it saves not having to do ast_mktime() */
++					beg_today = now.tv_sec - (tmnow.tm_hour * 3600) - (tmnow.tm_min * 60) - (tmnow.tm_sec);
++					if (beg_today &lt; time) {
++						/* Today */
++					} else if ((beg_today - 86400) &lt; time) {
++						/* Yesterday */
++						res = wait_file(chan, ints, &quot;digits/yesterday&quot;, lang);
++					} else if (beg_today - 86400 * 6 &lt; time) {
++						/* Within the last week */
++						res = ast_say_date_with_format(chan, time, ints, lang, &quot;A&quot;, timezone);
++					} else {
++						res = ast_say_date_with_format(chan, time, ints, lang, &quot;AdBY&quot;, timezone);
++					}
++				}
++				break;
++			case 'R':
++				res = ast_say_date_with_format(chan, time, ints, lang, &quot;HM&quot;, timezone);
++				break;
++			case 'S':
++				/* Seconds */
++				res = wait_file(chan, ints, &quot;digits/and&quot;, lang);
++				if (!res) {
++					if (tm.tm_sec == 1) {
++						res = wait_file(chan, ints, &quot;digits/1z&quot;, lang);
++						if (!res)
++							res = wait_file(chan, ints, &quot;digits/second-a&quot;, lang);
++					} else {
++						res = ast_say_number(chan, tm.tm_min, ints, lang, &quot;f&quot;);
++						if (!res) {
++							int ten, one;
++							ten = tm.tm_sec / 10;
++							one = tm.tm_sec % 10;
++							
++							if (one &gt; 1 &amp;&amp; one &lt; 5 &amp;&amp; ten != 1)
++								res = wait_file(chan,ints, &quot;digits/seconds&quot;,lang);
++							else
++								res = wait_file(chan,ints, &quot;digits/second&quot;,lang);
++						}
++					}
++				}
++				break;
++			case 'T':
++				res = ast_say_date_with_format(chan, time, ints, lang, &quot;HMS&quot;, timezone);
++				break;
++			case ' ':
++			case '	':
++				/* Just ignore spaces and tabs */
++				break;
++			default:
++				/* Unknown character */
++				ast_log(LOG_WARNING, &quot;Unknown character in datetime format %s: %c at pos %d\n&quot;, format, format[offset], offset);
++		}
++		/* Jump out on DTMF */
++		if (res)
++			break;
++	}
++	return res;
++}
++
+ /* Portuguese syntax */
+ int ast_say_date_with_format_pt(struct ast_channel *chan, time_t time, const char *ints, const char *lang, const char *format, const char *timezone)
+ {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000064.html">[solid-pbx-svn] r67 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000066.html">[solid-pbx-svn] r69 - trunk/build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#65">[ date ]</a>
+              <a href="thread.html#65">[ thread ]</a>
+              <a href="subject.html#65">[ subject ]</a>
+              <a href="author.html#65">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

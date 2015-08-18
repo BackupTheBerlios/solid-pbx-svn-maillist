@@ -1,0 +1,846 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r157 - in trunk/channels: . misdn
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r157%20-%20in%20trunk/channels%3A%20.%20misdn&In-Reply-To=%3C200605161529.k4GFTKmK025877%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000151.html">
+   <LINK REL="Next"  HREF="000153.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r157 - in trunk/channels: . misdn</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r157%20-%20in%20trunk/channels%3A%20.%20misdn&In-Reply-To=%3C200605161529.k4GFTKmK025877%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r157 - in trunk/channels: . misdn">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May 16 17:29:20 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000151.html">[solid-pbx-svn] r156 - in trunk: . channels
+</A></li>
+        <LI>Next message: <A HREF="000153.html">[solid-pbx-svn] r158 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#152">[ date ]</a>
+              <a href="thread.html#152">[ thread ]</a>
+              <a href="subject.html#152">[ subject ]</a>
+              <a href="author.html#152">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-16 17:29:18 +0200 (Tue, 16 May 2006)
+New Revision: 157
+
+Modified:
+   trunk/channels/chan_misdn.c
+   trunk/channels/misdn/isdn_lib.c
+   trunk/channels/misdn/isdn_lib.h
+   trunk/channels/misdn/isdn_msg_parser.c
+Log:
+Update to Asterisk SVN trunk r27386
+
+------------------------------------------------------------------------
+r27346 | crichter | 2006-05-16 16:34:21 +0200 (Tue, 16 May 2006) | 1 line
+
+fixed very bad memory overwrite which leaded to segfaults on some systems. removed redundant buffer betweend mISDN reading thread and ast_read in favour of the already existing pipe, this clarifies the way a voice frame takes between mISDN and asterisk a lot. centralized debugging of NumberPlan. removed a compiler warning.
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_misdn.c
+===================================================================
+--- trunk/channels/chan_misdn.c	2006-05-16 13:29:16 UTC (rev 156)
++++ trunk/channels/chan_misdn.c	2006-05-16 15:29:18 UTC (rev 157)
+@@ -105,6 +105,7 @@
+ 
+ 
+ 
++
+ /* BEGIN: chan_misdn.h */
+ 
+ 
+@@ -206,6 +207,12 @@
+ };
+ static struct robin_list *robin = NULL;
+ 
++
++
++struct ast_frame *process_ast_dsp(struct chan_list *tmp, struct ast_frame *frame);
++
++
++
+ static inline void free_robin_list_r (struct robin_list *r)
+ {
+         if (r) {
+@@ -301,6 +308,9 @@
+ 
+ int chan_misdn_jb_empty(struct misdn_bchannel *bc, char *buf, int len);
+ 
++
++void debug_numplan(int port, int numplan, char *type);
++
+ /*************** Helpers *****************/
+ 
+ static struct chan_list * get_chan_by_ast(struct ast_channel *ast)
+@@ -1227,6 +1237,28 @@
+ }
+ 
+ 
++void debug_numplan(int port, int numplan, char *type)
++{
++	switch (numplan) {
++	case NUMPLAN_INTERNATIONAL:
++		chan_misdn_log(2, port, &quot; --&gt; %s: International\n&quot;,type);
++		break;
++	case NUMPLAN_NATIONAL:
++		chan_misdn_log(2, port, &quot; --&gt; %s: National\n&quot;,type);
++		break;
++	case NUMPLAN_SUBSCRIBER:
++		chan_misdn_log(2, port, &quot; --&gt; %s: Subscriber\n&quot;,type);
++		break;
++	case NUMPLAN_UNKNOWN:
++		chan_misdn_log(2, port, &quot; --&gt; %s: Unknown\n&quot;,type);
++		break;
++		/* Maybe we should cut off the prefix if present ? */
++	default:
++		chan_misdn_log(0, port, &quot; --&gt; !!!! Wrong dialplan setting, please see the misdn.conf sample file\n &quot;);
++		break;
++	}
++}
++
+ static int read_config(struct chan_list *ch, int orig) {
+ 
+ 	if (!ch) {
+@@ -1291,8 +1323,7 @@
+ 	
+ 	misdn_cfg_get( bc-&gt;port, MISDN_CFG_CONTEXT, ch-&gt;context, sizeof(ch-&gt;context));
+ 	
+-	ast_copy_string (ast-&gt;context,ch-&gt;context,sizeof(ast-&gt;context));
+-	
++	ast_copy_string (ast-&gt;context,ch-&gt;context,sizeof(ast-&gt;context));	
+ 	{
+ 		int ec, ectr;
+ 		
+@@ -1311,7 +1342,6 @@
+ 		}
+ 	}
+ 	
+-	
+ 	{
+ 		int eb3;
+ 		
+@@ -1321,7 +1351,6 @@
+ 	
+ 	port=bc-&gt;port;
+ 	
+-
+ 	{
+ 		char buf[256];
+ 		ast_group_t pg,cg;
+@@ -1334,11 +1363,9 @@
+ 		ast-&gt;callgroup=cg;
+ 	}
+ 	
+-	
+ 	if ( orig  == ORG_AST) {
+ 		misdn_cfg_get( port, MISDN_CFG_TE_CHOOSE_CHANNEL, &amp;(bc-&gt;te_choose_channel), sizeof(int));
+ 		
+-		
+ 		{
+ 			char callerid[BUFFERSIZE+1];
+ 			misdn_cfg_get( port, MISDN_CFG_CALLERID, callerid, BUFFERSIZE);
+@@ -1354,67 +1381,11 @@
+ 
+ 			
+ 			misdn_cfg_get( port, MISDN_CFG_DIALPLAN, &amp;bc-&gt;dnumplan, sizeof(int));
+-			switch (bc-&gt;dnumplan) {
+-			case NUMPLAN_INTERNATIONAL:
+-				chan_misdn_log(2, port, &quot; --&gt; TON: International\n&quot;);
+-				break;
+-			case NUMPLAN_NATIONAL:
+-				chan_misdn_log(2, port, &quot; --&gt; TON: National\n&quot;);
+-				break;
+-			case NUMPLAN_SUBSCRIBER:
+-				chan_misdn_log(2, port, &quot; --&gt; TON: Subscriber\n&quot;);
+-				break;
+-			case NUMPLAN_UNKNOWN:
+-				chan_misdn_log(2, port, &quot; --&gt; TON: Unknown\n&quot;);
+-				break;
+-				/* Maybe we should cut off the prefix if present ? */
+-			default:
+-				chan_misdn_log(0, port, &quot; --&gt; !!!! Wrong dialplan setting, please see the misdn.conf sample file\n &quot;);
+-				break;
+-			}
+-
+-
+ 			misdn_cfg_get( port, MISDN_CFG_LOCALDIALPLAN, &amp;bc-&gt;onumplan, sizeof(int));
+-			switch (bc-&gt;onumplan) {
+-			case NUMPLAN_INTERNATIONAL:
+-				chan_misdn_log(2, port, &quot; --&gt; LTON: International\n&quot;);
+-				break;
+-			case NUMPLAN_NATIONAL:
+-				chan_misdn_log(2, port, &quot; --&gt; LTON: National\n&quot;);
+-				break;
+-			case NUMPLAN_SUBSCRIBER:
+-				chan_misdn_log(2, port, &quot; --&gt; LTON: Subscriber\n&quot;);
+-				break;
+-			case NUMPLAN_UNKNOWN:
+-				chan_misdn_log(2, port, &quot; --&gt; LTON: Unknown\n&quot;);
+-				break;
+-				/* Maybe we should cut off the prefix if present ? */
+-			default:
+-					chan_misdn_log(0, port, &quot; --&gt; !!!! Wrong dialplan setting, please see the misdn.conf sample file\n &quot;);
+-					break;
+-			}
+-
+ 			misdn_cfg_get( port, MISDN_CFG_CPNDIALPLAN, &amp;bc-&gt;cpnnumplan, sizeof(int));
+-
+-			switch (bc-&gt;cpnnumplan) {
+-			case NUMPLAN_INTERNATIONAL:
+-				chan_misdn_log(2, port, &quot; --&gt; CTON: International\n&quot;);
+-				break;
+-			case NUMPLAN_NATIONAL:
+-				chan_misdn_log(2, port, &quot; --&gt; CTON: National\n&quot;);
+-				break;
+-			case NUMPLAN_SUBSCRIBER:
+-				chan_misdn_log(2, port, &quot; --&gt; CTON: Subscriber\n&quot;);
+-				break;
+-			case NUMPLAN_UNKNOWN:
+-				chan_misdn_log(2, port, &quot; --&gt; CTON: Unknown\n&quot;);
+-				break;
+-				/* Maybe we should cut off the prefix if present ? */
+-			default:
+-					chan_misdn_log(0, port, &quot; --&gt; !!!! Wrong dialplan setting, please see the misdn.conf sample file\n &quot;);
+-					break;
+-			}
+-
++			debug_numplan(port, bc-&gt;dnumplan,&quot;TON&quot;);
++			debug_numplan(port, bc-&gt;onumplan,&quot;LTON&quot;);
++			debug_numplan(port, bc-&gt;cpnnumplan,&quot;CTON&quot;);
+ 		}
+ 
+ 		
+@@ -1422,25 +1393,7 @@
+ 	} else { /** ORIGINATOR MISDN **/
+ 	
+ 		misdn_cfg_get( port, MISDN_CFG_CPNDIALPLAN, &amp;bc-&gt;cpnnumplan, sizeof(int));
+-
+-		switch (bc-&gt;cpnnumplan) {
+-			case NUMPLAN_INTERNATIONAL:
+-				chan_misdn_log(2, port, &quot; --&gt; CTON: International\n&quot;);
+-				break;
+-			case NUMPLAN_NATIONAL:
+-				chan_misdn_log(2, port, &quot; --&gt; CTON: National\n&quot;);
+-				break;
+-			case NUMPLAN_SUBSCRIBER:
+-				chan_misdn_log(2, port, &quot; --&gt; CTON: Subscriber\n&quot;);
+-				break;
+-			case NUMPLAN_UNKNOWN:
+-				chan_misdn_log(2, port, &quot; --&gt; CTON: Unknown\n&quot;);
+-				break;
+-				/* Maybe we should cut off the prefix if present ? */
+-			default:
+-				chan_misdn_log(0, port, &quot; --&gt; !!!! Wrong dialplan setting, please see the misdn.conf sample file\n &quot;);
+-				break;
+-		}
++		debug_numplan(port, bc-&gt;cpnnumplan,&quot;CTON&quot;);
+ 		
+ 		char prefix[BUFFERSIZE+1]=&quot;&quot;;
+ 		switch( bc-&gt;onumplan ) {
+@@ -1451,14 +1404,6 @@
+ 		case NUMPLAN_NATIONAL:
+ 			misdn_cfg_get( bc-&gt;port, MISDN_CFG_NATPREFIX, prefix, BUFFERSIZE);
+ 			break;
+-			
+-			
+-		case NUMPLAN_SUBSCRIBER:
+-			/* dunno what to do here ? */
+-			break;
+-			
+-		case NUMPLAN_UNKNOWN:
+-				break;
+ 		default:
+ 			break;
+ 		}
+@@ -1471,7 +1416,6 @@
+ 			strcpy(bc-&gt;oad,tmp);
+ 		}
+ 		
+-		
+ 		if (!ast_strlen_zero(bc-&gt;dad)) {
+ 			ast_copy_string(bc-&gt;orig_dad,bc-&gt;dad, sizeof(bc-&gt;orig_dad));
+ 		}
+@@ -1479,24 +1423,16 @@
+ 		if ( ast_strlen_zero(bc-&gt;dad) &amp;&amp; !ast_strlen_zero(bc-&gt;keypad)) {
+ 			ast_copy_string(bc-&gt;dad,bc-&gt;keypad, sizeof(bc-&gt;dad));
+ 		}
++
+ 		prefix[0] = 0;
+ 		
+ 		switch( bc-&gt;dnumplan ) {
+ 		case NUMPLAN_INTERNATIONAL:
+ 			misdn_cfg_get( bc-&gt;port, MISDN_CFG_INTERNATPREFIX, prefix, BUFFERSIZE);
+ 			break;
+-			
+-			case NUMPLAN_NATIONAL:
+-				misdn_cfg_get( bc-&gt;port, MISDN_CFG_NATPREFIX, prefix, BUFFERSIZE);
+-				break;
+-				
+-				
+-		case NUMPLAN_SUBSCRIBER:
+-				/* dunno what to do here ? */
++		case NUMPLAN_NATIONAL:
++			misdn_cfg_get( bc-&gt;port, MISDN_CFG_NATPREFIX, prefix, BUFFERSIZE);
+ 			break;
+-			
+-		case NUMPLAN_UNKNOWN:
+-			break;
+ 		default:
+ 			break;
+ 		}
+@@ -1520,7 +1456,8 @@
+ 				free(ast-&gt;cid.cid_rdnis);
+ 			ast-&gt;cid.cid_rdnis = strdup(bc-&gt;rad);
+ 		}
+-	}
++	} /* ORIG MISDN END */
++
+ 	return 0;
+ }
+ 
+@@ -1552,10 +1489,7 @@
+ 				chan_misdn_log(-1,0,&quot;misdn_call: No Extension given!\n&quot;);
+ 				return -1;
+ 			}
+-			
+ 		}
+-		
+-		
+ 	}
+ 
+ 	if (!ast) {
+@@ -1570,7 +1504,6 @@
+ 		return -1;
+ 	}
+ 
+-
+ 	if (!ch) {
+ 		ast_log(LOG_WARNING, &quot; --&gt; ! misdn_call called on %s, neither down nor reserved (or dest==NULL)\n&quot;, ast-&gt;name);
+ 		ast-&gt;hangupcause=41;
+@@ -1591,13 +1524,10 @@
+ 	strncpy(newbc-&gt;dad,ext,sizeof( newbc-&gt;dad));
+ 	strncpy(ast-&gt;exten,ext,sizeof(ast-&gt;exten));
+ 	
+-	
+ 	chan_misdn_log(1, port, &quot;* CALL: %s\n&quot;,dest);
+ 	
+ 	chan_misdn_log(1, port, &quot; --&gt; * dad:%s tech:%s ctx:%s\n&quot;,ast-&gt;exten,ast-&gt;name, ast-&gt;context);
+ 	
+-	
+-	
+ 	chan_misdn_log(3, port, &quot; --&gt; * adding2newbc ext %s\n&quot;,ast-&gt;exten);
+ 	if (ast-&gt;exten) {
+ 		int l = sizeof(newbc-&gt;dad);
+@@ -1638,7 +1568,6 @@
+ 		else
+ 			chan_misdn_log(2,port,&quot;NO OPTS GIVEN\n&quot;);
+ 		
+-		
+ 		ch-&gt;state=MISDN_CALLING;
+ 		
+ 		r=misdn_lib_send_event( newbc, EVENT_SETUP );
+@@ -1798,7 +1727,7 @@
+ 
+ 
+ 
+-static int misdn_indication(struct ast_channel *ast, int cond)
++static int misdn_indication(struct ast_channel *ast, int cond, const void *data, size_t datalen)
+ {
+ 	struct chan_list *p;
+ 
+@@ -2051,52 +1980,69 @@
+ 	return 0;
+ }
+ 
++
++struct ast_frame *process_ast_dsp(struct chan_list *tmp, struct ast_frame *frame)
++{
++	struct ast_frame *f,*f2;
++	if (tmp-&gt;trans)
++		f2=ast_translate(tmp-&gt;trans, frame,0);
++	else {
++		chan_misdn_log(0, tmp-&gt;bc-&gt;port, &quot;No T-Path found\n&quot;);
++		return NULL;
++	}
++	
++	f = ast_dsp_process(tmp-&gt;ast, tmp-&gt;dsp, f2);
++	if (f &amp;&amp; (f-&gt;frametype == AST_FRAME_DTMF)) {
++		ast_log(LOG_DEBUG, &quot;Detected inband DTMF digit: %c&quot;, f-&gt;subclass);
++		if (f-&gt;subclass == 'f' &amp;&amp; tmp-&gt;faxdetect) {
++			/* Fax tone -- Handle and return NULL */
++			struct ast_channel *ast = tmp-&gt;ast;
++			if (!tmp-&gt;faxhandled) {
++				tmp-&gt;faxhandled++;
++				if (strcmp(ast-&gt;exten, &quot;fax&quot;)) {
++					if (ast_exists_extension(ast, ast_strlen_zero(ast-&gt;macrocontext)? ast-&gt;context : ast-&gt;macrocontext, &quot;fax&quot;, 1, AST_CID_P(ast))) {
++						if (option_verbose &gt; 2)
++							ast_verbose(VERBOSE_PREFIX_3 &quot;Redirecting %s to fax extension\n&quot;, ast-&gt;name);
++						/* Save the DID/DNIS when we transfer the fax call to a &quot;fax&quot; extension */
++						pbx_builtin_setvar_helper(ast,&quot;FAXEXTEN&quot;,ast-&gt;exten);
++						if (ast_async_goto(ast, ast-&gt;context, &quot;fax&quot;, 1))
++							ast_log(LOG_WARNING, &quot;Failed to async goto '%s' into fax of '%s'\n&quot;, ast-&gt;name, ast-&gt;context);
++					} else
++						ast_log(LOG_NOTICE, &quot;Fax detected, but no fax extension ctx:%s exten:%s\n&quot;,ast-&gt;context, ast-&gt;exten);
++				} else
++					ast_log(LOG_DEBUG, &quot;Already in a fax extension, not redirecting\n&quot;);
++			} else
++				ast_log(LOG_DEBUG, &quot;Fax already handled\n&quot;);
++			
++		}  else if ( tmp-&gt;ast_dsp) {
++			chan_misdn_log(2, tmp-&gt;bc-&gt;port, &quot; --&gt; * SEND: DTMF (AST_DSP) :%c\n&quot;,f-&gt;subclass);
++			return f;
++		}
++	}
++
++	frame-&gt;frametype = AST_FRAME_NULL;
++	frame-&gt;subclass = 0;
++	return frame;
++}
++
++
+ static struct ast_frame  *misdn_read(struct ast_channel *ast)
+ {
+ 	struct chan_list *tmp;
++	int len;
+ 	
+-	char blah[255];
+-	int len =0 ;
+-	
+ 	if (!ast) return NULL;
+ 	if (! (tmp=MISDN_ASTERISK_TECH_PVT(ast)) ) return NULL;
+ 	if (!tmp-&gt;bc) return NULL;
+ 	
+-	
+-	read(tmp-&gt;pipe[0],blah,sizeof(blah));
+-	
+-	len = misdn_ibuf_usedcount(tmp-&gt;bc-&gt;astbuf);
++	len=read(tmp-&gt;pipe[0],tmp-&gt;ast_rd_buf,sizeof(tmp-&gt;ast_rd_buf));
+ 
+-	if (!len) {
+-		struct ast_frame *frame;
+-		if(!tmp-&gt;zero_read_cnt)
+-			chan_misdn_log(4,tmp-&gt;bc-&gt;port,&quot;misdn_read: ZERO READ\n&quot;);
+-		tmp-&gt;zero_read_cnt++;
+-
+-		if (tmp-&gt;zero_read_cnt &gt; 5000) {
+-			chan_misdn_log(4,tmp-&gt;bc-&gt;port,&quot;misdn_read: ZERO READ counted &gt; 5000 times\n&quot;);
+-			tmp-&gt;zero_read_cnt=0;
+-
+-		}
+-
+-               /*faking Voice Frame*/
+-		tmp-&gt;frame.frametype = AST_FRAME_VOICE;
+-		tmp-&gt;frame.subclass = AST_FORMAT_ALAW;
+-		memset(tmp-&gt;ast_rd_buf,0,128);
+-		tmp-&gt;frame.data = tmp-&gt;ast_rd_buf ;
+-		tmp-&gt;frame.mallocd =0 ;
+-		tmp-&gt;frame.datalen = 128;
+-		tmp-&gt;frame.samples = 128;
+-
+-		frame=ast_frisolate(&amp;tmp-&gt;frame);
+-		return frame;
++	if (len&lt;=0) {
++		/* we hangup here, since our pipe is closed */
++		chan_misdn_log(2,tmp-&gt;bc-&gt;port,&quot;misdn_read: Pipe closed, hanging up\n&quot;);
++		return NULL;
+ 	}
+ 
+-	/*shrinken len if necessary, we transmit at maximum 4k*/
+-	len = len&lt;=sizeof(tmp-&gt;ast_rd_buf)?len:sizeof(tmp-&gt;ast_rd_buf);
+-	
+-	misdn_ibuf_memcpy_r(tmp-&gt;ast_rd_buf, tmp-&gt;bc-&gt;astbuf,len);
+-	
+ 	tmp-&gt;frame.frametype  = AST_FRAME_VOICE;
+ 	tmp-&gt;frame.subclass = AST_FORMAT_ALAW;
+ 	tmp-&gt;frame.datalen = len;
+@@ -2105,13 +2051,15 @@
+ 	tmp-&gt;frame.offset= 0 ;
+ 	tmp-&gt;frame.src = NULL;
+ 	tmp-&gt;frame.data = tmp-&gt;ast_rd_buf ;
+-
++	
++	if (tmp-&gt;faxdetect || tmp-&gt;ast_dsp ) {
++		return process_ast_dsp(tmp, &amp;tmp-&gt;frame);
++	}
++	
+ 	return &amp;tmp-&gt;frame;
+ }
+ 
+ 
+-
+-
+ static int misdn_write(struct ast_channel *ast, struct ast_frame *frame)
+ {
+ 	struct chan_list *ch;
+@@ -2124,10 +2072,6 @@
+ 		return -1;
+ 	}
+ 	
+-	/*if (ch-&gt;bc-&gt;tone != TONE_NONE)
+-	  tone_indicate(ch,TONE_NONE); */
+-	
+-	
+ 	if (ch-&gt;holded ) {
+ 		chan_misdn_log(5, ch-&gt;bc-&gt;port, &quot;misdn_write: Returning because holded\n&quot;);
+ 		return 0;
+@@ -2192,11 +2136,7 @@
+ 	}
+ 
+ 	chan_misdn_log(9, ch-&gt;bc-&gt;port, &quot;Sending :%d bytes 2 MISDN\n&quot;,frame-&gt;samples);
+-	/*if speech flip bits*/
+-	if ( misdn_cap_is_speech(ch-&gt;bc-&gt;capability) )
+-		flip_buf_bits(frame-&gt;data,frame-&gt;samples);
+ 	
+-	
+ 	if ( !ch-&gt;bc-&gt;nojitter &amp;&amp; misdn_cap_is_speech(ch-&gt;bc-&gt;capability) ) {
+ 		/* Buffered Transmit (triggert by read from isdn side)*/
+ 		if (misdn_jb_fill(ch-&gt;jb,frame-&gt;data,frame-&gt;samples) &lt; 0) {
+@@ -2677,116 +2617,6 @@
+ 	return tmp;
+ }
+ 
+-
+-
+-static int misdn_tx2ast_frm(struct chan_list * tmp, char * buf,  int len )
+-{
+-	struct ast_frame frame;
+-
+-	/* If in hold state we drop frame .. */
+-	if (tmp-&gt;holded ) return 0;
+-	
+-	switch(tmp-&gt;state) {
+-	case MISDN_CLEANING:
+-	case MISDN_EXTCANTMATCH:
+-		return 0;
+-		
+-	case MISDN_WAITING4DIGS:
+-	default:
+-		break;
+-	}
+-	
+-	if (tmp-&gt;norxtone) {
+-		chan_misdn_log(3, tmp-&gt;bc-&gt;port, &quot;misdn_tx2ast_frm: Returning because norxtone\n&quot;);
+-		return 0;
+-	}
+-	
+-	frame.frametype  = AST_FRAME_VOICE;
+-	frame.subclass = AST_FORMAT_ALAW;
+-	frame.datalen = len;
+-	frame.samples = len ;
+-	frame.mallocd =0 ;
+-	frame.offset= 0 ;
+-	frame.src = NULL;
+-	frame.data = buf ;
+-	
+-	if (tmp-&gt;faxdetect || tmp-&gt;ast_dsp ) {
+-		struct ast_frame *f,*f2;
+-		if (tmp-&gt;trans)
+-			f2=ast_translate(tmp-&gt;trans, &amp;frame,0);
+-		else {
+-			chan_misdn_log(0, tmp-&gt;bc-&gt;port, &quot;No T-Path found\n&quot;);
+-			return 0;
+-		}
+-		
+-		f = ast_dsp_process(tmp-&gt;ast, tmp-&gt;dsp, f2);
+-		if (f &amp;&amp; (f-&gt;frametype == AST_FRAME_DTMF)) {
+-			ast_log(LOG_DEBUG, &quot;Detected inband DTMF digit: %c&quot;, f-&gt;subclass);
+-			if (f-&gt;subclass == 'f' &amp;&amp; tmp-&gt;faxdetect) {
+-				/* Fax tone -- Handle and return NULL */
+-				struct ast_channel *ast = tmp-&gt;ast;
+-				if (!tmp-&gt;faxhandled) {
+-					tmp-&gt;faxhandled++;
+-					if (strcmp(ast-&gt;exten, &quot;fax&quot;)) {
+-						if (ast_exists_extension(ast, S_OR(ast-&gt;macrocontext, ast-&gt;context), &quot;fax&quot;, 1, AST_CID_P(ast))) {
+-							if (option_verbose &gt; 2)
+-								ast_verbose(VERBOSE_PREFIX_3 &quot;Redirecting %s to fax extension\n&quot;, ast-&gt;name);
+-							/* Save the DID/DNIS when we transfer the fax call to a &quot;fax&quot; extension */
+-							pbx_builtin_setvar_helper(ast,&quot;FAXEXTEN&quot;,ast-&gt;exten);
+-							if (ast_async_goto(ast, ast-&gt;context, &quot;fax&quot;, 1))
+-								ast_log(LOG_WARNING, &quot;Failed to async goto '%s' into fax of '%s'\n&quot;, ast-&gt;name, ast-&gt;context);
+-						} else
+-							ast_log(LOG_NOTICE, &quot;Fax detected, but no fax extension ctx:%s exten:%s\n&quot;,ast-&gt;context, ast-&gt;exten);
+-					} else
+-						ast_log(LOG_DEBUG, &quot;Already in a fax extension, not redirecting\n&quot;);
+-				} else
+-					ast_log(LOG_DEBUG, &quot;Fax already handled\n&quot;);
+-				frame.frametype = AST_FRAME_NULL;
+-				frame.subclass = 0;
+-				f = &frame;
+-			}  else if ( tmp-&gt;ast_dsp) {
+-				struct ast_frame fr;
+-				memset(&amp;fr, 0 , sizeof(fr));
+-				fr.frametype = AST_FRAME_DTMF;
+-				fr.subclass = f-&gt;subclass ;
+-				fr.src=NULL;
+-				fr.data = NULL ;
+-				fr.datalen = 0;
+-				fr.samples = 0 ;
+-				fr.mallocd =0 ;
+-				fr.offset= 0 ;
+-				
+-				chan_misdn_log(2, tmp-&gt;bc-&gt;port, &quot; --&gt; * SEND: DTMF (AST_DSP) :%c\n&quot;,f-&gt;subclass);
+-				ast_queue_frame(tmp-&gt;ast, &amp;fr);
+-				
+-				frame.frametype = AST_FRAME_NULL;
+-				frame.subclass = 0;
+-				f = &frame;
+-			}
+-		}
+-	}
+-	
+-	if (tmp &amp;&amp; tmp-&gt;ast &amp;&amp; MISDN_ASTERISK_PVT (tmp-&gt;ast) &amp;&amp; MISDN_ASTERISK_TECH_PVT(tmp-&gt;ast) ) {
+-#if MISDN_DEBUG
+-		int i, max=5&gt;len?len:5;
+-    
+-		printf(&quot;write2* %p %d bytes: &quot;,tmp, len);
+-    
+-		for (i=0; i&lt;  max ; i++) printf(&quot;%2.2x &quot;,((char*) frame.data)[i]);
+-		printf (&quot;\n&quot;);
+-#endif
+-		chan_misdn_log(9, tmp-&gt;bc-&gt;port, &quot;Queueing %d bytes 2 Asterisk\n&quot;,len);
+-		ast_queue_frame(tmp-&gt;ast,&amp;frame);
+-
+-	}  else {
+-		ast_log (LOG_WARNING, &quot;No ast || ast-&gt;pvt || ch\n&quot;);
+-	}
+-	
+-	return 0;
+-}
+-
+-/** Channel Queue ***/
+-
+ static struct chan_list *find_chan_by_l3id(struct chan_list *list, unsigned long l3id)
+ {
+ 	struct chan_list *help=list;
+@@ -3697,41 +3527,25 @@
+ 		
+ 	case EVENT_BCHAN_DATA:
+ 	{
+-		if ( !misdn_cap_is_speech(ch-&gt;bc-&gt;capability) || bc-&gt;nojitter) {
+-			misdn_tx2ast_frm(ch, bc-&gt;bframe, bc-&gt;bframe_len );
++		if ( !misdn_cap_is_speech(ch-&gt;bc-&gt;capability) ) {
++			struct ast_frame frame;
++			/*In Data Modes we queue frames*/
++			frame.frametype  = AST_FRAME_VOICE; /*we have no data frames yet*/
++			frame.subclass = AST_FORMAT_ALAW;
++			frame.datalen = bc-&gt;bframe_len;
++			frame.samples = bc-&gt;bframe_len ;
++			frame.mallocd =0 ;
++			frame.offset= 0 ;
++			frame.src = NULL;
++			frame.data = bc-&gt;bframe ;
++			
++			ast_queue_frame(ch-&gt;ast,&amp;frame);
+ 		} else {
+-			int len=bc-&gt;bframe_len;
+-			int free=misdn_ibuf_freecount(bc-&gt;astbuf);
+-		
+-			if (bc-&gt;bframe_len &gt; free) {
+-				ast_log(LOG_DEBUG, &quot;sbuf overflow!\n&quot;);
+-				len=misdn_ibuf_freecount(bc-&gt;astbuf);
++			int ret=write(ch-&gt;pipe[1], bc-&gt;bframe, bc-&gt;bframe_len);
+ 
+-				if (len == 0) {
+-					ast_log(LOG_WARNING, &quot;BCHAN_DATA: write buffer overflow port:%d channel:%d!\n&quot;,bc-&gt;port,bc-&gt;channel);
+-				}
++			if (ret&lt;=0) {
++				chan_misdn_log(1, bc-&gt;port, &quot;Write returned &lt;=0 (err=%s)\n&quot;,strerror(errno));
+ 			}
+-			
+-			misdn_ibuf_memcpy_w(bc-&gt;astbuf, bc-&gt;bframe, len);
+-			
+-			{
+-				char blah[1]=&quot;\0&quot;;
+-#ifdef FLATTEN_JITTER
+-				{
+-					struct timeval tv;
+-					gettimeofday(&amp;tv,NULL);
+-					
+-					if (tv.tv_usec % 10000 &gt; 0 ) {
+-						write(ch-&gt;pipe[1], blah,sizeof(blah));
+-						bc-&gt;time_usec=tv.tv_usec;
+-					}
+-				}
+-#else
+-				write(ch-&gt;pipe[1], blah,sizeof(blah));
+-#endif
+-				
+-				
+-			}
+ 		}
+ 	}
+ 	break;
+
+Modified: trunk/channels/misdn/isdn_lib.c
+===================================================================
+--- trunk/channels/misdn/isdn_lib.c	2006-05-16 13:29:16 UTC (rev 156)
++++ trunk/channels/misdn/isdn_lib.c	2006-05-16 15:29:18 UTC (rev 157)
+@@ -19,42 +19,6 @@
+ void misdn_split_conf(struct misdn_bchannel *bc, int conf_id);
+ 
+ 
+-void misdn_free_ibuffer(void *ibuf)
+-{
+-	free_ibuffer((ibuffer_t*)ibuf);
+-}
+-
+-
+-void misdn_clear_ibuffer(void *ibuf)
+-{
+-	clear_ibuffer( (ibuffer_t*)ibuf);
+-}
+-
+-void *misdn_init_ibuffer(int len)
+-{
+-	return init_ibuffer(len);
+-}
+-
+-int misdn_ibuf_freecount(void *buf)
+-{
+-	return ibuf_freecount( (ibuffer_t*)buf);
+-}
+-
+-int misdn_ibuf_usedcount(void *buf)
+-{
+-	return ibuf_usedcount( (ibuffer_t*)buf);
+-}
+-
+-void misdn_ibuf_memcpy_r(char *to, void *buf, int len)
+-{
+-	ibuf_memcpy_r( to, (ibuffer_t*)buf, len);
+-}
+-
+-void misdn_ibuf_memcpy_w(void *buf, char *from,  int len)
+-{
+-	ibuf_memcpy_w((ibuffer_t*)buf, from, len);
+-}
+-
+ struct misdn_stack* get_misdn_stack( void );
+ 
+ 
+@@ -196,7 +160,6 @@
+ void te_lib_destroy(int midev) ;
+ struct misdn_bchannel *manager_find_bc_by_pid(int pid);
+ struct misdn_bchannel *manager_find_bc_holded(struct misdn_bchannel* bc);
+-unsigned char * manager_flip_buf_bits ( unsigned char * buf , int len);
+ void manager_ph_control_block(struct misdn_bchannel *bc, long c1, void *c2, int c2_len);
+ void manager_clean_bc(struct misdn_bchannel *bc );
+ void manager_bchannel_setup (struct misdn_bchannel *bc);
+@@ -2031,6 +1994,7 @@
+ 	jlen=cb_jb_empty(bc,&amp;buf[mISDN_HEADER_LEN],len);
+ 	
+ 	if (jlen) {
++		flip_buf_bits( &amp;buf[mISDN_HEADER_LEN], jlen);
+ 		
+ 		if (jlen &lt; len) {
+ 			cb_log(5,bc-&gt;port,&quot;Jitterbuffer Underrun.\n&quot;);
+@@ -3586,8 +3550,10 @@
+ 	
+ 	frm-&gt;len = len;
+ 	memcpy(&amp;buf[mISDN_HEADER_LEN], data,len);
+-	
+-	if ( ! misdn_cap_is_speech(bc-&gt;capability))
++		
++	if ( misdn_cap_is_speech(bc-&gt;capability) ) 
++		flip_buf_bits( &amp;buf[mISDN_HEADER_LEN], len);
++	else
+ 		cb_log(6, stack-&gt;port, &quot;Writing %d data bytes\n&quot;,len);
+ 	
+ 	cb_log(9, stack-&gt;port, &quot;Writing %d bytes 2 mISDN\n&quot;,len);
+
+Modified: trunk/channels/misdn/isdn_lib.h
+===================================================================
+--- trunk/channels/misdn/isdn_lib.h	2006-05-16 13:29:16 UTC (rev 156)
++++ trunk/channels/misdn/isdn_lib.h	2006-05-16 15:29:18 UTC (rev 157)
+@@ -371,18 +371,6 @@
+ void get_show_stack_details(int port, char *buf);
+ 
+ 
+-/** Ibuf interface **/
+-int misdn_ibuf_usedcount(void *buf);
+-int misdn_ibuf_freecount(void *buf);
+-void misdn_ibuf_memcpy_r(char *to, void *from, int len);
+-void misdn_ibuf_memcpy_w(void *buf, char *from, int len);
+-
+-void misdn_free_ibuffer(void *ibuf);
+-void misdn_clear_ibuffer(void *ibuf);
+-void *misdn_init_ibuffer(int len);
+-
+-/** Ibuf interface End **/
+-
+ void misdn_lib_tone_generator_start(struct misdn_bchannel *bc);
+ void misdn_lib_tone_generator_stop(struct misdn_bchannel *bc);
+ 
+@@ -394,8 +382,6 @@
+ 
+ void misdn_lib_echo(struct misdn_bchannel *bc, int onoff);
+ 
+-unsigned char * flip_buf_bits ( unsigned char * buf , int len);
+-
+ int misdn_lib_is_ptp(int port);
+ 
+ #define PRI_TRANS_CAP_SPEECH                                    0x0
+
+Modified: trunk/channels/misdn/isdn_msg_parser.c
+===================================================================
+--- trunk/channels/misdn/isdn_msg_parser.c	2006-05-16 13:29:16 UTC (rev 156)
++++ trunk/channels/misdn/isdn_msg_parser.c	2006-05-16 15:29:18 UTC (rev 157)
+@@ -874,6 +874,8 @@
+ 
+ void parse_facility (struct isdn_msg msgs[], msg_t *msg, struct misdn_bchannel *bc, int nt) 
+ {
++
++#ifdef FACILITY_DECODE
+ 	int HEADER_LEN = nt?mISDNUSER_HEAD_SIZE:mISDN_HEADER_LEN;
+ 	FACILITY_t *facility=(FACILITY_t*)((unsigned long)(msg-&gt;data+HEADER_LEN)); 
+ 	Q931_info_t *qi=(Q931_info_t*)(msg-&gt;data+HEADER_LEN);  
+@@ -882,7 +884,6 @@
+ 	printf(&quot;Parsing FACILITY Msg\n&quot;); 
+ #endif
+ 
+-#ifdef FACILITY_DECODE
+ 	{
+ 		fac_dec(facility-&gt;FACILITY, qi, &amp;bc-&gt;fac_type, &amp;bc-&gt;fac, bc);
+ 	}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000151.html">[solid-pbx-svn] r156 - in trunk: . channels
+</A></li>
+	<LI>Next message: <A HREF="000153.html">[solid-pbx-svn] r158 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#152">[ date ]</a>
+              <a href="thread.html#152">[ thread ]</a>
+              <a href="subject.html#152">[ subject ]</a>
+              <a href="author.html#152">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

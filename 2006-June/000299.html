@@ -1,0 +1,219 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r304 - in trunk: . channels include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r304%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200606240216.k5O2GxpL024284%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000298.html">
+   <LINK REL="Next"  HREF="000300.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r304 - in trunk: . channels include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r304%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200606240216.k5O2GxpL024284%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r304 - in trunk: . channels include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 24 04:16:59 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000298.html">[solid-pbx-svn] r303 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000300.html">[solid-pbx-svn] r305 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#299">[ date ]</a>
+              <a href="thread.html#299">[ thread ]</a>
+              <a href="subject.html#299">[ subject ]</a>
+              <a href="author.html#299">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-24 04:16:55 +0200 (Sat, 24 Jun 2006)
+New Revision: 304
+
+Modified:
+   trunk/asterisk.c
+   trunk/channels/chan_sip.c
+   trunk/include/asterisk/doxyref.h
+Log:
+Update to Asterisk SVN trunk r33073
+
+------------------------------------------------------------------------
+r33066 | oej | 2006-06-08 20:03:08 +0200 (Thu, 08 Jun 2006) | 2 lines
+
+Doxygen updates
+
+------------------------------------------------------------------------
+r33069 | oej | 2006-06-08 20:13:06 +0200 (Thu, 08 Jun 2006) | 2 lines
+
+Issue #7294 - Asterisk sends INVITE instead of BYE. Fix by Philippe Sultan. Thanks!
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/asterisk.c
+===================================================================
+--- trunk/asterisk.c	2006-06-24 02:15:37 UTC (rev 303)
++++ trunk/asterisk.c	2006-06-24 02:16:55 UTC (rev 304)
+@@ -361,9 +361,8 @@
+ 
+ static struct profile_data *prof_data;
+ 
+-/*
+- * allocates a counter with a given name and scale.
+- * Returns the identifier of the counter.
++/*! \brief allocates a counter with a given name and scale.
++ * \return Returns the identifier of the counter.
+  */
+ int ast_add_profile(const char *name, uint64_t scale)
+ {
+@@ -492,7 +491,7 @@
+ &quot;       Shows the revision numbers of the files used to build this copy of Asterisk.\n&quot;
+ &quot;       Optional regular expression pattern is used to filter the file list.\n&quot;;
+ 
+-/*! CLI command to list module versions */
++/*! \brief CLI command to list module versions */
+ static int handle_show_version_files(int fd, int argc, char *argv[])
+ {
+ #define FORMAT &quot;%-25.25s %-40.40s\n&quot;
+@@ -604,14 +603,14 @@
+ 	return write(fd, s, strlen(s) + 1);
+ }
+ 
+-/*! NULL handler so we can collect the child exit status */
++/*! \brief NULL handler so we can collect the child exit status */
+ static void null_sig_handler(int signal)
+ {
+ 
+ }
+ 
+ AST_MUTEX_DEFINE_STATIC(safe_system_lock);
+-/*! Keep track of how many threads are currently trying to wait*() on
++/*! \brief Keep track of how many threads are currently trying to wait*() on
+  *  a child process */
+ static unsigned int safe_system_level = 0;
+ static void *safe_system_prev_handler;
+@@ -684,7 +683,7 @@
+ }
+ 
+ /*!
+- * mute or unmute a console from logging
++ * \brief mute or unmute a console from logging
+  */
+ void ast_console_toggle_mute(int fd) {
+ 	int x;
+@@ -704,7 +703,7 @@
+ }
+ 
+ /*!
+- * log the string to all attached console clients
++ * \brief log the string to all attached console clients
+  */
+ static void ast_network_puts_mutable(const char *string)
+ {
+@@ -718,7 +717,7 @@
+ }
+ 
+ /*!
+- * log the string to the console, and all attached
++ * \brief log the string to the console, and all attached
+  * console clients
+  */
+ void ast_console_puts_mutable(const char *string)
+@@ -729,7 +728,7 @@
+ }
+ 
+ /*!
+- * write the string to all attached console clients
++ * \brief write the string to all attached console clients
+  */
+ static void ast_network_puts(const char *string)
+ {
+@@ -982,7 +981,8 @@
+ 		return 1;
+ }
+ 
+-/*! Urgent handler
++/*! \brief Urgent handler
++
+  Called by soft_hangup to interrupt the poll, read, or other
+  system call.  We don't actually need to do anything though.  
+  Remember: Cannot EVER ast_log from within a signal handler 
+@@ -1025,7 +1025,7 @@
+ 	signal(sig, child_handler);
+ }
+ 
+-/*! Set an X-term or screen title */
++/*! \brief Set an X-term or screen title */
+ static void set_title(char *text)
+ {
+ 	if (getenv(&quot;TERM&quot;) &amp;&amp; strstr(getenv(&quot;TERM&quot;), &quot;xterm&quot;))
+@@ -1038,7 +1038,7 @@
+ 		fprintf(stdout, &quot;\033]1;%s\007&quot;, text);
+ }
+ 
+-/*! We set ourselves to a high priority, that we might pre-empt everything
++/*! \brief We set ourselves to a high priority, that we might pre-empt everything
+    else.  If your PBX has heavy activity on it, this is a good thing.  */
+ int ast_set_priority(int pri)
+ {
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-24 02:15:37 UTC (rev 303)
++++ trunk/channels/chan_sip.c	2006-06-24 02:16:55 UTC (rev 304)
+@@ -14950,7 +14950,7 @@
+ 		changed |= ast_rtp_get_peer(vrtp, &amp;p-&gt;vredirip);
+ 	else
+ 		memset(&amp;p-&gt;vredirip, 0, sizeof(p-&gt;vredirip));
+-	if (p-&gt;redircodecs != codecs) {
++	if (codecs &amp;&amp; (p-&gt;redircodecs != codecs)) {
+ 		p-&gt;redircodecs = codecs;
+ 		changed = 1;
+ 	}
+
+Modified: trunk/include/asterisk/doxyref.h
+===================================================================
+--- trunk/include/asterisk/doxyref.h	2006-06-24 02:15:37 UTC (rev 303)
++++ trunk/include/asterisk/doxyref.h	2006-06-24 02:16:55 UTC (rev 304)
+@@ -486,6 +486,6 @@
+  * http.
+  *  \section ami AMI - The manager Interface
+  *  \arg \link Config_ami Configuration file \endlink
+- *  \verbinclude http.txt
++ *  \verbinclude ajam.txt
+  */
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000298.html">[solid-pbx-svn] r303 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000300.html">[solid-pbx-svn] r305 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#299">[ date ]</a>
+              <a href="thread.html#299">[ thread ]</a>
+              <a href="subject.html#299">[ subject ]</a>
+              <a href="author.html#299">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

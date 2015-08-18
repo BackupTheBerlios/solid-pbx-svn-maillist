@@ -1,0 +1,458 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r338 - in trunk: . apps include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r338%20-%20in%20trunk%3A%20.%20apps%20include/asterisk&In-Reply-To=%3C200606280050.k5S0o33X006192%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000332.html">
+   <LINK REL="Next"  HREF="000334.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r338 - in trunk: . apps include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r338%20-%20in%20trunk%3A%20.%20apps%20include/asterisk&In-Reply-To=%3C200606280050.k5S0o33X006192%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r338 - in trunk: . apps include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 02:50:03 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000332.html">[solid-pbx-svn] r337 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000334.html">[solid-pbx-svn] r339 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#333">[ date ]</a>
+              <a href="thread.html#333">[ thread ]</a>
+              <a href="subject.html#333">[ subject ]</a>
+              <a href="author.html#333">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 02:49:47 +0200 (Wed, 28 Jun 2006)
+New Revision: 338
+
+Modified:
+   trunk/apps/app_mixmonitor.c
+   trunk/channel.c
+   trunk/include/asterisk/chanspy.h
+Log:
+Update to Asterisk SVN trunk r33733
+
+------------------------------------------------------------------------
+r33725 | file | 2006-06-12 23:37:29 +0200 (Mon, 12 Jun 2006) | 10 lines
+
+Merged revisions 33724 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r33724 | file | 2006-06-12 18:34:38 -0300 (Mon, 12 Jun 2006) | 2 lines
+
+Greatly simply the mixmonitor thread, and move channel reference directly to spy structure so that the core can modify it.
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_mixmonitor.c
+===================================================================
+--- trunk/apps/app_mixmonitor.c	2006-06-28 00:48:50 UTC (rev 337)
++++ trunk/apps/app_mixmonitor.c	2006-06-28 00:49:47 UTC (rev 338)
+@@ -92,12 +92,11 @@
+ static const char *mixmonitor_spy_type = &quot;MixMonitor&quot;;
+ 
+ struct mixmonitor {
+-	struct ast_channel *chan;
+-	char *filename;
++	struct ast_channel_spy *spy;
++	struct ast_filestream *fs;
+ 	char *post_process;
++	char *name;
+ 	unsigned int flags;
+-	int readvol;
+-	int writevol;
+ };
+ 
+ enum {
+@@ -123,18 +122,20 @@
+ 	AST_APP_OPTION_ARG('W', MUXFLAG_VOLUME, OPT_ARG_VOLUME),
+ });
+ 
+-static void stopmon(struct ast_channel *chan, struct ast_channel_spy *spy) 
++static void stopmon(struct ast_channel_spy *spy) 
+ {
++	struct ast_channel *chan = spy-&gt;chan;
++
+ 	/* If our status has changed to DONE, then the channel we're spying on is gone....
+ 	   DON'T TOUCH IT!!!  RUN AWAY!!! */
+ 	if (spy-&gt;status == CHANSPY_DONE)
+ 		return;
+-
++  
+ 	if (!chan)
+ 		return;
+ 
+ 	ast_channel_lock(chan);
+-	ast_channel_spy_remove(chan, spy);
++	ast_channel_spy_remove(spy-&gt;chan, spy);
+ 	ast_channel_unlock(chan);
+ }
+ 
+@@ -149,7 +150,7 @@
+ 	ast_channel_lock(chan);
+ 	res = ast_channel_spy_add(chan, spy);
+ 	ast_channel_unlock(chan);
+-		
++
+ 	if (!res &amp;&amp; ast_test_flag(chan, AST_FLAG_NBRIDGE) &amp;&amp; (peer = ast_bridged_channel(chan)))
+ 		ast_softhangup(peer, AST_SOFTHANGUP_UNBRIDGE);	
+ 
+@@ -161,91 +162,31 @@
+ static void *mixmonitor_thread(void *obj) 
+ {
+ 	struct mixmonitor *mixmonitor = obj;
+-	struct ast_channel_spy spy;
+-	struct ast_filestream *fs = NULL;
+-	char *ext, *name;
+-	unsigned int oflags;
+-	struct ast_frame *f;
+-	char post_process[1024] = &quot;&quot;;
++	struct ast_frame *f = NULL;
+ 	
+ 	ast_atomic_fetchadd_int(&amp;__mod_desc-&gt;usecnt, +1);
+-
+-	name = ast_strdupa(mixmonitor-&gt;chan-&gt;name);
+-
+-	oflags = O_CREAT|O_WRONLY;
+-	oflags |= ast_test_flag(mixmonitor, MUXFLAG_APPEND) ? O_APPEND : O_TRUNC;
+-		
+-	if ((ext = strrchr(mixmonitor-&gt;filename, '.'))) {
+-		*(ext++) = '\0';
+-	} else {
+-		ext = &quot;raw&quot;;
+-	}
+-
+-	fs = ast_writefile(mixmonitor-&gt;filename, ext, NULL, oflags, 0, 0644);
+-	if (!fs) {
+-		ast_log(LOG_ERROR, &quot;Cannot open %s.%s\n&quot;, mixmonitor-&gt;filename, ext);
+-		goto out;
+-	}
+-
+-	if (ast_test_flag(mixmonitor, MUXFLAG_APPEND))
+-		ast_seekstream(fs, 0, SEEK_END);
+ 	
+-	memset(&amp;spy, 0, sizeof(spy));
+-	ast_set_flag(&amp;spy, CHANSPY_FORMAT_AUDIO);
+-	ast_set_flag(&amp;spy, CHANSPY_MIXAUDIO);
+-	spy.type = mixmonitor_spy_type;
+-	spy.status = CHANSPY_RUNNING;
+-	spy.read_queue.format = AST_FORMAT_SLINEAR;
+-	spy.write_queue.format = AST_FORMAT_SLINEAR;
+-	if (mixmonitor-&gt;readvol) {
+-		ast_set_flag(&amp;spy, CHANSPY_READ_VOLADJUST);
+-		spy.read_vol_adjustment = mixmonitor-&gt;readvol;
+-	}
+-	if (mixmonitor-&gt;writevol) {
+-		ast_set_flag(&amp;spy, CHANSPY_WRITE_VOLADJUST);
+-		spy.write_vol_adjustment = mixmonitor-&gt;writevol;
+-	}
+-	ast_mutex_init(&amp;spy.lock);
+-
+-	if (startmon(mixmonitor-&gt;chan, &amp;spy)) {
+-		ast_log(LOG_WARNING, &quot;Unable to add '%s' spy to channel '%s'\n&quot;,
+-			spy.type, mixmonitor-&gt;chan-&gt;name);
+-		goto out2;
+-	}
+-
+ 	if (option_verbose &gt; 1)
+-		ast_verbose(VERBOSE_PREFIX_2 &quot;Begin MixMonitor Recording %s\n&quot;, name);
++		ast_verbose(VERBOSE_PREFIX_2 &quot;Begin MixMonitor Recording %s\n&quot;, mixmonitor-&gt;name);
+ 	
+-	if (mixmonitor-&gt;post_process) {
+-		char *p;
++	ast_mutex_lock(&amp;mixmonitor-&gt;spy-&gt;lock);
+ 
+-		for (p = mixmonitor-&gt;post_process; *p ; p++) {
+-			if (*p == '^' &amp;&amp; *(p+1) == '{') {
+-				*p = '$';
+-			}
+-		}
+-		pbx_substitute_variables_helper(mixmonitor-&gt;chan, mixmonitor-&gt;post_process, post_process, sizeof(post_process) - 1);
+-	}
+-
+-	while (1) {
+-		struct ast_frame *next;
++	while (mixmonitor-&gt;spy-&gt;chan) {
++		struct ast_frame *next = NULL;
+ 		int write;
+ 
+-		ast_mutex_lock(&amp;spy.lock);
+-
+-		ast_channel_spy_trigger_wait(&amp;spy);
++		ast_channel_spy_trigger_wait(mixmonitor-&gt;spy);
+ 		
+-		if (ast_check_hangup(mixmonitor-&gt;chan) || spy.status != CHANSPY_RUNNING) {
+-			ast_mutex_unlock(&amp;spy.lock);
++		if (!mixmonitor-&gt;spy-&gt;chan || mixmonitor-&gt;spy-&gt;status != CHANSPY_RUNNING) {
+ 			break;
+ 		}
+ 		
+ 		while (1) {
+-			if (!(f = ast_channel_spy_read_frame(&amp;spy, SAMPLES_PER_FRAME)))
++			if (!(f = ast_channel_spy_read_frame(mixmonitor-&gt;spy, SAMPLES_PER_FRAME)))
+ 				break;
+ 
+ 			write = (!ast_test_flag(mixmonitor, MUXFLAG_BRIDGED) ||
+-				 ast_bridged_channel(mixmonitor-&gt;chan));
++				 ast_bridged_channel(mixmonitor-&gt;spy-&gt;chan));
+ 
+ 			/* it is possible for ast_channel_spy_read_frame() to return a chain
+ 			   of frames if a queue flush was necessary, so process them
+@@ -253,32 +194,33 @@
+ 			for (; f; f = next) {
+ 				next = f-&gt;next;
+ 				if (write)
+-					ast_writestream(fs, f);
++					ast_writestream(mixmonitor-&gt;fs, f);
+ 				ast_frfree(f);
+ 			}
+ 		}
++	}
+ 
+-		ast_mutex_unlock(&amp;spy.lock);
+-	}
++	ast_mutex_unlock(&amp;mixmonitor-&gt;spy-&gt;lock);
+ 	
+-	stopmon(mixmonitor-&gt;chan, &amp;spy);
++	stopmon(mixmonitor-&gt;spy);
+ 
+ 	if (option_verbose &gt; 1)
+-		ast_verbose(VERBOSE_PREFIX_2 &quot;End MixMonitor Recording %s\n&quot;, name);
++		ast_verbose(VERBOSE_PREFIX_2 &quot;End MixMonitor Recording %s\n&quot;, mixmonitor-&gt;name);
+ 
+-	if (!ast_strlen_zero(post_process)) {
++	if (!ast_strlen_zero(mixmonitor-&gt;post_process)) {
+ 		if (option_verbose &gt; 2)
+-			ast_verbose(VERBOSE_PREFIX_2 &quot;Executing [%s]\n&quot;, post_process);
+-		ast_safe_system(post_process);
++			ast_verbose(VERBOSE_PREFIX_2 &quot;Executing [%s]\n&quot;, mixmonitor-&gt;post_process);
++		ast_safe_system(mixmonitor-&gt;post_process);
+ 	}
+ 
+-out2:
+-	ast_mutex_destroy(&amp;spy.lock);
++	ast_mutex_destroy(&amp;mixmonitor-&gt;spy-&gt;lock);
++		
++	ast_closestream(mixmonitor-&gt;fs);
+ 
+-	if (fs)
+-		ast_closestream(fs);
+-
+-out:
++	/* Deallocate everything */
++	free(mixmonitor-&gt;spy);
++	free(mixmonitor-&gt;post_process);
++	free(mixmonitor-&gt;name);
+ 	free(mixmonitor);
+ 
+ 	ast_atomic_fetchadd_int(&amp;__mod_desc-&gt;usecnt, -1);
+@@ -292,31 +234,92 @@
+ 	pthread_attr_t attr;
+ 	pthread_t thread;
+ 	struct mixmonitor *mixmonitor;
+-	int len;
++	char *file_name, *postprocess, *ext, postprocess2[1024] = &quot;&quot;;
++	unsigned int oflags;
+ 
+-	len = sizeof(*mixmonitor) + strlen(filename) + 1;
+-	if (!ast_strlen_zero(post_process))
+-		len += strlen(post_process) + 1;
++	if (!(mixmonitor = ast_calloc(1, sizeof(*mixmonitor)))) {
++		ast_log(LOG_ERROR, &quot;Memory Error!\n&quot;);
++		return;
++	}
+ 
+-	if (!(mixmonitor = ast_calloc(1, len))) {
++	if (!(mixmonitor-&gt;spy = ast_calloc(1, sizeof(*mixmonitor-&gt;spy)))) {
++                ast_log(LOG_ERROR, &quot;Memory Error!\n&quot;);
++		free(mixmonitor);
++                return;
++        }
++
++	/* Copy over flags and channel name */
++	mixmonitor-&gt;flags = flags;
++	mixmonitor-&gt;name = ast_strdup(chan-&gt;name);
++
++	/* Determine creation flags and filename plus extension for filestream */
++	oflags = O_CREAT | O_WRONLY;
++	oflags |= ast_test_flag(mixmonitor, MUXFLAG_APPEND) ? O_APPEND : O_TRUNC;
++	file_name = ast_strdupa(filename);
++	if ((ext = strrchr(file_name, '.'))) {
++		*(ext++) = '\0';
++	} else {
++		ext = &quot;raw&quot;;
++	}
++
++	/* Move onto actually creating the filestream */
++	mixmonitor-&gt;fs = ast_writefile(file_name, ext, NULL, oflags, 0, 0644);
++	if (!mixmonitor-&gt;fs) {
++		ast_log(LOG_ERROR, &quot;Cannot open %s.%s\n&quot;, file_name, ext);
++		free(mixmonitor-&gt;name);
++		free(mixmonitor-&gt;spy);
++		free(mixmonitor);
+ 		return;
+ 	}
+ 
+-	mixmonitor-&gt;chan = chan;
+-	mixmonitor-&gt;filename = (char *) mixmonitor + sizeof(*mixmonitor);
+-	strcpy(mixmonitor-&gt;filename, filename);
++	/* If a post process system command is given attach it to the structure */
+ 	if (!ast_strlen_zero(post_process)) {
+-		mixmonitor-&gt;post_process = mixmonitor-&gt;filename + strlen(filename) + 1;
+-		strcpy(mixmonitor-&gt;post_process, post_process);
++		char *p = NULL;
++		postprocess = ast_strdupa(post_process);
++		for (p = postprocess; *p ; p++) {
++			if (*p == '^' &amp;&amp; *(p+1) == '{') {
++				*p = '$';
++			}
++		}
++		pbx_substitute_variables_helper(chan, postprocess, postprocess2, sizeof(postprocess2) - 1);
++		mixmonitor-&gt;post_process = strdup(postprocess2);
+ 	}
+-	mixmonitor-&gt;readvol = readvol;
+-	mixmonitor-&gt;writevol = writevol;
+-	mixmonitor-&gt;flags = flags;
+ 
++	/* Setup the actual spy before creating our thread */
++	ast_set_flag(mixmonitor-&gt;spy, CHANSPY_FORMAT_AUDIO);
++	ast_set_flag(mixmonitor-&gt;spy, CHANSPY_MIXAUDIO);
++	mixmonitor-&gt;spy-&gt;type = mixmonitor_spy_type;
++	mixmonitor-&gt;spy-&gt;status = CHANSPY_RUNNING;
++	mixmonitor-&gt;spy-&gt;read_queue.format = AST_FORMAT_SLINEAR;
++	mixmonitor-&gt;spy-&gt;write_queue.format = AST_FORMAT_SLINEAR;
++	if (readvol) {
++		ast_set_flag(mixmonitor-&gt;spy, CHANSPY_READ_VOLADJUST);
++		mixmonitor-&gt;spy-&gt;read_vol_adjustment = readvol;
++	}
++	if (writevol) {
++		ast_set_flag(mixmonitor-&gt;spy, CHANSPY_WRITE_VOLADJUST);
++		mixmonitor-&gt;spy-&gt;write_vol_adjustment = writevol;
++	}
++	ast_mutex_init(&amp;mixmonitor-&gt;spy-&gt;lock);
++
++	if (startmon(chan, mixmonitor-&gt;spy)) {
++		ast_log(LOG_WARNING, &quot;Unable to add '%s' spy to channel '%s'\n&quot;,
++			mixmonitor-&gt;spy-&gt;type, chan-&gt;name);
++		/* Since we couldn't add ourselves - bail out! */
++		ast_mutex_destroy(&amp;mixmonitor-&gt;spy-&gt;lock);
++		free(mixmonitor-&gt;post_process);
++		ast_closestream(mixmonitor-&gt;fs);
++		free(mixmonitor-&gt;name);
++		free(mixmonitor-&gt;spy);
++		free(mixmonitor);
++		return;
++	}
++
+ 	pthread_attr_init(&amp;attr);
+ 	pthread_attr_setdetachstate(&amp;attr, PTHREAD_CREATE_DETACHED);
+ 	ast_pthread_create(&amp;thread, &amp;attr, mixmonitor_thread, mixmonitor);
+ 	pthread_attr_destroy(&amp;attr);
++
+ }
+ 
+ static int mixmonitor_exec(struct ast_channel *chan, void *data)
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-06-28 00:48:50 UTC (rev 337)
++++ trunk/channel.c	2006-06-28 00:49:47 UTC (rev 338)
+@@ -1124,6 +1124,9 @@
+ 
+ int ast_channel_spy_add(struct ast_channel *chan, struct ast_channel_spy *spy)
+ {
++	/* Link the owner channel to the spy */
++	spy-&gt;chan = chan;
++
+ 	if (!ast_test_flag(spy, CHANSPY_FORMAT_AUDIO)) {
+ 		ast_log(LOG_WARNING, &quot;Could not add channel spy '%s' to channel '%s', only audio format spies are supported.\n&quot;,
+ 			spy-&gt;type, chan-&gt;name);
+@@ -1193,7 +1196,14 @@
+ 
+ void ast_channel_spy_trigger_wait(struct ast_channel_spy *spy)
+ {
+-	ast_cond_wait(&amp;spy-&gt;trigger, &amp;spy-&gt;lock);
++	struct timeval tv;
++	struct timespec ts;
++
++	tv = ast_tvadd(ast_tvnow(), ast_samp2tv(50000, 1000));
++	ts.tv_sec = tv.tv_sec;
++	ts.tv_nsec = tv.tv_usec * 1000;
++
++	ast_cond_timedwait(&amp;spy-&gt;trigger, &amp;spy-&gt;lock, &amp;ts);
+ }
+ 
+ void ast_channel_spy_remove(struct ast_channel *chan, struct ast_channel_spy *spy)
+@@ -1207,6 +1217,8 @@
+ 
+ 	ast_mutex_lock(&amp;spy-&gt;lock);
+ 
++	spy-&gt;chan = NULL;
++
+ 	for (f = spy-&gt;read_queue.head; f; f = spy-&gt;read_queue.head) {
+ 		spy-&gt;read_queue.head = f-&gt;next;
+ 		ast_frfree(f);
+@@ -1244,6 +1256,7 @@
+ 	/* Marking the spies as done is sufficient.  Chanspy or spy users will get the picture. */
+ 	AST_LIST_TRAVERSE(&amp;chan-&gt;spies-&gt;list, spy, list) {
+ 		ast_mutex_lock(&amp;spy-&gt;lock);
++		spy-&gt;chan = NULL;
+ 		if (spy-&gt;status == CHANSPY_RUNNING)
+ 			spy-&gt;status = CHANSPY_DONE;
+ 		if (ast_test_flag(spy, CHANSPY_TRIGGER_MODE) != CHANSPY_TRIGGER_NONE)
+
+Modified: trunk/include/asterisk/chanspy.h
+===================================================================
+--- trunk/include/asterisk/chanspy.h	2006-06-28 00:48:50 UTC (rev 337)
++++ trunk/include/asterisk/chanspy.h	2006-06-28 00:49:47 UTC (rev 338)
+@@ -58,6 +58,7 @@
+ 	AST_LIST_ENTRY(ast_channel_spy) list;
+ 	ast_mutex_t lock;
+ 	ast_cond_t trigger;
++	struct ast_channel *chan;
+ 	struct ast_channel_spy_queue read_queue;
+ 	struct ast_channel_spy_queue write_queue;
+ 	unsigned int flags;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000332.html">[solid-pbx-svn] r337 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000334.html">[solid-pbx-svn] r339 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#333">[ date ]</a>
+              <a href="thread.html#333">[ thread ]</a>
+              <a href="subject.html#333">[ subject ]</a>
+              <a href="author.html#333">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

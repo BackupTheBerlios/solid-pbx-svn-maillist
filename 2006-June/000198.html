@@ -1,0 +1,1545 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r203 - in trunk: . include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r203%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200605312202.k4VM2083027730%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000199.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r203 - in trunk: . include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r203%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200605312202.k4VM2083027730%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r203 - in trunk: . include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu Jun  1 00:02:00 CEST 2006</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000199.html">[solid-pbx-svn] r204 - in trunk: . apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#198">[ date ]</a>
+              <a href="thread.html#198">[ thread ]</a>
+              <a href="subject.html#198">[ subject ]</a>
+              <a href="author.html#198">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-01 00:01:54 +0200 (Thu, 01 Jun 2006)
+New Revision: 203
+
+Added:
+   trunk/abstract_jb.c
+   trunk/include/asterisk/abstract_jb.h
+   trunk/scx_jitterbuf.c
+   trunk/scx_jitterbuf.h
+Log:
+Add missing files
+
+Added: trunk/abstract_jb.c
+===================================================================
+--- trunk/abstract_jb.c	2006-05-31 21:56:33 UTC (rev 202)
++++ trunk/abstract_jb.c	2006-05-31 22:01:54 UTC (rev 203)
+@@ -0,0 +1,784 @@
++/*
++ * abstract_jb: common implementation-independent jitterbuffer stuff
++ *
++ * Copyright (C) 2005, Attractel OOD
++ *
++ * Contributors:
++ * Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
++ *
++ * Copyright on this file is disclaimed to Digium for inclusion in Asterisk
++ *
++ * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
++ * the Asterisk project. Please do not directly contact
++ * any of the maintainers of this project for assistance;
++ * the project provides a web site, mailing lists and IRC
++ * channels for your use.
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License Version 2. See the LICENSE file
++ * at the top of the source tree.
++ */
++
++/*! \file
++ *
++ * \brief Common implementation-independent jitterbuffer stuff.
++ * 
++ * \author Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
++ */
++
++#include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;limits.h&gt;
++
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++
++#include &quot;asterisk/frame.h&quot;
++#include &quot;asterisk/channel.h&quot;
++#include &quot;asterisk/logger.h&quot;
++#include &quot;asterisk/term.h&quot;
++#include &quot;asterisk/options.h&quot;
++#include &quot;asterisk/utils.h&quot;
++
++#include &quot;asterisk/abstract_jb.h&quot;
++#include &quot;scx_jitterbuf.h&quot;
++#include &quot;jitterbuf.h&quot;
++
++/*! Internal jb flags */
++enum {
++	JB_USE =                  (1 &lt;&lt; 0),
++	JB_TIMEBASE_INITIALIZED = (1 &lt;&lt; 1),
++	JB_CREATED =              (1 &lt;&lt; 2)
++};
++
++/* Hooks for the abstract jb implementation */
++
++/*! \brief Create */
++typedef void * (*jb_create_impl)(struct ast_jb_conf *general_config, long resynch_threshold);
++/*! \brief Destroy */
++typedef void (*jb_destroy_impl)(void *jb);
++/*! \brief Put first frame */
++typedef int (*jb_put_first_impl)(void *jb, struct ast_frame *fin, long now);
++/*! \brief Put frame */
++typedef int (*jb_put_impl)(void *jb, struct ast_frame *fin, long now);
++/*! \brief Get frame for now */
++typedef int (*jb_get_impl)(void *jb, struct ast_frame **fout, long now, long interpl);
++/*! \brief Get next */
++typedef long (*jb_next_impl)(void *jb);
++/*! \brief Remove first frame */
++typedef int (*jb_remove_impl)(void *jb, struct ast_frame **fout);
++/*! \brief Force resynch */
++typedef void (*jb_force_resynch_impl)(void *jb);
++
++
++/*!
++ * \brief Jitterbuffer implementation private struct.
++ */
++struct ast_jb_impl
++{
++	char name[AST_JB_IMPL_NAME_SIZE];
++	jb_create_impl create;
++	jb_destroy_impl destroy;
++	jb_put_first_impl put_first;
++	jb_put_impl put;
++	jb_get_impl get;
++	jb_next_impl next;
++	jb_remove_impl remove;
++	jb_force_resynch_impl force_resync;
++};
++
++/* Implementation functions */
++/* scx */
++static void * jb_create_scx(struct ast_jb_conf *general_config, long resynch_threshold);
++static void jb_destroy_scx(void *jb);
++static int jb_put_first_scx(void *jb, struct ast_frame *fin, long now);
++static int jb_put_scx(void *jb, struct ast_frame *fin, long now);
++static int jb_get_scx(void *jb, struct ast_frame **fout, long now, long interpl);
++static long jb_next_scx(void *jb);
++static int jb_remove_scx(void *jb, struct ast_frame **fout);
++static void jb_force_resynch_scx(void *jb);
++/* stevek */
++static void * jb_create_stevek(struct ast_jb_conf *general_config, long resynch_threshold);
++static void jb_destroy_stevek(void *jb);
++static int jb_put_first_stevek(void *jb, struct ast_frame *fin, long now);
++static int jb_put_stevek(void *jb, struct ast_frame *fin, long now);
++static int jb_get_stevek(void *jb, struct ast_frame **fout, long now, long interpl);
++static long jb_next_stevek(void *jb);
++static int jb_remove_stevek(void *jb, struct ast_frame **fout);
++static void jb_force_resynch_stevek(void *jb);
++
++/* Available jb implementations */
++static struct ast_jb_impl avail_impl[] = 
++{
++	{
++		.name = &quot;fixed&quot;,
++		.create = jb_create_scx,
++		.destroy = jb_destroy_scx,
++		.put_first = jb_put_first_scx,
++		.put = jb_put_scx,
++		.get = jb_get_scx,
++		.next = jb_next_scx,
++		.remove = jb_remove_scx,
++		.force_resync = jb_force_resynch_scx
++	},
++	{
++		.name = &quot;adaptive&quot;,
++		.create = jb_create_stevek,
++		.destroy = jb_destroy_stevek,
++		.put_first = jb_put_first_stevek,
++		.put = jb_put_stevek,
++		.get = jb_get_stevek,
++		.next = jb_next_stevek,
++		.remove = jb_remove_stevek,
++		.force_resync = jb_force_resynch_stevek
++	}
++};
++
++static int default_impl = 0;
++
++
++/*! Abstract return codes */
++enum {
++	JB_IMPL_OK,
++	JB_IMPL_DROP,
++	JB_IMPL_INTERP,
++	JB_IMPL_NOFRAME
++};
++
++/* Translations between impl and abstract return codes */
++static int scx_to_abstract_code[] =
++	{JB_IMPL_OK, JB_IMPL_DROP, JB_IMPL_INTERP, JB_IMPL_NOFRAME};
++static int stevek_to_abstract_code[] =
++	{JB_IMPL_OK, JB_IMPL_NOFRAME, JB_IMPL_NOFRAME, JB_IMPL_INTERP, JB_IMPL_DROP, JB_IMPL_OK};
++
++/* JB_GET actions (used only for the frames log) */
++static char *jb_get_actions[] = {&quot;Delivered&quot;, &quot;Dropped&quot;, &quot;Interpolated&quot;, &quot;No&quot;};
++
++/*! \brief Macros for the frame log files */
++#define jb_framelog(...) do { \
++	if (jb-&gt;logfile) { \
++		fprintf(jb-&gt;logfile, __VA_ARGS__); \
++		fflush(jb-&gt;logfile); \
++	} \
++} while (0)
++
++
++/* Internal utility functions */
++static void jb_choose_impl(struct ast_channel *chan);
++static void jb_get_and_deliver(struct ast_channel *chan);
++static int create_jb(struct ast_channel *chan, struct ast_frame *first_frame);
++static long get_now(struct ast_jb *jb, struct timeval *tv);
++
++
++/* Interface ast jb functions impl */
++
++
++static void jb_choose_impl(struct ast_channel *chan)
++{
++	struct ast_jb *jb = &amp;chan-&gt;jb;
++	struct ast_jb_conf *jbconf = &amp;jb-&gt;conf;
++	struct ast_jb_impl *test_impl;
++	int i, avail_impl_count = sizeof(avail_impl) / sizeof(avail_impl[0]);
++	
++	jb-&gt;impl = &amp;avail_impl[default_impl];
++	
++	if (ast_strlen_zero(jbconf-&gt;impl))
++		return;
++		
++	for (i = 0; i &lt; avail_impl_count; i++) {
++		test_impl = &amp;avail_impl[i];
++		if (!strcasecmp(jbconf-&gt;impl, test_impl-&gt;name)) {
++			jb-&gt;impl = test_impl;
++			return;
++		}
++	}
++}
++
++int ast_jb_do_usecheck(struct ast_channel *c0, struct ast_channel *c1)
++{
++	struct ast_jb *jb0 = &amp;c0-&gt;jb;
++	struct ast_jb *jb1 = &amp;c1-&gt;jb;
++	struct ast_jb_conf *conf0 = &amp;jb0-&gt;conf;
++	struct ast_jb_conf *conf1 = &amp;jb1-&gt;conf;
++	int c0_wants_jitter = c0-&gt;tech-&gt;properties &amp; AST_CHAN_TP_WANTSJITTER;
++	int c0_creates_jitter = c0-&gt;tech-&gt;properties &amp; AST_CHAN_TP_CREATESJITTER;
++	int c0_jb_enabled = ast_test_flag(conf0, AST_JB_ENABLED);
++	int c0_force_jb = ast_test_flag(conf0, AST_JB_FORCED);
++	int c0_jb_timebase_initialized = ast_test_flag(jb0, JB_TIMEBASE_INITIALIZED);
++	int c0_jb_created = ast_test_flag(jb0, JB_CREATED);
++	int c1_wants_jitter = c1-&gt;tech-&gt;properties &amp; AST_CHAN_TP_WANTSJITTER;
++	int c1_creates_jitter = c1-&gt;tech-&gt;properties &amp; AST_CHAN_TP_CREATESJITTER;
++	int c1_jb_enabled = ast_test_flag(conf1, AST_JB_ENABLED);
++	int c1_force_jb = ast_test_flag(conf1, AST_JB_FORCED);
++	int c1_jb_timebase_initialized = ast_test_flag(jb1, JB_TIMEBASE_INITIALIZED);
++	int c1_jb_created = ast_test_flag(jb1, JB_CREATED);
++	int inuse = 0;
++
++	/* Determine whether audio going to c0 needs a jitter buffer */
++	if (((!c0_wants_jitter &amp;&amp; c1_creates_jitter) || (c0_force_jb &amp;&amp; c1_creates_jitter)) &amp;&amp; c0_jb_enabled) {
++		ast_set_flag(jb0, JB_USE);
++		if (!c0_jb_timebase_initialized) {
++			if (c1_jb_timebase_initialized) {
++				memcpy(&amp;jb0-&gt;timebase, &amp;jb1-&gt;timebase, sizeof(struct timeval));
++			} else {
++				gettimeofday(&amp;jb0-&gt;timebase, NULL);
++			}
++			ast_set_flag(jb0, JB_TIMEBASE_INITIALIZED);
++		}
++		
++		if (!c0_jb_created) {
++			jb_choose_impl(c0);
++		}
++
++		inuse = 1;
++	}
++	
++	/* Determine whether audio going to c1 needs a jitter buffer */
++	if (((!c1_wants_jitter &amp;&amp; c0_creates_jitter) || (c1_force_jb &amp;&amp; c0_creates_jitter)) &amp;&amp; c1_jb_enabled) {
++		ast_set_flag(jb1, JB_USE);
++		if (!c1_jb_timebase_initialized) {
++			if (c0_jb_timebase_initialized) {
++				memcpy(&amp;jb1-&gt;timebase, &amp;jb0-&gt;timebase, sizeof(struct timeval));
++			} else {
++				gettimeofday(&amp;jb1-&gt;timebase, NULL);
++			}
++			ast_set_flag(jb1, JB_TIMEBASE_INITIALIZED);
++		}
++		
++		if (!c1_jb_created) {
++			jb_choose_impl(c1);
++		}
++
++		inuse = 1;
++	}
++
++	return inuse;
++}
++
++int ast_jb_get_when_to_wakeup(struct ast_channel *c0, struct ast_channel *c1, int time_left)
++{
++	struct ast_jb *jb0 = &amp;c0-&gt;jb;
++	struct ast_jb *jb1 = &amp;c1-&gt;jb;
++	int c0_use_jb = ast_test_flag(jb0, JB_USE);
++	int c0_jb_is_created = ast_test_flag(jb0, JB_CREATED);
++	int c1_use_jb = ast_test_flag(jb1, JB_USE);
++	int c1_jb_is_created = ast_test_flag(jb1, JB_CREATED);
++	int wait, wait0, wait1;
++	struct timeval tv_now;
++	
++	if (time_left == 0) {
++		/* No time left - the bridge will be retried */
++		/* TODO: Test disable this */
++		/*return 0;*/
++	}
++	
++	if (time_left &lt; 0) {
++		time_left = INT_MAX;
++	}
++	
++	gettimeofday(&amp;tv_now, NULL);
++	
++	wait0 = (c0_use_jb &amp;&amp; c0_jb_is_created) ? jb0-&gt;next - get_now(jb0, &amp;tv_now) : time_left;
++	wait1 = (c1_use_jb &amp;&amp; c1_jb_is_created) ? jb1-&gt;next - get_now(jb1, &amp;tv_now) : time_left;
++	
++	wait = wait0 &lt; wait1 ? wait0 : wait1;
++	wait = wait &lt; time_left ? wait : time_left;
++	
++	if (wait == INT_MAX) {
++		wait = -1;
++	} else if (wait &lt; 1) {
++		/* don't let wait=0, because this can cause the pbx thread to loop without any sleeping at all */
++		wait = 1;
++	}
++	
++	return wait;
++}
++
++
++int ast_jb_put(struct ast_channel *chan, struct ast_frame *f)
++{
++	struct ast_jb *jb = &amp;chan-&gt;jb;
++	struct ast_jb_impl *jbimpl = jb-&gt;impl;
++	void *jbobj = jb-&gt;jbobj;
++	struct ast_frame *frr;
++	long now = 0;
++	
++	if (!ast_test_flag(jb, JB_USE))
++		return -1;
++
++	if (f-&gt;frametype != AST_FRAME_VOICE) {
++		if (f-&gt;frametype == AST_FRAME_DTMF &amp;&amp; ast_test_flag(jb, JB_CREATED)) {
++			jb_framelog(&quot;JB_PUT {now=%ld}: Received DTMF frame. Force resynching jb...\n&quot;, now);
++			jbimpl-&gt;force_resync(jbobj);
++		}
++		
++		return -1;
++	}
++
++	/* We consider an enabled jitterbuffer should receive frames with valid timing info. */
++	if (!f-&gt;has_timing_info || f-&gt;len &lt; 2 || f-&gt;ts &lt; 0) {
++		ast_log(LOG_WARNING, &quot;%s recieved frame with invalid timing info: &quot;
++			&quot;has_timing_info=%d, len=%ld, ts=%ld, src=%s\n&quot;,
++			chan-&gt;name, f-&gt;has_timing_info, f-&gt;len, f-&gt;ts, f-&gt;src);
++		return -1;
++	}
++
++	if (f-&gt;mallocd &amp; AST_MALLOCD_HDR)
++		frr = ast_frdup(f);
++	else
++		frr = ast_frisolate(f);
++
++	if (!frr) {
++		ast_log(LOG_ERROR, &quot;Failed to isolate frame for the jitterbuffer on channel '%s'\n&quot;, chan-&gt;name);
++		return -1;
++	}
++
++	if (!ast_test_flag(jb, JB_CREATED)) {
++		if (create_jb(chan, frr)) {
++			ast_frfree(frr);
++			/* Disable the jitterbuffer */
++			ast_clear_flag(jb, JB_USE);
++			return -1;
++		}
++
++		ast_set_flag(jb, JB_CREATED);
++		return 0;
++	} else {
++		now = get_now(jb, NULL);
++		if (jbimpl-&gt;put(jbobj, frr, now) != JB_IMPL_OK) {
++			jb_framelog(&quot;JB_PUT {now=%ld}: Dropped frame with ts=%ld and len=%ld\n&quot;, now, frr-&gt;ts, frr-&gt;len);
++			ast_frfree(frr);
++			/*return -1;*/
++			/* TODO: Check this fix - should return 0 here, because the dropped frame shouldn't 
++			   be delivered at all */
++			return 0;
++		}
++
++		jb-&gt;next = jbimpl-&gt;next(jbobj);
++
++		jb_framelog(&quot;JB_PUT {now=%ld}: Queued frame with ts=%ld and len=%ld\n&quot;, now, frr-&gt;ts, frr-&gt;len);
++
++		return 0;
++	}
++}
++
++
++void ast_jb_get_and_deliver(struct ast_channel *c0, struct ast_channel *c1)
++{
++	struct ast_jb *jb0 = &amp;c0-&gt;jb;
++	struct ast_jb *jb1 = &amp;c1-&gt;jb;
++	int c0_use_jb = ast_test_flag(jb0, JB_USE);
++	int c0_jb_is_created = ast_test_flag(jb0, JB_CREATED);
++	int c1_use_jb = ast_test_flag(jb1, JB_USE);
++	int c1_jb_is_created = ast_test_flag(jb1, JB_CREATED);
++	
++	if (c0_use_jb &amp;&amp; c0_jb_is_created)
++		jb_get_and_deliver(c0);
++	
++	if (c1_use_jb &amp;&amp; c1_jb_is_created)
++		jb_get_and_deliver(c1);
++}
++
++
++static void jb_get_and_deliver(struct ast_channel *chan)
++{
++	struct ast_jb *jb = &amp;chan-&gt;jb;
++	struct ast_jb_impl *jbimpl = jb-&gt;impl;
++	void *jbobj = jb-&gt;jbobj;
++	struct ast_frame *f, finterp;
++	long now;
++	int interpolation_len, res;
++	
++	now = get_now(jb, NULL);
++	jb-&gt;next = jbimpl-&gt;next(jbobj);
++	if (now &lt; jb-&gt;next) {
++		jb_framelog(&quot;\tJB_GET {now=%ld}: now &lt; next=%ld\n&quot;, now, jb-&gt;next);
++		return;
++	}
++	
++	while (now &gt;= jb-&gt;next) {
++		interpolation_len = ast_codec_interp_len(jb-&gt;last_format);
++		
++		res = jbimpl-&gt;get(jbobj, &amp;f, now, interpolation_len);
++		
++		switch(res) {
++		case JB_IMPL_OK:
++			/* deliver the frame */
++			ast_write(chan, f);
++		case JB_IMPL_DROP:
++			jb_framelog(&quot;\tJB_GET {now=%ld}: %s frame with ts=%ld and len=%ld\n&quot;,
++				now, jb_get_actions[res], f-&gt;ts, f-&gt;len);
++			jb-&gt;last_format = f-&gt;subclass;
++			ast_frfree(f);
++			break;
++		case JB_IMPL_INTERP:
++			/* interpolate a frame */
++			f = &finterp;
++			f-&gt;frametype = AST_FRAME_VOICE;
++			f-&gt;subclass = jb-&gt;last_format;
++			f-&gt;datalen  = 0;
++			f-&gt;samples  = interpolation_len * 8;
++			f-&gt;mallocd  = 0;
++			f-&gt;src  = &quot;JB interpolation&quot;;
++			f-&gt;data  = NULL;
++			f-&gt;delivery = ast_tvadd(jb-&gt;timebase, ast_samp2tv(jb-&gt;next, 1000));
++			f-&gt;offset = AST_FRIENDLY_OFFSET;
++			/* deliver the interpolated frame */
++			ast_write(chan, f);
++			jb_framelog(&quot;\tJB_GET {now=%ld}: Interpolated frame with len=%d\n&quot;, now, interpolation_len);
++			break;
++		case JB_IMPL_NOFRAME:
++			ast_log(LOG_WARNING,
++				&quot;JB_IMPL_NOFRAME is retuned from the %s jb when now=%ld &gt;= next=%ld, jbnext=%ld!\n&quot;,
++				jbimpl-&gt;name, now, jb-&gt;next, jbimpl-&gt;next(jbobj));
++			jb_framelog(&quot;\tJB_GET {now=%ld}: No frame for now!?\n&quot;, now);
++			return;
++		default:
++			ast_log(LOG_ERROR, &quot;This should never happen!\n&quot;);
++			CRASH;
++			break;
++		}
++		
++		jb-&gt;next = jbimpl-&gt;next(jbobj);
++	}
++}
++
++
++static int create_jb(struct ast_channel *chan, struct ast_frame *frr)
++{
++	struct ast_jb *jb = &amp;chan-&gt;jb;
++	struct ast_jb_conf *jbconf = &amp;jb-&gt;conf;
++	struct ast_jb_impl *jbimpl = jb-&gt;impl;
++	void *jbobj;
++	struct ast_channel *bridged;
++	long now;
++	char logfile_pathname[20 + AST_JB_IMPL_NAME_SIZE + 2*AST_CHANNEL_NAME + 1];
++	char name1[AST_CHANNEL_NAME], name2[AST_CHANNEL_NAME], *tmp;
++	int res;
++
++	jbobj = jb-&gt;jbobj = jbimpl-&gt;create(jbconf, jbconf-&gt;resync_threshold);
++	if (!jbobj) {
++		ast_log(LOG_WARNING, &quot;Failed to create jitterbuffer on channel '%s'\n&quot;, chan-&gt;name);
++		return -1;
++	}
++	
++	now = get_now(jb, NULL);
++	res = jbimpl-&gt;put_first(jbobj, frr, now);
++	
++	/* The result of putting the first frame should not differ from OK. However, its possible
++	   some implementations (i.e. stevek's when resynch_threshold is specified) to drop it. */
++	if (res != JB_IMPL_OK) {
++		ast_log(LOG_WARNING, &quot;Failed to put first frame in the jitterbuffer on channel '%s'\n&quot;, chan-&gt;name);
++		/*
++		jbimpl-&gt;destroy(jbobj);
++		return -1;
++		*/
++	}
++	
++	/* Init next */
++	jb-&gt;next = jbimpl-&gt;next(jbobj);
++	
++	/* Init last format for a first time. */
++	jb-&gt;last_format = frr-&gt;subclass;
++	
++	/* Create a frame log file */
++	if (ast_test_flag(jbconf, AST_JB_LOG)) {
++		snprintf(name2, sizeof(name2), &quot;%s&quot;, chan-&gt;name);
++		tmp = strchr(name2, '/');
++		if (tmp)
++			*tmp = '#';
++		
++		bridged = ast_bridged_channel(chan);
++		if (!bridged) {
++			/* We should always have bridged chan if a jitterbuffer is in use */
++			CRASH;
++		}
++		snprintf(name1, sizeof(name1), &quot;%s&quot;, bridged-&gt;name);
++		tmp = strchr(name1, '/');
++		if (tmp)
++			*tmp = '#';
++		
++		snprintf(logfile_pathname, sizeof(logfile_pathname),
++			&quot;/tmp/ast_%s_jb_%s--%s.log&quot;, jbimpl-&gt;name, name1, name2);
++		jb-&gt;logfile = fopen(logfile_pathname, &quot;w+b&quot;);
++		
++		if (!jb-&gt;logfile)
++			ast_log(LOG_WARNING, &quot;Failed to create frame log file with pathname '%s'\n&quot;, logfile_pathname);
++		
++		if (res == JB_IMPL_OK)
++			jb_framelog(&quot;JB_PUT_FIRST {now=%ld}: Queued frame with ts=%ld and len=%ld\n&quot;,
++				now, frr-&gt;ts, frr-&gt;len);
++		else
++			jb_framelog(&quot;JB_PUT_FIRST {now=%ld}: Dropped frame with ts=%ld and len=%ld\n&quot;,
++				now, frr-&gt;ts, frr-&gt;len);
++	}
++
++	if (option_verbose &gt; 2) 
++		ast_verbose(VERBOSE_PREFIX_3 &quot;%s jitterbuffer created on channel %s\n&quot;, jbimpl-&gt;name, chan-&gt;name);
++	
++	/* Free the frame if it has not been queued in the jb */
++	if (res != JB_IMPL_OK)
++		ast_frfree(frr);
++	
++	return 0;
++}
++
++
++void ast_jb_destroy(struct ast_channel *chan)
++{
++	struct ast_jb *jb = &amp;chan-&gt;jb;
++	struct ast_jb_impl *jbimpl = jb-&gt;impl;
++	void *jbobj = jb-&gt;jbobj;
++	struct ast_frame *f;
++
++	if (jb-&gt;logfile) {
++		fclose(jb-&gt;logfile);
++		jb-&gt;logfile = NULL;
++	}
++	
++	if (ast_test_flag(jb, JB_CREATED)) {
++		/* Remove and free all frames still queued in jb */
++		while (jbimpl-&gt;remove(jbobj, &amp;f) == JB_IMPL_OK) {
++			ast_frfree(f);
++		}
++		
++		jbimpl-&gt;destroy(jbobj);
++		jb-&gt;jbobj = NULL;
++		
++		ast_clear_flag(jb, JB_CREATED);
++
++		if (option_verbose &gt; 2)
++			ast_verbose(VERBOSE_PREFIX_3 &quot;%s jitterbuffer destroyed on channel %s\n&quot;, jbimpl-&gt;name, chan-&gt;name);
++	}
++}
++
++
++static long get_now(struct ast_jb *jb, struct timeval *tv)
++{
++	struct timeval now;
++
++	if (!tv) {
++		tv = &now;
++		gettimeofday(tv, NULL);
++	}
++
++	return ast_tvdiff_ms(*tv, jb-&gt;timebase);
++}
++
++
++int ast_jb_read_conf(struct ast_jb_conf *conf, char *varname, char *value)
++{
++	int prefixlen = sizeof(AST_JB_CONF_PREFIX) - 1;
++	char *name;
++	int tmp;
++	
++	if (strncasecmp(AST_JB_CONF_PREFIX, varname, prefixlen))
++		return -1;
++	
++	name = varname + prefixlen;
++	
++	if (!strcasecmp(name, AST_JB_CONF_ENABLE)) {
++		ast_set2_flag(conf, ast_true(value), AST_JB_ENABLED);
++	} else if (!strcasecmp(name, AST_JB_CONF_FORCE)) {
++		ast_set2_flag(conf, ast_true(value), AST_JB_FORCED);
++	} else if (!strcasecmp(name, AST_JB_CONF_MAX_SIZE)) {
++		if ((tmp = atoi(value)) &gt; 0)
++			conf-&gt;max_size = tmp;
++	} else if (!strcasecmp(name, AST_JB_CONF_RESYNCH_THRESHOLD)) {
++		if ((tmp = atoi(value)) &gt; 0)
++			conf-&gt;resync_threshold = tmp;
++	} else if (!strcasecmp(name, AST_JB_CONF_IMPL)) {
++		if (!ast_strlen_zero(value))
++			snprintf(conf-&gt;impl, sizeof(conf-&gt;impl), &quot;%s&quot;, value);
++	} else if (!strcasecmp(name, AST_JB_CONF_LOG)) {
++		ast_set2_flag(conf, ast_true(value), AST_JB_LOG);
++	} else {
++		return -1;
++	}
++	
++	return 0;
++}
++
++
++void ast_jb_configure(struct ast_channel *chan, const struct ast_jb_conf *conf)
++{
++	memcpy(&amp;chan-&gt;jb.conf, conf, sizeof(*conf));
++}
++
++
++void ast_jb_get_config(const struct ast_channel *chan, struct ast_jb_conf *conf)
++{
++	memcpy(conf, &amp;chan-&gt;jb.conf, sizeof(*conf));
++}
++
++
++/* Implementation functions */
++
++/* scx */
++
++static void * jb_create_scx(struct ast_jb_conf *general_config, long resynch_threshold)
++{
++	struct scx_jb_conf conf;
++	
++	conf.jbsize = general_config-&gt;max_size;
++	conf.resync_threshold = resynch_threshold;
++	
++	return scx_jb_new(&amp;conf);
++}
++
++
++static void jb_destroy_scx(void *jb)
++{
++	struct scx_jb *scxjb = (struct scx_jb *) jb;
++	
++	/* destroy the jb */
++	scx_jb_destroy(scxjb);
++}
++
++
++static int jb_put_first_scx(void *jb, struct ast_frame *fin, long now)
++{
++	struct scx_jb *scxjb = (struct scx_jb *) jb;
++	int res;
++	
++	res = scx_jb_put_first(scxjb, fin, fin-&gt;len, fin-&gt;ts, now);
++	
++	return scx_to_abstract_code[res];
++}
++
++
++static int jb_put_scx(void *jb, struct ast_frame *fin, long now)
++{
++	struct scx_jb *scxjb = (struct scx_jb *) jb;
++	int res;
++	
++	res = scx_jb_put(scxjb, fin, fin-&gt;len, fin-&gt;ts, now);
++	
++	return scx_to_abstract_code[res];
++}
++
++
++static int jb_get_scx(void *jb, struct ast_frame **fout, long now, long interpl)
++{
++	struct scx_jb *scxjb = (struct scx_jb *) jb;
++	struct scx_jb_frame frame;
++	int res;
++	
++	res = scx_jb_get(scxjb, &amp;frame, now, interpl);
++	*fout = frame.data;
++	
++	return scx_to_abstract_code[res];
++}
++
++
++static long jb_next_scx(void *jb)
++{
++	struct scx_jb *scxjb = (struct scx_jb *) jb;
++	
++	return scx_jb_next(scxjb);
++}
++
++
++static int jb_remove_scx(void *jb, struct ast_frame **fout)
++{
++	struct scx_jb *scxjb = (struct scx_jb *) jb;
++	struct scx_jb_frame frame;
++	int res;
++	
++	res = scx_jb_remove(scxjb, &amp;frame);
++	*fout = frame.data;
++	
++	return scx_to_abstract_code[res];
++}
++
++
++static void jb_force_resynch_scx(void *jb)
++{
++	struct scx_jb *scxjb = (struct scx_jb *) jb;
++	
++	scx_jb_set_force_resynch(scxjb);
++}
++
++
++/* stevek */
++
++static void *jb_create_stevek(struct ast_jb_conf *general_config, long resynch_threshold)
++{
++	jb_conf jbconf;
++	jitterbuf *stevekjb;
++
++	stevekjb = jb_new();
++	if (stevekjb) {
++		jbconf.max_jitterbuf = general_config-&gt;max_size;
++		jbconf.resync_threshold = general_config-&gt;resync_threshold;
++		jbconf.max_contig_interp = 10;
++		jb_setconf(stevekjb, &amp;jbconf);
++	}
++	
++	return stevekjb;
++}
++
++
++static void jb_destroy_stevek(void *jb)
++{
++	jitterbuf *stevekjb = (jitterbuf *) jb;
++	
++	jb_destroy(stevekjb);
++}
++
++
++static int jb_put_first_stevek(void *jb, struct ast_frame *fin, long now)
++{
++	return jb_put_stevek(jb, fin, now);
++}
++
++
++static int jb_put_stevek(void *jb, struct ast_frame *fin, long now)
++{
++	jitterbuf *stevekjb = (jitterbuf *) jb;
++	int res;
++	
++	res = jb_put(stevekjb, fin, JB_TYPE_VOICE, fin-&gt;len, fin-&gt;ts, now);
++	
++	return stevek_to_abstract_code[res];
++}
++
++
++static int jb_get_stevek(void *jb, struct ast_frame **fout, long now, long interpl)
++{
++	jitterbuf *stevekjb = (jitterbuf *) jb;
++	jb_frame frame;
++	int res;
++	
++	res = jb_get(stevekjb, &amp;frame, now, interpl);
++	*fout = frame.data;
++	
++	return stevek_to_abstract_code[res];
++}
++
++
++static long jb_next_stevek(void *jb)
++{
++	jitterbuf *stevekjb = (jitterbuf *) jb;
++	
++	return jb_next(stevekjb);
++}
++
++
++static int jb_remove_stevek(void *jb, struct ast_frame **fout)
++{
++	jitterbuf *stevekjb = (jitterbuf *) jb;
++	jb_frame frame;
++	int res;
++	
++	res = jb_getall(stevekjb, &amp;frame);
++	*fout = frame.data;
++	
++	return stevek_to_abstract_code[res];
++}
++
++
++static void jb_force_resynch_stevek(void *jb)
++{
++}
+
+Added: trunk/include/asterisk/abstract_jb.h
+===================================================================
+--- trunk/include/asterisk/abstract_jb.h	2006-05-31 21:56:33 UTC (rev 202)
++++ trunk/include/asterisk/abstract_jb.h	2006-05-31 22:01:54 UTC (rev 203)
+@@ -0,0 +1,220 @@
++/*
++ * abstract_jb: common implementation-independent jitterbuffer stuff
++ *
++ * Copyright (C) 2005, Attractel OOD
++ *
++ * Contributors:
++ * Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
++ *
++ * Copyright on this file is disclaimed to Digium for inclusion in Asterisk
++ *
++ * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
++ * the Asterisk project. Please do not directly contact
++ * any of the maintainers of this project for assistance;
++ * the project provides a web site, mailing lists and IRC
++ * channels for your use.
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License Version 2. See the LICENSE file
++ * at the top of the source tree.
++ */
++
++/*! \file
++ *
++ * \brief Common implementation-independent jitterbuffer stuff.
++ * 
++ * \author Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
++ */
++
++#ifndef _ABSTRACT_JB_H_
++#define _ABSTRACT_JB_H_
++
++#include &lt;stdio.h&gt;
++#include &lt;sys/time.h&gt;
++
++#if defined(__cplusplus) || defined(c_plusplus)
++extern &quot;C&quot; {
++#endif
++
++struct ast_channel;
++struct ast_frame;
++
++
++/* Configuration flags */
++enum {
++	AST_JB_ENABLED = (1 &lt;&lt; 0),
++	AST_JB_FORCED =  (1 &lt;&lt; 1),
++	AST_JB_LOG =     (1 &lt;&lt; 2)
++};
++
++#define AST_JB_IMPL_NAME_SIZE 12
++
++/*!
++ * \brief General jitterbuffer configuration.
++ */
++struct ast_jb_conf
++{
++	/*! \brief Combination of the AST_JB_ENABLED, AST_JB_FORCED and AST_JB_LOG flags. */
++	unsigned int flags;
++	/*! \brief Max size of the jitterbuffer implementation. */
++	long max_size;
++	/*! \brief Resynchronization threshold of the jitterbuffer implementation. */
++ 	long resync_threshold;
++	/*! \brief Name of the jitterbuffer implementation to be used. */
++ 	char impl[AST_JB_IMPL_NAME_SIZE];
++};
++
++
++/* Jitterbuffer configuration property names */
++#define AST_JB_CONF_PREFIX &quot;jb&quot;
++#define AST_JB_CONF_ENABLE &quot;enable&quot;
++#define AST_JB_CONF_FORCE &quot;force&quot;
++#define AST_JB_CONF_MAX_SIZE &quot;maxsize&quot;
++#define AST_JB_CONF_RESYNCH_THRESHOLD &quot;resyncthreshold&quot;
++#define AST_JB_CONF_IMPL &quot;impl&quot;
++#define AST_JB_CONF_LOG &quot;log&quot;
++
++
++struct ast_jb_impl;
++
++
++/*!
++ * \brief General jitterbuffer state.
++ */
++struct ast_jb
++{
++	/*! \brief Jitterbuffer configuration. */
++	struct ast_jb_conf conf;
++	/*! \brief Jitterbuffer implementation to be used. */
++	struct ast_jb_impl *impl;
++	/*! \brief Jitterbuffer object, passed to the implementation. */
++	void *jbobj;
++	/*! \brief The time the jitterbuffer was created. */
++	struct timeval timebase;
++	/*! \brief The time the next frame should be played. */
++	long next;
++	/*! \brief Voice format of the last frame in. */
++	int last_format;
++	/*! \brief File for frame timestamp tracing. */
++	FILE *logfile;
++	/*! \brief Jitterbuffer internal state flags. */
++	unsigned int flags;
++};
++
++
++/*!
++ * \brief Checks the need of a jb use in a generic bridge.
++ * \param c0 first bridged channel.
++ * \param c1 second bridged channel.
++ *
++ * Called from ast_generic_bridge() when two channels are entering in a bridge.
++ * The function checks the need of a jitterbuffer, depending on both channel's
++ * configuration and technology properties. As a result, this function sets
++ * appropriate internal jb flags to the channels, determining further behaviour
++ * of the bridged jitterbuffers.
++ *
++ * \return zero if there are no jitter buffers in use, non-zero if there are
++ */
++int ast_jb_do_usecheck(struct ast_channel *c0, struct ast_channel *c1);
++
++
++/*!
++ * \brief Calculates the time, left to the closest delivery moment in a bridge.
++ * \param c0 first bridged channel.
++ * \param c1 second bridged channel.
++ * \param time_left bridge time limit, or -1 if not set.
++ *
++ * Called from ast_generic_bridge() to determine the maximum time to wait for
++ * activity in ast_waitfor_n() call. If neihter of the channels is using jb,
++ * this function returns the time limit passed.
++ *
++ * \return maximum time to wait.
++ */
++int ast_jb_get_when_to_wakeup(struct ast_channel *c0, struct ast_channel *c1, int time_left);
++
++
++/*!
++ * \brief Puts a frame into a channel jitterbuffer.
++ * \param chan channel.
++ * \param frame frame.
++ *
++ * Called from ast_generic_bridge() to put a frame into a channel's jitterbuffer.
++ * The function will successfuly enqueue a frame if and only if:
++ * 1. the channel is using a jitterbuffer (as determined by ast_jb_do_usecheck()),
++ * 2. the frame's type is AST_FRAME_VOICE,
++ * 3. the frame has timing info set and has length &gt;= 2 ms,
++ * 4. there is no some internal error happened (like failed memory allocation).
++ * Frames, successfuly queued, should be delivered by the channel's jitterbuffer,
++ * when their delivery time has came.
++ * Frames, not successfuly queued, should be delivered immediately.
++ * Dropped by the jb implementation frames are considered successfuly enqueued as
++ * far as they should not be delivered at all.
++ *
++ * \return zero if the frame was queued, -1 if not.
++ */
++int ast_jb_put(struct ast_channel *chan, struct ast_frame *f);
++
++
++/*!
++ * \brief Deliver the queued frames that should be delivered now for both channels.
++ * \param c0 first bridged channel.
++ * \param c1 second bridged channel.
++ *
++ * Called from ast_generic_bridge() to deliver any frames, that should be delivered
++ * for the moment of invocation. Does nothing if neihter of the channels is using jb
++ * or has any frames currently queued in. The function delivers frames usig ast_write()
++ * each of the channels.
++ */
++void ast_jb_get_and_deliver(struct ast_channel *c0, struct ast_channel *c1);
++
++
++/*!
++ * \brief Destroys jitterbuffer on a channel.
++ * \param chan channel.
++ *
++ * Called from ast_channel_free() when a channel is destroyed.
++ */
++void ast_jb_destroy(struct ast_channel *chan);
++
++
++/*!
++ * \brief Sets jitterbuffer configuration property.
++ * \param conf configuration to store the property in.
++ * \param varname property name.
++ * \param value property value.
++ *
++ * Called from a channel driver to build a jitterbuffer configuration tipically when
++ * reading a configuration file. It is not neccessary for a channel driver to know
++ * each of the jb configuration property names. The jitterbuffer itself knows them.
++ * The channel driver can pass each config var it reads through this function. It will
++ * return 0 if the variable was consumed from the jb conf.
++ *
++ * \return zero if the property was set to the configuration, -1 if not.
++ */
++int ast_jb_read_conf(struct ast_jb_conf *conf, char *varname, char *value);
++
++
++/*!
++ * \brief Configures a jitterbuffer on a channel.
++ * \param chan channel to configure.
++ * \param conf configuration to apply.
++ *
++ * Called from a channel driver when a channel is created and its jitterbuffer needs
++ * to be configured.
++ */
++void ast_jb_configure(struct ast_channel *chan, const struct ast_jb_conf *conf);
++
++
++/*!
++ * \brief Copies a channel's jitterbuffer configuration.
++ * \param chan channel.
++ * \param conf destination.
++ */
++void ast_jb_get_config(const struct ast_channel *chan, struct ast_jb_conf *conf);
++
++
++#if defined(__cplusplus) || defined(c_plusplus)
++}
++#endif
++
++#endif /* _ABSTRACT_JB_H_ */
+
+Added: trunk/scx_jitterbuf.c
+===================================================================
+--- trunk/scx_jitterbuf.c	2006-05-31 21:56:33 UTC (rev 202)
++++ trunk/scx_jitterbuf.c	2006-05-31 22:01:54 UTC (rev 203)
+@@ -0,0 +1,351 @@
++/*
++ * scx_jitterbuf: jitterbuffering algorithm
++ *
++ * Copyright (C) 2005, Attractel OOD
++ *
++ * Contributors:
++ * Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
++ *
++ * Copyright on this file is disclaimed to Digium for inclusion in Asterisk
++ *
++ * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
++ * the Asterisk project. Please do not directly contact
++ * any of the maintainers of this project for assistance;
++ * the project provides a web site, mailing lists and IRC
++ * channels for your use.
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License Version 2. See the LICENSE file
++ * at the top of the source tree.
++ */
++
++/*! \file 
++ * 
++ * \brief Jitterbuffering algorithm.
++ * 
++ * \author Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
++ */
++
++#include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;assert.h&gt;
++#include &lt;string.h&gt;
++#include &lt;unistd.h&gt;
++
++#include &quot;asterisk.h&quot;
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision $&quot;)
++
++#include &quot;asterisk/utils.h&quot;
++#include &quot;scx_jitterbuf.h&quot;
++
++#undef SCX_JB_DEBUG
++
++#ifdef SCX_JB_DEBUG
++#define ASSERT(a)
++#else
++#define ASSERT(a) assert(a)
++#endif
++
++/*! \brief private scx_jb structure */
++struct scx_jb
++{
++	struct scx_jb_frame *frames;
++	struct scx_jb_frame *tail;
++	struct scx_jb_conf conf;
++	long rxcore;
++	long delay;
++	long next_delivery;
++	int force_resynch;
++};
++
++
++static struct scx_jb_frame *alloc_jb_frame(struct scx_jb *jb);
++static void release_jb_frame(struct scx_jb *jb, struct scx_jb_frame *frame);
++static void get_jb_head(struct scx_jb *jb, struct scx_jb_frame *frame);
++static int resynch_jb(struct scx_jb *jb, void *data, long ms, long ts, long now);
++
++static inline struct scx_jb_frame *alloc_jb_frame(struct scx_jb *jb)
++{
++	return ast_calloc(1, sizeof(struct scx_jb_frame));
++}
++
++static inline void release_jb_frame(struct scx_jb *jb, struct scx_jb_frame *frame)
++{
++	free(frame);
++}
++
++static void get_jb_head(struct scx_jb *jb, struct scx_jb_frame *frame)
++{
++	struct scx_jb_frame *fr;
++	
++	/* unlink the frame */
++	fr = jb-&gt;frames;
++	jb-&gt;frames = fr-&gt;next;
++	if (jb-&gt;frames) {
++		jb-&gt;frames-&gt;prev = NULL;
++	} else {
++		/* the jb is empty - update tail */
++		jb-&gt;tail = NULL;
++	}
++	
++	/* update next */
++	jb-&gt;next_delivery = fr-&gt;delivery + fr-&gt;ms;
++	
++	/* copy the destination */
++	memcpy(frame, fr, sizeof(struct scx_jb_frame));
++	
++	/* and release the frame */
++	release_jb_frame(jb, fr);
++}
++
++
++struct scx_jb *scx_jb_new(struct scx_jb_conf *conf)
++{
++	struct scx_jb *jb;
++	
++	if (!(jb = ast_calloc(1, sizeof(*jb))))
++		return NULL;
++	
++	/* First copy our config */
++	memcpy(&amp;jb-&gt;conf, conf, sizeof(struct scx_jb_conf));
++
++	/* we dont need the passed config anymore - continue working with the saved one */
++	conf = &amp;jb-&gt;conf;
++	
++	/* validate the configuration */
++	if (conf-&gt;jbsize &lt; 1)
++		conf-&gt;jbsize = SCX_JB_SIZE_DEFAULT;
++
++	if (conf-&gt;resync_threshold &lt; 1)
++		conf-&gt;resync_threshold = SCX_JB_RESYNCH_THRESHOLD_DEFAULT;
++	
++	/* Set the constant delay to the jitterbuf */
++	jb-&gt;delay = conf-&gt;jbsize;
++	
++	return jb;
++}
++
++
++void scx_jb_destroy(struct scx_jb *jb)
++{
++	/* jitterbuf MUST be empty before it can be destroyed */
++	ASSERT(jb-&gt;frames == NULL);
++	
++	free(jb);
++}
++
++
++static int resynch_jb(struct scx_jb *jb, void *data, long ms, long ts, long now)
++{
++	long diff, offset;
++	struct scx_jb_frame *frame;
++	
++	/* If jb is empty, just reinitialize the jb */
++	if (!jb-&gt;frames) {
++		/* debug check: tail should also be NULL */
++		ASSERT(jb-&gt;tail == NULL);
++		
++		return scx_jb_put_first(jb, data, ms, ts, now);
++	}
++	
++	/* Adjust all jb state just as the new frame is with delivery = the delivery of the last
++	   frame (e.g. this one with max delivery) + the length of the last frame. */
++	
++	/* Get the diff in timestamps */
++	diff = ts - jb-&gt;tail-&gt;ts;
++	
++	/* Ideally this should be just the length of the last frame. The deviation is the desired
++	   offset */
++	offset = diff - jb-&gt;tail-&gt;ms;
++	
++	/* Do we really need to resynch, or this is just a frame for dropping? */
++	if (!jb-&gt;force_resynch &amp;&amp; (offset &lt; jb-&gt;conf.resync_threshold &amp;&amp; offset &gt; -jb-&gt;conf.resync_threshold))
++		return SCX_JB_DROP;
++	
++	/* Reset the force resynch flag */
++	jb-&gt;force_resynch = 0;
++	
++	/* apply the offset to the jb state */
++	jb-&gt;rxcore -= offset;
++	frame = jb-&gt;frames;
++	while (frame) {
++		frame-&gt;ts += offset;
++		frame = frame-&gt;next;
++	}
++	
++	/* now jb_put() should add the frame at a last position */
++	return scx_jb_put(jb, data, ms, ts, now);
++}
++
++
++void scx_jb_set_force_resynch(struct scx_jb *jb)
++{
++	jb-&gt;force_resynch = 1;
++}
++
++
++int scx_jb_put_first(struct scx_jb *jb, void *data, long ms, long ts, long now)
++{
++	/* this is our first frame - set the base of the receivers time */
++	jb-&gt;rxcore = now - ts;
++	
++	/* init next for a first time - it should be the time the first frame should be played */
++	jb-&gt;next_delivery = now + jb-&gt;delay;
++	
++	/* put the frame */
++	return scx_jb_put(jb, data, ms, ts, now);
++}
++
++
++int scx_jb_put(struct scx_jb *jb, void *data, long ms, long ts, long now)
++{
++	struct scx_jb_frame *frame, *next, *newframe;
++	long delivery;
++	
++	/* debug check the validity of the input params */
++	ASSERT(data != NULL);
++	/* do not allow frames shorter than 2 ms */
++	ASSERT(ms &gt;= 2);
++	ASSERT(ts &gt;= 0);
++	ASSERT(now &gt;= 0);
++	
++	delivery = jb-&gt;rxcore + jb-&gt;delay + ts;
++	
++	/* check if the new frame is not too late */
++	if (delivery &lt; jb-&gt;next_delivery) {
++		/* should drop the frame, but let first resynch_jb() check if this is not a jump in ts, or
++		   the force resynch flag was not set. */
++		return resynch_jb(jb, data, ms, ts, now);
++	}
++	
++	/* what if the delivery time is bigger than next + delay? Seems like a frame for the future.
++	   However, allow more resync_threshold ms in advance */
++	if (delivery &gt; jb-&gt;next_delivery + jb-&gt;delay + jb-&gt;conf.resync_threshold) {
++		/* should drop the frame, but let first resynch_jb() check if this is not a jump in ts, or
++		   the force resynch flag was not set. */
++		return resynch_jb(jb, data, ms, ts, now);
++	}
++
++	/* find the right place in the frames list, sorted by delivery time */
++	frame = jb-&gt;tail;
++	while (frame &amp;&amp; frame-&gt;delivery &gt; delivery) {
++		frame = frame-&gt;prev;
++	}
++	
++	/* Check if the new delivery time is not covered already by the chosen frame */
++	if (frame &amp;&amp; (frame-&gt;delivery == delivery ||
++		         delivery &lt; frame-&gt;delivery + frame-&gt;ms ||
++		         (frame-&gt;next &amp;&amp; delivery + ms &gt; frame-&gt;next-&gt;delivery)))
++	{
++		/* TODO: Should we check for resynch here? Be careful to do not allow threshold smaller than
++		   the size of the jb */
++		
++		/* should drop the frame, but let first resynch_jb() check if this is not a jump in ts, or
++		   the force resynch flag was not set. */
++		return resynch_jb(jb, data, ms, ts, now);
++	}
++	
++	/* Reset the force resynch flag */
++	jb-&gt;force_resynch = 0;
++	
++	/* Get a new frame */
++	newframe = alloc_jb_frame(jb);
++	newframe-&gt;data = data;
++	newframe-&gt;ts = ts;
++	newframe-&gt;ms = ms;
++	newframe-&gt;delivery = delivery;
++	
++	/* and insert it right on place */
++	if (frame) {
++		next = frame-&gt;next;
++		frame-&gt;next = newframe;
++		if (next) {
++			newframe-&gt;next = next;
++			next-&gt;prev = newframe;
++		} else {
++			/* insert after the last frame - should update tail */
++			jb-&gt;tail = newframe;
++			newframe-&gt;next = NULL;
++		}
++		newframe-&gt;prev = frame;
++		
++		return SCX_JB_OK;
++	} else if (!jb-&gt;frames) {
++		/* the frame list is empty or thats just the first frame ever */
++		/* tail should also be NULL is that case */
++		ASSERT(jb-&gt;tail == NULL);
++		jb-&gt;frames = jb-&gt;tail = newframe;
++		newframe-&gt;next = NULL;
++		newframe-&gt;prev = NULL;
++		
++		return SCX_JB_OK;
++	} else {
++		/* insert on a first position - should update frames head */
++		newframe-&gt;next = jb-&gt;frames;
++		newframe-&gt;prev = NULL;
++		jb-&gt;frames-&gt;prev = newframe;
++		jb-&gt;frames = newframe;
++		
++		return SCX_JB_OK;
++	}
++}
++
++
++int scx_jb_get(struct scx_jb *jb, struct scx_jb_frame *frame, long now, long interpl)
++{
++	ASSERT(now &gt;= 0);
++	ASSERT(interpl &gt;= 2);
++	
++	if (now &lt; jb-&gt;next_delivery) {
++		/* too early for the next frame */
++		return SCX_JB_NOFRAME;
++	}
++	
++	/* Is the jb empty? */
++	if (!jb-&gt;frames) {
++		/* should interpolate a frame */
++		/* update next */
++		jb-&gt;next_delivery += interpl;
++		
++		return SCX_JB_INTERP;
++	}
++	
++	/* Isn't it too late for the first frame available in the jb? */
++	if (now &gt; jb-&gt;frames-&gt;delivery + jb-&gt;frames-&gt;ms) {
++		/* yes - should drop this frame and update next to point the next frame (get_jb_head() does it) */
++		get_jb_head(jb, frame);
++		
++		return SCX_JB_DROP;
++	}
++	
++	/* isn't it too early to play the first frame available? */
++	if (now &lt; jb-&gt;frames-&gt;delivery) {
++		/* yes - should interpolate one frame */
++		/* update next */
++		jb-&gt;next_delivery += interpl;
++		
++		return SCX_JB_INTERP;
++	}
++	
++	/* we have a frame for playing now (get_jb_head() updates next) */
++	get_jb_head(jb, frame);
++	
++	return SCX_JB_OK;
++}
++
++
++long scx_jb_next(struct scx_jb *jb)
++{
++	return jb-&gt;next_delivery;
++}
++
++
++int scx_jb_remove(struct scx_jb *jb, struct scx_jb_frame *frameout)
++{
++	if (!jb-&gt;frames)
++		return SCX_JB_NOFRAME;
++	
++	get_jb_head(jb, frameout);
++	
++	return SCX_JB_OK;
++}
+
+Added: trunk/scx_jitterbuf.h
+===================================================================
+--- trunk/scx_jitterbuf.h	2006-05-31 21:56:33 UTC (rev 202)
++++ trunk/scx_jitterbuf.h	2006-05-31 22:01:54 UTC (rev 203)
+@@ -0,0 +1,95 @@
++/*
++ * scx_jitterbuf: jitterbuffering algorithm
++ *
++ * Copyright (C) 2005, Attractel OOD
++ *
++ * Contributors:
++ * Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
++ *
++ * Copyright on this file is disclaimed to Digium for inclusion in Asterisk
++ *
++ * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
++ * the Asterisk project. Please do not directly contact
++ * any of the maintainers of this project for assistance;
++ * the project provides a web site, mailing lists and IRC
++ * channels for your use.
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License Version 2. See the LICENSE file
++ * at the top of the source tree.
++ */
++
++/*! \file 
++ * 
++ * \brief Jitterbuffering algorithm.
++ * 
++ */
++
++#ifndef _SCX_JITTERBUF_H_
++#define _SCX_JITTERBUF_H_
++
++#if defined(__cplusplus) || defined(c_plusplus)
++extern &quot;C&quot; {
++#endif
++
++
++/* return codes */
++enum {
++	SCX_JB_OK,
++	SCX_JB_DROP,
++	SCX_JB_INTERP,
++	SCX_JB_NOFRAME
++};
++
++
++/* defaults */
++#define SCX_JB_SIZE_DEFAULT 200
++#define SCX_JB_RESYNCH_THRESHOLD_DEFAULT 1000
++
++
++/* jb configuration properties */
++struct scx_jb_conf
++{
++	long jbsize;
++ 	long resync_threshold;
++};
++
++
++struct scx_jb_frame
++{
++	void *data;
++	long ts;
++	long ms;
++	long delivery;
++	struct scx_jb_frame *next;
++	struct scx_jb_frame *prev;
++};
++
++
++struct scx_jb;
++
++
++/* jb interface */
++
++struct scx_jb * scx_jb_new(struct scx_jb_conf *conf);
++
++void scx_jb_destroy(struct scx_jb *jb);
++
++int scx_jb_put_first(struct scx_jb *jb, void *data, long ms, long ts, long now);
++
++int scx_jb_put(struct scx_jb *jb, void *data, long ms, long ts, long now);
++
++int scx_jb_get(struct scx_jb *jb, struct scx_jb_frame *frame, long now, long interpl);
++
++long scx_jb_next(struct scx_jb *jb);
++
++int scx_jb_remove(struct scx_jb *jb, struct scx_jb_frame *frameout);
++
++void scx_jb_set_force_resynch(struct scx_jb *jb);
++
++
++#if defined(__cplusplus) || defined(c_plusplus)
++}
++#endif
++
++#endif /* _SCX_JITTERBUF_H_ */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000199.html">[solid-pbx-svn] r204 - in trunk: . apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#198">[ date ]</a>
+              <a href="thread.html#198">[ thread ]</a>
+              <a href="subject.html#198">[ subject ]</a>
+              <a href="author.html#198">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

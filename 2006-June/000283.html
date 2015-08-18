@@ -1,0 +1,220 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r288 - in trunk: apps build_tools cdr channels codecs formats funcs pbx res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r288%20-%20in%20trunk%3A%20apps%20build_tools%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res&In-Reply-To=%3C200606182239.k5IMdcZA022994%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000282.html">
+   <LINK REL="Next"  HREF="000284.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r288 - in trunk: apps build_tools cdr channels codecs formats funcs pbx res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r288%20-%20in%20trunk%3A%20apps%20build_tools%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res&In-Reply-To=%3C200606182239.k5IMdcZA022994%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r288 - in trunk: apps build_tools cdr channels codecs formats funcs pbx res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon Jun 19 00:39:38 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000282.html">[solid-pbx-svn] r287 - in trunk/channels: . misdn
+</A></li>
+        <LI>Next message: <A HREF="000284.html">[solid-pbx-svn] r289 - in trunk: . channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#283">[ date ]</a>
+              <a href="thread.html#283">[ thread ]</a>
+              <a href="subject.html#283">[ subject ]</a>
+              <a href="author.html#283">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-19 00:39:34 +0200 (Mon, 19 Jun 2006)
+New Revision: 288
+
+Modified:
+   trunk/apps/Makefile
+   trunk/build_tools/menuselect.c
+   trunk/cdr/Makefile
+   trunk/channels/Makefile
+   trunk/codecs/Makefile
+   trunk/formats/Makefile
+   trunk/funcs/Makefile
+   trunk/pbx/Makefile
+   trunk/res/Makefile
+Log:
+Update to Asterisk SVN trunk r32803
+
+------------------------------------------------------------------------
+r32798 | russell | 2006-06-07 18:03:31 +0200 (Wed, 07 Jun 2006) | 4 lines
+
+remove the need to have to re-run make after a default menuselect.makeopts
+file is generated.  This allows a fresh checkout of asterisk to be built
+and installed with the standard &quot;./configure &amp;&amp; make &amp;&amp; make install&quot;.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/Makefile
+===================================================================
+--- trunk/apps/Makefile	2006-06-18 22:38:32 UTC (rev 287)
++++ trunk/apps/Makefile	2006-06-18 22:39:34 UTC (rev 288)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++include ../menuselect.makeopts
++
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_APPS),$(patsubst %.c,%,$(wildcard app_*.c)))
+ 
+ # If you have UnixODBC you can use ODBC voicemail
+
+Modified: trunk/build_tools/menuselect.c
+===================================================================
+--- trunk/build_tools/menuselect.c	2006-06-18 22:38:32 UTC (rev 287)
++++ trunk/build_tools/menuselect.c	2006-06-18 22:39:34 UTC (rev 288)
+@@ -698,14 +698,6 @@
+ 	free_trees();
+ 	free_member_list();
+ 
+-	if (check_deps &amp;&amp; !existing_config &amp;&amp; !res) {
+-		fprintf(stderr, &quot;\n***********************************************************\n&quot;);
+-		fprintf(stderr, &quot;* menuselect.makeopts file generated with default values! *\n&quot;);
+-		fprintf(stderr, &quot;* Please rerun make to build Asterisk.                    *\n&quot;);
+-		fprintf(stderr, &quot;***********************************************************\n\n&quot;);
+-		res = -1;
+-	}
+-
+ 	/* In some cases, such as modifying the CFLAGS for the build,
+ 	 * a &quot;make clean&quot; needs to be forced.  Removing the .lastclean 
+ 	 * file does this. */
+
+Modified: trunk/cdr/Makefile
+===================================================================
+--- trunk/cdr/Makefile	2006-06-18 22:38:32 UTC (rev 287)
++++ trunk/cdr/Makefile	2006-06-18 22:39:34 UTC (rev 288)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++include ../menuselect.makeopts
++
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_CDR),$(patsubst %.c,%,$(wildcard cdr_*.c)))
+ 
+ #The problem with sparc is the best stuff is in newer versions of gcc (post 3.0) only.
+
+Modified: trunk/channels/Makefile
+===================================================================
+--- trunk/channels/Makefile	2006-06-18 22:38:32 UTC (rev 287)
++++ trunk/channels/Makefile	2006-06-18 22:39:34 UTC (rev 288)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++include ../menuselect.makeopts
++
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_CHANNELS),$(patsubst %.c,%,$(wildcard chan_*.c)))
+ 
+ ifeq ($(PROC),sparc64)
+
+Modified: trunk/codecs/Makefile
+===================================================================
+--- trunk/codecs/Makefile	2006-06-18 22:38:32 UTC (rev 287)
++++ trunk/codecs/Makefile	2006-06-18 22:39:34 UTC (rev 288)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++include ../menuselect.makeopts
++
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_CODECS),$(patsubst %.c,%,$(wildcard codec_*.c)))
+ 
+ ifeq ($(wildcard ilbc/iLBC_decode.h),)
+
+Modified: trunk/formats/Makefile
+===================================================================
+--- trunk/formats/Makefile	2006-06-18 22:38:32 UTC (rev 287)
++++ trunk/formats/Makefile	2006-06-18 22:39:34 UTC (rev 288)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++include ../menuselect.makeopts
++
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_FORMATS),$(patsubst %.c,%,$(wildcard format_*.c)))
+ 
+ GSMLIB=../codecs/gsm/lib/libgsm.a
+
+Modified: trunk/funcs/Makefile
+===================================================================
+--- trunk/funcs/Makefile	2006-06-18 22:38:32 UTC (rev 287)
++++ trunk/funcs/Makefile	2006-06-18 22:39:34 UTC (rev 288)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++include ../menuselect.makeopts
++
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_FUNCS),$(patsubst %.c,%,$(wildcard func_*.c)))
+ 
+ # TODO This check needs to be handled with autoconf
+
+Modified: trunk/pbx/Makefile
+===================================================================
+--- trunk/pbx/Makefile	2006-06-18 22:38:32 UTC (rev 287)
++++ trunk/pbx/Makefile	2006-06-18 22:39:34 UTC (rev 288)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++include ../menuselect.makeopts
++
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_PBX),$(patsubst %.c,%,$(wildcard pbx_*.c)))
+ 
+ MOC=$(QTDIR)/bin/moc
+
+Modified: trunk/res/Makefile
+===================================================================
+--- trunk/res/Makefile	2006-06-18 22:38:32 UTC (rev 287)
++++ trunk/res/Makefile	2006-06-18 22:39:34 UTC (rev 288)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++include ../menuselect.makeopts
++
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_RES),$(patsubst %.c,%,$(wildcard res_*.c)))
+ 
+ ifeq ($(OSARCH),FreeBSD)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000282.html">[solid-pbx-svn] r287 - in trunk/channels: . misdn
+</A></li>
+	<LI>Next message: <A HREF="000284.html">[solid-pbx-svn] r289 - in trunk: . channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#283">[ date ]</a>
+              <a href="thread.html#283">[ thread ]</a>
+              <a href="subject.html#283">[ subject ]</a>
+              <a href="author.html#283">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

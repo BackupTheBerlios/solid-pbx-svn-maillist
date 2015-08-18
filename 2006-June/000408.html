@@ -1,0 +1,579 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r413 - in trunk: . channels include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r413%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200606280239.k5S2dNqj031235%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000407.html">
+   <LINK REL="Next"  HREF="000409.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r413 - in trunk: . channels include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r413%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200606280239.k5S2dNqj031235%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r413 - in trunk: . channels include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:39:23 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000407.html">[solid-pbx-svn] r412 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000409.html">[solid-pbx-svn] r414 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#408">[ date ]</a>
+              <a href="thread.html#408">[ thread ]</a>
+              <a href="subject.html#408">[ subject ]</a>
+              <a href="author.html#408">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:39:13 +0200 (Wed, 28 Jun 2006)
+New Revision: 413
+
+Modified:
+   trunk/abstract_jb.c
+   trunk/channels/chan_alsa.c
+   trunk/channels/chan_jingle.c
+   trunk/channels/chan_mgcp.c
+   trunk/channels/chan_oss.c
+   trunk/channels/chan_sip.c
+   trunk/channels/chan_skinny.c
+   trunk/channels/chan_zap.c
+   trunk/include/asterisk/abstract_jb.h
+   trunk/include/asterisk/channel.h
+Log:
+Update to Asterisk SVN trunk r35553
+
+------------------------------------------------------------------------
+r35553 | russell | 2006-06-22 19:05:17 +0200 (Thu, 22 Jun 2006) | 14 lines
+
+- dynamically allocate the ast_jb structure that is on the channel structure
+  so that channels not using a jitterbuffer don't waste as much memory
+- ensure that the channel drivers that use jitterbuffers can handle a failure
+  from configuring a jitterbuffer on a new channel because of a memory
+  allocation error
+- On passing through these channel drivers, configure the jitterbuffer before
+  starting the PBX thread instead of afterwards. If the pbx fails to start for
+  whatever reason, this would have caused a crash.
+- Also on passing, move the increase of the usecount to after all of the
+  possible failure conditions in the function
+- fix a place where ast_update_use_count() was not called
+- ensure that the owner channel pointer of the channel pvt strcutures is set to
+  NULL in failure conditions
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/abstract_jb.c
+===================================================================
+--- trunk/abstract_jb.c	2006-06-28 02:37:21 UTC (rev 412)
++++ trunk/abstract_jb.c	2006-06-28 02:39:13 UTC (rev 413)
+@@ -176,7 +176,7 @@
+ 
+ static void jb_choose_impl(struct ast_channel *chan)
+ {
+-	struct ast_jb *jb = &amp;chan-&gt;jb;
++	struct ast_jb *jb = chan-&gt;jb;
+ 	struct ast_jb_conf *jbconf = &amp;jb-&gt;conf;
+ 	struct ast_jb_impl *test_impl;
+ 	int i, avail_impl_count = sizeof(avail_impl) / sizeof(avail_impl[0]);
+@@ -197,8 +197,8 @@
+ 
+ int ast_jb_do_usecheck(struct ast_channel *c0, struct ast_channel *c1)
+ {
+-	struct ast_jb *jb0 = &amp;c0-&gt;jb;
+-	struct ast_jb *jb1 = &amp;c1-&gt;jb;
++	struct ast_jb *jb0 = c0-&gt;jb;
++	struct ast_jb *jb1 = c1-&gt;jb;
+ 	struct ast_jb_conf *conf0 = &amp;jb0-&gt;conf;
+ 	struct ast_jb_conf *conf1 = &amp;jb1-&gt;conf;
+ 	int c0_wants_jitter = c0-&gt;tech-&gt;properties &amp; AST_CHAN_TP_WANTSJITTER;
+@@ -258,8 +258,8 @@
+ 
+ int ast_jb_get_when_to_wakeup(struct ast_channel *c0, struct ast_channel *c1, int time_left)
+ {
+-	struct ast_jb *jb0 = &amp;c0-&gt;jb;
+-	struct ast_jb *jb1 = &amp;c1-&gt;jb;
++	struct ast_jb *jb0 = c0-&gt;jb;
++	struct ast_jb *jb1 = c1-&gt;jb;
+ 	int c0_use_jb = ast_test_flag(jb0, JB_USE);
+ 	int c0_jb_is_created = ast_test_flag(jb0, JB_CREATED);
+ 	int c1_use_jb = ast_test_flag(jb1, JB_USE);
+@@ -298,7 +298,7 @@
+ 
+ int ast_jb_put(struct ast_channel *chan, struct ast_frame *f)
+ {
+-	struct ast_jb *jb = &amp;chan-&gt;jb;
++	struct ast_jb *jb = chan-&gt;jb;
+ 	struct ast_jb_impl *jbimpl = jb-&gt;impl;
+ 	void *jbobj = jb-&gt;jbobj;
+ 	struct ast_frame *frr;
+@@ -366,8 +366,8 @@
+ 
+ void ast_jb_get_and_deliver(struct ast_channel *c0, struct ast_channel *c1)
+ {
+-	struct ast_jb *jb0 = &amp;c0-&gt;jb;
+-	struct ast_jb *jb1 = &amp;c1-&gt;jb;
++	struct ast_jb *jb0 = c0-&gt;jb;
++	struct ast_jb *jb1 = c1-&gt;jb;
+ 	int c0_use_jb = ast_test_flag(jb0, JB_USE);
+ 	int c0_jb_is_created = ast_test_flag(jb0, JB_CREATED);
+ 	int c1_use_jb = ast_test_flag(jb1, JB_USE);
+@@ -383,7 +383,7 @@
+ 
+ static void jb_get_and_deliver(struct ast_channel *chan)
+ {
+-	struct ast_jb *jb = &amp;chan-&gt;jb;
++	struct ast_jb *jb = chan-&gt;jb;
+ 	struct ast_jb_impl *jbimpl = jb-&gt;impl;
+ 	void *jbobj = jb-&gt;jbobj;
+ 	struct ast_frame *f, finterp;
+@@ -447,7 +447,7 @@
+ 
+ static int create_jb(struct ast_channel *chan, struct ast_frame *frr)
+ {
+-	struct ast_jb *jb = &amp;chan-&gt;jb;
++	struct ast_jb *jb = chan-&gt;jb;
+ 	struct ast_jb_conf *jbconf = &amp;jb-&gt;conf;
+ 	struct ast_jb_impl *jbimpl = jb-&gt;impl;
+ 	void *jbobj;
+@@ -527,7 +527,7 @@
+ 
+ void ast_jb_destroy(struct ast_channel *chan)
+ {
+-	struct ast_jb *jb = &amp;chan-&gt;jb;
++	struct ast_jb *jb = chan-&gt;jb;
+ 	struct ast_jb_impl *jbimpl = jb-&gt;impl;
+ 	void *jbobj = jb-&gt;jbobj;
+ 	struct ast_frame *f;
+@@ -551,6 +551,8 @@
+ 		if (option_verbose &gt; 2)
+ 			ast_verbose(VERBOSE_PREFIX_3 &quot;%s jitterbuffer destroyed on channel %s\n&quot;, jbimpl-&gt;name, chan-&gt;name);
+ 	}
++
++	free(jb);
+ }
+ 
+ 
+@@ -601,15 +603,25 @@
+ }
+ 
+ 
+-void ast_jb_configure(struct ast_channel *chan, const struct ast_jb_conf *conf)
++int ast_jb_configure(struct ast_channel *chan, const struct ast_jb_conf *conf)
+ {
+-	memcpy(&amp;chan-&gt;jb.conf, conf, sizeof(*conf));
++	if (!(chan-&gt;jb = ast_calloc(1, sizeof(*chan-&gt;jb))))
++		return -1;
++
++	memcpy(&amp;chan-&gt;jb-&gt;conf, conf, sizeof(*conf));
++
++	return 0;
+ }
+ 
+ 
+-void ast_jb_get_config(const struct ast_channel *chan, struct ast_jb_conf *conf)
++int ast_jb_get_config(const struct ast_channel *chan, struct ast_jb_conf *conf)
+ {
+-	memcpy(conf, &amp;chan-&gt;jb.conf, sizeof(*conf));
++	if (!chan-&gt;jb)
++		return -1;
++
++	memcpy(conf, &amp;chan-&gt;jb-&gt;conf, sizeof(*conf));
++
++	return 0;
+ }
+ 
+ 
+
+Modified: trunk/channels/chan_alsa.c
+===================================================================
+--- trunk/channels/chan_alsa.c	2006-06-28 02:37:21 UTC (rev 412)
++++ trunk/channels/chan_alsa.c	2006-06-28 02:39:13 UTC (rev 413)
+@@ -816,19 +816,23 @@
+ 			ast_string_field_set(tmp, language, language);
+ 		p-&gt;owner = tmp;
+ 		ast_setstate(tmp, state);
+-		ast_mutex_lock(&amp;usecnt_lock);
+-		usecnt++;
+-		ast_mutex_unlock(&amp;usecnt_lock);
+-		ast_update_use_count();
++		if (ast_jb_configure(tmp, &amp;global_jbconf)) {
++			ast_hangup(tmp);
++			p-&gt;owner = NULL;
++			return NULL;
++		}
+ 		if (state != AST_STATE_DOWN) {
+ 			if (ast_pbx_start(tmp)) {
+ 				ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, tmp-&gt;name);
+ 				ast_hangup(tmp);
+-				tmp = NULL;
++				p-&gt;owner = NULL;
++				return NULL;
+ 			}
+ 		}
+-		if (tmp)
+-			ast_jb_configure(tmp, &amp;global_jbconf);
++		ast_mutex_lock(&amp;usecnt_lock);
++		usecnt++;
++		ast_mutex_unlock(&amp;usecnt_lock);
++		ast_update_use_count();
+ 	}
+ 	return tmp;
+ }
+
+Modified: trunk/channels/chan_jingle.c
+===================================================================
+--- trunk/channels/chan_jingle.c	2006-06-28 02:37:21 UTC (rev 412)
++++ trunk/channels/chan_jingle.c	2006-06-28 02:39:13 UTC (rev 413)
+@@ -756,9 +756,6 @@
+ 	if (!ast_strlen_zero(client-&gt;musicclass))
+ 		ast_string_field_set(tmp, musicclass, client-&gt;musicclass);
+ 	i-&gt;owner = tmp;
+-	ast_mutex_lock(&amp;usecnt_lock);
+-	usecnt++;
+-	ast_mutex_unlock(&amp;usecnt_lock);
+ 	ast_copy_string(tmp-&gt;context, client-&gt;context, sizeof(tmp-&gt;context));
+ 	ast_copy_string(tmp-&gt;exten, i-&gt;exten, sizeof(tmp-&gt;exten));
+ 	if (!ast_strlen_zero(i-&gt;cid_num))
+@@ -769,16 +766,26 @@
+ 		tmp-&gt;cid.cid_dnid = ast_strdup(i-&gt;exten);
+ 	tmp-&gt;priority = 1;
+ 	ast_setstate(tmp, state);
++	/* Configure the new channel jb */
++	if (i-&gt;rtp) {
++		if (ast_jb_configure(tmp, &amp;global_jbconf)) {
++			ast_hangup(tmp);
++			i-&gt;owner = NULL;
++			return NULL;
++		}
++	}
+ 	if (state != AST_STATE_DOWN &amp;&amp; ast_pbx_start(tmp)) {
+ 		ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, tmp-&gt;name);
+ 		tmp-&gt;hangupcause = AST_CAUSE_SWITCH_CONGESTION;
+ 		ast_hangup(tmp);
+-		tmp = NULL;
++		i-&gt;owner = NULL;
++		return NULL;
+ 	}
+ 
+-	/* Configure the new channel jb */
+-	if (tmp &amp;&amp; i &amp;&amp; i-&gt;rtp)
+-		ast_jb_configure(tmp, &amp;global_jbconf);
++	ast_mutex_lock(&amp;usecnt_lock);
++	usecnt++;
++	ast_mutex_unlock(&amp;usecnt_lock);
++	ast_update_use_count();
+ 
+ 	return tmp;
+ }
+
+Modified: trunk/channels/chan_mgcp.c
+===================================================================
+--- trunk/channels/chan_mgcp.c	2006-06-28 02:37:21 UTC (rev 412)
++++ trunk/channels/chan_mgcp.c	2006-06-28 02:39:13 UTC (rev 413)
+@@ -1482,8 +1482,6 @@
+ 		if (i-&gt;amaflags)
+ 			tmp-&gt;amaflags = i-&gt;amaflags;
+ 		sub-&gt;owner = tmp;
+-		ast_atomic_fetchadd_int(&amp;__mod_desc-&gt;usecnt, +1);
+-		ast_update_use_count();
+ 		tmp-&gt;callgroup = i-&gt;callgroup;
+ 		tmp-&gt;pickupgroup = i-&gt;pickupgroup;
+ 		ast_string_field_set(tmp, call_forward, i-&gt;call_forward);
+@@ -1494,22 +1492,28 @@
+ 		if (!i-&gt;adsi)
+ 			tmp-&gt;adsicpe = AST_ADSI_UNAVAILABLE;
+ 		tmp-&gt;priority = 1;
++		/* Configure the new channel jb */
++		if (sub-&gt;rtp) {
++			if (ast_jb_configure(tmp, &amp;global_jbconf)) {
++				ast_hangup(tmp);
++				sub-&gt;owner = NULL;
++				return NULL;
++			}
++		}
+ 		if (state != AST_STATE_DOWN) {
+ 			if (ast_pbx_start(tmp)) {
+ 				ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, tmp-&gt;name);
+ 				ast_hangup(tmp);
+-				tmp = NULL;
++				sub-&gt;owner = NULL;
++				return NULL;
+ 			}
+ 		}
+-		/* SC: verbose level check */
+ 		if (option_verbose &gt; 2) {
+ 			ast_verbose(VERBOSE_PREFIX_3 &quot;MGCP mgcp_new(%s) created in state: %s\n&quot;,
+ 				tmp-&gt;name, ast_state2str(state));
+ 		}
+-
+-		/* Configure the new channel jb */
+-		if (tmp &amp;&amp; sub &amp;&amp; sub-&gt;rtp)
+-			ast_jb_configure(tmp, &amp;global_jbconf);
++		ast_atomic_fetchadd_int(&amp;__mod_desc-&gt;usecnt, +1);
++		ast_update_use_count();
+ 	} else {
+ 		ast_log(LOG_WARNING, &quot;Unable to allocate channel structure\n&quot;);
+ 	}
+
+Modified: trunk/channels/chan_oss.c
+===================================================================
+--- trunk/channels/chan_oss.c	2006-06-28 02:37:21 UTC (rev 412)
++++ trunk/channels/chan_oss.c	2006-06-28 02:39:13 UTC (rev 413)
+@@ -1005,22 +1005,25 @@
+ 
+ 	o-&gt;owner = c;
+ 	ast_setstate(c, state);
+-	ast_mutex_lock(&amp;usecnt_lock);
+-	usecnt++;
+-	ast_mutex_unlock(&amp;usecnt_lock);
+-	ast_update_use_count();
++	if (ast_jb_configure(c, &amp;global_jbconf)) {
++		ast_hangup(c);
++		o-&gt;owner = NULL;
++		return NULL;
++	}
+ 	if (state != AST_STATE_DOWN) {
+ 		if (ast_pbx_start(c)) {
+ 			ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, c-&gt;name);
+ 			ast_hangup(c);
+-			o-&gt;owner = c = NULL;
+-			/* XXX what about the channel itself ? */
+-			/* XXX what about usecnt ? */
++			o-&gt;owner = NULL;
++			return NULL;
+ 		}
+ 	}
+-	if (c)
+-		ast_jb_configure(c, &amp;global_jbconf);
+ 
++	ast_mutex_lock(&amp;usecnt_lock);
++	usecnt++;
++	ast_mutex_unlock(&amp;usecnt_lock);
++	ast_update_use_count();
++
+ 	return c;
+ }
+ 
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-28 02:37:21 UTC (rev 412)
++++ trunk/channels/chan_sip.c	2006-06-28 02:39:13 UTC (rev 413)
+@@ -3652,9 +3652,6 @@
+ 	if (!ast_strlen_zero(i-&gt;musicclass))
+ 		ast_string_field_set(tmp, musicclass, i-&gt;musicclass);
+ 	i-&gt;owner = tmp;
+-	ast_mutex_lock(&amp;usecnt_lock);
+-	usecnt++;
+-	ast_mutex_unlock(&amp;usecnt_lock);
+ 	ast_copy_string(tmp-&gt;context, i-&gt;context, sizeof(tmp-&gt;context));
+ 	ast_copy_string(tmp-&gt;exten, i-&gt;exten, sizeof(tmp-&gt;exten));
+ 	if (!ast_strlen_zero(i-&gt;cid_num)) 
+@@ -3675,11 +3672,20 @@
+ 	if (!ast_strlen_zero(i-&gt;callid))
+ 		pbx_builtin_setvar_helper(tmp, &quot;SIPCALLID&quot;, i-&gt;callid);
+ 	ast_setstate(tmp, state);
++	/* Configure the new channel jb */
++	if (i-&gt;rtp) {
++		if (ast_jb_configure(tmp, &amp;global_jbconf)) {
++			ast_hangup(tmp);
++			i-&gt;owner = NULL;
++			return NULL;
++		}
++	}
+ 	if (state != AST_STATE_DOWN &amp;&amp; ast_pbx_start(tmp)) {
+ 		ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, tmp-&gt;name);
+ 		tmp-&gt;hangupcause = AST_CAUSE_SWITCH_CONGESTION;
+ 		ast_hangup(tmp);
+-		tmp = NULL;
++		i-&gt;owner = NULL;
++		return NULL;
+ 	}
+ 	/* Set channel variables for this call from configuration */
+ 	for (v = i-&gt;chanvars ; v ; v = v-&gt;next)
+@@ -3688,9 +3694,9 @@
+ 	if (recordhistory)
+ 		append_history(i, &quot;NewChan&quot;, &quot;Channel %s - from %s&quot;, tmp-&gt;name, i-&gt;callid);
+ 
+-	/* Configure the new channel jb */
+-	if (tmp &amp;&amp; i &amp;&amp; i-&gt;rtp)
+-		ast_jb_configure(tmp, &amp;global_jbconf);
++	ast_mutex_lock(&amp;usecnt_lock);
++	usecnt++;
++	ast_mutex_unlock(&amp;usecnt_lock);
+ 
+ 	return tmp;
+ }
+
+Modified: trunk/channels/chan_skinny.c
+===================================================================
+--- trunk/channels/chan_skinny.c	2006-06-28 02:37:21 UTC (rev 412)
++++ trunk/channels/chan_skinny.c	2006-06-28 02:39:13 UTC (rev 413)
+@@ -2520,10 +2520,6 @@
+ 		if (l-&gt;amaflags)
+ 			tmp-&gt;amaflags = l-&gt;amaflags;
+ 
+-		ast_mutex_lock(&amp;usecnt_lock);
+-		usecnt++;
+-		ast_mutex_unlock(&amp;usecnt_lock);
+-		ast_update_use_count();
+ 		tmp-&gt;callgroup = l-&gt;callgroup;
+ 		tmp-&gt;pickupgroup = l-&gt;pickupgroup;
+ 		ast_string_field_set(tmp, call_forward, l-&gt;call_forward);
+@@ -2534,18 +2530,29 @@
+ 		tmp-&gt;priority = 1;
+ 		tmp-&gt;adsicpe = AST_ADSI_UNAVAILABLE;
+ 
++		/* Configure the new channel jb */
++		if (sub-&gt;rtp) {
++			if (ast_jb_configure(tmp, &amp;global_jbconf)) {
++				ast_hangup(tmp);
++				sub-&gt;owner = NULL;
++				return NULL;
++			}
++		}
+ 		if (state != AST_STATE_DOWN) {
+ 			if (ast_pbx_start(tmp)) {
+ 				ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, tmp-&gt;name);
+ 				ast_hangup(tmp);
+-				tmp = NULL;
++				sub-&gt;owner = NULL;
++				return NULL;
+ 			}
+ 		}
++	}
+ 
+-		/* Configure the new channel jb */
+-		if (tmp &amp;&amp; sub-&gt;rtp)
+-			ast_jb_configure(tmp, &amp;global_jbconf);
+-	}
++	ast_mutex_lock(&amp;usecnt_lock);
++	usecnt++;
++	ast_mutex_unlock(&amp;usecnt_lock);
++	ast_update_use_count();
++
+ 	return tmp;
+ }
+ 
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-06-28 02:37:21 UTC (rev 412)
++++ trunk/channels/chan_zap.c	2006-06-28 02:39:13 UTC (rev 413)
+@@ -5192,22 +5192,28 @@
+ 		/* Assure there is no confmute on this channel */
+ 		zt_confmute(i, 0);
+ 		ast_setstate(tmp, state);
+-		ast_mutex_lock(&amp;usecnt_lock);
+-		usecnt++;
+-		ast_mutex_unlock(&amp;usecnt_lock);
+-		ast_update_use_count();
++		/* Configure the new channel jb */
++		if (ast_jb_configure(tmp, &amp;global_jbconf)) {
++			ast_hangup(tmp);
++			i-&gt;owner = NULL;
++			return NULL;
++		}
+ 		if (startpbx) {
+ 			if (ast_pbx_start(tmp)) {
+ 				ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, tmp-&gt;name);
+ 				ast_hangup(tmp);
+-				tmp = NULL;
++				i-&gt;owner = NULL;
++				return NULL;
+ 			}
+ 		}
+ 	} else
+ 		ast_log(LOG_WARNING, &quot;Unable to allocate channel structure\n&quot;);
+-	/* Configure the new channel jb */
+-	if (tmp &amp;&amp; i)
+-		ast_jb_configure(tmp, &amp;global_jbconf);
++
++	ast_mutex_lock(&amp;usecnt_lock);
++	usecnt++;
++	ast_mutex_unlock(&amp;usecnt_lock);
++	ast_update_use_count();
++	
+ 	return tmp;
+ }
+ 
+
+Modified: trunk/include/asterisk/abstract_jb.h
+===================================================================
+--- trunk/include/asterisk/abstract_jb.h	2006-06-28 02:37:21 UTC (rev 412)
++++ trunk/include/asterisk/abstract_jb.h	2006-06-28 02:39:13 UTC (rev 413)
+@@ -202,16 +202,22 @@
+  *
+  * Called from a channel driver when a channel is created and its jitterbuffer needs
+  * to be configured.
++ *
++ * \retval 0 success
++ * \retval -1 failure
+  */
+-void ast_jb_configure(struct ast_channel *chan, const struct ast_jb_conf *conf);
++int ast_jb_configure(struct ast_channel *chan, const struct ast_jb_conf *conf);
+ 
+ 
+ /*!
+  * \brief Copies a channel's jitterbuffer configuration.
+  * \param chan channel.
+  * \param conf destination.
++ *
++ * \retval 0 success
++ * \retval -1 failure
+  */
+-void ast_jb_get_config(const struct ast_channel *chan, struct ast_jb_conf *conf);
++int ast_jb_get_config(const struct ast_channel *chan, struct ast_jb_conf *conf);
+ 
+ 
+ #if defined(__cplusplus) || defined(c_plusplus)
+
+Modified: trunk/include/asterisk/channel.h
+===================================================================
+--- trunk/include/asterisk/channel.h	2006-06-28 02:37:21 UTC (rev 412)
++++ trunk/include/asterisk/channel.h	2006-06-28 02:39:13 UTC (rev 413)
+@@ -383,7 +383,7 @@
+ 
+ 	struct ast_channel_spy_list *spies;		/*!&lt; Chan Spy stuff */
+ 	AST_LIST_ENTRY(ast_channel) chan_list;		/*!&lt; For easy linking */
+-	struct ast_jb jb;				/*!&lt; The jitterbuffer state  */
++	struct ast_jb *jb;				/*!&lt; The jitterbuffer state  */
+ 
+ 	/*! \brief Data stores on the channel */
+ 	AST_LIST_HEAD_NOLOCK(datastores, ast_datastore) datastores;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000407.html">[solid-pbx-svn] r412 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000409.html">[solid-pbx-svn] r414 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#408">[ date ]</a>
+              <a href="thread.html#408">[ thread ]</a>
+              <a href="subject.html#408">[ subject ]</a>
+              <a href="author.html#408">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

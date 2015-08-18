@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r57 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r57%20-%20trunk/apps&In-Reply-To=%3C200605051518.k45FIfo3000312%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000053.html">
+   <LINK REL="Next"  HREF="000055.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r57 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r57%20-%20trunk/apps&In-Reply-To=%3C200605051518.k45FIfo3000312%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r57 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May  5 17:18:41 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000053.html">[solid-pbx-svn] r56 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000055.html">[solid-pbx-svn] r58 - in trunk: . apps channels channels/misdn configs include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#54">[ date ]</a>
+              <a href="thread.html#54">[ thread ]</a>
+              <a href="subject.html#54">[ subject ]</a>
+              <a href="author.html#54">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-05 17:18:29 +0200 (Fri, 05 May 2006)
+New Revision: 57
+
+Modified:
+   trunk/apps/app_macro.c
+   trunk/apps/app_while.c
+Log:
+Update to Asterisk SVN trunk r24875
+
+------------------------------------------------------------------------
+r24838 | russell | 2006-05-05 16:47:22 +0200 (Fri, 05 May 2006) | 11 lines
+
+Merged revisions 24837 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r24837 | russell | 2006-05-05 10:44:50 -0400 (Fri, 05 May 2006) | 3 lines
+
+use pbx_checkcondition() instead of ast_true() to evaluate the condition
+for MacroIf and WhileIf (issue #7086)
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_macro.c
+===================================================================
+--- trunk/apps/app_macro.c	2006-05-05 01:18:42 UTC (rev 56)
++++ trunk/apps/app_macro.c	2006-05-05 15:18:29 UTC (rev 57)
+@@ -326,7 +326,7 @@
+ 			*label_b = '\0';
+ 			label_b++;
+ 		}
+-		if (ast_true(expr))
++		if (pbx_checkcondition(expr))
+ 			macro_exec(chan, label_a);
+ 		else if (label_b) 
+ 			macro_exec(chan, label_b);
+
+Modified: trunk/apps/app_while.c
+===================================================================
+--- trunk/apps/app_while.c	2006-05-05 01:18:42 UTC (rev 56)
++++ trunk/apps/app_while.c	2006-05-05 15:18:29 UTC (rev 57)
+@@ -111,7 +111,7 @@
+ 		} else
+ 			mydata = &quot;&quot;;
+ 
+-		if (ast_true(expr)) { 
++		if (pbx_checkcondition(expr)) { 
+ 			if ((app = pbx_findapp(myapp))) {
+ 				res = pbx_exec(chan, app, mydata);
+ 			} else {
+@@ -277,12 +277,12 @@
+ 	}
+ 	
+ 
+-	if ((!end &amp;&amp; !ast_true(condition)) || (end == 2)) {
++	if ((!end &amp;&amp; !pbx_check_condition(condition)) || (end == 2)) {
+ 		/* Condition Met (clean up helper vars) */
+ 		const char *goto_str;
+ 		pbx_builtin_setvar_helper(chan, varname, NULL);
+ 		pbx_builtin_setvar_helper(chan, my_name, NULL);
+-        snprintf(end_varname,VAR_SIZE,&quot;END_%s&quot;,varname);
++		snprintf(end_varname,VAR_SIZE,&quot;END_%s&quot;,varname);
+ 		if ((goto_str=pbx_builtin_getvar_helper(chan, end_varname))) {
+ 			pbx_builtin_setvar_helper(chan, end_varname, NULL);
+ 			ast_parseable_goto(chan, goto_str);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000053.html">[solid-pbx-svn] r56 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000055.html">[solid-pbx-svn] r58 - in trunk: . apps channels channels/misdn configs include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#54">[ date ]</a>
+              <a href="thread.html#54">[ thread ]</a>
+              <a href="subject.html#54">[ subject ]</a>
+              <a href="author.html#54">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

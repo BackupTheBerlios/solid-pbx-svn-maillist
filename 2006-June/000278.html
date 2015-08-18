@@ -1,0 +1,384 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r283 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r283%20-%20trunk/apps&In-Reply-To=%3C200606182232.k5IMWMUu020691%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000277.html">
+   <LINK REL="Next"  HREF="000279.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r283 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r283%20-%20trunk/apps&In-Reply-To=%3C200606182232.k5IMWMUu020691%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r283 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon Jun 19 00:32:22 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000277.html">[solid-pbx-svn] r282 - in trunk: include/asterisk res
+</A></li>
+        <LI>Next message: <A HREF="000279.html">[solid-pbx-svn] r284 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#278">[ date ]</a>
+              <a href="thread.html#278">[ thread ]</a>
+              <a href="subject.html#278">[ subject ]</a>
+              <a href="author.html#278">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-19 00:32:10 +0200 (Mon, 19 Jun 2006)
+New Revision: 283
+
+Modified:
+   trunk/apps/app_followme.c
+Log:
+Update to Asterisk SVN trunk r32703
+
+------------------------------------------------------------------------
+r32694 | bweschke | 2006-06-06 22:04:52 +0200 (Tue, 06 Jun 2006) | 3 lines
+
+All better now!
+
+
+------------------------------------------------------------------------
+r32695 | russell | 2006-06-06 22:18:01 +0200 (Tue, 06 Jun 2006) | 2 lines
+
+allocate an int on the stack instead of with ast_calloc
+
+------------------------------------------------------------------------
+r32696 | bweschke | 2006-06-06 22:34:00 +0200 (Tue, 06 Jun 2006) | 3 lines
+
+ Don't leak memory.
+
+
+------------------------------------------------------------------------
+r32697 | russell | 2006-06-06 22:37:51 +0200 (Tue, 06 Jun 2006) | 2 lines
+
+move a declaration to the beginning of a block
+
+------------------------------------------------------------------------
+r32698 | bweschke | 2006-06-06 22:39:11 +0200 (Tue, 06 Jun 2006) | 3 lines
+
+ More cleanup.
+
+
+------------------------------------------------------------------------
+r32699 | russell | 2006-06-06 22:44:10 +0200 (Tue, 06 Jun 2006) | 2 lines
+
+make a global list head static
+
+------------------------------------------------------------------------
+r32700 | bweschke | 2006-06-06 22:44:50 +0200 (Tue, 06 Jun 2006) | 3 lines
+
+ More updates.
+
+
+------------------------------------------------------------------------
+r32701 | russell | 2006-06-06 22:45:26 +0200 (Tue, 06 Jun 2006) | 2 lines
+
+use sizeof to get the size of a buffer
+
+------------------------------------------------------------------------
+r32702 | russell | 2006-06-06 22:47:46 +0200 (Tue, 06 Jun 2006) | 2 lines
+
+use sizeof to determine the size of a buffer
+
+------------------------------------------------------------------------
+r32703 | russell | 2006-06-06 22:55:17 +0200 (Tue, 06 Jun 2006) | 2 lines
+
+move a variable declaration to the beginning of a block
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_followme.c
+===================================================================
+--- trunk/apps/app_followme.c	2006-06-18 22:29:25 UTC (rev 282)
++++ trunk/apps/app_followme.c	2006-06-18 22:32:10 UTC (rev 283)
+@@ -35,7 +35,7 @@
+ 
+ #include &quot;asterisk.h&quot;
+ 
+-ASTERISK_FILE_VERSION(__FILE__, &quot;$version$&quot;)
++ASTERISK_FILE_VERSION(__FILE__, &quot;$revision$&quot;)
+ 
+ #include &quot;asterisk/lock.h&quot;
+ #include &quot;asterisk/file.h&quot;
+@@ -164,7 +164,7 @@
+ 
+ 
+ static AST_LIST_HEAD_STATIC(followmes, ast_call_followme);
+-AST_LIST_HEAD_NOLOCK(findme_user_listptr, findme_user);
++static AST_LIST_HEAD_NOLOCK(findme_user_listptr, findme_user);
+ 
+ static void free_numbers(struct ast_call_followme *f)
+ {
+@@ -264,8 +264,7 @@
+ 
+ 	if (cur) {
+ 		cur-&gt;timeout = timeout;
+-		if (strchr(number, ',')) { 
+-			tmp = strchr(number, ',');
++		if ((tmp = strchr(number, ','))) { 
+ 			*tmp = '\0';
+ 		}
+ 		ast_copy_string(cur-&gt;number, number, sizeof(cur-&gt;number));
+@@ -439,7 +438,7 @@
+ 		}
+ 		if (outbound-&gt;cdr) {
+ 			char tmp[256];
+-			snprintf(tmp, 256, &quot;%s/%s&quot;, &quot;Local&quot;, tmpuser-&gt;dialarg);
++			snprintf(tmp, sizeof(tmp), &quot;%s/%s&quot;, &quot;Local&quot;, tmpuser-&gt;dialarg);
+ 			ast_cdr_setapp(outbound-&gt;cdr,&quot;FollowMe&quot;,tmp);
+ 			ast_cdr_update(outbound);
+ 			ast_cdr_start(outbound-&gt;cdr);
+@@ -476,10 +475,10 @@
+ 	int ctstatus;
+ 	int dg;
+ 	struct findme_user *tmpuser;
+-	int *to = ast_calloc(1, sizeof(*to));
++	int to = 0;
+ 	int livechannels = 0;
+ 	int tmpto;
+-	long totalwait = 0, wtd, towas = *to;
++	long totalwait = 0, wtd, towas = 0;
+ 	char *callfromname;
+ 	char *pressbuttonname;
+ 
+@@ -494,14 +493,13 @@
+ 			if (option_verbose &gt; 2)
+ 				ast_verbose(VERBOSE_PREFIX_3 &quot;Original caller hungup. Cleanup.\n&quot;);
+ 			clear_calling_tree(findme_user_list);
+-			free(to);
+ 			return NULL;
+ 		}
+ 		ctstatus = 0;
+ 		totalwait = nm-&gt;timeout * 1000;
+ 		wtd = 0;
+ 		while (!ctstatus) {
+-			*to = 1000;
++			to = 1000;
+ 			pos = 1; 
+ 			livechannels = 0;
+ 			watchers[0] = caller;
+@@ -523,7 +521,6 @@
+ 								ast_sched_runq(tmpuser-&gt;ochan-&gt;sched);
+ 							} else {
+ 								ast_log(LOG_WARNING, &quot;Unable to playback %s.\n&quot;, callfromname);
+-								free(to);
+ 								return NULL;
+ 							}							
+ 						} else {
+@@ -533,7 +530,6 @@
+ 								ast_sched_runq(tmpuser-&gt;ochan-&gt;sched);
+ 							else {
+ 								ast_log(LOG_WARNING, &quot;Unable to playback %s.\n&quot;, tpargs-&gt;norecordingprompt);
+-								free(to);
+ 								return NULL;
+ 							}
+ 						}
+@@ -541,8 +537,8 @@
+ 					if (tmpuser-&gt;ochan-&gt;stream) {
+ 						ast_sched_runq(tmpuser-&gt;ochan-&gt;sched);
+ 						tmpto = ast_sched_wait(tmpuser-&gt;ochan-&gt;sched);
+-						if (tmpto &gt; 0 &amp;&amp; tmpto &lt; *to)
+-							*to = tmpto;
++						if (tmpto &gt; 0 &amp;&amp; tmpto &lt; to)
++							to = tmpto;
+ 						else if (tmpto &lt; 0 &amp;&amp; !tmpuser-&gt;ochan-&gt;timingfunc) {
+ 							ast_stopstream(tmpuser-&gt;ochan);
+ 							if (tmpuser-&gt;state == 1) {
+@@ -558,7 +554,6 @@
+ 										tmpuser-&gt;state = 3;
+ 									else {
+ 										ast_log(LOG_WARNING, &quot;Unable to playback %s.\n&quot;, pressbuttonname);
+-										free(to);
+ 										return NULL;
+ 									} 
+ 								}
+@@ -571,7 +566,6 @@
+ 									tmpuser-&gt;state = 3;
+ 									
+ 								} else {
+-									ast_log(LOG_WARNING, &quot;Unable to playback %s.\n&quot;, pressbuttonname);										  free(to);
+ 									return NULL;
+ 								} 
+ 							} else if (tmpuser-&gt;state == 3) {
+@@ -586,21 +580,20 @@
+ 				}
+ 			}
+ 
+-			tmpto = *to;
+-			if (*to &lt; 0) {
+-				*to = 1000;
++			tmpto = to;
++			if (to &lt; 0) {
++				to = 1000;
+ 				tmpto = 1000;
+ 			}
+-			towas = *to;
+-			winner = ast_waitfor_n(watchers, pos, to);
+-			tmpto -= *to;
++			towas = to;
++			winner = ast_waitfor_n(watchers, pos, &amp;to);
++			tmpto -= to;
+ 			totalwait -= tmpto;
+-			wtd = *to;	
++			wtd = to;	
+ 			if (totalwait &lt;= 0) {
+ 				if (option_verbose &gt; 2)	
+ 					ast_verbose(VERBOSE_PREFIX_3 &quot;We've hit our timeout for this step. Drop everyone and move on to the next one. %ld\n&quot;, totalwait);
+ 				clear_calling_tree(findme_user_list);
+-				free(to);
+ 				return NULL;
+ 			}
+ 			if (winner) {
+@@ -640,7 +633,7 @@
+ 										tmpuser-&gt;state = 1;
+ 									} else {
+ 										ast_log(LOG_WARNING, &quot;Unable to playback %s.\n&quot;, callfromname);
+-										free(to);
++										ast_frfree(f);
+ 										return NULL;
+ 									}				
+ 								} else {			
+@@ -649,7 +642,7 @@
+ 										ast_sched_runq(tmpuser-&gt;ochan-&gt;sched);
+ 									else {
+ 										ast_log(LOG_WARNING, &quot;Unable to playback %s.\n&quot;, tpargs-&gt;norecordingprompt);
+-										free(to);
++										ast_frfree(f);
+ 										return NULL;
+ 									}
+ 								}
+@@ -717,14 +710,14 @@
+ 							if (!strcmp(tmpuser-&gt;yn, tpargs-&gt;takecall)) {
+ 								if (option_debug)
+ 									ast_log(LOG_DEBUG, &quot;Match to take the call!\n&quot;);
+-								free(to);
++								ast_frfree(f);
+ 								return tmpuser-&gt;ochan;	
+ 							}
+ 							if (!strcmp(tmpuser-&gt;yn, tpargs-&gt;nextindp)) {
+ 								if (option_debug)
+ 									ast_log(LOG_DEBUG, &quot;Next in dial plan step requested.\n&quot;);
+ 								*status = 1;
+-								free(to);
++								ast_frfree(f);
+ 								return NULL;
+ 							}	
+ 
+@@ -738,7 +731,6 @@
+ 							ast_log(LOG_DEBUG, &quot;we didn't get a frame. hanging up. dg is %d\n&quot;,dg);					      
+ 						if (!dg) {
+ 							clear_calling_tree(findme_user_list);
+-							free(to);
+ 							return NULL;
+ 						} else {
+ 							tmpuser-&gt;state = -1;
+@@ -749,7 +741,6 @@
+ 							if (!livechannels) {
+ 								if (option_verbose &gt; 2)
+ 									ast_verbose(VERBOSE_PREFIX_3 &quot;no live channels left. exiting.\n&quot;);
+-								free(to);
+ 								return NULL;
+ 							}
+ 						}
+@@ -769,13 +760,11 @@
+ 	}
+ 	
+ 	/* --- WAIT FOR WINNER NUMBER END! -----------*/
+-	free(to);
+ 	return NULL;
+ }
+ 
+-static void findmeexec(void *args)
++static void findmeexec(struct fm_args *tpargs)
+ {
+-	struct fm_args *tpargs;
+ 	struct number *nm;
+ 	struct ast_channel *outbound;
+ 	struct ast_channel *caller;
+@@ -792,12 +781,6 @@
+ 	findme_user_list = ast_calloc(1, sizeof(*findme_user_list));		
+ 	AST_LIST_HEAD_INIT_NOLOCK(findme_user_list);
+ 
+-	tpargs = (struct fm_args *)args;
+-			
+-	if (!tpargs-&gt;chan) 
+-		return;
+-	
+-
+ 	/* We're going to figure out what the longest possible string of digits to collect is */
+ 	ynlongest = 0;
+ 	if (strlen(tpargs-&gt;takecall) &gt; ynlongest)
+@@ -858,10 +841,10 @@
+ 							outbound-&gt;cdr = ast_cdr_alloc();
+ 						}
+ 						if (outbound-&gt;cdr) {
+-							ast_cdr_init(outbound-&gt;cdr, outbound);
+ 							char tmp[256];
+-							snprintf(tmp, 256, &quot;%s/%s&quot;, &quot;Local&quot;, dialarg);
+-							ast_cdr_setapp(outbound-&gt;cdr,&quot;FollowMe&quot;,tmp);
++							ast_cdr_init(outbound-&gt;cdr, outbound);
++							snprintf(tmp, sizeof(tmp), &quot;%s/%s&quot;, &quot;Local&quot;, dialarg);
++							ast_cdr_setapp(outbound-&gt;cdr, &quot;FollowMe&quot;, tmp);
+ 							ast_cdr_update(outbound);
+ 							ast_cdr_start(outbound-&gt;cdr);
+ 							ast_cdr_end(outbound-&gt;cdr);
+@@ -1099,15 +1082,18 @@
+ static int unload_module(void *mod)
+ {
+ 	struct ast_call_followme *f;
++	STANDARD_HANGUP_LOCALUSERS;
++	ast_unregister_application(app);
+ 	/* Free Memory. Yeah! I'm free! */
++	AST_LIST_LOCK(&amp;followmes);
+ 	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;followmes, f, entry) {
+ 		free_numbers(f);
+ 		AST_LIST_REMOVE_CURRENT(&amp;followmes, entry);
+ 		free(f);
+ 	}
+ 	AST_LIST_TRAVERSE_SAFE_END
+-	STANDARD_HANGUP_LOCALUSERS;
+-	return ast_unregister_application(app);
++	AST_LIST_UNLOCK(&amp;followmes);
++	return 0;
+ }
+ 
+ static int load_module(void *mod)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000277.html">[solid-pbx-svn] r282 - in trunk: include/asterisk res
+</A></li>
+	<LI>Next message: <A HREF="000279.html">[solid-pbx-svn] r284 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#278">[ date ]</a>
+              <a href="thread.html#278">[ thread ]</a>
+              <a href="subject.html#278">[ subject ]</a>
+              <a href="author.html#278">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

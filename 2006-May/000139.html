@@ -1,0 +1,541 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r144 - in trunk: . apps build_tools channels include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r144%20-%20in%20trunk%3A%20.%20apps%20build_tools%20channels%20include/asterisk&In-Reply-To=%3C200605131129.k4DBTBSY015281%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000138.html">
+   <LINK REL="Next"  HREF="000140.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r144 - in trunk: . apps build_tools channels include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r144%20-%20in%20trunk%3A%20.%20apps%20build_tools%20channels%20include/asterisk&In-Reply-To=%3C200605131129.k4DBTBSY015281%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r144 - in trunk: . apps build_tools channels include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat May 13 13:29:11 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000138.html">[solid-pbx-svn] r143 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000140.html">[solid-pbx-svn] r145 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#139">[ date ]</a>
+              <a href="thread.html#139">[ thread ]</a>
+              <a href="subject.html#139">[ subject ]</a>
+              <a href="author.html#139">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-13 13:29:06 +0200 (Sat, 13 May 2006)
+New Revision: 144
+
+Modified:
+   trunk/Makefile
+   trunk/apps/Makefile
+   trunk/apps/app_meetme.c
+   trunk/build_tools/cflags.xml
+   trunk/channels/Makefile
+   trunk/include/asterisk/linkedlists.h
+Log:
+Update to Asterisk SVN trunk r27153
+
+------------------------------------------------------------------------
+r27128 | russell | 2006-05-13 12:37:26 +0200 (Sat, 13 May 2006) | 4 lines
+
+remove unnecessary INCLUDE variable which was currently added to ASTCFLAGS
+before it was ever set.  This removes another stray space in the gcc
+commands  :)
+
+------------------------------------------------------------------------
+r27129 | russell | 2006-05-13 12:43:11 +0200 (Sat, 13 May 2006) | 2 lines
+
+remove some stuff handled by configure and menuselect
+
+------------------------------------------------------------------------
+r27130 | russell | 2006-05-13 12:54:40 +0200 (Sat, 13 May 2006) | 3 lines
+
+Move WITH_SMDI from the Makefiles to be handled by menuselect. It will now be
+defined in buildopts.h. Also, remove a few more stray spaces in the gcc commands. 
+
+------------------------------------------------------------------------
+r27153 | russell | 2006-05-13 13:06:34 +0200 (Sat, 13 May 2006) | 2 lines
+
+simplify conference user list handling
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-13 04:28:50 UTC (rev 143)
++++ trunk/Makefile	2006-05-13 11:29:06 UTC (rev 144)
+@@ -24,18 +24,6 @@
+ #CROSS_PROC=arm
+ #SUB_PROC=xscale # or maverick
+ 
+-# Pentium Pro Optimize
+-#PROC=i686
+-
+-# Pentium &amp; VIA processors optimize
+-#PROC=i586
+-
+-#PROC=k6
+-#PROC=ppc
+-
+-CC=$(CROSS_COMPILE)gcc
+-HOST_CC=gcc
+-
+ ifeq ($(CROSS_COMPILE),)
+   OSARCH=$(shell uname -s)
+   PROC?=$(shell uname -m)
+@@ -71,26 +59,6 @@
+ # Include debug and macro symbols in the executables (-g) and profiling info (-pg)
+ DEBUG=-g3
+ 
+-# Set NOCRYPTO to yes if you do not want to have crypto support or dependencies
+-#NOCRYPTO=yes
+-
+-# If you are running a radio application, define RADIO_RELAX so that the DTMF
+-# will be received more reliably
+-#OPTIONS += -DRADIO_RELAX
+-
+-# If you don't have a lot of memory (e.g. embedded Asterisk), define LOW_MEMORY
+-# to reduce the size of certain static buffers
+-#ifneq ($(CROSS_COMPILE),)
+-#OPTIONS += -DLOW_MEMORY
+-#endif
+-
+-# Asterisk SMDI integration
+-WITH_SMDI=1
+-
+-# Where to install asterisk after compiling
+-# Default -&gt; leave empty
+-INSTALL_PREFIX?=
+-
+ # Staging directory
+ # Files are copied here temporarily during the install process
+ # For example, make DESTDIR=/tmp/asterisk woud put things in
+@@ -241,7 +209,7 @@
+   ID=/usr/xpg4/bin/id
+ endif
+ 
+-ASTCFLAGS+=-pipe  -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations $(DEBUG) $(INCLUDE)
++ASTCFLAGS+=-pipe -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations $(DEBUG)
+ ASTCFLAGS+=$(OPTIMIZE)
+ 
+ ifeq ($(AST_DEVMODE),yes)
+@@ -276,8 +244,7 @@
+ endif # FreeBSD
+ 
+ ifeq ($(OSARCH),NetBSD)
+-  ASTCFLAGS+=-pthread
+-  INCLUDE+=-I$(CROSS_COMPILE_TARGET)/usr/pkg/include
++  AST_CFLAGS+=-pthread -I$(CROSS_COMPILE_TARGET)/usr/pkg/include
+   MPG123TARG=netbsd
+ endif
+ 
+@@ -286,8 +253,7 @@
+ endif
+ 
+ ifeq ($(OSARCH),SunOS)
+-  ASTCFLAGS+=-Wcast-align -DSOLARIS
+-  INCLUDE+=-Iinclude/solaris-compat -I$(CROSS_COMPILE_TARGET)/usr/local/ssl/include
++  ASTCFLAGS+=-Wcast-align -DSOLARIS -Iinclude/solaris-compat -I$(CROSS_COMPILE_TARGET)/usr/local/ssl/include
+ endif
+ 
+ LIBEDIT=editline/libedit.a
+@@ -314,7 +280,7 @@
+ 
+ ASTCFLAGS+=$(MALLOC_DEBUG)$(BUSYDETECT)$(OPTIONS)
+ ifeq ($(findstring dont-optimize,$(MAKECMDGOALS)),)
+-ASTCFLAGS+=-fomit-frame-pointer 
++ASTCFLAGS+=-fomit-frame-pointer
+ endif
+ 
+ MOD_SUBDIRS=res channels pbx apps codecs formats cdr funcs
+@@ -396,7 +362,7 @@
+ endif
+ 
+ ifeq ($(MAKETOPLEVEL),$(MAKELEVEL))
+-  CFLAGS+=$(TOPDIR_CFLAGS) $(ASTCFLAGS)
++  CFLAGS+=$(TOPDIR_CFLAGS)$(ASTCFLAGS)
+ endif
+ 
+ # This is used when generating the doxygen documentation
+@@ -518,7 +484,7 @@
+ 	@rm -f $@.tmp
+ 
+ stdtime/libtime.a:
+-	CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS) $(ASTCFLAGS)&quot; $(MAKE) -C stdtime libtime.a
++	CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C stdtime libtime.a
+ 
+ asterisk: include/asterisk/buildopts.h editline/libedit.a db1-ast/libdb1.a stdtime/libtime.a $(OBJS)
+ 	build_tools/make_build_h &gt; include/asterisk/build.h.tmp
+@@ -533,9 +499,9 @@
+ 	$(CC) $(AUDIO_LIBS) -o muted muted.o
+ 
+ subdirs: 
+-	@for x in $(MOD_SUBDIRS); do CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS) $(ASTCFLAGS)&quot; $(MAKE) -C $$x || exit 1 ; done
+-	@CFLAGS=&quot;$(OTHER_SUBDIR_CFLAGS) $(ASTCFLAGS)&quot; $(MAKE) -C utils
+-	@CFLAGS=&quot;$(OTHER_SUBDIR_CFLAGS) $(ASTCFLAGS)&quot; $(MAKE) -C agi
++	@for x in $(MOD_SUBDIRS); do CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C $$x || exit 1 ; done
++	@CFLAGS=&quot;$(OTHER_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C utils
++	@CFLAGS=&quot;$(OTHER_SUBDIR_CFLAGS)$(ASTCFLAGS)&quot; $(MAKE) -C agi
+ 
+ clean-depend:
+ 	@for x in $(SUBDIRS); do $(MAKE) -C $$x clean-depend || exit 1 ; done
+
+Modified: trunk/apps/Makefile
+===================================================================
+--- trunk/apps/Makefile	2006-05-13 04:28:50 UTC (rev 143)
++++ trunk/apps/Makefile	2006-05-13 11:29:06 UTC (rev 144)
+@@ -13,10 +13,6 @@
+ 
+ MODS:=$(filter-out $(MENUSELECT_APPS),$(patsubst %.c,%.so,$(wildcard app_*.c)))
+ 
+-ifneq ($(WITH_SMDI),)
+-  CFLAGS+=-DWITH_SMDI
+-endif
+-
+ # If you have UnixODBC you can use ODBC voicemail
+ # storage
+ #
+
+Modified: trunk/apps/app_meetme.c
+===================================================================
+--- trunk/apps/app_meetme.c	2006-05-13 04:28:50 UTC (rev 143)
++++ trunk/apps/app_meetme.c	2006-05-13 11:29:06 UTC (rev 144)
+@@ -152,8 +152,6 @@
+ 	int zapconf;				/* Zaptel Conf # */
+ 	int users;				/* Number of active users */
+ 	int markedusers;			/* Number of marked users */
+-	struct ast_conf_user *firstuser;	/* Pointer to the first user struct */
+-	struct ast_conf_user *lastuser;		/* Pointer to the last user struct */
+ 	time_t start;				/* Start time (s) */
+ 	int refcount;				/* reference count of usage */
+ 	unsigned int recording:2;				/* recording status */
+@@ -168,6 +166,7 @@
+ 	struct ast_frame *transframe[32];
+ 	struct ast_frame *origframe;
+ 	struct ast_trans_pvt *transpath[32];
++	AST_LIST_HEAD_NOLOCK(, ast_conf_user) userlist;
+ 	AST_LIST_ENTRY(ast_conference) list;
+ };
+ 
+@@ -180,8 +179,6 @@
+ 
+ struct ast_conf_user {
+ 	int user_no;				/* User Number */
+-	struct ast_conf_user *prevuser;		/* Pointer to the previous user */
+-	struct ast_conf_user *nextuser;		/* Pointer to the next user */
+ 	int userflags;				/* Flags as set in the conference */
+ 	int adminflags;				/* Flags set by the Admin */
+ 	struct ast_channel *chan;		/* Connected channel */
+@@ -192,6 +189,7 @@
+ 	time_t jointime;			/* Time the user joined the conference */
+ 	struct volume talk;
+ 	struct volume listen;
++	AST_LIST_ENTRY(ast_conf_user) list;
+ };
+ 
+ static int audio_buffers;			/* The number of audio buffers to be allocated on pseudo channels
+@@ -532,9 +530,6 @@
+ 			cnf-&gt;start = time(NULL);
+ 			cnf-&gt;zapconf = ztc.confno;
+ 			cnf-&gt;isdynamic = dynamic ? 1 : 0;
+-			cnf-&gt;firstuser = NULL;
+-			cnf-&gt;lastuser = NULL;
+-			cnf-&gt;locked = 0;
+ 			if (option_verbose &gt; 2)
+ 				ast_verbose(VERBOSE_PREFIX_3 &quot;Created MeetMe conference %d for conference '%s'\n&quot;, cnf-&gt;zapconf, cnf-&gt;confno);
+ 			AST_LIST_INSERT_HEAD(&amp;confs, cnf, list);
+@@ -665,7 +660,7 @@
+ 			return RESULT_SUCCESS;
+ 		}
+ 		/* Show all the users */
+-		for (user = cnf-&gt;firstuser; user; user = user-&gt;nextuser){
++		AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list) {
+ 			now = time(NULL);
+ 			hr = (now - user-&gt;jointime) / 3600;
+ 			min = ((now - user-&gt;jointime) % 3600) / 60;
+@@ -751,7 +746,7 @@
+ 
+ 			if (cnf) {
+ 				/* Search for the user */
+-				for (usr = cnf-&gt;firstuser; usr; usr = usr-&gt;nextuser) {
++				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, usr, list) {
+ 					snprintf(usrno, sizeof(usrno), &quot;%d&quot;, usr-&gt;user_no);
+ 					if (!strncasecmp(word, usrno, len) &amp;&amp; ++which &gt; state)
+ 						break;
+@@ -928,25 +923,14 @@
+ 		conf-&gt;markedusers++;
+       
+    	ast_mutex_lock(&amp;conf-&gt;playlock);
+-	if (!conf-&gt;firstuser) {
+-		/* Fill the first new User struct */
++
++	if (AST_LIST_EMPTY(&amp;conf-&gt;userlist))
+ 		user-&gt;user_no = 1;
+-		conf-&gt;firstuser = user;
+-		conf-&gt;lastuser = user;
+-	} else {
+-		/* Fill the new user struct */	
+-		user-&gt;user_no = conf-&gt;lastuser-&gt;user_no + 1; 
+-		user-&gt;prevuser = conf-&gt;lastuser;
+-		if (conf-&gt;lastuser-&gt;nextuser) {
+-			ast_log(LOG_WARNING, &quot;Error in User Management!\n&quot;);
+-			ast_mutex_unlock(&amp;conf-&gt;playlock);
+-			goto outrun;
+-		} else {
+-			conf-&gt;lastuser-&gt;nextuser = user;
+-			conf-&gt;lastuser = user;
+-		}
+-	}
++	else
++		user-&gt;user_no = AST_LIST_LAST(&amp;conf-&gt;userlist)-&gt;user_no + 1;
+ 
++	AST_LIST_INSERT_TAIL(&amp;conf-&gt;userlist, user, list);
++
+ 	user-&gt;chan = chan;
+ 	user-&gt;userflags = confflags;
+ 	user-&gt;adminflags = 0;
+@@ -1480,7 +1464,7 @@
+ 								break;
+ 							case '3': /* Eject last user */
+ 								menu_active = 0;
+-								usr = conf-&gt;lastuser;
++								usr = AST_LIST_LAST(&amp;conf-&gt;userlist);
+ 								if ((usr-&gt;chan-&gt;name == chan-&gt;name)||(usr-&gt;userflags &amp; CONFFLAG_ADMIN)) {
+ 									if(!ast_streamfile(chan, &quot;conf-errormenu&quot;, chan-&gt;language))
+ 										ast_waitstream(chan, &quot;&quot;);
+@@ -1711,39 +1695,12 @@
+ 		ast_update_realtime(&quot;meetme&quot;, &quot;confno&quot;, conf-&gt;confno, &quot;members&quot;, members, NULL);
+ 		if (confflags &amp; CONFFLAG_MARKEDUSER) 
+ 			conf-&gt;markedusers--;
+-		if (!conf-&gt;users) {
++		if (AST_LIST_EMPTY(&amp;conf-&gt;userlist)) {
+ 			/* close this one when no more users and no references*/
+-			if (!conf-&gt;refcount){
++			if (!conf-&gt;refcount)
+ 				conf_free(conf);
+-			}
+ 		} else {
+-			/* Remove the user struct */ 
+-			if (user == conf-&gt;firstuser) {
+-				if (user-&gt;nextuser) {
+-					/* There is another entry */
+-					user-&gt;nextuser-&gt;prevuser = NULL;
+-				} else {
+-					/* We are the only entry */
+-					conf-&gt;lastuser = NULL;
+-				}
+-				/* In either case */
+-				conf-&gt;firstuser = user-&gt;nextuser;
+-			} else if (user == conf-&gt;lastuser){
+-				if (user-&gt;prevuser)
+-					user-&gt;prevuser-&gt;nextuser = NULL;
+-				else
+-					ast_log(LOG_ERROR, &quot;Bad bad bad!  We're the last, not the first, but nobody before us??\n&quot;);
+-				conf-&gt;lastuser = user-&gt;prevuser;
+-			} else {
+-				if (user-&gt;nextuser)
+-					user-&gt;nextuser-&gt;prevuser = user-&gt;prevuser;
+-				else
+-					ast_log(LOG_ERROR, &quot;Bad! Bad! Bad! user-&gt;nextuser is NULL but we're not the end!\n&quot;);
+-				if (user-&gt;prevuser)
+-					user-&gt;prevuser-&gt;nextuser = user-&gt;nextuser;
+-				else
+-					ast_log(LOG_ERROR, &quot;Bad! Bad! Bad! user-&gt;prevuser is NULL but we're not the beginning!\n&quot;);
+-			}
++			AST_LIST_REMOVE(&amp;conf-&gt;userlist, user, list);
+ 		}
+ 		/* Return the number of seconds the user was in the conf */
+ 		snprintf(meetmesecs, sizeof(meetmesecs), &quot;%d&quot;, (int) (time(NULL) - user-&gt;jointime));
+@@ -2221,18 +2178,16 @@
+ 	return res;
+ }
+ 
+-static struct ast_conf_user* find_user(struct ast_conference *conf, char *callerident) 
++static struct ast_conf_user *find_user(struct ast_conference *conf, char *callerident) 
+ {
+ 	struct ast_conf_user *user = NULL;
+ 	int cid;
+ 	
+ 	sscanf(callerident, &quot;%i&quot;, &amp;cid);
+ 	if (conf &amp;&amp; callerident) {
+-		user = conf-&gt;firstuser;
+-		while (user) {
++		AST_LIST_TRAVERSE(&amp;conf-&gt;userlist, user, list) {
+ 			if (cid == user-&gt;user_no)
+ 				return user;
+-			user = user-&gt;nextuser;
+ 		}
+ 	}
+ 	return NULL;
+@@ -2282,23 +2237,15 @@
+ 			case 108: /* l: Unlock */ 
+ 				cnf-&gt;locked = 0;
+ 				break;
+-			case 75: /* K: kick all users*/
+-				user = cnf-&gt;firstuser;
+-				while(user) {
++			case 75: /* K: kick all users */
++				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list)
+ 					user-&gt;adminflags |= ADMINFLAG_KICKME;
+-					if (user-&gt;nextuser) {
+-						user = user-&gt;nextuser;
+-					} else {
+-						break;
+-					}
+-				}
+ 				break;
+ 			case 101: /* e: Eject last user*/
+-				user = cnf-&gt;lastuser;
+-				if (!(user-&gt;userflags &amp; CONFFLAG_ADMIN)) {
++				user = AST_LIST_LAST(&amp;cnf-&gt;userlist);
++				if (!(user-&gt;userflags &amp; CONFFLAG_ADMIN))
+ 					user-&gt;adminflags |= ADMINFLAG_KICKME;
+-					break;
+-				} else
++				else
+ 					ast_log(LOG_NOTICE, &quot;Not kicking last user, is an Admin!\n&quot;);
+ 				break;
+ 			case 77: /* M: Mute */ 
+@@ -2314,15 +2261,9 @@
+ 				}
+ 				break;
+ 			case 78: /* N: Mute all users */
+-				user = cnf-&gt;firstuser;
+-				while(user) {
+-					if (user &amp;&amp; !(user-&gt;userflags &amp; CONFFLAG_ADMIN))
++				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list) {
++					if (!(user-&gt;userflags &amp; CONFFLAG_ADMIN))
+ 						user-&gt;adminflags |= ADMINFLAG_MUTED;
+-					if (user-&gt;nextuser) {
+-						user = user-&gt;nextuser;
+-					} else {
+-						break;
+-					}
+ 				}
+ 				break;					
+ 			case 109: /* m: Unmute */ 
+@@ -2337,25 +2278,15 @@
+ 					ast_log(LOG_NOTICE, &quot;Specified User not found or he muted himself!\n&quot;);
+ 				}
+ 				break;
+-			case  110: /* n: Unmute all users */
+-				user = cnf-&gt;firstuser;
+-				while(user) {
+-					if (user &amp;&amp; (user-&gt; adminflags &amp; ADMINFLAG_MUTED)) {
+-						user-&gt;adminflags ^= ADMINFLAG_MUTED;
+-					}
+-					if (user-&gt;nextuser) {
+-						user = user-&gt;nextuser;
+-					} else {
+-						break;
+-					}
+-				}
++			case 110: /* n: Unmute all users */
++				AST_LIST_TRAVERSE(&amp;cnf-&gt;userlist, user, list)
++					user-&gt;adminflags &amp;= ~ADMINFLAG_MUTED;
+ 				break;
+ 			case 107: /* k: Kick user */ 
+-				if (user) {
++				if (user)
+ 					user-&gt;adminflags |= ADMINFLAG_KICKME;
+-				} else {
++				else
+ 					ast_log(LOG_NOTICE, &quot;Specified User not found!&quot;);
+-				}
+ 				break;
+ 			}
+ 		} else {
+
+Modified: trunk/build_tools/cflags.xml
+===================================================================
+--- trunk/build_tools/cflags.xml	2006-05-13 04:28:50 UTC (rev 143)
++++ trunk/build_tools/cflags.xml	2006-05-13 11:29:06 UTC (rev 144)
+@@ -11,10 +11,13 @@
+ 		&lt;/member&gt;
+ 		&lt;member name=&quot;MALLOC_DEBUG&quot; displayname=&quot;Keep Track of Memory Allocations&quot;&gt;
+ 		&lt;/member&gt;
++		&lt;member name=&quot;MTX_PROFILE&quot; displayname=&quot;Enable Code Profiling Using TSC Counters&quot;&gt;
++		&lt;/member&gt;
+ 		&lt;member name=&quot;RADIO_RELAX&quot; displayname=&quot;Relax DTMF for Radio Applications&quot;&gt;
+ 		&lt;/member&gt;
+ 		&lt;member name=&quot;TRACE_FRAMES&quot; displayname=&quot;Trace Frame Allocations&quot;&gt;
+ 		&lt;/member&gt;
+-		&lt;member name=&quot;MTX_PROFILE&quot; displayname=&quot;Enable Code Profiling Using TSC Counters&quot;&gt;
++		&lt;member name=&quot;WITH_SMDI&quot; displayname=&quot;Include SMDI Support&quot;&gt;
++			&lt;defaultenabled&gt;yes&lt;/defaultenabled&gt;
+ 		&lt;/member&gt;
+ 	&lt;/category&gt;
+
+Modified: trunk/channels/Makefile
+===================================================================
+--- trunk/channels/Makefile	2006-05-13 04:28:50 UTC (rev 143)
++++ trunk/channels/Makefile	2006-05-13 11:29:06 UTC (rev 144)
+@@ -44,10 +44,6 @@
+   SOLINK+=-lrt
+ endif
+ 
+-ifeq ($(WITH_SMDI),1)
+-  CFLAGS+=-DWITH_SMDI
+-endif
+-
+ ifeq ($(wildcard h323/libchanh323.a),)
+   MODS:=$(filter-out chan_h323.so,$(MODS))
+ endif
+
+Modified: trunk/include/asterisk/linkedlists.h
+===================================================================
+--- trunk/include/asterisk/linkedlists.h	2006-05-13 04:28:50 UTC (rev 143)
++++ trunk/include/asterisk/linkedlists.h	2006-05-13 11:29:06 UTC (rev 144)
+@@ -208,6 +208,12 @@
+ #define	AST_LIST_FIRST(head)	((head)-&gt;first)
+ 
+ /*!
++  \brief Returns the last entry contained in a list.
++  \param head This is a pointer to the list tail structure
++ */
++#define	AST_LIST_LAST(head)	((head)-&gt;last)
++
++/*!
+   \brief Returns the next entry in the list after the given entry.
+   \param elm This is a pointer to the current entry.
+   \param field This is the name of the field (declared using AST_LIST_ENTRY())
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000138.html">[solid-pbx-svn] r143 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000140.html">[solid-pbx-svn] r145 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#139">[ date ]</a>
+              <a href="thread.html#139">[ thread ]</a>
+              <a href="subject.html#139">[ subject ]</a>
+              <a href="author.html#139">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

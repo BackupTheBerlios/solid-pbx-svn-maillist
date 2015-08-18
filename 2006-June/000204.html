@@ -1,0 +1,697 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r209 - in trunk: channels channels/misdn configs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r209%20-%20in%20trunk%3A%20channels%20channels/misdn%20configs&In-Reply-To=%3C200606011325.k51DPuFo008044%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000203.html">
+   <LINK REL="Next"  HREF="000205.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r209 - in trunk: channels channels/misdn configs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r209%20-%20in%20trunk%3A%20channels%20channels/misdn%20configs&In-Reply-To=%3C200606011325.k51DPuFo008044%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r209 - in trunk: channels channels/misdn configs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu Jun  1 15:25:56 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000203.html">[solid-pbx-svn] r208 - trunk/res
+</A></li>
+        <LI>Next message: <A HREF="000205.html">[solid-pbx-svn] r210 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#204">[ date ]</a>
+              <a href="thread.html#204">[ thread ]</a>
+              <a href="subject.html#204">[ subject ]</a>
+              <a href="author.html#204">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-01 15:25:44 +0200 (Thu, 01 Jun 2006)
+New Revision: 209
+
+Modified:
+   trunk/channels/chan_misdn.c
+   trunk/channels/misdn/chan_misdn_config.h
+   trunk/channels/misdn/ie.c
+   trunk/channels/misdn/isdn_lib.c
+   trunk/channels/misdn/isdn_lib.h
+   trunk/channels/misdn/isdn_msg_parser.c
+   trunk/channels/misdn_config.c
+   trunk/configs/misdn.conf.sample
+   trunk/configs/sip.conf.sample
+Log:
+Update to Asterisk SVN trunk r31352
+
+------------------------------------------------------------------------
+r31322 | kpfleming | 2006-06-01 14:43:01 +0200 (Thu, 01 Jun 2006) | 10 lines
+
+Merged revisions 31321 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r31321 | kpfleming | 2006-06-01 07:41:47 -0500 (Thu, 01 Jun 2006) | 2 lines
+
+remove a sample entry that never should have been added (code to support it was not merged)
+
+.......
+
+------------------------------------------------------------------------
+r31324 | crichter | 2006-06-01 14:51:41 +0200 (Thu, 01 Jun 2006) | 1 line
+
+added bearer capability reject support. we send release instead of disconnect in case we have no real channel yet. added support for Restarting channels added support for sending complete decoding. changed some log levels.
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_misdn.c
+===================================================================
+--- trunk/channels/chan_misdn.c	2006-06-01 09:25:25 UTC (rev 208)
++++ trunk/channels/chan_misdn.c	2006-06-01 13:25:44 UTC (rev 209)
+@@ -151,6 +151,8 @@
+   
+ 	ast_mutex_t lock;
+ 
++	char allowed_bearers[BUFFERSIZE+1];
++	
+ 	enum misdn_chan_state state;
+ 	int holded; 
+ 	int orginator;
+@@ -346,12 +348,28 @@
+ }
+ 
+ 
++
++struct allowed_bearers {
++	int cap;
++	int val;
++	char *name;
++};
++
++struct allowed_bearers allowed_bearers_array[]={
++	{INFO_CAPABILITY_SPEECH,1,&quot;speech&quot;},
++	{INFO_CAPABILITY_AUDIO_3_1K,2,&quot;3_1khz&quot;},
++	{INFO_CAPABILITY_DIGITAL_UNRESTRICTED,4,&quot;digital_unrestricted&quot;},
++	{INFO_CAPABILITY_DIGITAL_RESTRICTED,8,&quot;digital_restriced&quot;},
++	{INFO_CAPABILITY_VIDEO,16,&quot;video&quot;}
++};
++
+ static char *bearer2str(int cap) {
+ 	static char *bearers[]={
+ 		&quot;Speech&quot;,
+ 		&quot;Audio 3.1k&quot;,
+ 		&quot;Unres Digital&quot;,
+ 		&quot;Res Digital&quot;,
++		&quot;Video&quot;,
+ 		&quot;Unknown Bearer&quot;
+ 	};
+ 	
+@@ -368,9 +386,12 @@
+ 	case INFO_CAPABILITY_DIGITAL_RESTRICTED:
+ 		return bearers[3];
+ 		break;
+-	default:
++	case INFO_CAPABILITY_VIDEO:
+ 		return bearers[4];
+ 		break;
++	default:
++		return bearers[5];
++		break;
+ 	}
+ }
+ 
+@@ -1153,7 +1174,7 @@
+ 	
+ 	int port=bc-&gt;port;
+ 	
+-	chan_misdn_log(1,port,&quot;update_config: Getting Config\n&quot;);
++	chan_misdn_log(5,port,&quot;update_config: Getting Config\n&quot;);
+ 
+ 
+ 	int hdlc=0;
+@@ -1243,7 +1264,7 @@
+ 	struct misdn_bchannel *bc=ch-&gt;bc;
+ 	int len=ch-&gt;jb_len, threshold=ch-&gt;jb_upper_threshold;
+ 	
+-	chan_misdn_log(1,bc-&gt;port, &quot;config_jb: Called\n&quot;);
++	chan_misdn_log(5,bc-&gt;port, &quot;config_jb: Called\n&quot;);
+ 	
+ 	if ( ! len ) {
+ 		chan_misdn_log(1,bc-&gt;port, &quot;config_jb: Deactivating Jitterbuffer\n&quot;);
+@@ -1295,6 +1316,10 @@
+ 	}
+ }
+ 
++
++
++
++
+ static int read_config(struct chan_list *ch, int orig) {
+ 
+ 	if (!ch) {
+@@ -1335,7 +1360,10 @@
+ 	misdn_cfg_get( port, MISDN_CFG_NEED_MORE_INFOS, &amp;bc-&gt;need_more_infos, sizeof(int));
+ 	
+ 	misdn_cfg_get( port, MISDN_CFG_FAR_ALERTING, &amp;ch-&gt;far_alerting, sizeof(int));
++
++	misdn_cfg_get( port, MISDN_CFG_ALLOWED_BEARERS, &amp;ch-&gt;allowed_bearers, BUFFERSIZE);
+ 	
++	
+ 	int hdlc=0;
+ 	misdn_cfg_get( port, MISDN_CFG_HDLC, &amp;hdlc, sizeof(int));
+ 	
+@@ -1394,7 +1422,7 @@
+ 		misdn_cfg_get(port, MISDN_CFG_PICKUPGROUP, &amp;pg, sizeof(pg));
+ 		misdn_cfg_get(port, MISDN_CFG_CALLGROUP, &amp;cg, sizeof(cg));
+ 		
+-		chan_misdn_log(2, port, &quot; --&gt; * CallGrp:%s PickupGrp:%s\n&quot;,ast_print_group(buf,sizeof(buf),cg),ast_print_group(buf,sizeof(buf),pg));
++		chan_misdn_log(5, port, &quot; --&gt; * CallGrp:%s PickupGrp:%s\n&quot;,ast_print_group(buf,sizeof(buf),cg),ast_print_group(buf,sizeof(buf),pg));
+ 		ast-&gt;pickupgroup=pg;
+ 		ast-&gt;callgroup=cg;
+ 	}
+@@ -2228,18 +2256,20 @@
+ 	int bridging;
+ 	misdn_cfg_get( 0, MISDN_GEN_BRIDGING, &amp;bridging, sizeof(int));
+ 	if (bridging) {
+-		int ecwb;
++		int ecwb, ec;
+ 		misdn_cfg_get( ch1-&gt;bc-&gt;port, MISDN_CFG_ECHOCANCELWHENBRIDGED, &amp;ecwb, sizeof(int));
+-		if ( !ecwb ) {
++		misdn_cfg_get( ch1-&gt;bc-&gt;port, MISDN_CFG_ECHOCANCEL, &amp;ec, sizeof(int));
++		if ( !ecwb &amp;&amp; ec ) {
+ 			chan_misdn_log(2, ch1-&gt;bc-&gt;port, &quot;Disabling Echo Cancellor when Bridged\n&quot;);
+ 			ch1-&gt;bc-&gt;ec_enable=0;
+-		/*	manager_ec_disable(ch1-&gt;bc); */
++			manager_ec_disable(ch1-&gt;bc);
+ 		}
+ 		misdn_cfg_get( ch2-&gt;bc-&gt;port, MISDN_CFG_ECHOCANCELWHENBRIDGED, &amp;ecwb, sizeof(int));
+-		if ( !ecwb ) {
++		misdn_cfg_get( ch2-&gt;bc-&gt;port, MISDN_CFG_ECHOCANCEL, &amp;ec, sizeof(int));
++		if ( !ecwb &amp;&amp; ec) {
+ 			chan_misdn_log(2, ch2-&gt;bc-&gt;port, &quot;Disabling Echo Cancellor when Bridged\n&quot;);
+ 			ch2-&gt;bc-&gt;ec_enable=0;
+-		/*	manager_ec_disable(ch2-&gt;bc); */
++			manager_ec_disable(ch2-&gt;bc); 
+ 		}
+ 		
+ 		/* trying to make a mISDN_dsp conference */
+@@ -2291,7 +2321,7 @@
+ 	const struct tone_zone_sound *ts= NULL;
+ 	struct ast_channel *ast=cl-&gt;ast;
+ 	
+-	chan_misdn_log(2,cl-&gt;bc-&gt;port,&quot;Tone Indicate:\n&quot;);
++	chan_misdn_log(3,cl-&gt;bc-&gt;port,&quot;Tone Indicate:\n&quot;);
+ 	
+ 	if (!cl-&gt;ast) {
+ 		return 0;
+@@ -2299,24 +2329,24 @@
+ 	
+ 	switch (tone) {
+ 	case TONE_DIAL:
+-		chan_misdn_log(2,cl-&gt;bc-&gt;port,&quot; --&gt; Dial\n&quot;);
++		chan_misdn_log(3,cl-&gt;bc-&gt;port,&quot; --&gt; Dial\n&quot;);
+ 		ts=ast_get_indication_tone(ast-&gt;zone,&quot;dial&quot;);
+ 		misdn_lib_tone_generator_start(cl-&gt;bc);
+ 		break;
+ 	case TONE_ALERTING:
+-		chan_misdn_log(2,cl-&gt;bc-&gt;port,&quot; --&gt; Ring\n&quot;);
++		chan_misdn_log(3,cl-&gt;bc-&gt;port,&quot; --&gt; Ring\n&quot;);
+ 		ts=ast_get_indication_tone(ast-&gt;zone,&quot;ring&quot;);
+ 		misdn_lib_tone_generator_stop(cl-&gt;bc);
+ 		break;
+ 	case TONE_FAR_ALERTING:
+ 	/* VERY UGLY HACK, BECAUSE CHAN_SIP DOES NOT GENERATE TONES */
+-		chan_misdn_log(2,cl-&gt;bc-&gt;port,&quot; --&gt; Ring\n&quot;);
++		chan_misdn_log(3,cl-&gt;bc-&gt;port,&quot; --&gt; Ring\n&quot;);
+ 		ts=ast_get_indication_tone(ast-&gt;zone,&quot;ring&quot;);
+ 		misdn_lib_tone_generator_start(cl-&gt;bc);
+ 		misdn_lib_echo(cl-&gt;bc,1);
+ 		break;
+ 	case TONE_BUSY:
+-		chan_misdn_log(2,cl-&gt;bc-&gt;port,&quot; --&gt; Busy\n&quot;);
++		chan_misdn_log(3,cl-&gt;bc-&gt;port,&quot; --&gt; Busy\n&quot;);
+ 		ts=ast_get_indication_tone(ast-&gt;zone,&quot;busy&quot;);
+ 		misdn_lib_tone_generator_stop(cl-&gt;bc);
+ 		break;
+@@ -2324,7 +2354,7 @@
+ 		break;
+ 
+ 	case TONE_NONE:
+-		chan_misdn_log(2,cl-&gt;bc-&gt;port,&quot; --&gt; None\n&quot;);
++		chan_misdn_log(3,cl-&gt;bc-&gt;port,&quot; --&gt; None\n&quot;);
+ 		misdn_lib_tone_generator_stop(cl-&gt;bc);
+ 		ast_playtones_stop(ast);
+ 		break;
+@@ -2784,8 +2814,8 @@
+ 		} 
+ 		release_unlock;
+ 		
+-		chan_misdn_log(1, bc-&gt;port, &quot;Trying to Release bc with l3id: %x\n&quot;,bc-&gt;l3_id);
+-
++		chan_misdn_log(1, bc-&gt;port, &quot;release_chan: bc with l3id: %x\n&quot;,bc-&gt;l3_id);
++		
+ 		//releaseing jitterbuffer
+ 		if (ch-&gt;jb ) {
+ 			misdn_jb_destroy(ch-&gt;jb);
+@@ -3325,6 +3355,24 @@
+ 
+ 		/** queue new chan **/
+ 		cl_queue_chan(&amp;cl_te, ch) ;
++
++
++		if (!strstr(ch-&gt;allowed_bearers,&quot;all&quot;)) {
++			int i;
++			for (i=0; i&lt; sizeof(allowed_bearers_array)/sizeof(struct allowed_bearers); i++) {
++				if (allowed_bearers_array[i].cap == bc-&gt;capability) {
++					if (  !strstr( ch-&gt;allowed_bearers, allowed_bearers_array[i].name)) {
++						chan_misdn_log(0,bc-&gt;port,&quot;Bearer Not allowed\b&quot;);
++						bc-&gt;out_cause=88;
++						
++						ch-&gt;state=MISDN_EXTCANTMATCH;
++						misdn_lib_send_event(bc, EVENT_RELEASE_COMPLETE );
++						return RESPONSE_OK;
++					}
++				}
++				
++			}
++		}
+ 		
+ 		/* Check for Pickup Request first */
+ 		if (!strcmp(chan-&gt;exten, ast_pickup_ext())) {
+@@ -3380,7 +3428,8 @@
+ 			if (bc-&gt;nt)
+ 				misdn_lib_send_event(bc, EVENT_RELEASE_COMPLETE );
+ 			else
+-				misdn_lib_send_event(bc, EVENT_DISCONNECT );
++				misdn_lib_send_event(bc, EVENT_RELEASE );
++				
+ 			break;
+ 		}
+ 		
+@@ -3404,26 +3453,34 @@
+ 				if (bc-&gt;nt)
+ 					misdn_lib_send_event(bc, EVENT_RELEASE_COMPLETE );
+ 				else
+-					misdn_lib_send_event(bc, EVENT_DISCONNECT );
++					misdn_lib_send_event(bc, EVENT_RELEASE);
+ 			}
+ 		} else {
+-			int ret= misdn_lib_send_event(bc, EVENT_SETUP_ACKNOWLEDGE );
+-			if (ret == -ENOCHAN) {
+-				ast_log(LOG_WARNING,&quot;Channel was catched, before we could Acknowledge\n&quot;);
+-				misdn_lib_send_event(bc,EVENT_RELEASE_COMPLETE);
++
++
++			if (bc-&gt;sending_complete) {
++				bc-&gt;out_cause=1;
++				misdn_lib_send_event(bc, EVENT_RELEASE);
++			} else {
++				
++				int ret= misdn_lib_send_event(bc, EVENT_SETUP_ACKNOWLEDGE );
++				if (ret == -ENOCHAN) {
++					ast_log(LOG_WARNING,&quot;Channel was catched, before we could Acknowledge\n&quot;);
++					misdn_lib_send_event(bc,EVENT_RELEASE_COMPLETE);
++				}
++				/*  send tone to phone :) */
++				
++				/** ADD IGNOREPAT **/
++				
++				int stop_tone;
++				misdn_cfg_get( 0, MISDN_GEN_STOP_TONE, &amp;stop_tone, sizeof(int));
++				if ( (!ast_strlen_zero(bc-&gt;dad)) &amp;&amp; stop_tone ) 
++					tone_indicate(ch,TONE_NONE);
++				else
++					tone_indicate(ch,TONE_DIAL);
++				
++				ch-&gt;state=MISDN_WAITING4DIGS;
+ 			}
+-			/*  send tone to phone :) */
+-
+-			/** ADD IGNOREPAT **/
+-			
+-			int stop_tone;
+-			misdn_cfg_get( 0, MISDN_GEN_STOP_TONE, &amp;stop_tone, sizeof(int));
+-			if ( (!ast_strlen_zero(bc-&gt;dad)) &amp;&amp; stop_tone ) 
+-				tone_indicate(ch,TONE_NONE);
+-			else
+-				tone_indicate(ch,TONE_DIAL);
+-			
+-			ch-&gt;state=MISDN_WAITING4DIGS;
+ 		}
+       
+ 	}
+@@ -3791,8 +3848,11 @@
+ 		
+ 		break;
+ 
++	case EVENT_RESTART:
+ 
+-	case EVENT_RESTART:
++		stop_bc_tones(ch);
++		release_chan(bc);
++		
+ 		break;
+ 				
+ 	default:
+
+Modified: trunk/channels/misdn/chan_misdn_config.h
+===================================================================
+--- trunk/channels/misdn/chan_misdn_config.h	2006-06-01 09:25:25 UTC (rev 208)
++++ trunk/channels/misdn/chan_misdn_config.h	2006-06-01 13:25:44 UTC (rev 209)
+@@ -23,6 +23,7 @@
+ 	/* port config items */
+ 	MISDN_CFG_FIRST = 0,
+ 	MISDN_CFG_GROUPNAME,           /* char[] */
++	MISDN_CFG_ALLOWED_BEARERS,           /* char[] */
+ 	MISDN_CFG_FAR_ALERTING,        /* int (bool) */
+ 	MISDN_CFG_RXGAIN,              /* int */
+ 	MISDN_CFG_TXGAIN,              /* int */
+
+Modified: trunk/channels/misdn/ie.c
+===================================================================
+--- trunk/channels/misdn/ie.c	2006-06-01 09:25:25 UTC (rev 208)
++++ trunk/channels/misdn/ie.c	2006-06-01 13:25:44 UTC (rev 209)
+@@ -162,23 +162,28 @@
+ 	*stopbits = -1;
+ 	*dbits = -1;
+ 	*parity = -1;
+-
++	
+ 	if (!nt)
+ 	{
+ 		p = NULL;
+-		if (qi-&gt;QI_ELEMENT(llc))
++#ifdef LLC_SUPPORT
++		if (qi-&gt;QI_ELEMENT(llc)) {
++			
+ 			p = (unsigned char *)qi + sizeof(Q931_info_t) + qi-&gt;QI_ELEMENT(llc) + 1;
+-		else if (qi-&gt;QI_ELEMENT(bearer_capability))
++		}
++#endif
++		if (qi-&gt;QI_ELEMENT(bearer_capability))
+ 			p = (unsigned char *)qi + sizeof(Q931_info_t) + qi-&gt;QI_ELEMENT(bearer_capability) + 1;
+ 	}
+ 	if (!p)
+ 		return;
++
+ 	if (p[0] &lt; 2)
+ 	{
+ 		printf(&quot;%s: ERROR: IE too short (%d).\n&quot;, __FUNCTION__, p[0]);
+ 		return;
+ 	}
+-
++	
+ 	*coding = (p[1]&amp;0x60) &gt;&gt; 5;
+ 	*capability = p[1] &amp; 0x1f;
+ 	octet = 2;
+
+Modified: trunk/channels/misdn/isdn_lib.c
+===================================================================
+--- trunk/channels/misdn/isdn_lib.c	2006-06-01 09:25:25 UTC (rev 208)
++++ trunk/channels/misdn/isdn_lib.c	2006-06-01 13:25:44 UTC (rev 209)
+@@ -471,6 +471,10 @@
+ 	bc-&gt;channel = 0;
+ 	bc-&gt;in_use = 0;
+ 
++	bc-&gt;sending_complete = 0;
++
++	bc-&gt;restart_channel=0;
++	
+ 	bc-&gt;conf_id = 0;
+ 
+ 	bc-&gt;need_more_infos = 0;
+@@ -557,7 +561,7 @@
+ 	unsigned char buff[32];
+ 	struct misdn_stack * stack;
+ 
+-	cb_log(2, 0, &quot;$$$ CLEANUP CALLED\n&quot;);
++	cb_log(3, 0, &quot;$$$ CLEANUP CALLED\n&quot;);
+ 	
+ 	if (!bc  ) return -1;
+ 	stack=get_stack_by_bc(bc);
+@@ -587,15 +591,18 @@
+ 		manager_ec_disable(bc);
+ 	}
+ 
+-	mISDN_write_frame(stack-&gt;midev, buff, bc-&gt;layer_id|FLG_MSG_DOWN, MGR_DELLAYER | REQUEST, 0, 0, NULL, TIMEOUT_1SEC); 
++	if (bc-&gt;bc_state == BCHAN_SETUP) 
++		mISDN_write_frame(stack-&gt;midev, buff, bc-&gt;layer_id|FLG_MSG_DOWN, MGR_DELLAYER | REQUEST, 0, 0, NULL, TIMEOUT_1SEC);
++	else
++		mISDN_write_frame(stack-&gt;midev, buff, bc-&gt;addr|FLG_MSG_DOWN, MGR_DELLAYER | REQUEST, 0, 0, NULL, TIMEOUT_1SEC);
+ 
+-	cb_log(2, stack-&gt;port, &quot;$$$ CLEARING STACK\n&quot;);
++	cb_log(3, stack-&gt;port, &quot;$$$ CLEARING STACK\n&quot;);
++	
+ 	ret=mISDN_clear_stack(stack-&gt;midev,bc-&gt;b_stid);
+ 	if (ret&lt;0) {
+ 		cb_log(-1,stack-&gt;port,&quot;clear stack failed [%s]\n&quot;,strerror(errno));
+ 	}
+ 
+-	
+ 	bc-&gt;b_stid = 0;
+ 	bc_state_change(bc, BCHAN_CLEANED);
+ 	
+@@ -612,8 +619,7 @@
+ 			cb_event(EVENT_CLEANUP, &amp;stack-&gt;bc[i], glob_mgr-&gt;user_data);
+ 			empty_chan_in_stack(stack,i+1);
+ 			empty_bc(&amp;stack-&gt;bc[i]);
+-			queue_cleanup_bc(&amp;stack-&gt;bc[i]);
+-			
++			clean_up_bc(&amp;stack-&gt;bc[i]);
+ 		}
+ 		
+ 	} 
+@@ -971,19 +977,18 @@
+ 		pid.layermask = ISDN_LAYER((1)) | ISDN_LAYER((2)) | ISDN_LAYER((3)) | ISDN_LAYER((4));
+ 		
+ 	} 
+-	
++
+ 	ret = mISDN_set_stack(midev, bc-&gt;b_stid, &amp;pid);
+-	
++
+ 	if (ret){
+-		cb_log(5, stack-&gt;port,&quot;$$$ Set Stack Err: %d %s\n&quot;,ret,strerror(errno));
++		cb_log(-1, stack-&gt;port,&quot;$$$ Set Stack Err: %d %s\n&quot;,ret,strerror(errno));
+ 		
+ 		mISDN_write_frame(midev, buff, bc-&gt;layer_id, MGR_DELLAYER | REQUEST, 0, 0, NULL, TIMEOUT_1SEC);
+-
++		
+ 		bc_state_change(bc,BCHAN_ERROR);
+ 		return(-EINVAL);
+ 	}
+ 
+-
+ 	bc_state_change(bc,BCHAN_SETUP);
+ 
+ 	
+@@ -1479,7 +1484,7 @@
+ 				cb_log(4, stack-&gt;port, &quot; --&gt; lib: CLEANING UP l3id: %x\n&quot;,frm-&gt;dinfo);
+ 				empty_chan_in_stack(stack,bc-&gt;channel);
+ 				empty_bc(bc);
+-				queue_cleanup_bc(bc);
++				clean_up_bc(bc);
+ 				dump_chan_list(stack);
+ 				bc-&gt;pid = 0;
+ 				cb_event(EVENT_CLEANUP, bc, glob_mgr-&gt;user_data);
+@@ -1517,7 +1522,7 @@
+ 		empty_chan_in_stack(stack,bc-&gt;channel);
+ 		empty_bc(bc);
+ 	}
+-	queue_cleanup_bc(bc);
++	clean_up_bc(bc);
+ }
+ 
+ 
+@@ -2049,7 +2054,7 @@
+ 		
+ 	case MGR_SETSTACK| INDICATION:
+ 		cb_log(2, stack-&gt;port, &quot;BCHAN: MGR_SETSTACK|IND \n&quot;);
+-
++		
+ 	AGAIN:
+ 		bc-&gt;addr = mISDN_get_layerid(stack-&gt;midev, bc-&gt;b_stid, bc-&gt;layer);
+ 		if (!bc-&gt;addr) {
+@@ -2943,7 +2948,7 @@
+ 
+ 			empty_chan_in_stack(stack,bc-&gt;channel);
+ 			empty_bc(bc);
+-			queue_cleanup_bc(bc);
++			clean_up_bc(bc);
+ 		}
+ 		
+ 		/** we set it up later at RETRIEVE_ACK again.**/
+@@ -3018,6 +3023,13 @@
+ 		case MGR_SETSTACK|INDICATION:
+ 			return handle_bchan(msg);
+ 		break;
++
++		case MGR_SETSTACK|CONFIRM:
++		case MGR_CLEARSTACK|CONFIRM:
++			free_msg(msg) ; 
++			return 1;
++		break;
++
+ 		case DL_DATA|INDICATION:
+ 		{
+ 			int port=(frm-&gt;addr&amp;MASTER_ID_MASK) &gt;&gt; 8;
+@@ -3101,10 +3113,12 @@
+ 	if (handle_l1(msg)) 
+ 		return 0 ;
+ 
+-	/* The L2/L3 will be queued */
+-	if (queue_l2l3(msg))
++	if (handle_frm_nt(msg)) 
+ 		return 0;
+ 
++	if (handle_frm(msg))
++		return 0;
++
+ 	if (handle_err(msg)) 
+ 		return 0 ;
+ 
+@@ -3862,7 +3876,7 @@
+ }
+ 
+ void misdn_lib_bridge( struct misdn_bchannel * bc1, struct misdn_bchannel *bc2) {
+-	int conf_id=(bc1-&gt;pid&lt;&lt;1) +1;
++	int conf_id=bc1-&gt;pid +1;
+ 
+ 	cb_log(1, bc1-&gt;port, &quot;I Send: BRIDGE from:%d to:%d\n&quot;,bc1-&gt;port,bc2-&gt;port);
+ 	
+
+Modified: trunk/channels/misdn/isdn_lib.h
+===================================================================
+--- trunk/channels/misdn/isdn_lib.h	2006-06-01 09:25:25 UTC (rev 208)
++++ trunk/channels/misdn/isdn_lib.h	2006-06-01 13:25:44 UTC (rev 209)
+@@ -182,7 +182,8 @@
+ 	int l3_id;
+ 	int pid;
+ 	int ces;
+-  
++
++	int restart_channel;
+ 	int channel;
+ 	int channel_preselected;
+ 	
+@@ -208,6 +209,10 @@
+ 	/* get setup ack */
+ 	int need_more_infos;
+ 
++	/* may there be more infos ?*/
++	int sending_complete;
++
++
+ 	/* wether we should use jollys dsp or not */
+ 	int nodsp;
+ 	
+
+Modified: trunk/channels/misdn/isdn_msg_parser.c
+===================================================================
+--- trunk/channels/misdn/isdn_msg_parser.c	2006-06-01 09:25:25 UTC (rev 208)
++++ trunk/channels/misdn/isdn_msg_parser.c	2006-06-01 13:25:44 UTC (rev 209)
+@@ -197,8 +197,8 @@
+ 	}
+ 
+ 	{
+-		int  sending_complete;
+-		dec_ie_complete(setup-&gt;COMPLETE, (Q931_info_t *)setup, &amp;sending_complete, nt,bc);
++		dec_ie_complete(setup-&gt;COMPLETE, (Q931_info_t *)setup, &amp;bc-&gt;sending_complete, nt,bc);
++		
+ 	}
+   
+ 	{
+@@ -217,6 +217,8 @@
+ 			break;
+ 		case 0: bc-&gt;capability=INFO_CAPABILITY_SPEECH;
+ 			break;
++		case 18: bc-&gt;capability=INFO_CAPABILITY_VIDEO;
++			break;
+ 		case 8: bc-&gt;capability=INFO_CAPABILITY_DIGITAL_UNRESTRICTED;
+ 			bc-&gt;user1 = user;
+ 			bc-&gt;urate = urate;
+@@ -775,7 +777,7 @@
+   
+ 	{
+ 		int  exclusive, channel;
+-		dec_ie_channel_id(restart-&gt;CHANNEL_ID, (Q931_info_t *)restart, &amp;exclusive, &amp;channel, nt,bc);
++		dec_ie_channel_id(restart-&gt;CHANNEL_ID, (Q931_info_t *)restart, &amp;exclusive, &amp;bc-&gt;restart_channel, nt,bc);
+ 		if (channel==0xff) /* any channel */
+ 			channel=-1;
+ 		cb_log(3, stack-&gt;port, &quot;CC_RESTART Request on channel:%d on this port.\n&quot;);
+
+Modified: trunk/channels/misdn_config.c
+===================================================================
+--- trunk/channels/misdn_config.c	2006-06-01 09:25:25 UTC (rev 208)
++++ trunk/channels/misdn_config.c	2006-06-01 13:25:44 UTC (rev 209)
+@@ -84,6 +84,7 @@
+ 
+ static const struct misdn_cfg_spec port_spec[] = {
+ 	{ &quot;name&quot;, MISDN_CFG_GROUPNAME, MISDN_CTYPE_STR, &quot;default&quot;, NONE },
++	{ &quot;allowed_bearers&quot;, MISDN_CFG_ALLOWED_BEARERS, MISDN_CTYPE_STR, &quot;all&quot;, NONE },
+ 	{ &quot;rxgain&quot;, MISDN_CFG_RXGAIN, MISDN_CTYPE_INT, &quot;0&quot;, NONE },
+ 	{ &quot;txgain&quot;, MISDN_CFG_TXGAIN, MISDN_CTYPE_INT, &quot;0&quot;, NONE },
+ 	{ &quot;te_choose_channel&quot;, MISDN_CFG_TE_CHOOSE_CHANNEL, MISDN_CTYPE_BOOL, &quot;no&quot;, NONE },
+
+Modified: trunk/configs/misdn.conf.sample
+===================================================================
+--- trunk/configs/misdn.conf.sample	2006-06-01 09:25:25 UTC (rev 208)
++++ trunk/configs/misdn.conf.sample	2006-06-01 13:25:44 UTC (rev 209)
+@@ -128,6 +128,11 @@
+ far_alerting=no
+ 
+ 
++;
++; here you can define which bearers should be allowed
++;
++allowed_bearers=all
++
+ ; Prefixes for national and international, those are put before the 
+ ; oad if an according dialplan is set by the other end. 
+ ;
+
+Modified: trunk/configs/sip.conf.sample
+===================================================================
+--- trunk/configs/sip.conf.sample	2006-06-01 09:25:25 UTC (rev 208)
++++ trunk/configs/sip.conf.sample	2006-06-01 13:25:44 UTC (rev 209)
+@@ -460,7 +460,6 @@
+ ;allow=alaw
+ ;allow=g723.1			; Asterisk only supports g723.1 pass-thru!
+ ;allow=g729			; Pass-thru only unless g729 license obtained
+-;astdb=chan2ext/SIP/grandstream1=1234	; ensures an astDB entry exists
+ ;callingpres=allowed_passed_screen	; Set caller ID presentation
+ 				; See README.callingpres for more information
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000203.html">[solid-pbx-svn] r208 - trunk/res
+</A></li>
+	<LI>Next message: <A HREF="000205.html">[solid-pbx-svn] r210 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#204">[ date ]</a>
+              <a href="thread.html#204">[ thread ]</a>
+              <a href="subject.html#204">[ subject ]</a>
+              <a href="author.html#204">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

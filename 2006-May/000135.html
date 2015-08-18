@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r141 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r141%20-%20trunk&In-Reply-To=%3C200605112128.k4BLSp4U032747%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000134.html">
+   <LINK REL="Next"  HREF="000133.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r141 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r141%20-%20trunk&In-Reply-To=%3C200605112128.k4BLSp4U032747%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r141 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May 11 23:28:51 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000134.html">[solid-pbx-svn] r140 - in trunk: . apps channels include/asterisk res
+</A></li>
+        <LI>Next message: <A HREF="000133.html">[solid-pbx-svn] r142 - trunk/funcs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#135">[ date ]</a>
+              <a href="thread.html#135">[ thread ]</a>
+              <a href="subject.html#135">[ subject ]</a>
+              <a href="author.html#135">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-11 23:28:50 +0200 (Thu, 11 May 2006)
+New Revision: 141
+
+Modified:
+   trunk/Makefile
+Log:
+Update to Asterisk SVN trunk r27023
+
+------------------------------------------------------------------------
+r26992 | russell | 2006-05-11 22:29:00 +0200 (Thu, 11 May 2006) | 3 lines
+
+use config.status instead of include/autoconfig.h as the dependency
+for menuselect
+
+------------------------------------------------------------------------
+r27023 | russell | 2006-05-11 23:24:54 +0200 (Thu, 11 May 2006) | 1 line
+
+fix the build with astmm (issue #7139)
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-11 20:28:50 UTC (rev 140)
++++ trunk/Makefile	2006-05-11 21:28:50 UTC (rev 141)
+@@ -191,7 +191,7 @@
+ 
+ #   *CLI&gt; show memory allocations [filename]
+ #   *CLI&gt; show memory summary [filename]
+-ifneq ($(findstring -DMALLOC_DEBUG,$(ASTCFLAGS)),)
++ifneq ($(findstring MALLOC_DEBUG,$(MENUSELECT_CFLAGS)),)
+   TOPDIR_CFLAGS+=-include include/asterisk/astmm.h
+   MOD_SUBDIR_CFLAGS+=-include ../include/asterisk/astmm.h
+ endif
+@@ -990,7 +990,7 @@
+ menuselect: build_tools/menuselect makeopts.xml
+ 	<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">- at build_tools</A>/menuselect ${GLOBAL_MAKEOPTS} ${USER_MAKEOPTS} menuselect.makeopts &amp;&amp; echo &quot;menuselect changes saved!&quot; || echo &quot;menuselect changes NOT saved!&quot;
+ 
+-build_tools/menuselect: build_tools/menuselect.c build_tools/menuselect_curses.c build_tools/menuselect.h include/autoconfig.h mxml/libmxml.a $(MENUSELECT_OBJS)
++build_tools/menuselect: build_tools/menuselect.c build_tools/menuselect_curses.c build_tools/menuselect.h config.status mxml/libmxml.a $(MENUSELECT_OBJS)
+ 	$(MAKE) -C build_tools menuselect
+ 
+ mxml/libmxml.a:
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000134.html">[solid-pbx-svn] r140 - in trunk: . apps channels include/asterisk res
+</A></li>
+	<LI>Next message: <A HREF="000133.html">[solid-pbx-svn] r142 - trunk/funcs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#135">[ date ]</a>
+              <a href="thread.html#135">[ thread ]</a>
+              <a href="subject.html#135">[ subject ]</a>
+              <a href="author.html#135">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

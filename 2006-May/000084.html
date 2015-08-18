@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r87 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r87%20-%20trunk/channels&In-Reply-To=%3C200605081118.k48BImcu013758%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000083.html">
+   <LINK REL="Next"  HREF="000085.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r87 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r87%20-%20trunk/channels&In-Reply-To=%3C200605081118.k48BImcu013758%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r87 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  8 13:18:48 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000083.html">[solid-pbx-svn] r86 - in trunk: . include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000085.html">[solid-pbx-svn] r88 - in trunk: . apps include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#84">[ date ]</a>
+              <a href="thread.html#84">[ thread ]</a>
+              <a href="subject.html#84">[ subject ]</a>
+              <a href="author.html#84">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-08 13:18:35 +0200 (Mon, 08 May 2006)
+New Revision: 87
+
+Modified:
+   trunk/channels/chan_agent.c
+Log:
+Update to Asterisk SVN trunk r25441
+
+------------------------------------------------------------------------
+r25441 | mogorman | 2006-05-08 13:08:38 +0200 (Mon, 08 May 2006) | 4 lines
+
+woohoo asterdevcon first commit, adds feature to 
+cli for agents, show agents online , patch from bug
+7096
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_agent.c
+===================================================================
+--- trunk/channels/chan_agent.c	2006-05-08 10:18:30 UTC (rev 86)
++++ trunk/channels/chan_agent.c	2006-05-08 11:18:35 UTC (rev 87)
+@@ -1631,10 +1631,70 @@
+ 	return RESULT_SUCCESS;
+ }
+ 
++
++static int agents_show_online(int fd, int argc, char **argv)
++{
++	struct agent_pvt *p;
++	char username[AST_MAX_BUF];
++	char location[AST_MAX_BUF] = &quot;&quot;;
++	char talkingto[AST_MAX_BUF] = &quot;&quot;;
++	char moh[AST_MAX_BUF];
++	int count_agents = 0;           /* Number of agents configured */
++	int online_agents = 0;          /* Number of online agents */
++	int agent_status = 0;           /* 0 means offline, 1 means online */
++	if (argc != 3)
++		return RESULT_SHOWUSAGE;
++	AST_LIST_LOCK(&amp;agents);
++	AST_LIST_TRAVERSE(&amp;agents, p, list) {
++		agent_status = 0;       /* reset it to offline */
++		ast_mutex_lock(&amp;p-&gt;lock);
++		if (!ast_strlen_zero(p-&gt;name))
++			snprintf(username, sizeof(username), &quot;(%s) &quot;, p-&gt;name);
++		else
++			username[0] = '\0';
++		if (p-&gt;chan) {
++			snprintf(location, sizeof(location), &quot;logged in on %s&quot;, p-&gt;chan-&gt;name);
++			if (p-&gt;owner &amp;&amp; ast_bridged_channel(p-&gt;owner)) {
++				snprintf(talkingto, sizeof(talkingto), &quot; talking to %s&quot;, ast_bridged_channel(p-&gt;owner)-&gt;name);
++			} else {
++				strcpy(talkingto, &quot; is idle&quot;);
++			}
++			agent_status = 1;
++			online_agents++;
++		} else if (!ast_strlen_zero(p-&gt;loginchan)) {
++			snprintf(location, sizeof(location) - 20, &quot;available at '%s'&quot;, p-&gt;loginchan);
++			talkingto[0] = '\0';
++			agent_status = 1;
++			online_agents++;
++			if (p-&gt;acknowledged)
++				strncat(location, &quot; (Confirmed)&quot;, sizeof(location) - strlen(location) - 1);
++		}
++		if (!ast_strlen_zero(p-&gt;moh))
++			snprintf(moh, sizeof(moh), &quot; (musiconhold is '%s')&quot;, p-&gt;moh);
++		if (agent_status)
++			ast_cli(fd, &quot;%-12.12s %s%s%s%s\n&quot;, p-&gt;agent, username, location, talkingto, moh);
++		count_agents++;
++		ast_mutex_unlock(&amp;p-&gt;lock);
++	}
++	AST_LIST_UNLOCK(&amp;agents);
++	if ( !count_agents ) 
++		ast_cli(fd, &quot;No Agents are configured in %s\n&quot;,config);
++	else
++		ast_cli(fd, &quot;%d agents online\n&quot;,online_agents);
++	ast_cli(fd, &quot;\n&quot;);
++	return RESULT_SUCCESS;
++}
++
++
++
+ static char show_agents_usage[] = 
+ &quot;Usage: show agents\n&quot;
+ &quot;       Provides summary information on agents.\n&quot;;
+ 
++static char show_agents_online_usage[] =
++&quot;Usage: show agents\n&quot;
++&quot;	Provides a list of all online agents.\n&quot;;
++
+ static char agent_logoff_usage[] =
+ &quot;Usage: agent logoff &lt;channel&gt; [soft]\n&quot;
+ &quot;       Sets an agent as no longer logged in.\n&quot;
+@@ -1644,6 +1704,10 @@
+ 	{ &quot;show&quot;, &quot;agents&quot;, NULL }, agents_show, 
+ 	&quot;Show status of agents&quot;, show_agents_usage, NULL };
+ 
++static struct ast_cli_entry cli_show_agents_online = {
++	{ &quot;show&quot;, &quot;agents&quot;, &quot;online&quot; }, agents_show_online,
++	&quot;Show all online agents&quot;, show_agents_online_usage, NULL };
++
+ static struct ast_cli_entry cli_agent_logoff = {
+ 	{ &quot;agent&quot;, &quot;logoff&quot;, NULL }, agent_logoff_cmd, 
+ 	&quot;Sets an agent offline&quot;, agent_logoff_usage, complete_agent_logoff_cmd };
+@@ -2497,6 +2561,7 @@
+ 	ast_manager_register2(&quot;AgentCallbackLogin&quot;, EVENT_FLAG_AGENT, action_agent_callback_login, &quot;Sets an agent as logged in by callback&quot;, mandescr_agent_callback_login);
+ 	/* CLI Commands */
+ 	ast_cli_register(&amp;cli_show_agents);
++	ast_cli_register(&amp;cli_show_agents_online);
+ 	ast_cli_register(&amp;cli_agent_logoff);
+ 	/* Dialplan Functions */
+ 	ast_custom_function_register(&amp;agent_function);
+@@ -2523,6 +2588,7 @@
+ 	ast_custom_function_unregister(&amp;agent_function);	
+ 	/* Unregister CLI commands */
+ 	ast_cli_unregister(&amp;cli_show_agents);
++	ast_cli_unregister(&amp;cli_show_agents_online);
+ 	ast_cli_unregister(&amp;cli_agent_logoff);
+ 	/* Unregister dialplan applications */
+ 	ast_unregister_application(app);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000083.html">[solid-pbx-svn] r86 - in trunk: . include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000085.html">[solid-pbx-svn] r88 - in trunk: . apps include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#84">[ date ]</a>
+              <a href="thread.html#84">[ thread ]</a>
+              <a href="subject.html#84">[ subject ]</a>
+              <a href="author.html#84">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

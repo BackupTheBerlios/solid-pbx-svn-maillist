@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r367 - in trunk: apps channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r367%20-%20in%20trunk%3A%20apps%20channels&In-Reply-To=%3C200606280133.k5S1XVjT015033%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000361.html">
+   <LINK REL="Next"  HREF="000363.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r367 - in trunk: apps channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r367%20-%20in%20trunk%3A%20apps%20channels&In-Reply-To=%3C200606280133.k5S1XVjT015033%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r367 - in trunk: apps channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:33:31 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000361.html">[solid-pbx-svn] r366 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000363.html">[solid-pbx-svn] r368 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#362">[ date ]</a>
+              <a href="thread.html#362">[ thread ]</a>
+              <a href="subject.html#362">[ subject ]</a>
+              <a href="author.html#362">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:33:27 +0200 (Wed, 28 Jun 2006)
+New Revision: 367
+
+Modified:
+   trunk/apps/app_dial.c
+   trunk/channels/chan_agent.c
+   trunk/channels/chan_local.c
+Log:
+Update to Asterisk SVN trunk r34463
+
+------------------------------------------------------------------------
+r34458 | bweschke | 2006-06-16 14:18:18 +0200 (Fri, 16 Jun 2006) | 3 lines
+
+ Don't ast_request a channel structure twice when a call is being forwarded. (#7362 - twlison / vechers confirming fix)
+
+
+------------------------------------------------------------------------
+r34461 | bweschke | 2006-06-16 14:24:14 +0200 (Fri, 16 Jun 2006) | 3 lines
+
+ Make sure agent_tech is unregistered within unload_module(). It's in 1.2, but was lost at some point in /trunk. #7374 (jstorm)
+
+
+------------------------------------------------------------------------
+r34463 | bweschke | 2006-06-16 14:55:18 +0200 (Fri, 16 Jun 2006) | 3 lines
+
+ Quit early and print a LOG_WARNING if we are trying to check devicestate on a Local channel that's been improperly defined.
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_dial.c
+===================================================================
+--- trunk/apps/app_dial.c	2006-06-28 01:32:51 UTC (rev 366)
++++ trunk/apps/app_dial.c	2006-06-28 01:33:27 UTC (rev 367)
+@@ -485,8 +485,6 @@
+ 				if (o-&gt;forwards &lt; AST_MAX_FORWARDS) {
+ 					if (option_verbose &gt; 2)
+ 						ast_verbose(VERBOSE_PREFIX_3 &quot;Now forwarding %s to '%s/%s' (thanks to %s)\n&quot;, in-&gt;name, tech, stuff, c-&gt;name);
+-					/* Setup parameters */
+-					c = o-&gt;chan = ast_request(tech, in-&gt;nativeformats, stuff, &amp;cause);
+ 					/* If we have been told to ignore forwards, just set this channel to null and continue processing extensions normally */
+ 					if (ast_test_flag(peerflags, OPT_IGNORE_FORWARDING)) {
+ 						if (option_verbose &gt; 2)
+
+Modified: trunk/channels/chan_agent.c
+===================================================================
+--- trunk/channels/chan_agent.c	2006-06-28 01:32:51 UTC (rev 366)
++++ trunk/channels/chan_agent.c	2006-06-28 01:33:27 UTC (rev 367)
+@@ -2614,7 +2614,7 @@
+ 	}
+ 	AST_LIST_UNLOCK(&amp;agents);
+ 	AST_LIST_HEAD_DESTROY(&amp;agents);
+-
++	ast_channel_unregister(&amp;agent_tech);
+ 	return 0;
+ }
+ 
+
+Modified: trunk/channels/chan_local.c
+===================================================================
+--- trunk/channels/chan_local.c	2006-06-28 01:32:51 UTC (rev 366)
++++ trunk/channels/chan_local.c	2006-06-28 01:33:27 UTC (rev 367)
+@@ -130,16 +130,23 @@
+ 	int res;
+ 		
+ 	exten = ast_strdupa(data);
+-	if ((context  = strchr(exten, '@'))) {
+-		*context = '\0';
+-		context = context + 1;
++	context = strchr(exten, '@');
++
++	if (!context) {
++		ast_log(LOG_WARNING, &quot;Someone used Local/%s somewhere without a @context. This is bad.\n&quot;, exten);
++		return AST_DEVICE_INVALID;	
+ 	}
++
++	*context = '\0';
++	context = context + 1;
++
+ 	if (option_debug &gt; 2)
+ 		ast_log(LOG_DEBUG, &quot;Checking if extension %s@%s exists (devicestate)\n&quot;, exten, context);
+ 	res = ast_exists_extension(NULL, context, exten, 1, NULL);
+-	if (!res)
++	if (!res) {
++		
+ 		return AST_DEVICE_INVALID;
+-	else
++	} else
+ 		return AST_DEVICE_UNKNOWN;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000361.html">[solid-pbx-svn] r366 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000363.html">[solid-pbx-svn] r368 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#362">[ date ]</a>
+              <a href="thread.html#362">[ thread ]</a>
+              <a href="subject.html#362">[ subject ]</a>
+              <a href="author.html#362">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

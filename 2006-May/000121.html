@@ -1,0 +1,2123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r125 - in trunk: . apps build_tools channels funcs include/asterisk pbx res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r125%20-%20in%20trunk%3A%20.%20apps%20build_tools%20channels%20funcs%20include/asterisk%20pbx%20res&In-Reply-To=%3C200605101331.k4ADVHdc019690%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000120.html">
+   <LINK REL="Next"  HREF="000122.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r125 - in trunk: . apps build_tools channels funcs include/asterisk pbx res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r125%20-%20in%20trunk%3A%20.%20apps%20build_tools%20channels%20funcs%20include/asterisk%20pbx%20res&In-Reply-To=%3C200605101331.k4ADVHdc019690%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r125 - in trunk: . apps build_tools channels funcs include/asterisk pbx res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 10 15:31:17 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000120.html">[solid-pbx-svn] r124 - in trunk: . apps channels include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000122.html">[solid-pbx-svn] r126 - in trunk: . channels res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#121">[ date ]</a>
+              <a href="thread.html#121">[ thread ]</a>
+              <a href="subject.html#121">[ subject ]</a>
+              <a href="author.html#121">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-10 15:30:35 +0200 (Wed, 10 May 2006)
+New Revision: 125
+
+Modified:
+   trunk/app.c
+   trunk/apps/app_amd.c
+   trunk/apps/app_authenticate.c
+   trunk/apps/app_db.c
+   trunk/apps/app_dial.c
+   trunk/apps/app_dictate.c
+   trunk/apps/app_directory.c
+   trunk/apps/app_disa.c
+   trunk/apps/app_exec.c
+   trunk/apps/app_externalivr.c
+   trunk/apps/app_festival.c
+   trunk/apps/app_hasnewvoicemail.c
+   trunk/apps/app_image.c
+   trunk/apps/app_mixmonitor.c
+   trunk/apps/app_osplookup.c
+   trunk/apps/app_page.c
+   trunk/apps/app_playback.c
+   trunk/apps/app_privacy.c
+   trunk/apps/app_queue.c
+   trunk/apps/app_random.c
+   trunk/apps/app_read.c
+   trunk/apps/app_readfile.c
+   trunk/apps/app_realtime.c
+   trunk/apps/app_record.c
+   trunk/apps/app_sayunixtime.c
+   trunk/apps/app_senddtmf.c
+   trunk/apps/app_sendtext.c
+   trunk/apps/app_setcallerid.c
+   trunk/apps/app_skel.c
+   trunk/apps/app_speech_utils.c
+   trunk/apps/app_stack.c
+   trunk/apps/app_talkdetect.c
+   trunk/apps/app_transfer.c
+   trunk/apps/app_url.c
+   trunk/apps/app_userevent.c
+   trunk/apps/app_verbose.c
+   trunk/apps/app_voicemail.c
+   trunk/apps/app_while.c
+   trunk/apps/app_zapras.c
+   trunk/apps/app_zapscan.c
+   trunk/build_tools/menuselect.c
+   trunk/build_tools/menuselect_curses.c
+   trunk/callerid.c
+   trunk/channel.c
+   trunk/channels/chan_agent.c
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_sip.c
+   trunk/dsp.c
+   trunk/funcs/func_cut.c
+   trunk/include/asterisk/utils.h
+   trunk/indications.c
+   trunk/loader.c
+   trunk/logger.c
+   trunk/manager.c
+   trunk/netsock.c
+   trunk/pbx.c
+   trunk/pbx/pbx_dundi.c
+   trunk/res/res_agi.c
+   trunk/res/res_clioriginate.c
+   trunk/res/res_config_odbc.c
+   trunk/res/res_config_pgsql.c
+   trunk/res/res_convert.c
+   trunk/res/res_features.c
+   trunk/res/res_monitor.c
+   trunk/strcompat.c
+Log:
+Update to Asterisk SVN trunk r26452
+
+------------------------------------------------------------------------
+r26441 | russell | 2006-05-10 15:05:17 +0200 (Wed, 10 May 2006) | 3 lines
+
+remove a debug message and make the exit keys not be case sensitive
+inside of a category menu
+
+------------------------------------------------------------------------
+r26451 | russell | 2006-05-10 15:22:15 +0200 (Wed, 10 May 2006) | 4 lines
+
+remove almost all of the checks of the result from ast_strdupa() or alloca().
+As it turns out, all of these checks were useless, because alloca will never
+return NULL.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/app.c
+===================================================================
+--- trunk/app.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/app.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -523,7 +523,7 @@
+ 	ast_log(LOG_DEBUG,&quot;Recording Formats: sfmts=%s\n&quot;, fmts);
+ 	sfmt[0] = ast_strdupa(fmts);
+ 
+-	while((fmt = strsep(&amp;stringp, &quot;|&quot;))) {
++	while ((fmt = strsep(&amp;stringp, &quot;|&quot;))) {
+ 		if (fmtcnt &gt; MAX_OTHER_FORMATS - 1) {
+ 			ast_log(LOG_WARNING, &quot;Please increase MAX_OTHER_FORMATS in app.c\n&quot;);
+ 			break;
+@@ -1092,13 +1092,12 @@
+ 	case AST_ACTION_BACKLIST:
+ 		res = 0;
+ 		c = ast_strdupa(option-&gt;adata);
+-		if (c) {
+-			while((n = strsep(&amp;c, &quot;;&quot;)))
+-				if ((res = ast_stream_and_wait(chan, n, chan-&gt;language,
+-						(option-&gt;action == AST_ACTION_BACKLIST) ? AST_DIGIT_ANY : &quot;&quot;)))
+-					break;
+-			ast_stopstream(chan);
++		while ((n = strsep(&amp;c, &quot;;&quot;))) {
++			if ((res = ast_stream_and_wait(chan, n, chan-&gt;language,
++					(option-&gt;action == AST_ACTION_BACKLIST) ? AST_DIGIT_ANY : &quot;&quot;)))
++				break;
+ 		}
++		ast_stopstream(chan);
+ 		return res;
+ 	default:
+ 		ast_log(LOG_NOTICE, &quot;Unknown dispatch function %d, ignoring!\n&quot;, option-&gt;action);
+
+Modified: trunk/apps/app_amd.c
+===================================================================
+--- trunk/apps/app_amd.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_amd.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -140,12 +140,7 @@
+ 		ast_log(LOG_NOTICE, &quot;AMD using the default parameters.\n&quot;);
+ 	} else {
+ 		/* Some arguments have been passed. Lets parse them and overwrite the defaults. */
+-		if (!(parse = ast_strdupa(data))) {
+-			ast_log(LOG_WARNING, &quot;Memory allocation failure\n&quot;);
+-			pbx_builtin_setvar_helper(chan , &quot;AMDSTATUS&quot; , &quot;&quot; );
+-			pbx_builtin_setvar_helper(chan , &quot;AMDCAUSE&quot; , &quot;&quot; );
+-			return;
+-		}
++		parse = ast_strdupa(data);
+ 
+ 		AST_STANDARD_APP_ARGS(args, parse);
+ 
+
+Modified: trunk/apps/app_authenticate.c
+===================================================================
+--- trunk/apps/app_authenticate.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_authenticate.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -123,10 +123,7 @@
+ 		}
+ 	}
+ 	
+-	if (!(argcopy = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	argcopy = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(arglist,argcopy);
+ 	
+
+Modified: trunk/apps/app_db.c
+===================================================================
+--- trunk/apps/app_db.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_db.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -71,10 +71,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(argv = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return 0;
+-	}
++	argv = ast_strdupa(data);
+ 
+ 	if (strchr(argv, '/')) {
+ 		family = strsep(&amp;argv, &quot;/&quot;);
+@@ -115,10 +112,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(argv = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return 0;
+-	}
++	argv = ast_strdupa(data);
+ 
+ 	if (strchr(argv, '/')) {
+ 		family = strsep(&amp;argv, &quot;/&quot;);
+
+Modified: trunk/apps/app_dial.c
+===================================================================
+--- trunk/apps/app_dial.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_dial.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -787,8 +787,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(parse = ast_strdupa(data)))
+-		goto done;
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+@@ -1596,8 +1595,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(announce = ast_strdupa(data)))
+-		goto done;
++	announce = ast_strdupa(data);
+ 
+ 	memset(&amp;peerflags, 0, sizeof(peerflags));
+ 
+
+Modified: trunk/apps/app_dictate.c
+===================================================================
+--- trunk/apps/app_dictate.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_dictate.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -107,8 +107,7 @@
+ 	
+ 	snprintf(dftbase, sizeof(dftbase), &quot;%s/dictate&quot;, ast_config_AST_SPOOL_DIR);
+ 	if (!ast_strlen_zero(data)) {
+-		if (!(parse = ast_strdupa(data)))
+-			return -1;
++		parse = ast_strdupa(data);
+ 		AST_STANDARD_APP_ARGS(args, parse);
+ 	} else
+ 		args.argc = 0;
+
+Modified: trunk/apps/app_directory.c
+===================================================================
+--- trunk/apps/app_directory.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_directory.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -411,10 +411,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(parse = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1; 
+-	}
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 		
+
+Modified: trunk/apps/app_disa.c
+===================================================================
+--- trunk/apps/app_disa.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_disa.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -158,10 +158,7 @@
+ 	ast_log(LOG_DEBUG, &quot;Digittimeout: %d\n&quot;, digittimeout);
+ 	ast_log(LOG_DEBUG, &quot;Responsetimeout: %d\n&quot;, firstdigittimeout);
+ 
+-	if (!(tmp = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}	
++	tmp = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, tmp);
+ 
+
+Modified: trunk/apps/app_exec.c
+===================================================================
+--- trunk/apps/app_exec.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_exec.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -80,8 +80,7 @@
+ &quot;The channel variable TRYSTATUS will be set to:\n&quot;
+ &quot;    SUCCESS   if the application returned zero\n&quot;
+ &quot;    FAILED    if the application returned non-zero\n&quot;
+-&quot;    NOAPP     if the application was not found or was not specified\n&quot;
+-&quot;    NOMEMORY  if there was not enough memory to execute.\n&quot;;
++&quot;    NOAPP     if the application was not found or was not specified\n&quot;;
+ 
+ static char *app_execif = &quot;ExecIf&quot;;
+ static char *execif_synopsis = &quot;Executes dialplan application, conditionally&quot;;
+@@ -104,25 +103,23 @@
+ 
+ 	/* Check and parse arguments */
+ 	if (data) {
+-		if ((s = ast_strdupa(data))) {
+-			appname = strsep(&amp;s, &quot;(&quot;);
+-			if (s) {
+-				endargs = strrchr(s, ')');
+-				if (endargs)
+-					*endargs = '\0';
+-				pbx_substitute_variables_helper(chan, s, args, MAXRESULT - 1);
++		s = ast_strdupa(data);
++		appname = strsep(&amp;s, &quot;(&quot;);
++		if (s) {
++			endargs = strrchr(s, ')');
++			if (endargs)
++				*endargs = '\0';
++			pbx_substitute_variables_helper(chan, s, args, MAXRESULT - 1);
++		}
++		if (appname) {
++			app = pbx_findapp(appname);
++			if (app) {
++				res = pbx_exec(chan, app, args);
++			} else {
++				ast_log(LOG_WARNING, &quot;Could not find application (%s)\n&quot;, appname);
++				res = -1;
+ 			}
+-			if (appname) {
+-				app = pbx_findapp(appname);
+-				if (app) {
+-					res = pbx_exec(chan, app, args);
+-				} else {
+-					ast_log(LOG_WARNING, &quot;Could not find application (%s)\n&quot;, appname);
+-					res = -1;
+-				}
+-			}
+-		} else
+-			res = -1;
++		}
+ 	}
+ 
+ 	LOCAL_USER_REMOVE(u);
+@@ -140,27 +137,23 @@
+ 
+ 	/* Check and parse arguments */
+ 	if (data) {
+-		if ((s = ast_strdupa(data))) {
+-			appname = strsep(&amp;s, &quot;(&quot;);
+-			if (s) {
+-				endargs = strrchr(s, ')');
+-				if (endargs)
+-					*endargs = '\0';
+-				pbx_substitute_variables_helper(chan, s, args, MAXRESULT - 1);
++		s = ast_strdupa(data);
++		appname = strsep(&amp;s, &quot;(&quot;);
++		if (s) {
++			endargs = strrchr(s, ')');
++			if (endargs)
++				*endargs = '\0';
++			pbx_substitute_variables_helper(chan, s, args, MAXRESULT - 1);
++		}
++		if (appname) {
++			app = pbx_findapp(appname);
++			if (app) {
++				res = pbx_exec(chan, app, args);
++				pbx_builtin_setvar_helper(chan, &quot;TRYSTATUS&quot;, res ? &quot;FAILED&quot; : &quot;SUCCESS&quot;);
++			} else {
++				ast_log(LOG_WARNING, &quot;Could not find application (%s)\n&quot;, appname);
++				pbx_builtin_setvar_helper(chan, &quot;TRYSTATUS&quot;, &quot;NOAPP&quot;);
+ 			}
+-			if (appname) {
+-				app = pbx_findapp(appname);
+-				if (app) {
+-					res = pbx_exec(chan, app, args);
+-					pbx_builtin_setvar_helper(chan, &quot;TRYSTATUS&quot;, res ? &quot;FAILED&quot; : &quot;SUCCESS&quot;);
+-				} else {
+-					ast_log(LOG_WARNING, &quot;Could not find application (%s)\n&quot;, appname);
+-					pbx_builtin_setvar_helper(chan, &quot;TRYSTATUS&quot;, &quot;NOAPP&quot;);
+-				}
+-			}
+-		} else {
+-			ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
+-			pbx_builtin_setvar_helper(chan, &quot;TRYSTATUS&quot;, &quot;NOMEMORY&quot;);
+ 		}
+ 	}
+ 
+@@ -178,10 +171,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(expr = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	expr = ast_strdupa(data);
+ 
+ 	if ((myapp = strchr(expr,'|'))) {
+ 		*myapp = '\0';
+
+Modified: trunk/apps/app_externalivr.c
+===================================================================
+--- trunk/apps/app_externalivr.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_externalivr.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -275,10 +275,7 @@
+ 		return -1;	
+ 	}
+ 
+-	if (!(buf = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(lu);
+-		return -1;
+-	}
++	buf = ast_strdupa(data);
+ 
+ 	argc = ast_app_separate_args(buf, '|', argv, sizeof(argv) / sizeof(argv[0]));
+ 
+
+Modified: trunk/apps/app_festival.c
+===================================================================
+--- trunk/apps/app_festival.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_festival.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -356,11 +356,7 @@
+ 		festivalcommand = newfestivalcommand;
+ 	}
+ 	
+-	if (!(data = ast_strdupa(vdata))) {
+-		ast_config_destroy(cfg);
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	data = ast_strdupa(vdata);
+ 
+ 	intstr = strchr(data, '|');
+ 	if (intstr) {	
+
+Modified: trunk/apps/app_hasnewvoicemail.c
+===================================================================
+--- trunk/apps/app_hasnewvoicemail.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_hasnewvoicemail.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -126,10 +126,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(input = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	input = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, input);
+ 
+
+Modified: trunk/apps/app_image.c
+===================================================================
+--- trunk/apps/app_image.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_image.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -76,10 +76,7 @@
+ 	
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(parse = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+
+Modified: trunk/apps/app_mixmonitor.c
+===================================================================
+--- trunk/apps/app_mixmonitor.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_mixmonitor.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -338,10 +338,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(parse = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 	
+
+Modified: trunk/apps/app_osplookup.c
+===================================================================
+--- trunk/apps/app_osplookup.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_osplookup.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -137,11 +137,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(tmp = ast_strdupa(data))) {
+-		ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
+-		LOCAL_USER_REMOVE(u);
+-		return(-1);
+-	}
++	tmp = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, tmp);
+ 
+@@ -232,11 +228,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(tmp = ast_strdupa(data))) {
+-		ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
+-		LOCAL_USER_REMOVE(u);
+-		return(-1);
+-	}
++	tmp = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, tmp);
+ 
+@@ -382,11 +374,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(tmp = ast_strdupa(data))) {
+-		ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
+-		LOCAL_USER_REMOVE(u);
+-		return(-1);
+-	}
++	tmp = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, tmp);
+ 
+@@ -506,11 +494,7 @@
+ 	
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(tmp = ast_strdupa(data))) {
+-		ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
+-		LOCAL_USER_REMOVE(u);
+-		return(-1);
+-	}
++	tmp = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, tmp);
+ 
+
+Modified: trunk/apps/app_page.c
+===================================================================
+--- trunk/apps/app_page.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_page.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -167,10 +167,7 @@
+ 		return -1;
+ 	};
+ 
+-	if (!(options = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	options = ast_strdupa(data);
+ 
+ 	ast_copy_string(originator, chan-&gt;name, sizeof(originator));
+ 	if ((tmp = strchr(originator, '-')))
+
+Modified: trunk/apps/app_playback.c
+===================================================================
+--- trunk/apps/app_playback.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_playback.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -167,8 +167,6 @@
+ 		a-&gt;language = &quot;en&quot;;     /* default */
+ 	ast_log(LOG_WARNING, &quot;try &lt;%s&gt; in &lt;%s&gt;\n&quot;, s, a-&gt;language);
+ 	lang = ast_strdupa(a-&gt;language);
+-	if (!lang)      /* no memory! */
+-		return -1;
+ 	for (;;) {
+ 		for (v = ast_variable_browse(say_cfg, lang); v ; v = v-&gt;next) {
+ 			if (ast_extension_match(v-&gt;name, s)) {
+@@ -401,8 +399,7 @@
+ 		return -1;
+ 	}
+ 
+-	if (!(tmp = ast_strdupa(data)))
+-		return -1;	
++	tmp = ast_strdupa(data);
+ 
+ 	LOCAL_USER_ADD(u);
+ 	AST_STANDARD_APP_ARGS(args, tmp);
+
+Modified: trunk/apps/app_privacy.c
+===================================================================
+--- trunk/apps/app_privacy.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_privacy.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -113,10 +113,7 @@
+ 
+ 		if (!ast_strlen_zero((char *)data))
+ 		{
+-			if (!(parse = ast_strdupa(data))) {
+-				LOCAL_USER_REMOVE(u);
+-				return -1;
+-			}
++			parse = ast_strdupa(data);
+ 			
+ 			AST_STANDARD_APP_ARGS(args, parse);
+ 
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_queue.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -2769,8 +2769,7 @@
+ 		return -1;
+ 	}
+ 
+-	if (!(parse = ast_strdupa(data)))
+-		return -1;
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+@@ -2822,8 +2821,7 @@
+ 		return -1;
+ 	}
+ 
+-	if (!(parse = ast_strdupa(data))) 
+-		return -1;
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+@@ -2877,8 +2875,7 @@
+ 		return -1;
+ 	}
+ 
+-	if (!(parse = ast_strdupa(data)))
+-		return -1;
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+@@ -2942,8 +2939,7 @@
+ 		return -1;
+ 	}
+ 
+-	if (!(parse = ast_strdupa(data)))
+-		return -1;
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+@@ -3029,10 +3025,6 @@
+ 	}
+ 	
+ 	parse = ast_strdupa(data);
+-	if (!parse) {
+-		ast_log(LOG_ERROR, &quot;Out of memory!\n&quot;);
+-		return -1;
+-	}
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+ 	LOCAL_USER_ADD(lu);
+
+Modified: trunk/apps/app_random.c
+===================================================================
+--- trunk/apps/app_random.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_random.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -71,10 +71,7 @@
+ 	
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(s = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	s = ast_strdupa(data);
+ 
+ 	prob = strsep(&amp;s,&quot;:&quot;);
+ 	if ((!prob) || (sscanf(prob, &quot;%d&quot;, &amp;probint) != 1))
+
+Modified: trunk/apps/app_read.c
+===================================================================
+--- trunk/apps/app_read.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_read.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -115,10 +115,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 	
+-	if (!(argcopy = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	argcopy = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(arglist, argcopy);
+ 
+
+Modified: trunk/apps/app_readfile.c
+===================================================================
+--- trunk/apps/app_readfile.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_readfile.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -70,10 +70,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(s = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	s = ast_strdupa(data);
+ 
+ 	varname = strsep(&amp;s, &quot;=&quot;);
+ 	file = strsep(&amp;s, &quot;|&quot;);
+
+Modified: trunk/apps/app_realtime.c
+===================================================================
+--- trunk/apps/app_realtime.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_realtime.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -149,16 +149,15 @@
+ 	
+ 	LOCAL_USER_ADD(u);
+ 
+-	if ((family = ast_strdupa(data))) {
+-		if ((colmatch = strchr(family,'|'))) {
+-			crop_data(colmatch);
+-			if ((value = strchr(colmatch,'|'))) {
+-				crop_data(value);
+-				if ((newcol = strchr(value,'|'))) {
+-					crop_data(newcol);
+-					if ((newval = strchr(newcol,'|'))) 
+-						crop_data(newval);
+-				}
++	family = ast_strdupa(data);
++	if ((colmatch = strchr(family,'|'))) {
++		crop_data(colmatch);
++		if ((value = strchr(colmatch,'|'))) {
++			crop_data(value);
++			if ((newcol = strchr(value,'|'))) {
++				crop_data(newcol);
++				if ((newval = strchr(newcol,'|'))) 
++					crop_data(newval);
+ 			}
+ 		}
+ 	}
+@@ -196,14 +195,13 @@
+ 	
+ 	LOCAL_USER_ADD(u);
+ 
+-	if ((family = ast_strdupa(data))) {
+-		if ((colmatch = strchr(family,'|'))) {
+-			crop_data(colmatch);
+-			if ((value = strchr(colmatch,'|'))) {
+-				crop_data(value);
+-				if ((prefix = strchr(value,'|')))
+-					crop_data(prefix);
+-			}
++	family = ast_strdupa(data);
++	if ((colmatch = strchr(family,'|'))) {
++		crop_data(colmatch);
++		if ((value = strchr(colmatch,'|'))) {
++			crop_data(value);
++			if ((prefix = strchr(value,'|')))
++				crop_data(prefix);
+ 		}
+ 	}
+ 	if (! (family &amp;&amp; value &amp;&amp; colmatch) ) {
+
+Modified: trunk/apps/app_record.c
+===================================================================
+--- trunk/apps/app_record.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_record.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -113,10 +113,7 @@
+ 	LOCAL_USER_ADD(u);
+ 
+ 	/* Yay for strsep being easy */
+-	if (!(vdata = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	vdata = ast_strdupa(data);
+ 
+ 	p = vdata;
+ 	filename = strsep(&amp;p, &quot;|&quot;);
+
+Modified: trunk/apps/app_sayunixtime.c
+===================================================================
+--- trunk/apps/app_sayunixtime.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_sayunixtime.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -84,8 +84,7 @@
+ 	if (!data)
+ 		return 0;
+ 
+-	if (!(parse = ast_strdupa(data)))
+-		return -1;
++	parse = ast_strdupa(data);
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+
+Modified: trunk/apps/app_senddtmf.c
+===================================================================
+--- trunk/apps/app_senddtmf.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_senddtmf.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -73,10 +73,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(digits = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	digits = ast_strdupa(data);
+ 
+ 	if ((to = strchr(digits,'|'))) {
+ 		*to = '\0';
+
+Modified: trunk/apps/app_sendtext.c
+===================================================================
+--- trunk/apps/app_sendtext.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_sendtext.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -83,12 +83,8 @@
+ 		ast_log(LOG_WARNING, &quot;SendText requires an argument (text[|options])\n&quot;);
+ 		LOCAL_USER_REMOVE(u);
+ 		return -1;
+-	} else {
+-		if (!(parse = ast_strdupa(data))) {
+-			LOCAL_USER_REMOVE(u);
+-			return -1;
+-		}
+-	}
++	} else
++		parse = ast_strdupa(data);
+ 	
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+
+Modified: trunk/apps/app_setcallerid.c
+===================================================================
+--- trunk/apps/app_setcallerid.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_setcallerid.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -115,10 +115,7 @@
+ 	
+ 	LOCAL_USER_ADD(u);
+ 	
+-	if (!(tmp = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	tmp = ast_strdupa(data);
+ 	
+ 	opt = strchr(tmp, '|');
+ 	if (opt) {
+
+Modified: trunk/apps/app_skel.c
+===================================================================
+--- trunk/apps/app_skel.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_skel.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -95,10 +95,7 @@
+ 	/* Do our thing here */
+ 
+ 	/* We need to make a copy of the input string if we are going to modify it! */
+-	if (!(parse = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+
+Modified: trunk/apps/app_speech_utils.c
+===================================================================
+--- trunk/apps/app_speech_utils.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_speech_utils.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -327,8 +327,7 @@
+ 	struct ast_speech *speech = find_speech(chan);
+ 	char *argv[2], *args = NULL, *name = NULL, *path = NULL;
+ 
+-	if (!(args = ast_strdupa(data)))
+-                return -1;
++	args = ast_strdupa(data);
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+@@ -504,8 +503,7 @@
+         struct ast_datastore *datastore = NULL;
+         char *argv[2], *args = NULL, *filename = NULL, tmp[2] = &quot;&quot;;
+ 
+-        if (!(args = ast_strdupa(data)))
+-                return -1;
++        args = ast_strdupa(data);
+ 
+         LOCAL_USER_ADD(u);
+ 
+
+Modified: trunk/apps/app_stack.c
+===================================================================
+--- trunk/apps/app_stack.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_stack.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -130,8 +130,7 @@
+ 		return 0;
+ 	}
+ 
+-	if (!(args = ast_strdupa(data)))
+-		return -1;
++	args = ast_strdupa(data);
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+
+Modified: trunk/apps/app_talkdetect.c
+===================================================================
+--- trunk/apps/app_talkdetect.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_talkdetect.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -86,10 +86,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(tmp = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}	
++	tmp = ast_strdupa(data);
+ 
+ 	stringp=tmp;
+ 	strsep(&amp;stringp, &quot;|&quot;);
+
+Modified: trunk/apps/app_transfer.c
+===================================================================
+--- trunk/apps/app_transfer.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_transfer.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -89,12 +89,8 @@
+ 		LOCAL_USER_REMOVE(u);
+ 		pbx_builtin_setvar_helper(chan, &quot;TRANSFERSTATUS&quot;, &quot;FAILURE&quot;);
+ 		return 0;
+-	} else {
+-		if (!(parse = ast_strdupa(data))) {
+-			LOCAL_USER_REMOVE(u);
+-			return -1;
+-		}
+-	}
++	} else
++		parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+
+Modified: trunk/apps/app_url.c
+===================================================================
+--- trunk/apps/app_url.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_url.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -92,10 +92,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(tmp = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	tmp = ast_strdupa(data);
+ 
+ 	stringp=tmp;
+ 	strsep(&amp;stringp, &quot;|&quot;);
+
+Modified: trunk/apps/app_userevent.c
+===================================================================
+--- trunk/apps/app_userevent.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_userevent.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -72,10 +72,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(info = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	info = ast_strdupa(data);
+ 
+ 	snprintf(eventname, sizeof(eventname), &quot;UserEvent%s&quot;, info);
+ 	eventbody = strchr(eventname, '|');
+
+Modified: trunk/apps/app_verbose.c
+===================================================================
+--- trunk/apps/app_verbose.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_verbose.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -65,34 +65,34 @@
+ 	LOCAL_USER_ADD(u);
+ 
+ 	if (data) {
+-		if ((vtext = ast_strdupa(data))) {
+-			char *tmp = strsep(&amp;vtext, &quot;|&quot;);
+-			if (vtext) {
+-				if (sscanf(tmp, &quot;%d&quot;, &amp;vsize) != 1) {
+-					vsize = 0;
+-					ast_log(LOG_WARNING, &quot;'%s' is not a verboser number\n&quot;, vtext);
+-				}
+-			} else {
+-				vtext = tmp;
++		char *tmp;
++		vtext = ast_strdupa(data);
++		tmp = strsep(&amp;vtext, &quot;|&quot;);
++		if (vtext) {
++			if (sscanf(tmp, &quot;%d&quot;, &amp;vsize) != 1) {
+ 				vsize = 0;
++				ast_log(LOG_WARNING, &quot;'%s' is not a verboser number\n&quot;, vtext);
+ 			}
+-			if (option_verbose &gt;= vsize) {
+-				switch (vsize) {
+-				case 0:
+-					ast_verbose(&quot;%s\n&quot;, vtext);
+-					break;
+-				case 1:
+-					ast_verbose(VERBOSE_PREFIX_1 &quot;%s\n&quot;, vtext);
+-					break;
+-				case 2:
+-					ast_verbose(VERBOSE_PREFIX_2 &quot;%s\n&quot;, vtext);
+-					break;
+-				case 3:
+-					ast_verbose(VERBOSE_PREFIX_3 &quot;%s\n&quot;, vtext);
+-					break;
+-				default:
+-					ast_verbose(VERBOSE_PREFIX_4 &quot;%s\n&quot;, vtext);
+-				}
++		} else {
++			vtext = tmp;
++			vsize = 0;
++		}
++		if (option_verbose &gt;= vsize) {
++			switch (vsize) {
++			case 0:
++				ast_verbose(&quot;%s\n&quot;, vtext);
++				break;
++			case 1:
++				ast_verbose(VERBOSE_PREFIX_1 &quot;%s\n&quot;, vtext);
++				break;
++			case 2:
++				ast_verbose(VERBOSE_PREFIX_2 &quot;%s\n&quot;, vtext);
++				break;
++			case 3:
++				ast_verbose(VERBOSE_PREFIX_3 &quot;%s\n&quot;, vtext);
++				break;
++			default:
++				ast_verbose(VERBOSE_PREFIX_4 &quot;%s\n&quot;, vtext);
+ 			}
+ 		}
+ 	}
+@@ -115,10 +115,7 @@
+ 		return 0;
+ 	}
+ 
+-	if (!(ltext = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return 0;
+-	}
++	ltext = ast_strdupa(data);
+ 
+ 	level = strsep(&amp;ltext, &quot;|&quot;);
+ 
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_voicemail.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -3368,25 +3368,24 @@
+ 	}
+ 
+ 	/* Attach only the first format */
+-	if ((fmt = ast_strdupa(fmt))) {
+-		stringp = fmt;
+-		strsep(&amp;stringp, &quot;|&quot;);
++	fmt = ast_strdupa(fmt);
++	stringp = fmt;
++	strsep(&amp;stringp, &quot;|&quot;);
+ 
+-		if (!ast_strlen_zero(vmu-&gt;email)) {
+-			int attach_user_voicemail = ast_test_flag((&amp;globalflags), VM_ATTACH);
+-			char *myserveremail = serveremail;
+-			attach_user_voicemail = ast_test_flag(vmu, VM_ATTACH);
+-			if (!ast_strlen_zero(vmu-&gt;serveremail))
+-				myserveremail = vmu-&gt;serveremail;
+-			sendmail(myserveremail, vmu, msgnum, vmu-&gt;context, vmu-&gt;mailbox, cidnum, cidname, fn, fmt, duration, attach_user_voicemail, category);
+-		}
++	if (!ast_strlen_zero(vmu-&gt;email)) {
++		int attach_user_voicemail = ast_test_flag((&amp;globalflags), VM_ATTACH);
++		char *myserveremail = serveremail;
++		attach_user_voicemail = ast_test_flag(vmu, VM_ATTACH);
++		if (!ast_strlen_zero(vmu-&gt;serveremail))
++			myserveremail = vmu-&gt;serveremail;
++		sendmail(myserveremail, vmu, msgnum, vmu-&gt;context, vmu-&gt;mailbox, cidnum, cidname, fn, fmt, duration, attach_user_voicemail, category);
++	}
+ 
+-		if (!ast_strlen_zero(vmu-&gt;pager)) {
+-			char *myserveremail = serveremail;
+-			if (!ast_strlen_zero(vmu-&gt;serveremail))
+-				myserveremail = vmu-&gt;serveremail;
+-			sendpage(myserveremail, vmu-&gt;pager, msgnum, vmu-&gt;context, vmu-&gt;mailbox, cidnum, cidname, duration, vmu, category);
+-		}
++	if (!ast_strlen_zero(vmu-&gt;pager)) {
++		char *myserveremail = serveremail;
++		if (!ast_strlen_zero(vmu-&gt;serveremail))
++			myserveremail = vmu-&gt;serveremail;
++		sendpage(myserveremail, vmu-&gt;pager, msgnum, vmu-&gt;context, vmu-&gt;mailbox, cidnum, cidname, duration, vmu, category);
+ 	}
+ 
+ 	if (ast_test_flag(vmu, VM_DELETE)) {
+@@ -5356,10 +5355,7 @@
+ 			AST_APP_ARG(argv1);
+ 		);
+ 				        
+-		if (!(parse = ast_strdupa(data))) {
+-			LOCAL_USER_REMOVE(u);
+-			return -1;
+-		}
++		parse = ast_strdupa(data);
+ 
+ 		AST_STANDARD_APP_ARGS(args, parse);
+ 
+@@ -5826,12 +5822,7 @@
+ 		ast_answer(chan);
+ 
+ 	if (!ast_strlen_zero(data)) {
+-		tmp = ast_strdupa((char *)data);
+-		if (!tmp) {
+-			ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
+-			LOCAL_USER_REMOVE(u);
+-			return -1;
+-		}
++		tmp = ast_strdupa(data);
+ 		AST_STANDARD_APP_ARGS(args, tmp);
+ 		if (args.argc == 2) {
+ 			if (ast_app_parse_options(vm_app_options, &amp;flags, opts, args.argv1)) {
+@@ -5958,10 +5949,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(box = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	box = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, box);
+ 
+@@ -5998,8 +5986,7 @@
+ 	LOCAL_USER_ADD(u);
+ 	
+ 	if (s) {
+-		if (!(s = ast_strdupa(s)))
+-			return -1;
++		s = ast_strdupa(s);
+ 		user = strsep(&amp;s, &quot;|&quot;);
+ 		options = strsep(&amp;s, &quot;|&quot;);
+ 		if (user) {
+@@ -6471,24 +6458,21 @@
+ 						struct vm_zone *z;
+ 						if ((z = ast_malloc(sizeof(*z)))) {
+ 							char *msg_format, *timezone;
+-							if ((msg_format = ast_strdupa(var-&gt;value))) {
+-								timezone = strsep(&amp;msg_format, &quot;|&quot;);
+-								if (msg_format) {
+-									ast_copy_string(z-&gt;name, var-&gt;name, sizeof(z-&gt;name));
+-									ast_copy_string(z-&gt;timezone, timezone, sizeof(z-&gt;timezone));
+-									ast_copy_string(z-&gt;msg_format, msg_format, sizeof(z-&gt;msg_format));
+-									AST_LIST_LOCK(&amp;zones);
+-									AST_LIST_INSERT_HEAD(&amp;zones, z, list);
+-									AST_LIST_UNLOCK(&amp;zones);
+-								} else {
+-									ast_log(LOG_WARNING, &quot;Invalid timezone definition at line %d\n&quot;, var-&gt;lineno);
+-									free(z);
+-								}
++							msg_format = ast_strdupa(var-&gt;value);
++							timezone = strsep(&amp;msg_format, &quot;|&quot;);
++							if (msg_format) {
++								ast_copy_string(z-&gt;name, var-&gt;name, sizeof(z-&gt;name));
++								ast_copy_string(z-&gt;timezone, timezone, sizeof(z-&gt;timezone));
++								ast_copy_string(z-&gt;msg_format, msg_format, sizeof(z-&gt;msg_format));
++								AST_LIST_LOCK(&amp;zones);
++								AST_LIST_INSERT_HEAD(&amp;zones, z, list);
++								AST_LIST_UNLOCK(&amp;zones);
+ 							} else {
++								ast_log(LOG_WARNING, &quot;Invalid timezone definition at line %d\n&quot;, var-&gt;lineno);
+ 								free(z);
+-								return -1;
+ 							}
+-						} else {						
++						} else {
++							free(z);
+ 							return -1;
+ 						}
+ 						var = var-&gt;next;
+
+Modified: trunk/apps/app_while.c
+===================================================================
+--- trunk/apps/app_while.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_while.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -202,9 +202,8 @@
+ 	snprintf(used_index, VAR_SIZE, &quot;%d&quot;, used_index_i);
+ 	snprintf(new_index, VAR_SIZE, &quot;%d&quot;, used_index_i + 1);
+ 	
+-	if (!end) {
+-		condition = ast_strdupa((char *) data);
+-	}
++	if (!end)
++		condition = ast_strdupa(data);
+ 
+ 	size = strlen(chan-&gt;context) + strlen(chan-&gt;exten) + 32;
+ 	my_name = alloca(size);
+
+Modified: trunk/apps/app_zapras.c
+===================================================================
+--- trunk/apps/app_zapras.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_zapras.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -215,10 +215,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(args = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	args = ast_strdupa(data);
+ 	
+ 	/* Answer the channel if it's not up */
+ 	if (chan-&gt;_state != AST_STATE_UP)
+
+Modified: trunk/apps/app_zapscan.c
+===================================================================
+--- trunk/apps/app_zapscan.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/apps/app_zapscan.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -307,7 +307,7 @@
+ 	if (chan-&gt;_state != AST_STATE_UP)
+ 		ast_answer(chan);
+ 	
+-	desired_group = ast_strdupa((char *) data);
++	desired_group = ast_strdupa(data);
+ 	if(!ast_strlen_zero(desired_group)) {
+ 		ast_verbose(VERBOSE_PREFIX_3 &quot;Scanning for group %s\n&quot;, desired_group);
+ 		search_group = 1;
+
+Modified: trunk/build_tools/menuselect.c
+===================================================================
+--- trunk/build_tools/menuselect.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/build_tools/menuselect.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -726,6 +726,5 @@
+ 	if (force_clean)
+ 		unlink(&quot;.lastclean&quot;);
+ 
+-	fprintf(stderr, &quot;\nmenuselect about to exit with res %d\n&quot;, res);
+ 	exit(res);
+ }
+
+Modified: trunk/build_tools/menuselect_curses.c
+===================================================================
+--- trunk/build_tools/menuselect_curses.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/build_tools/menuselect_curses.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -143,9 +143,11 @@
+ 			snprintf(buf, sizeof(buf), &quot;XXX %d.%s %s&quot;, i, i &lt; 10 ? &quot; &quot; : &quot;&quot;, mem-&gt;name);
+ 		else
+ 			snprintf(buf, sizeof(buf), &quot;[%s] %d.%s %s&quot;, mem-&gt;enabled ? &quot;*&quot; : &quot; &quot;, i, i &lt; 10 ? &quot; &quot; : &quot;&quot;, mem-&gt;name);
+-		if (curopt + 1== i)
++		waddstr(menu, buf);
++		
++		if (curopt + 1 == i)
+ 			desc = mem-&gt;displayname;
+-		waddstr(menu, buf);
++
+ 		if (i == end)
+ 			break;
+ 	}
+@@ -227,7 +229,7 @@
+ 		default:
+ 			break;	
+ 		}
+-		if (c == 'x' || c == 'q')
++		if (c == 'x' || c == 'X' || c == 'Q' || c == 'q')
+ 			break;	
+ 		draw_category_menu(menu, cat, start, end, curopt);
+ 	}
+
+Modified: trunk/callerid.c
+===================================================================
+--- trunk/callerid.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/callerid.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -1029,11 +1029,6 @@
+ 	char *l = NULL, *n = NULL;
+ 
+ 	tmp = ast_strdupa(buf);
+-	if (!tmp) {
+-		name[0] = '\0';
+-		num[0] = '\0';
+-		return -1;
+-	}
+ 	ast_callerid_parse(tmp, &amp;n, &amp;l);
+ 	if (n)
+ 		ast_copy_string(name, n, namelen);
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/channel.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -1597,11 +1597,8 @@
+ 	} *fdmap;
+ 
+ 	sz = n * AST_MAX_FDS + nfds;
+-	if (!(pfds = alloca(sizeof(*pfds) * sz)) || !(fdmap = alloca(sizeof(*fdmap) * sz))) {
+-		ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
+-		*outfd = -1;
+-		return NULL;
+-	}
++	pfds = alloca(sizeof(*pfds) * sz);
++	fdmap = alloca(sizeof(*fdmap) * sz);
+ 
+ 	if (outfd)
+ 		*outfd = -99999;
+@@ -3773,8 +3770,6 @@
+ 	ast_group_t group = 0;
+ 
+ 	c = ast_strdupa(s);
+-	if (!c)
+-		return 0;
+ 	
+ 	while ((piece = strsep(&amp;c, &quot;,&quot;))) {
+ 		if (sscanf(piece, &quot;%d-%d&quot;, &amp;start, &amp;finish) == 2) {
+
+Modified: trunk/channels/chan_agent.c
+===================================================================
+--- trunk/channels/chan_agent.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/channels/chan_agent.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -294,8 +294,7 @@
+ 	char *agt = NULL;
+ 	struct agent_pvt *p;
+ 
+-	if (!(parse = ast_strdupa(agent)))
+-		return NULL;
++	parse = ast_strdupa(agent);
+ 
+ 	/* Extract username (agt), password and name from agent (args). */
+ 	AST_NONSTANDARD_APP_ARGS(args, parse, ',');
+@@ -1751,10 +1750,7 @@
+ 
+ 	LOCAL_USER_ADD(u);
+ 
+-	if (!(parse = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+@@ -2486,8 +2482,7 @@
+ 		return -1;
+ 	}
+ 
+-	if (!(parse = ast_strdupa(data)))
+-		return -1;
++	parse = ast_strdupa(data);
+ 
+ 	AST_NONSTANDARD_APP_ARGS(args, parse, ':');
+ 	if (!args.item)
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/channels/chan_iax2.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -2969,12 +2969,10 @@
+ 		char *key = NULL;
+ 
+ 		family = ast_strdupa(peer-&gt;dbsecret);
+-		if (family) {
+-			key = strchr(family, '/');
+-			if (key)
+-				*key++ = '\0';
+-		}
+-		if (!family || !key || ast_db_get(family, key, cai-&gt;secret, sizeof(cai-&gt;secret))) {
++		key = strchr(family, '/');
++		if (key)
++			*key++ = '\0';
++		if (!key || ast_db_get(family, key, cai-&gt;secret, sizeof(cai-&gt;secret))) {
+ 			ast_log(LOG_WARNING, &quot;Unable to retrieve database password for family/key '%s'!\n&quot;, peer-&gt;dbsecret);
+ 			if (ast_test_flag(peer, IAX_TEMPONLY))
+ 				destroy_peer(peer);
+@@ -4078,7 +4076,7 @@
+ 		
+ 		tmppw = ast_strdupa(iaxs[callno]-&gt;secret);
+ 		stringp = tmppw;
+-		while((tmppw = strsep(&amp;stringp, &quot;;&quot;))) {
++		while ((tmppw = strsep(&amp;stringp, &quot;;&quot;))) {
+ 			MD5Init(&amp;md5);
+ 			MD5Update(&amp;md5, (unsigned char *)iaxs[callno]-&gt;challenge, strlen(iaxs[callno]-&gt;challenge));
+ 			MD5Update(&amp;md5, (unsigned char *)tmppw, strlen(tmppw));
+@@ -5132,14 +5130,12 @@
+ 		if (!ast_strlen_zero(user-&gt;dbsecret)) {
+ 			char *family, *key=NULL;
+ 			family = ast_strdupa(user-&gt;dbsecret);
+-			if (family) {
+-				key = strchr(family, '/');
+-				if (key) {
+-					*key = '\0';
+-					key++;
+-				}
++			key = strchr(family, '/');
++			if (key) {
++				*key = '\0';
++				key++;
+ 			}
+-			if (!family || !key || ast_db_get(family, key, iaxs[callno]-&gt;secret, sizeof(iaxs[callno]-&gt;secret))) {
++			if (!key || ast_db_get(family, key, iaxs[callno]-&gt;secret, sizeof(iaxs[callno]-&gt;secret))) {
+ 				ast_log(LOG_WARNING, &quot;Unable to retrieve database password for family/key '%s'!\n&quot;, user-&gt;dbsecret);
+ 				if (ast_test_flag(user, IAX_TEMPONLY)) {
+ 					destroy_user(user);
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/channels/chan_sip.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -2088,12 +2088,10 @@
+ 		char *tmpcall;
+ 		char *c;
+ 		tmpcall = ast_strdupa(r-&gt;callid);
+-		if (tmpcall) {
+-			c = strchr(tmpcall, '@');
+-			if (c) {
+-				*c = '\0';
+-				ast_string_field_build(r, callid, &quot;%s@%s&quot;, tmpcall, peer-&gt;fromdomain);
+-			}
++		c = strchr(tmpcall, '@');
++		if (c) {
++			*c = '\0';
++			ast_string_field_build(r, callid, &quot;%s@%s&quot;, tmpcall, peer-&gt;fromdomain);
+ 		}
+ 	}
+ 	if (ast_strlen_zero(r-&gt;tohost)) {
+@@ -6986,21 +6984,21 @@
+ 	if (!req)
+ 		req = &amp;sip_pvt-&gt;initreq;
+ 
+-	if (!( (p_refer_to = get_header(req, &quot;Refer-To&quot;)) &amp;&amp; (h_refer_to = ast_strdupa(p_refer_to)) )) {
++	if (!(p_refer_to = get_header(req, &quot;Refer-To&quot;))) {
+ 		ast_log(LOG_WARNING, &quot;No Refer-To Header That's illegal\n&quot;);
+ 		return -1;
+ 	}
+-
++	h_refer_to = ast_strdupa(p_refer_to);
+ 	refer_to = get_in_brackets(h_refer_to);
+ 
+-	if (!( (p_referred_by = get_header(req, &quot;Referred-By&quot;)) &amp;&amp; (h_referred_by = ast_strdupa(p_referred_by)) )) {
+-		ast_log(LOG_WARNING, &quot;No Referrred-By Header That's not illegal\n&quot;);
++	if (!(p_referred_by = get_header(req, &quot;Referred-By&quot;))) {
++		ast_log(LOG_DEBUG, &quot;No Referrred-By Header That's not illegal\n&quot;);
+ 		return -1;
+-	} else {
+-		if (pedanticsipchecking)
+-			ast_uri_decode(h_referred_by);
+-		referred_by = get_in_brackets(h_referred_by);
+ 	}
++	h_referred_by = ast_strdupa(p_referred_by);
++	if (pedanticsipchecking)
++		ast_uri_decode(h_referred_by);
++	referred_by = get_in_brackets(h_referred_by);
+ 	h_contact = get_header(req, &quot;Contact&quot;);
+ 	
+ 	if (strncmp(refer_to, &quot;sip:&quot;, 4)) {
+@@ -7327,13 +7325,9 @@
+ 		if ((c = strchr(of, ':')))
+ 			*c = '\0';
+ 		tmp = ast_strdupa(of);
+-		if (tmp) {
+-			if (ast_is_shrinkable_phonenumber(tmp))
+-				ast_shrink_phone_number(tmp);
+-			ast_string_field_set(p, cid_num, tmp);
+-		} else {
+-			ast_string_field_set(p, cid_num, of);
+-		}
++		if (ast_is_shrinkable_phonenumber(tmp))
++			ast_shrink_phone_number(tmp);
++		ast_string_field_set(p, cid_num, tmp);
+ 	}
+ 	if (ast_strlen_zero(of))
+ 		return 0;
+@@ -7359,13 +7353,9 @@
+ 			if (*calleridname)
+ 				ast_string_field_set(p, cid_name, calleridname);
+ 			tmp = ast_strdupa(rpid_num);
+-			if (tmp) {
+-				if (ast_is_shrinkable_phonenumber(tmp))
+-					ast_shrink_phone_number(tmp);
+-				ast_string_field_set(p, cid_num, tmp);
+-			} else {
+-				ast_string_field_set(p, cid_num, rpid_num);
+-			}
++			if (ast_is_shrinkable_phonenumber(tmp))
++				ast_shrink_phone_number(tmp);
++			ast_string_field_set(p, cid_num, tmp);
+ 		}
+ 
+ 		
+@@ -7396,13 +7386,9 @@
+ 				ast_string_field_set(p, context, user-&gt;context);
+ 			if (!ast_strlen_zero(user-&gt;cid_num) &amp;&amp; !ast_strlen_zero(p-&gt;cid_num)) {
+ 				char *tmp = ast_strdupa(user-&gt;cid_num);
+-				if (tmp) {
+-					if (ast_is_shrinkable_phonenumber(tmp))
+-						ast_shrink_phone_number(tmp);
+-					ast_string_field_set(p, cid_num, tmp);
+-				} else {
+-					ast_string_field_set(p, cid_num, user-&gt;cid_num);
+-				}
++				if (ast_is_shrinkable_phonenumber(tmp))
++					ast_shrink_phone_number(tmp);
++				ast_string_field_set(p, cid_num, tmp);
+ 			}
+ 			if (!ast_strlen_zero(user-&gt;cid_name) &amp;&amp; !ast_strlen_zero(p-&gt;cid_num))
+ 				ast_string_field_set(p, cid_name, user-&gt;cid_name);
+@@ -7473,13 +7459,9 @@
+ 				char *tmp = ast_strdupa(rpid_num);
+ 				if (*calleridname)
+ 					ast_string_field_set(p, cid_name, calleridname);
+-				if (tmp) {
+-					if (ast_is_shrinkable_phonenumber(tmp))
+-						ast_shrink_phone_number(tmp);
+-					ast_string_field_set(p, cid_num, tmp);
+-				} else {
+-					ast_string_field_set(p, cid_num, rpid_num);
+-				}
++				if (ast_is_shrinkable_phonenumber(tmp))
++					ast_shrink_phone_number(tmp);
++				ast_string_field_set(p, cid_num, tmp);
+ 			}
+ 			usenatroute = ast_test_flag(&amp;p-&gt;flags[0], SIP_NAT_ROUTE);
+ 			if (p-&gt;rtp) {
+@@ -7529,13 +7511,9 @@
+ 				}
+ 				if (!ast_strlen_zero(peer-&gt;cid_num) &amp;&amp; !ast_strlen_zero(p-&gt;cid_num)) {
+ 					char *tmp = ast_strdupa(peer-&gt;cid_num);
+-					if (tmp) {
+-						if (ast_is_shrinkable_phonenumber(tmp))
+-							ast_shrink_phone_number(tmp);
+-						ast_string_field_set(p, cid_num, tmp);
+-					} else {
+-						ast_string_field_set(p, cid_num, peer-&gt;cid_num);
+-					}
++					if (ast_is_shrinkable_phonenumber(tmp))
++						ast_shrink_phone_number(tmp);
++					ast_string_field_set(p, cid_num, tmp);
+ 				}
+ 				if (!ast_strlen_zero(peer-&gt;cid_name) &amp;&amp; !ast_strlen_zero(p-&gt;cid_name)) 
+ 					ast_string_field_set(p, cid_name, peer-&gt;cid_name);
+@@ -12740,7 +12718,7 @@
+ 			ast_copy_string(user-&gt;subscribecontext, v-&gt;value, sizeof(user-&gt;subscribecontext));
+ 		} else if (!strcasecmp(v-&gt;name, &quot;setvar&quot;)) {
+ 			varname = ast_strdupa(v-&gt;value);
+-			if (varname &amp;&amp; (varval = strchr(varname,'='))) {
++			if ((varval = strchr(varname,'='))) {
+ 				*varval++ = '\0';
+ 				if ((tmpvar = ast_variable_new(varname, varval))) {
+ 					tmpvar-&gt;next = user-&gt;chanvars;
+@@ -13054,7 +13032,7 @@
+ 		} else if (!strcasecmp(v-&gt;name, &quot;setvar&quot;)) {
+ 			/* Set peer channel variable */
+ 			varname = ast_strdupa(v-&gt;value);
+-			if (varname &amp;&amp; (varval = strchr(varname,'='))) {
++			if ((varval = strchr(varname, '='))) {
+ 				*varval++ = '\0';
+ 				if ((tmpvar = ast_variable_new(varname, varval))) {
+ 					tmpvar-&gt;next = peer-&gt;chanvars;
+@@ -13746,8 +13724,7 @@
+ 	char *extension, *host, *port;
+ 	char tmp[80];
+ 	
+-	if (!(cdest = ast_strdupa(dest)))
+-		return 0;
++	cdest = ast_strdupa(dest);
+ 	
+ 	extension = strsep(&amp;cdest, &quot;@&quot;);
+ 	host = strsep(&amp;cdest, &quot;:&quot;);
+@@ -13776,11 +13753,9 @@
+ 				ast_log(LOG_ERROR, &quot;Can't find the host address\n&quot;);
+ 				return 0;
+ 			}
+-			if (!(host = ast_strdupa(lhost)))
+-				return 0;
++			host = ast_strdupa(lhost);
+ 			if (!ast_strlen_zero(lport)) {
+-				if (!(port = ast_strdupa(lport)))
+-					return 0;
++				port = ast_strdupa(lport);
+ 			}
+ 		}
+ 	}
+
+Modified: trunk/dsp.c
+===================================================================
+--- trunk/dsp.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/dsp.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -1444,19 +1444,13 @@
+ 		len = af-&gt;datalen / 2;
+ 		break;
+ 	case AST_FORMAT_ULAW:
+-		if (!(shortdata = alloca(af-&gt;datalen * 2))) {
+-			ast_log(LOG_WARNING, &quot;Unable to allocate stack space for data: %s\n&quot;, strerror(errno));
+-			return af;
+-		}
+-		for (x=0;x&lt;len;x++) 
++		shortdata = alloca(af-&gt;datalen * 2);
++		for (x = 0;x &lt; len; x++) 
+ 			shortdata[x] = AST_MULAW(odata[x]);
+ 		break;
+ 	case AST_FORMAT_ALAW:
+-		if (!(shortdata = alloca(af-&gt;datalen * 2))) {
+-			ast_log(LOG_WARNING, &quot;Unable to allocate stack space for data: %s\n&quot;, strerror(errno));
+-			return af;
+-		}
+-		for (x=0;x&lt;len;x++) 
++		shortdata = alloca(af-&gt;datalen * 2);
++		for (x = 0; x &lt; len; x++) 
+ 			shortdata[x] = AST_ALAW(odata[x]);
+ 		break;
+ 	default:
+
+Modified: trunk/funcs/func_cut.c
+===================================================================
+--- trunk/funcs/func_cut.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/funcs/func_cut.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -78,8 +78,7 @@
+ 	if (!data)
+ 		return ERROR_NOARG;
+ 
+-	if (!(strings = ast_strdupa(data)))
+-		return ERROR_NOMEM;
++	strings = ast_strdupa(data);
+ 
+ 	for (ptrkey = strings; *ptrkey; ptrkey++) {
+ 		if (*ptrkey == '|')
+@@ -87,8 +86,6 @@
+ 	}
+ 
+ 	sortable_keys = alloca(count * sizeof(struct sortable_keys));
+-	if (!sortable_keys)
+-		return ERROR_NOMEM;
+ 
+ 	memset(sortable_keys, 0, count * sizeof(struct sortable_keys));
+ 
+@@ -132,8 +129,7 @@
+ 
+ 	memset(buffer, 0, buflen); 
+ 	
+-	if (!(parse = ast_strdupa(data)))
+-		return ERROR_NOMEM;
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+
+Modified: trunk/include/asterisk/utils.h
+===================================================================
+--- trunk/include/asterisk/utils.h	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/include/asterisk/utils.h	2006-05-10 13:30:35 UTC (rev 125)
+@@ -437,12 +437,7 @@
+ 		const char *__old = (s);                                  \
+ 		size_t __len = strlen(__old) + 1;                         \
+ 		char *__new = __builtin_alloca(__len);                    \
+-		if (__builtin_expect(!__new, 0))                          \
+-			ast_log(LOG_ERROR, &quot;Stack Allocation Error in&quot;    \
+-				&quot;function '%s' at line '%d' of '%s'!\n&quot;,  \
+-				__PRETTY_FUNCTION__, __LINE__, __FILE__); \
+-		else                                                      \
+-			memcpy (__new, __old, __len);                     \
++		memcpy (__new, __old, __len);                             \
+ 		__new;                                                    \
+ 	}))
+ #endif
+
+Modified: trunk/indications.c
+===================================================================
+--- trunk/indications.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/indications.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -213,10 +213,9 @@
+ {
+ 	char *s, *data = ast_strdupa(playlst); /* cute */
+ 	struct playtones_def d = { vol, -1, 0, 1, NULL};
+-	char *stringp=NULL;
++	char *stringp;
+ 	char *separator;
+-	if (!data)
+-		return -1;
++	
+ 	if (vol &lt; 1)
+ 		d.vol = 7219; /* Default to -8db */
+ 
+
+Modified: trunk/loader.c
+===================================================================
+--- trunk/loader.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/loader.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -647,8 +647,7 @@
+ 
+ 	if (name[0] == '_')
+ 		name++;
+-	if (!(n1 = alloca(strlen(name) + 2))) /* room for leading '_' and final '\0' */
+-		return NULL;
++	n1 = alloca(strlen(name) + 2); /* room for leading '_' and final '\0' */
+ 	n1[0] = '_';
+ 	strcpy(n1+1, name);
+ 	s = dlsym(m-&gt;lib, n1+1);	/* try without '_' */
+
+Modified: trunk/logger.c
+===================================================================
+--- trunk/logger.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/logger.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -861,10 +861,7 @@
+ 		time(&amp;t);
+ 		localtime_r(&amp;t, &amp;tm);
+ 		strftime(date, sizeof(date), dateformat, &amp;tm);
+-		if ((datefmt = alloca(strlen(date) + 3 + strlen(fmt) + 1))) {
+-			sprintf(datefmt, &quot;[%s] %s&quot;, date, fmt);
+-			fmt = datefmt;
+-		}
++		datefmt = alloca(strlen(date) + 3 + strlen(fmt) + 1);
+ 	}
+ 
+ 	/* this lock is also protecting against multiple threads
+
+Modified: trunk/manager.c
+===================================================================
+--- trunk/manager.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/manager.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -588,8 +588,7 @@
+ 		if (strncasecmp(&quot;Variable: &quot;, m-&gt;headers[x], varlen))
+ 			continue;
+ 
+-		if (!(parse = ast_strdupa(m-&gt;headers[x] + varlen)))
+-			return head;
++		parse = ast_strdupa(m-&gt;headers[x] + varlen);
+ 
+ 		AST_STANDARD_APP_ARGS(args, parse);
+ 		if (args.argc) {
+
+Modified: trunk/netsock.c
+===================================================================
+--- trunk/netsock.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/netsock.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -186,10 +186,6 @@
+ 	sin.sin_family = AF_INET;
+ 	sin.sin_port = htons(defaultport);
+ 	tmp = ast_strdupa(bindinfo);
+-	if (!tmp) {
+-		ast_log(LOG_WARNING, &quot;Out of memory!\n&quot;);
+-		return NULL;
+-	}
+ 
+ 	host = strsep(&amp;tmp, &quot;:&quot;);
+ 	port = tmp;
+
+Modified: trunk/pbx/pbx_dundi.c
+===================================================================
+--- trunk/pbx/pbx_dundi.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/pbx/pbx_dundi.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -3875,8 +3875,7 @@
+ 	int x;
+ 	int y;
+ 
+-	if (!(t = ast_strdupa(value)))
+-		return;
++	t = ast_strdupa(value);
+ 		
+ 	AST_LIST_TRAVERSE(&amp;mappings, map, list) {
+ 		/* Find a double match */
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/pbx.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -4989,8 +4989,7 @@
+ 	struct ast_flags flags = { 0 };
+ 
+ 	if (!ast_strlen_zero(data)) {
+-		if (!(args = ast_strdupa(data)))
+-			return -1;
++		args = ast_strdupa(data);
+ 		ast_app_parse_options(resetcdr_opts, &amp;flags, NULL, args);
+ 	}
+ 
+@@ -5034,16 +5033,15 @@
+ 		return -1;
+ 	}
+ 
+-	if ((s = ast_strdupa(data))) {
+-		ts = s;
++	ts = s = ast_strdupa(data);
+ 
+-		/* Separate the Goto path */
+-		strsep(&amp;ts,&quot;?&quot;);
++	/* Separate the Goto path */
++	strsep(&amp;ts,&quot;?&quot;);
+ 
+-		/* struct ast_include include contained garbage here, fixed by zeroing it on get_timerange */
+-		if (ast_build_timing(&amp;timing, s) &amp;&amp; ast_check_timing(&amp;timing))
+-			res = pbx_builtin_goto(chan, (void *)ts);
+-	}
++	/* struct ast_include include contained garbage here, fixed by zeroing it on get_timerange */
++	if (ast_build_timing(&amp;timing, s) &amp;&amp; ast_check_timing(&amp;timing))
++		res = pbx_builtin_goto(chan, ts);
++	
+ 	return res;
+ }
+ 
+@@ -5062,8 +5060,7 @@
+ 		return -1;
+ 	}
+ 
+-	if (!(appname = ast_strdupa(data)))
+-		return -1;
++	appname = ast_strdupa(data);
+ 
+ 	s = strsep(&amp;appname,&quot;?&quot;);	/* Separate the timerange and application name/data */
+ 	if (!appname) {	/* missing application */
+@@ -5121,8 +5118,7 @@
+ 	);
+ 
+ 	if (!ast_strlen_zero(data)) {
+-		if (!(parse = ast_strdupa(data)))
+-			return -1;
++		parse = ast_strdupa(data);
+ 		AST_STANDARD_APP_ARGS(args, parse);
+ 	} else
+ 		memset(&amp;args, 0, sizeof(args));
+@@ -5179,8 +5175,7 @@
+ 	if (ast_strlen_zero(data))
+ 		ast_log(LOG_WARNING, &quot;Background requires an argument (filename)\n&quot;);
+ 
+-	if (!(parse = ast_strdupa(data)))
+-		return -1;
++	parse = ast_strdupa(data);
+ 
+ 	AST_STANDARD_APP_ARGS(args, parse);
+ 
+
+Modified: trunk/res/res_agi.c
+===================================================================
+--- trunk/res/res_agi.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/res/res_agi.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -138,8 +138,6 @@
+ 
+ 	/* agiusl is &quot;<A HREF="agi://host.domain[:port">agi://host.domain[:port</A>][/script/name]&quot; */
+ 	host = ast_strdupa(agiurl + 6);	/* Remove <A HREF="agi://">agi://</A> */
+-	if (!host)
+-		return -1;
+ 	/* Strip off any script name */
+ 	if ((c = strchr(host, '/'))) {
+ 		*c = '\0';
+
+Modified: trunk/res/res_clioriginate.c
+===================================================================
+--- trunk/res/res_clioriginate.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/res/res_clioriginate.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -76,8 +76,7 @@
+ 	if (ast_strlen_zero(app))
+ 		return RESULT_SHOWUSAGE;
+ 
+-	if (!(chandata = ast_strdupa(chan)))
+-		return RESULT_FAILURE;
++	chandata = ast_strdupa(chan);
+ 	
+ 	chantech = strsep(&amp;chandata, &quot;/&quot;);
+ 	if (!chandata) {
+@@ -98,8 +97,7 @@
+ 	char *context = NULL;
+ 	int reason = 0;
+ 
+-	if (!(chandata = ast_strdupa(chan)))
+-		return RESULT_FAILURE;
++	chandata = ast_strdupa(chan);
+ 	
+ 	chantech = strsep(&amp;chandata, &quot;/&quot;);
+ 	if (!chandata) {
+@@ -108,8 +106,7 @@
+ 	}
+ 
+ 	if (!ast_strlen_zero(data)) {
+-		if (!(context = ast_strdupa(data)))
+-			return RESULT_FAILURE;
++		context = ast_strdupa(data);
+ 		exten = strsep(&amp;context, &quot;@&quot;);
+ 	}
+ 
+
+Modified: trunk/res/res_config_odbc.c
+===================================================================
+--- trunk/res/res_config_odbc.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/res/res_config_odbc.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -252,7 +252,7 @@
+ 		return NULL;
+ 	}
+ 	initfield = ast_strdupa(newparam);
+-	if (initfield &amp;&amp; (op = strchr(initfield, ' '))) 
++	if ((op = strchr(initfield, ' '))) 
+ 		*op = '\0';
+ 	newval = va_arg(aq, const char *);
+ 	if (!strchr(newparam, ' ')) op = &quot; =&quot;; else op = &quot;&quot;;
+
+Modified: trunk/res/res_config_pgsql.c
+===================================================================
+--- trunk/res/res_config_pgsql.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/res/res_config_pgsql.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -239,7 +239,7 @@
+ 	}
+ 
+ 	initfield = ast_strdupa(newparam);
+-	if (initfield &amp;&amp; (op = strchr(initfield, ' '))) {
++	if ((op = strchr(initfield, ' '))) {
+ 		*op = '\0';
+ 	}
+ 
+
+Modified: trunk/res/res_convert.c
+===================================================================
+--- trunk/res/res_convert.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/res/res_convert.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -72,8 +72,8 @@
+ 		goto fail_out;	
+ 	}
+ 
+-	if (!(file_in = ast_strdupa(argv[1])) || !(file_out = ast_strdupa(argv[2])))
+-		goto fail_out;
++	file_in = ast_strdupa(argv[1]);
++	file_out = ast_strdupa(argv[2]);
+ 
+ 	if (split_ext(file_in, &amp;name_in, &amp;ext_in)) {
+ 		ast_cli(fd, &quot;'%s' is an invalid filename!\n&quot;, argv[1]);
+
+Modified: trunk/res/res_features.c
+===================================================================
+--- trunk/res/res_features.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/res/res_features.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -174,27 +174,34 @@
+ 	char *x, *goto_on_transfer;
+ 	struct ast_frame *f;
+ 
+-	if (!ast_strlen_zero(val) &amp;&amp; (goto_on_transfer = ast_strdupa(val)) &amp;&amp; (xferchan = ast_channel_alloc(0))) {
+-		for (x = goto_on_transfer; x &amp;&amp; *x; x++)
+-			if (*x == '^')
+-				*x = '|';
+-		ast_string_field_set(xferchan, name, chan-&gt;name);
+-		/* Make formats okay */
+-		xferchan-&gt;readformat = chan-&gt;readformat;
+-		xferchan-&gt;writeformat = chan-&gt;writeformat;
+-		ast_channel_masquerade(xferchan, chan);
+-		ast_parseable_goto(xferchan, goto_on_transfer);
+-		xferchan-&gt;_state = AST_STATE_UP;
+-		ast_clear_flag(xferchan, AST_FLAGS_ALL);	
+-		xferchan-&gt;_softhangup = 0;
+-		if ((f = ast_read(xferchan))) {
+-			ast_frfree(f);
+-			f = NULL;
+-			ast_pbx_start(xferchan);
+-		} else {
+-			ast_hangup(xferchan);
+-		}
++	if (ast_strlen_zero(val))
++		return;
++
++	goto_on_transfer = ast_strdupa(val);
++
++	if (!(xferchan = ast_channel_alloc(0)))
++		return;
++
++	for (x = goto_on_transfer; x &amp;&amp; *x; x++) {
++		if (*x == '^')
++			*x = '|';
+ 	}
++	ast_string_field_set(xferchan, name, chan-&gt;name);
++	/* Make formats okay */
++	xferchan-&gt;readformat = chan-&gt;readformat;
++	xferchan-&gt;writeformat = chan-&gt;writeformat;
++	ast_channel_masquerade(xferchan, chan);
++	ast_parseable_goto(xferchan, goto_on_transfer);
++	xferchan-&gt;_state = AST_STATE_UP;
++	ast_clear_flag(xferchan, AST_FLAGS_ALL);	
++	xferchan-&gt;_softhangup = 0;
++	if ((f = ast_read(xferchan))) {
++		ast_frfree(f);
++		f = NULL;
++		ast_pbx_start(xferchan);
++	} else {
++		ast_hangup(xferchan);
++	}
+ }
+ 
+ static struct ast_channel *ast_feature_request_and_dial(struct ast_channel *caller, const char *type, int format, void *data, int timeout, int *outstate, const char *cid_num, const char *cid_name);
+@@ -920,9 +927,6 @@
+ 		char *tmp = ast_strdupa(dynamic_features);
+ 		char *tok;
+ 
+-		if (!tmp)
+-			return res;
+-		
+ 		while ((tok = strsep(&amp;tmp, &quot;#&quot;)) != NULL) {
+ 			feature = find_feature(tok);
+ 			
+@@ -966,11 +970,8 @@
+ 			char *tok;
+ 			struct ast_call_feature *feature;
+ 
+-			if (!tmp)	/* no memory */
+-				return;
+-
+ 			/* while we have a feature */
+-			while (NULL != (tok = strsep(&amp;tmp, &quot;#&quot;))) {
++			while ((tok = strsep(&amp;tmp, &quot;#&quot;))) {
+ 				if ((feature = find_feature(tok)) &amp;&amp; ast_test_flag(feature, AST_FEATURE_FLAG_NEEDSDTMF)) {
+ 					if (ast_test_flag(feature, AST_FEATURE_FLAG_CALLER))
+ 						ast_set_flag(config, AST_BRIDGE_DTMF_CHANNEL_0);
+@@ -1191,11 +1192,7 @@
+ 			src = peer;
+ 		if (monitor_app &amp;&amp; src) {
+ 			char *tmp = ast_strdupa(monitor_exec);
+-			if (tmp) {
+-				pbx_exec(src, monitor_app, tmp);
+-			} else {
+-				ast_log(LOG_ERROR, &quot;Monitor failed: out of memory\n&quot;);
+-			}
++			pbx_exec(src, monitor_app, tmp);
+ 		}
+ 	}
+ 	
+
+Modified: trunk/res/res_monitor.c
+===================================================================
+--- trunk/res/res_monitor.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/res/res_monitor.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -172,17 +172,13 @@
+ 			seq++;
+ 			ast_mutex_unlock(&amp;monitorlock);
+ 
+-			if((channel_name = ast_strdupa(chan-&gt;name))) {
+-				while((p = strchr(channel_name, '/'))) {
+-					*p = '-';
+-				}
+-				snprintf(monitor-&gt;filename_base, FILENAME_MAX, &quot;%s/%d-%s&quot;,
+-						 ast_config_AST_MONITOR_DIR, (int)time(NULL),channel_name);
+-				monitor-&gt;filename_changed = 1;
+-			} else {
+-				ast_log(LOG_ERROR,&quot;Failed to allocate Memory\n&quot;);
+-				return -1;
++			channel_name = ast_strdupa(chan-&gt;name);
++			while ((p = strchr(channel_name, '/'))) {
++				*p = '-';
+ 			}
++			snprintf(monitor-&gt;filename_base, FILENAME_MAX, &quot;%s/%d-%s&quot;,
++					 ast_config_AST_MONITOR_DIR, (int)time(NULL), channel_name);
++			monitor-&gt;filename_changed = 1;
+ 		}
+ 
+ 		monitor-&gt;stop = ast_monitor_stop;
+@@ -416,15 +412,13 @@
+ 		   the following could give NULL results, but we check just to
+ 		   be pedantic. Reconstructing with checks for 'm' option does not
+ 		   work if we end up adding more options than 'm' in the future. */
+-		delay = ast_strdupa((char*)data);
+-		if (delay) {
+-			options = strrchr(delay, '|');
+-			if (options) {
+-				arg = strchr(options, 'b');
+-				if (arg) {
+-					*arg = 'X';
+-					pbx_builtin_setvar_helper(chan,&quot;AUTO_MONITOR&quot;,delay);
+-				}
++		delay = ast_strdupa(data);
++		options = strrchr(delay, '|');
++		if (options) {
++			arg = strchr(options, 'b');
++			if (arg) {
++				*arg = 'X';
++				pbx_builtin_setvar_helper(chan,&quot;AUTO_MONITOR&quot;,delay);
+ 			}
+ 		}
+ 		return 0;
+
+Modified: trunk/strcompat.c
+===================================================================
+--- trunk/strcompat.c	2006-05-10 12:29:09 UTC (rev 124)
++++ trunk/strcompat.c	2006-05-10 13:30:35 UTC (rev 125)
+@@ -60,8 +60,7 @@
+ 	int buflen;
+ 
+ 	buflen = strlen(name) + strlen(value) + 2;
+-	if (!(buf = alloca(buflen)))
+- 		return -1;
++	buf = alloca(buflen);
+ 
+ 	if (!overwrite &amp;&amp; getenv(name))
+ 		return 0;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000120.html">[solid-pbx-svn] r124 - in trunk: . apps channels include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000122.html">[solid-pbx-svn] r126 - in trunk: . channels res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#121">[ date ]</a>
+              <a href="thread.html#121">[ thread ]</a>
+              <a href="subject.html#121">[ subject ]</a>
+              <a href="author.html#121">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

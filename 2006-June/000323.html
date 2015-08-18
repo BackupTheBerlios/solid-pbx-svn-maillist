@@ -1,0 +1,179 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r328 - in trunk: . apps include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r328%20-%20in%20trunk%3A%20.%20apps%20include/asterisk&In-Reply-To=%3C200606280029.k5S0TCn4002481%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000322.html">
+   <LINK REL="Next"  HREF="000324.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r328 - in trunk: . apps include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r328%20-%20in%20trunk%3A%20.%20apps%20include/asterisk&In-Reply-To=%3C200606280029.k5S0TCn4002481%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r328 - in trunk: . apps include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 02:29:12 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000322.html">[solid-pbx-svn] r327 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000324.html">[solid-pbx-svn] r329 - trunk/build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#323">[ date ]</a>
+              <a href="thread.html#323">[ thread ]</a>
+              <a href="subject.html#323">[ subject ]</a>
+              <a href="author.html#323">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 02:29:07 +0200 (Wed, 28 Jun 2006)
+New Revision: 328
+
+Modified:
+   trunk/apps/app_meetme.c
+   trunk/include/asterisk/lock.h
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r33553
+
+------------------------------------------------------------------------
+r33546 | russell | 2006-06-11 23:09:08 +0200 (Sun, 11 Jun 2006) | 11 lines
+
+Blocked revisions 33545 via svnmerge
+
+.......
+r33545 | russell | 2006-06-11 17:08:04 -0400 (Sun, 11 Jun 2006) | 4 lines
+
+fix up five little places where frames would not be free'd and remove an
+unnecessary mutex_unlock where there is no way for it to be locked at
+that time
+
+.......
+
+------------------------------------------------------------------------
+r33547 | russell | 2006-06-11 23:12:56 +0200 (Sun, 11 Jun 2006) | 3 lines
+
+fix up some places where frames are not free'd and remove an unnecessary
+unlock of the confs list where it is not possible for it to be locked
+
+------------------------------------------------------------------------
+r33549 | russell | 2006-06-11 23:23:16 +0200 (Sun, 11 Jun 2006) | 10 lines
+
+Merged revisions 33548 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r33548 | russell | 2006-06-11 17:21:23 -0400 (Sun, 11 Jun 2006) | 2 lines
+
+fix another place where a frame does not get free'd
+
+.......
+
+------------------------------------------------------------------------
+r33550 | russell | 2006-06-11 23:42:13 +0200 (Sun, 11 Jun 2006) | 2 lines
+
+suppress warnings when building with DEBUG_CHANNEL_LOCKS (issue #7330, casper)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_meetme.c
+===================================================================
+--- trunk/apps/app_meetme.c	2006-06-28 00:20:56 UTC (rev 327)
++++ trunk/apps/app_meetme.c	2006-06-28 00:29:07 UTC (rev 328)
+@@ -1444,16 +1444,19 @@
+ 					if (!ast_goto_if_exists(chan, exitcontext, tmp, 1)) {
+ 						ast_log(LOG_DEBUG, &quot;Got DTMF %c, goto context %s\n&quot;, tmp[0], exitcontext);
+ 						ret = 0;
++						ast_frfree(f);
+ 						break;
+ 					} else if (option_debug &gt; 1)
+ 						ast_log(LOG_DEBUG, &quot;Exit by single digit did not work in meetme. Extension %s does not exist in context %s\n&quot;, tmp, exitcontext);
+ 				} else if ((f-&gt;frametype == AST_FRAME_DTMF) &amp;&amp; (f-&gt;subclass == '#') &amp;&amp; (confflags &amp; CONFFLAG_POUNDEXIT)) {
+ 					ret = 0;
++					ast_frfree(f);
+ 					break;
+ 				} else if (((f-&gt;frametype == AST_FRAME_DTMF) &amp;&amp; (f-&gt;subclass == '*') &amp;&amp; (confflags &amp; CONFFLAG_STARMENU)) || ((f-&gt;frametype == AST_FRAME_DTMF) &amp;&amp; menu_active)) {
+ 					if (ioctl(fd, ZT_SETCONF, &amp;ztc_empty)) {
+ 						ast_log(LOG_WARNING, &quot;Error setting conference\n&quot;);
+ 						close(fd);
++						ast_frfree(f);
+ 						goto outrun;
+ 					}
+ 
+@@ -1599,7 +1602,7 @@
+ 					if (ioctl(fd, ZT_SETCONF, &amp;ztc)) {
+ 						ast_log(LOG_WARNING, &quot;Error setting conference\n&quot;);
+ 						close(fd);
+-						AST_LIST_UNLOCK(&amp;confs);
++						ast_frfree(f);
+ 						goto outrun;
+ 					}
+ 
+
+Modified: trunk/include/asterisk/lock.h
+===================================================================
+--- trunk/include/asterisk/lock.h	2006-06-28 00:20:56 UTC (rev 327)
++++ trunk/include/asterisk/lock.h	2006-06-28 00:29:07 UTC (rev 328)
+@@ -782,6 +782,8 @@
+ #define ast_channel_trylock(x)		ast_mutex_trylock(&amp;x-&gt;lock)
+ #else
+ 
++struct ast_channel;
++
+ /*! \brief Lock AST channel (and print debugging output)
+ \note You need to enable DEBUG_CHANNEL_LOCKS for this function */
+ int ast_channel_lock(struct ast_channel *chan);
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-06-28 00:20:56 UTC (rev 327)
++++ trunk/pbx.c	2006-06-28 00:29:07 UTC (rev 328)
+@@ -4456,8 +4456,10 @@
+ 			break;
+ 		if (f-&gt;frametype == AST_FRAME_CONTROL) {
+ 			if ((f-&gt;subclass == AST_CONTROL_BUSY)  ||
+-				(f-&gt;subclass == AST_CONTROL_CONGESTION) )
+-					break;
++			    (f-&gt;subclass == AST_CONTROL_CONGESTION) ) {
++				ast_frfree(f);
++				break;
++			}
+ 		}
+ 		ast_frfree(f);
+ 	}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000322.html">[solid-pbx-svn] r327 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000324.html">[solid-pbx-svn] r329 - trunk/build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#323">[ date ]</a>
+              <a href="thread.html#323">[ thread ]</a>
+              <a href="subject.html#323">[ subject ]</a>
+              <a href="author.html#323">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

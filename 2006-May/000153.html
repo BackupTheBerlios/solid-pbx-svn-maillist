@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r158 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r158%20-%20trunk/channels&In-Reply-To=%3C200605161829.k4GITRP1003551%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000152.html">
+   <LINK REL="Next"  HREF="000154.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r158 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r158%20-%20trunk/channels&In-Reply-To=%3C200605161829.k4GITRP1003551%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r158 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May 16 20:29:27 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000152.html">[solid-pbx-svn] r157 - in trunk/channels: . misdn
+</A></li>
+        <LI>Next message: <A HREF="000154.html">[solid-pbx-svn] r159 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#153">[ date ]</a>
+              <a href="thread.html#153">[ thread ]</a>
+              <a href="subject.html#153">[ subject ]</a>
+              <a href="author.html#153">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-16 20:29:08 +0200 (Tue, 16 May 2006)
+New Revision: 158
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r27397
+
+------------------------------------------------------------------------
+r27396 | oej | 2006-05-16 20:06:27 +0200 (Tue, 16 May 2006) | 2 lines
+
+Show all formats for an active SIP call
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-16 15:29:18 UTC (rev 157)
++++ trunk/channels/chan_sip.c	2006-05-16 18:29:08 UTC (rev 158)
+@@ -8955,6 +8955,7 @@
+ 	ast_mutex_lock(&amp;iflock);
+ 	for (cur = iflist; cur; cur = cur-&gt;next) {
+ 		if (!strncasecmp(cur-&gt;callid, argv[3], len)) {
++			char formatbuf[BUFSIZ/2];
+ 			ast_cli(fd,&quot;\n&quot;);
+ 			if (cur-&gt;subscribed != NONE)
+ 				ast_cli(fd, &quot;  * Subscription (type: %s)\n&quot;, subscription_type2str(cur-&gt;subscribed));
+@@ -8963,10 +8964,10 @@
+ 			ast_cli(fd, &quot;  Direction:              %s\n&quot;, ast_test_flag(&amp;cur-&gt;flags[0], SIP_OUTGOING)?&quot;Outgoing&quot;:&quot;Incoming&quot;);
+ 			ast_cli(fd, &quot;  Call-ID:                %s\n&quot;, cur-&gt;callid);
+ 			ast_cli(fd, &quot;  Our Codec Capability:   %d\n&quot;, cur-&gt;capability);
+-			ast_cli(fd, &quot;  Non-Codec Capability:   %d\n&quot;, cur-&gt;noncodeccapability);
++			ast_cli(fd, &quot;  Non-Codec Capability (DTMF):   %d\n&quot;, cur-&gt;noncodeccapability);
+ 			ast_cli(fd, &quot;  Their Codec Capability:   %d\n&quot;, cur-&gt;peercapability);
+ 			ast_cli(fd, &quot;  Joint Codec Capability:   %d\n&quot;, cur-&gt;jointcapability);
+-			ast_cli(fd, &quot;  Format                  %s\n&quot;, ast_getformatname(cur-&gt;owner ? cur-&gt;owner-&gt;nativeformats : 0) );
++			ast_cli(fd, &quot;  Format                  %s\n&quot;, ast_getformatname_multiple(formatbuf, sizeof(formatbuf), cur-&gt;owner ? cur-&gt;owner-&gt;nativeformats : 0) );
+ 			ast_cli(fd, &quot;  Theoretical Address:    %s:%d\n&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), cur-&gt;sa.sin_addr), ntohs(cur-&gt;sa.sin_port));
+ 			ast_cli(fd, &quot;  Received Address:       %s:%d\n&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), cur-&gt;recv.sin_addr), ntohs(cur-&gt;recv.sin_port));
+ 			ast_cli(fd, &quot;  SIP Transfer mode:      %s\n&quot;, transfermode2str(cur-&gt;allowtransfer));
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000152.html">[solid-pbx-svn] r157 - in trunk/channels: . misdn
+</A></li>
+	<LI>Next message: <A HREF="000154.html">[solid-pbx-svn] r159 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#153">[ date ]</a>
+              <a href="thread.html#153">[ thread ]</a>
+              <a href="subject.html#153">[ subject ]</a>
+              <a href="author.html#153">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

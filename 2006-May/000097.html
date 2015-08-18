@@ -1,0 +1,361 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r98 - in trunk: . include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r98%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200605082118.k48LIUTV004858%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000100.html">
+   <LINK REL="Next"  HREF="000098.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r98 - in trunk: . include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r98%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200605082118.k48LIUTV004858%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r98 - in trunk: . include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  8 23:18:30 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000100.html">[solid-pbx-svn] r97 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000098.html">[solid-pbx-svn] r99 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#97">[ date ]</a>
+              <a href="thread.html#97">[ thread ]</a>
+              <a href="subject.html#97">[ subject ]</a>
+              <a href="author.html#97">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-08 23:18:27 +0200 (Mon, 08 May 2006)
+New Revision: 98
+
+Modified:
+   trunk/Makefile
+   trunk/include/asterisk/ael_structs.h
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r25715
+
+------------------------------------------------------------------------
+r25683 | rizzo | 2006-05-08 22:49:30 +0200 (Mon, 08 May 2006) | 3 lines
+
+minor code restructuring in preparation for more work.
+
+
+------------------------------------------------------------------------
+r25684 | russell | 2006-05-08 22:50:43 +0200 (Mon, 08 May 2006) | 3 lines
+
+on mac, QUAD_MIN and QUAD_MAX are already defined, so this causes a bunch
+of warnings
+
+------------------------------------------------------------------------
+r25686 | russell | 2006-05-08 23:00:16 +0200 (Mon, 08 May 2006) | 3 lines
+
+make sure that the MOD_SUBDIR_CFLAGS and OTHER_SUBDIR_FLAGS come before
+ASTCFLAGS so that -Iinclude comes before any system include path
+
+------------------------------------------------------------------------
+r25714 | russell | 2006-05-08 23:07:12 +0200 (Mon, 08 May 2006) | 2 lines
+
+revert a patch that wasn't supposed to be committed ... oops
+
+------------------------------------------------------------------------
+r25715 | rizzo | 2006-05-08 23:09:03 +0200 (Mon, 08 May 2006) | 3 lines
+
+fix indentation of a large block.
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-08 20:12:39 UTC (rev 97)
++++ trunk/Makefile	2006-05-08 21:18:27 UTC (rev 98)
+@@ -528,7 +528,7 @@
+ 	rm -f $@.tmp
+ 
+ stdtime/libtime.a:
+-	CFLAGS=&quot;$(ASTCFLAGS) $(MOD_SUBDIR_CFLAGS)&quot; $(MAKE) -C stdtime libtime.a
++	CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS) $(ASTCFLAGS)&quot; $(MAKE) -C stdtime libtime.a
+ 
+ asterisk: editline/libedit.a db1-ast/libdb1.a stdtime/libtime.a $(OBJS)
+ 	build_tools/make_build_h &gt; include/asterisk/build.h.tmp
+@@ -543,9 +543,9 @@
+ 	$(CC) $(AUDIO_LIBS) -o muted muted.o
+ 
+ subdirs: 
+-	@for x in $(MOD_SUBDIRS); do CFLAGS=&quot;$(ASTCFLAGS) $(MOD_SUBDIR_CFLAGS)&quot; $(MAKE) -C $$x || exit 1 ; done
+-	@CFLAGS=&quot;$(ASTCFLAGS) $(OTHER_SUBDIR_CFLAGS)&quot; $(MAKE) -C utils
+-	@CFLAGS=&quot;$(ASTCFLAGS) $(OTHER_SUBDIR_CFLAGS)&quot; $(MAKE) -C agi
++	@for x in $(MOD_SUBDIRS); do CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS) $(ASTCFLAGS)&quot; $(MAKE) -C $$x || exit 1 ; done
++	@CFLAGS=&quot;$(OTHER_SUBDIR_CFLAGS) $(ASTCFLAGS)&quot; $(MAKE) -C utils
++	@CFLAGS=&quot;$(OTHER_SUBDIR_CFLAGS) $(ASTCFLAGS)&quot; $(MAKE) -C agi
+ 
+ clean-depend:
+ 	@for x in $(SUBDIRS); do $(MAKE) -C $$x clean-depend || exit 1 ; done
+
+Modified: trunk/include/asterisk/ael_structs.h
+===================================================================
+--- trunk/include/asterisk/ael_structs.h	2006-05-08 20:12:39 UTC (rev 97)
++++ trunk/include/asterisk/ael_structs.h	2006-05-08 21:18:27 UTC (rev 98)
+@@ -7,10 +7,10 @@
+ #define quad_t int64_t
+ #endif
+ 
+-#ifdef LONG_LONG_MIN
++#if defined(LONG_LONG_MIN) &amp;&amp; !defined(QUAD_MIN)
+ #define QUAD_MIN LONG_LONG_MIN
+ #endif
+-#ifdef LONG_LONG_MAX
++#if defined(LONG_LONG_MAX) &amp;&amp; !defined(QUAD_MAX)
+ #define QUAD_MAX LONG_LONG_MAX
+ #endif
+ 
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-08 20:12:39 UTC (rev 97)
++++ trunk/pbx.c	2006-05-08 21:18:27 UTC (rev 98)
+@@ -716,7 +716,12 @@
+ 	return ast_extension_match(cidpattern, callerid);
+ }
+ 
+-static struct ast_exten *pbx_find_extension(struct ast_channel *chan, struct ast_context *bypass, const char *context, const char *exten, int priority, const char *label, const char *callerid, int action, char *incstack[], int *stacklen, int *status, struct ast_switch **swo, char **data, const char **foundcontext)
++static struct ast_exten *pbx_find_extension(struct ast_channel *chan,
++	struct ast_context *bypass,
++	const char *context, const char *exten, int priority,
++	const char *label, const char *callerid, int action,
++	char *incstack[], int *stacklen, int *status, struct ast_switch **swo,
++	char **data, const char **foundcontext)
+ {
+ 	int x, res;
+ 	struct ast_context *tmp;
+@@ -725,6 +730,8 @@
+ 	struct ast_sw *sw;
+ 	struct ast_switch *asw;
+ 
++	struct ast_exten *earlymatch = NULL;
++
+ 	/* Initialize status if appropriate */
+ 	if (!*stacklen) {
+ 		*status = STATUS_NO_CONTEXT;
+@@ -741,96 +748,96 @@
+ 		if (!strcasecmp(incstack[x], context))
+ 			return NULL;
+ 	}
+-	if (bypass)
++	if (bypass)	/* bypass means we only look there */
+ 		tmp = bypass;
+-	else
+-		tmp = contexts;
+-	for (; tmp; tmp = tmp-&gt;next) {
+-		/* Match context */
+-		if (bypass || !strcmp(tmp-&gt;name, context)) {
+-			struct ast_exten *earlymatch = NULL;
++	else {	/* look in contexts */
++		for (tmp = contexts; tmp; tmp = tmp-&gt;next) {
++			if (!strcmp(tmp-&gt;name, context))
++				break;
++		}
++		if (!tmp)
++			return NULL;
++	}
+ 
+-			if (*status &lt; STATUS_NO_EXTENSION)
+-				*status = STATUS_NO_EXTENSION;
+-			for (eroot = tmp-&gt;root; eroot; eroot = eroot-&gt;next) {
+-				int match = 0;
+-				/* Match extension */
+-				if ((((action != HELPER_MATCHMORE) &amp;&amp; ast_extension_match(eroot-&gt;exten, exten)) ||
+-				     ((action == HELPER_CANMATCH) &amp;&amp; (ast_extension_close(eroot-&gt;exten, exten, 0))) ||
+-				     ((action == HELPER_MATCHMORE) &amp;&amp; (match = ast_extension_close(eroot-&gt;exten, exten, 1)))) &amp;&amp;
+-				     (!eroot-&gt;matchcid || matchcid(eroot-&gt;cidmatch, callerid))) {
++	if (*status &lt; STATUS_NO_EXTENSION)
++		*status = STATUS_NO_EXTENSION;
++	for (eroot = tmp-&gt;root; eroot; eroot = eroot-&gt;next) {
++		int match = 0;
++		/* Match extension */
++		if ((((action != HELPER_MATCHMORE) &amp;&amp; ast_extension_match(eroot-&gt;exten, exten)) ||
++		     ((action == HELPER_CANMATCH) &amp;&amp; (ast_extension_close(eroot-&gt;exten, exten, 0))) ||
++		     ((action == HELPER_MATCHMORE) &amp;&amp; (match = ast_extension_close(eroot-&gt;exten, exten, 1)))) &amp;&amp;
++		     (!eroot-&gt;matchcid || matchcid(eroot-&gt;cidmatch, callerid))) {
+ 
+-					if (action == HELPER_MATCHMORE &amp;&amp; match == 2 &amp;&amp; !earlymatch) {
+-						/* It matched an extension ending in a '!' wildcard
+-						   So ignore it for now, unless there's a better match */
+-						earlymatch = eroot;
+-					} else {
+-						if (*status &lt; STATUS_NO_PRIORITY)
+-							*status = STATUS_NO_PRIORITY;
+-						for (e = eroot; e; e = e-&gt;peer) {
+-							/* Match priority */
+-							if (action == HELPER_FINDLABEL) {
+-								if (*status &lt; STATUS_NO_LABEL)
+-									*status = STATUS_NO_LABEL;
+-							 	if (label &amp;&amp; e-&gt;label &amp;&amp; !strcmp(label, e-&gt;label)) {
+-									*status = STATUS_SUCCESS;
+-									*foundcontext = context;
+-									return e;
+-								}
+-							} else if (e-&gt;priority == priority) {
+-								*status = STATUS_SUCCESS;
+-								*foundcontext = context;
+-								return e;
+-							}
++			if (action == HELPER_MATCHMORE &amp;&amp; match == 2 &amp;&amp; !earlymatch) {
++				/* It matched an extension ending in a '!' wildcard
++				   So ignore it for now, unless there's a better match */
++				earlymatch = eroot;
++			} else {
++				if (*status &lt; STATUS_NO_PRIORITY)
++					*status = STATUS_NO_PRIORITY;
++				for (e = eroot; e; e = e-&gt;peer) {
++					/* Match priority */
++					if (action == HELPER_FINDLABEL) {
++						if (*status &lt; STATUS_NO_LABEL)
++							*status = STATUS_NO_LABEL;
++						if (label &amp;&amp; e-&gt;label &amp;&amp; !strcmp(label, e-&gt;label)) {
++							*status = STATUS_SUCCESS;
++							*foundcontext = context;
++							return e;
+ 						}
++					} else if (e-&gt;priority == priority) {
++						*status = STATUS_SUCCESS;
++						*foundcontext = context;
++						return e;
+ 					}
+ 				}
+ 			}
+-			if (earlymatch) {
+-				/* Bizarre logic for HELPER_MATCHMORE. We return zero to break out 
+-				   of the loop waiting for more digits, and _then_ match (normally)
+-				   the extension we ended up with. We got an early-matching wildcard
+-				   pattern, so return NULL to break out of the loop. */
++		}
++	}
++	if (earlymatch) {
++		/* Bizarre logic for HELPER_MATCHMORE. We return zero to break out 
++		   of the loop waiting for more digits, and _then_ match (normally)
++		   the extension we ended up with. We got an early-matching wildcard
++		   pattern, so return NULL to break out of the loop. */
++		return NULL;
++	}
++	/* Check alternative switches */
++	AST_LIST_TRAVERSE(&amp;tmp-&gt;alts, sw, list) {
++		if ((asw = pbx_findswitch(sw-&gt;name))) {
++			/* Substitute variables now */
++			if (sw-&gt;eval) 
++				pbx_substitute_variables_helper(chan, sw-&gt;data, sw-&gt;tmpdata, SWITCH_DATA_LENGTH - 1);
++			if (action == HELPER_CANMATCH)
++				res = asw-&gt;canmatch ? asw-&gt;canmatch(chan, context, exten, priority, callerid, sw-&gt;eval ? sw-&gt;tmpdata : sw-&gt;data) : 0;
++			else if (action == HELPER_MATCHMORE)
++				res = asw-&gt;matchmore ? asw-&gt;matchmore(chan, context, exten, priority, callerid, sw-&gt;eval ? sw-&gt;tmpdata : sw-&gt;data) : 0;
++			else
++				res = asw-&gt;exists ? asw-&gt;exists(chan, context, exten, priority, callerid, sw-&gt;eval ? sw-&gt;tmpdata : sw-&gt;data) : 0;
++			if (res) {
++				/* Got a match */
++				*swo = asw;
++				*data = sw-&gt;eval ? sw-&gt;tmpdata : sw-&gt;data;
++				*foundcontext = context;
+ 				return NULL;
+ 			}
+-			/* Check alternative switches */
+-			AST_LIST_TRAVERSE(&amp;tmp-&gt;alts, sw, list) {
+-				if ((asw = pbx_findswitch(sw-&gt;name))) {
+-					/* Substitute variables now */
+-					if (sw-&gt;eval) 
+-						pbx_substitute_variables_helper(chan, sw-&gt;data, sw-&gt;tmpdata, SWITCH_DATA_LENGTH - 1);
+-					if (action == HELPER_CANMATCH)
+-						res = asw-&gt;canmatch ? asw-&gt;canmatch(chan, context, exten, priority, callerid, sw-&gt;eval ? sw-&gt;tmpdata : sw-&gt;data) : 0;
+-					else if (action == HELPER_MATCHMORE)
+-						res = asw-&gt;matchmore ? asw-&gt;matchmore(chan, context, exten, priority, callerid, sw-&gt;eval ? sw-&gt;tmpdata : sw-&gt;data) : 0;
+-					else
+-						res = asw-&gt;exists ? asw-&gt;exists(chan, context, exten, priority, callerid, sw-&gt;eval ? sw-&gt;tmpdata : sw-&gt;data) : 0;
+-					if (res) {
+-						/* Got a match */
+-						*swo = asw;
+-						*data = sw-&gt;eval ? sw-&gt;tmpdata : sw-&gt;data;
+-						*foundcontext = context;
+-						return NULL;
+-					}
+-				} else {
+-					ast_log(LOG_WARNING, &quot;No such switch '%s'\n&quot;, sw-&gt;name);
+-				}
+-			}
+-			/* Setup the stack */
+-			incstack[*stacklen] = tmp-&gt;name;
+-			(*stacklen)++;
+-			/* Now try any includes we have in this context */
+-			for (i = tmp-&gt;includes; i; i = i-&gt;next) {
+-				if (include_valid(i)) {
+-					if ((e = pbx_find_extension(chan, bypass, i-&gt;rname, exten, priority, label, callerid, action, incstack, stacklen, status, swo, data, foundcontext))) 
+-						return e;
+-					if (*swo) 
+-						return NULL;
+-				}
+-			}
+-			break;
++		} else {
++			ast_log(LOG_WARNING, &quot;No such switch '%s'\n&quot;, sw-&gt;name);
+ 		}
+ 	}
++	/* Setup the stack */
++	incstack[*stacklen] = tmp-&gt;name;
++	(*stacklen)++;
++	/* Now try any includes we have in this context */
++	for (i = tmp-&gt;includes; i; i = i-&gt;next) {
++		if (include_valid(i)) {
++			if ((e = pbx_find_extension(chan, bypass, i-&gt;rname, exten, priority, label, callerid, action, incstack, stacklen, status, swo, data, foundcontext))) 
++				return e;
++			if (*swo) 
++				return NULL;
++		}
++	}
++
+ 	return NULL;
+ }
+ 
+@@ -878,6 +885,7 @@
+ 
+ 	ast_copy_string(workspace, value, workspace_len); /* always make a copy */
+ 
++	/* Quick check if no need to do anything */
+ 	if (offset == 0 &amp;&amp; length &lt; 0)	/* take the whole string */
+ 		return ret;
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000100.html">[solid-pbx-svn] r97 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000098.html">[solid-pbx-svn] r99 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#97">[ date ]</a>
+              <a href="thread.html#97">[ thread ]</a>
+              <a href="subject.html#97">[ subject ]</a>
+              <a href="author.html#97">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

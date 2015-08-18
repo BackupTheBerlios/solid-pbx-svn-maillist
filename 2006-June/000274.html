@@ -1,0 +1,122 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r279 - trunk/res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r279%20-%20trunk/res&In-Reply-To=%3C200606182209.k5IM97s8017542%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000273.html">
+   <LINK REL="Next"  HREF="000275.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r279 - trunk/res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r279%20-%20trunk/res&In-Reply-To=%3C200606182209.k5IM97s8017542%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r279 - trunk/res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon Jun 19 00:09:07 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000273.html">[solid-pbx-svn] r278 - trunk/configs
+</A></li>
+        <LI>Next message: <A HREF="000275.html">[solid-pbx-svn] r280 - in trunk: include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#274">[ date ]</a>
+              <a href="thread.html#274">[ thread ]</a>
+              <a href="subject.html#274">[ subject ]</a>
+              <a href="author.html#274">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-19 00:09:05 +0200 (Mon, 19 Jun 2006)
+New Revision: 279
+
+Modified:
+   trunk/res/res_jabber.c
+Log:
+Update to Asterisk SVN trunk r32643
+
+------------------------------------------------------------------------
+r32634 | mogorman | 2006-06-06 19:25:07 +0200 (Tue, 06 Jun 2006) | 2 lines
+
+fixed autoregister bug.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/res/res_jabber.c
+===================================================================
+--- trunk/res/res_jabber.c	2006-06-18 21:54:29 UTC (rev 278)
++++ trunk/res/res_jabber.c	2006-06-18 22:09:05 UTC (rev 279)
+@@ -1584,23 +1584,23 @@
+ 			});
+ 
+ 			if (!flag) {
+-				if (ast_test_flag(client, AJI_AUTOPRUNE)) {
+-					buddy = (struct aji_buddy *) malloc(sizeof(struct aji_buddy));
+-					if (!buddy)
+-						ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
+-					memset(buddy, 0, sizeof(struct aji_buddy));
+-					ASTOBJ_INIT(buddy);
+-					ASTOBJ_WRLOCK(buddy);
+-					ast_copy_string(buddy-&gt;name, iks_find_attrib(x, &quot;jid&quot;), sizeof(buddy-&gt;name));
+-					ast_copy_string(buddy-&gt;user, iks_find_attrib(x, &quot;jid&quot;), sizeof(buddy-&gt;user));
+-					ast_clear_flag(buddy, AST_FLAGS_ALL);
++				buddy = (struct aji_buddy *) malloc(sizeof(struct aji_buddy));
++				if (!buddy)
++					ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++				memset(buddy, 0, sizeof(struct aji_buddy));
++				ASTOBJ_INIT(buddy);
++				ASTOBJ_WRLOCK(buddy);
++				ast_copy_string(buddy-&gt;name, iks_find_attrib(x, &quot;jid&quot;), sizeof(buddy-&gt;name));
++				ast_clear_flag(buddy, AST_FLAGS_ALL);
++				if(ast_test_flag(client, AJI_AUTOPRUNE)) {
+ 					ast_set_flag(buddy, AJI_AUTOPRUNE);
+ 					buddy-&gt;objflags |= ASTOBJ_FLAG_MARKED;
+-					ASTOBJ_UNLOCK(buddy);
+-					if (buddy) {
+-						ASTOBJ_CONTAINER_LINK(&amp;client-&gt;buddies, buddy);
+-						ASTOBJ_UNREF(buddy, aji_buddy_destroy);
+-					}
++				} else
++					ast_set_flag(buddy, AJI_AUTOREGISTER);
++				ASTOBJ_UNLOCK(buddy);
++				if (buddy) {
++					ASTOBJ_CONTAINER_LINK(&amp;client-&gt;buddies, buddy);
++					ASTOBJ_UNREF(buddy, aji_buddy_destroy);
+ 				}
+ 			}
+ 		}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000273.html">[solid-pbx-svn] r278 - trunk/configs
+</A></li>
+	<LI>Next message: <A HREF="000275.html">[solid-pbx-svn] r280 - in trunk: include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#274">[ date ]</a>
+              <a href="thread.html#274">[ thread ]</a>
+              <a href="subject.html#274">[ subject ]</a>
+              <a href="author.html#274">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

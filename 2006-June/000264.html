@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r269 - in trunk: . build_tools
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r269%20-%20in%20trunk%3A%20.%20build_tools&In-Reply-To=%3C200606182048.k5IKm4Nt010888%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000263.html">
+   <LINK REL="Next"  HREF="000265.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r269 - in trunk: . build_tools</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r269%20-%20in%20trunk%3A%20.%20build_tools&In-Reply-To=%3C200606182048.k5IKm4Nt010888%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r269 - in trunk: . build_tools">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 22:48:04 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000263.html">[solid-pbx-svn] r268 - in trunk: apps build_tools cdr channels codecs formats funcs pbx res utils
+</A></li>
+        <LI>Next message: <A HREF="000265.html">[solid-pbx-svn] r270 - in trunk: . channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#264">[ date ]</a>
+              <a href="thread.html#264">[ thread ]</a>
+              <a href="subject.html#264">[ subject ]</a>
+              <a href="author.html#264">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 22:48:03 +0200 (Sun, 18 Jun 2006)
+New Revision: 269
+
+Modified:
+   trunk/Makefile
+   trunk/build_tools/cflags.xml
+Log:
+Update to Asterisk SVN trunk r32443
+
+------------------------------------------------------------------------
+r32434 | russell | 2006-06-06 02:25:23 +0200 (Tue, 06 Jun 2006) | 4 lines
+
+add the ability to do the same thing as &quot;make dont-optimize&quot; by enabling the
+option in menuselect.  This is very useful for developers if you want to ensure
+that all of your builds are done without optimizations.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-18 20:41:11 UTC (rev 268)
++++ trunk/Makefile	2006-06-18 20:48:03 UTC (rev 269)
+@@ -37,22 +37,6 @@
+ # Remember the MAKELEVEL at the top
+ MAKETOPLEVEL?=$(MAKELEVEL)
+ 
+-ifeq ($(findstring dont-optimize,$(MAKECMDGOALS)),)
+-# More GSM codec optimization
+-# Uncomment to enable MMXTM optimizations for x86 architecture CPU's
+-# which support MMX instructions.  This should be newer pentiums,
+-# ppro's, etc, as well as the AMD K6 and K7.  
+-#K6OPT  = -DK6OPT
+-
+-# Tell gcc to optimize the code
+-OPTIMIZE+=-O6
+-else
+-  # Stack backtraces, while useful for debugging, are incompatible with optimizations
+-  ifeq (${OSARCH},Linux)
+-    CFLAGS+=-DSTACK_BACKTRACES
+-  endif
+-endif
+-
+ # Overwite config files on &quot;make samples&quot;
+ OVERWRITE=y
+ 
+@@ -147,6 +131,29 @@
+ MOD_SUBDIR_CFLAGS=-include ../include/autoconfig.h -I../include -I..
+ OTHER_SUBDIR_CFLAGS=-include ../include/autoconfig.h -I../include -I..
+ 
++ifeq ($(findstring dont-optimize,$(MAKECMDGOALS)),)
++  ifeq ($(findstring DONT_OPTIMIZE,$(MENUSELECT_CFLAGS)),)
++# More GSM codec optimization
++# Uncomment to enable MMXTM optimizations for x86 architecture CPU's
++# which support MMX instructions.  This should be newer pentiums,
++# ppro's, etc, as well as the AMD K6 and K7.  
++#K6OPT  = -DK6OPT
++
++# Tell gcc to optimize the code
++OPTIMIZE+=-O6
++  else
++    # Stack backtraces, while useful for debugging, are incompatible with optimizations
++    ifeq (${OSARCH},Linux)
++      CFLAGS+=-DSTACK_BACKTRACES
++    endif
++  endif
++else
++  # Stack backtraces, while useful for debugging, are incompatible with optimizations
++  ifeq (${OSARCH},Linux)
++    CFLAGS+=-DSTACK_BACKTRACES
++  endif
++endif
++
+ #   *CLI&gt; show memory allocations [filename]
+ #   *CLI&gt; show memory summary [filename]
+ ifneq ($(findstring MALLOC_DEBUG,$(MENUSELECT_CFLAGS)),)
+
+Modified: trunk/build_tools/cflags.xml
+===================================================================
+--- trunk/build_tools/cflags.xml	2006-06-18 20:41:11 UTC (rev 268)
++++ trunk/build_tools/cflags.xml	2006-06-18 20:48:03 UTC (rev 269)
+@@ -7,6 +7,8 @@
+ 		&lt;/member&gt;
+ 		&lt;member name=&quot;DETECT_DEADLOCKS&quot; displayname=&quot;Detect Deadlocks&quot;&gt;
+ 		&lt;/member&gt;
++		&lt;member name=&quot;DONT_OPTIMIZE&quot; displayname=&quot;Disable Optimizations from the Compiler&quot;&gt;
++		&lt;/member&gt;
+ 		&lt;member name=&quot;DUMP_SCHEDULER&quot; displayname=&quot;Dump Scheduler Contents for Debugging&quot;&gt;
+ 		&lt;/member&gt;
+ 		&lt;member name=&quot;LOW_MEMORY&quot; displayname=&quot;Optimize for Low Memory Usage&quot;&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000263.html">[solid-pbx-svn] r268 - in trunk: apps build_tools cdr channels codecs formats funcs pbx res utils
+</A></li>
+	<LI>Next message: <A HREF="000265.html">[solid-pbx-svn] r270 - in trunk: . channels include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#264">[ date ]</a>
+              <a href="thread.html#264">[ thread ]</a>
+              <a href="subject.html#264">[ subject ]</a>
+              <a href="author.html#264">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r131 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r131%20-%20trunk/channels&In-Reply-To=%3C200605110729.k4B7TMSP001707%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000126.html">
+   <LINK REL="Next"  HREF="000128.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r131 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r131%20-%20trunk/channels&In-Reply-To=%3C200605110729.k4B7TMSP001707%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r131 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May 11 09:29:22 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000126.html">[solid-pbx-svn] r130 - in trunk: . pbx
+</A></li>
+        <LI>Next message: <A HREF="000128.html">[solid-pbx-svn] r132 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#127">[ date ]</a>
+              <a href="thread.html#127">[ thread ]</a>
+              <a href="subject.html#127">[ subject ]</a>
+              <a href="author.html#127">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-11 09:29:17 +0200 (Thu, 11 May 2006)
+New Revision: 131
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r26716
+
+------------------------------------------------------------------------
+r26716 | oej | 2006-05-11 09:25:03 +0200 (Thu, 11 May 2006) | 2 lines
+
+Issue #7081 (kanoop) - use proper cause code for 480
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-10 22:33:23 UTC (rev 130)
++++ trunk/channels/chan_sip.c	2006-05-11 07:29:17 UTC (rev 131)
+@@ -2541,7 +2541,7 @@
+ 		case 420:	/* Bad extension */
+ 			return AST_CAUSE_NO_ROUTE_DESTINATION;
+ 		case 480:	/* No answer */
+-			return AST_CAUSE_FAILURE;
++			return AST_CAUSE_NO_ANSWER;
+ 		case 481:	/* No answer */
+ 			return AST_CAUSE_INTERWORKING;
+ 		case 482:	/* Loop detected */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000126.html">[solid-pbx-svn] r130 - in trunk: . pbx
+</A></li>
+	<LI>Next message: <A HREF="000128.html">[solid-pbx-svn] r132 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#127">[ date ]</a>
+              <a href="thread.html#127">[ thread ]</a>
+              <a href="subject.html#127">[ subject ]</a>
+              <a href="author.html#127">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

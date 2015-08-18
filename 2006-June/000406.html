@@ -1,0 +1,357 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r411 - in trunk: . apps configs sounds
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r411%20-%20in%20trunk%3A%20.%20apps%20configs%20sounds&In-Reply-To=%3C200606280236.k5S2aiit030401%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000405.html">
+   <LINK REL="Next"  HREF="000407.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r411 - in trunk: . apps configs sounds</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r411%20-%20in%20trunk%3A%20.%20apps%20configs%20sounds&In-Reply-To=%3C200606280236.k5S2aiit030401%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r411 - in trunk: . apps configs sounds">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:36:44 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000405.html">[solid-pbx-svn] r410 - in trunk: . agi apps cdr channels codecs formats funcs pbx res utils
+</A></li>
+        <LI>Next message: <A HREF="000407.html">[solid-pbx-svn] r412 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#406">[ date ]</a>
+              <a href="thread.html#406">[ thread ]</a>
+              <a href="subject.html#406">[ subject ]</a>
+              <a href="author.html#406">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:36:37 +0200 (Wed, 28 Jun 2006)
+New Revision: 411
+
+Modified:
+   trunk/Makefile
+   trunk/apps/app_queue.c
+   trunk/configs/queues.conf.sample
+   trunk/sounds/Makefile
+Log:
+Update to Asterisk SVN trunk r35513
+
+------------------------------------------------------------------------
+r35504 | tilghman | 2006-06-22 17:43:02 +0200 (Thu, 22 Jun 2006) | 2 lines
+
+Bug 6589 - option to display channel variables in queue events
+
+------------------------------------------------------------------------
+r35506 | russell | 2006-06-22 17:45:32 +0200 (Thu, 22 Jun 2006) | 2 lines
+
+add a couple more targets to .PHONY
+
+------------------------------------------------------------------------
+r35510 | russell | 2006-06-22 17:55:13 +0200 (Thu, 22 Jun 2006) | 2 lines
+
+use .PHONY instead of FORCE
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-28 02:34:47 UTC (rev 410)
++++ trunk/Makefile	2006-06-28 02:36:37 UTC (rev 411)
+@@ -887,4 +887,4 @@
+ 	cp -ar . ../solid-pbx-$(ASTERISKVERSION)
+ 	cd ../solid-pbx-$(ASTERISKVERSION) &amp;&amp; rm -rf `ls -Rd .svn */.svn */*/.svn */*/*/.svn */*/*/*/.svn` sounds
+ 
+-.PHONY: sounds clean clean-depend dist-clean all _all depend cleantest uninstall _uninstall uninstall-all dont-optimize valgrind $(SUBDIRS_INSTALL) $(SUBDIRS_CLEAN) $(SUBDIRS_CLEAN_DEPEND) $(SUBDIRS_DEPEND) $(SUBDIRS_UNINSTALL)
++.PHONY: sounds clean clean-depend dist-clean all _all depend cleantest uninstall _uninstall uninstall-all dont-optimize valgrind $(SUBDIRS_INSTALL) $(SUBDIRS_CLEAN) $(SUBDIRS_CLEAN_DEPEND) $(SUBDIRS_DEPEND) $(SUBDIRS_UNINSTALL) sounds
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-06-28 02:34:47 UTC (rev 410)
++++ trunk/apps/app_queue.c	2006-06-28 02:36:37 UTC (rev 411)
+@@ -334,6 +334,7 @@
+ #define QUEUE_EMPTY_STRICT 2
+ #define ANNOUNCEHOLDTIME_ALWAYS 1
+ #define ANNOUNCEHOLDTIME_ONCE 2
++#define QUEUE_EVENT_VARIABLES 3
+ 
+ struct call_queue {
+ 	ast_mutex_t lock;	
+@@ -344,7 +345,7 @@
+ 	unsigned int monjoin:1;
+ 	unsigned int dead:1;
+ 	unsigned int joinempty:2;
+-	unsigned int eventwhencalled:1;
++	unsigned int eventwhencalled:2;
+ 	unsigned int leavewhenempty:2;
+ 	unsigned int ringinuse:1;
+ 	unsigned int setinterfacevar:1;
+@@ -878,7 +879,11 @@
+ 	} else if (!strcasecmp(param, &quot;eventmemberstatus&quot;)) {
+ 		q-&gt;maskmemberstatus = !ast_true(val);
+ 	} else if (!strcasecmp(param, &quot;eventwhencalled&quot;)) {
+-		q-&gt;eventwhencalled = ast_true(val);
++		if (strcasecmp(val, &quot;vars&quot;)) {
++			q-&gt;eventwhencalled = QUEUE_EVENT_VARIABLES;
++		} else {
++			q-&gt;eventwhencalled = ast_true(val);
++		}
+ 	} else if (!strcasecmp(param, &quot;reportholdtime&quot;)) {
+ 		q-&gt;reportholdtime = ast_true(val);
+ 	} else if (!strcasecmp(param, &quot;memberdelay&quot;)) {
+@@ -1502,6 +1507,41 @@
+ 	o-&gt;chan = NULL;
+ }
+ 
++static char *vars2manager(struct ast_channel *chan, char *vars, size_t len)
++{
++	char *tmp = alloca(len);
++
++	if (pbx_builtin_serialize_variables(chan, tmp, len)) {
++		int i, j;
++
++		/* convert &quot;\n&quot; to &quot;\nVariable: &quot; */
++		strcpy(vars, &quot;Variable: &quot;);
++
++		for (i = 0, j = 10; (i &lt; len - 1) &amp;&amp; (j &lt; len - 1); i++, j++) {
++			vars[j] = tmp[i];
++
++			if (tmp[i + 1] == '\0')
++				break;
++			if (tmp[i] == '\n') {
++				vars[j] = '\r';
++				vars[++j] = '\n';
++
++				ast_copy_string(&amp;(vars[j]), &quot;Variable: &quot;, len - j);
++				j += 9;
++			}
++		}
++		if (j &gt; len - 1)
++			j = len - 1;
++		vars[j - 2] = '\r';
++		vars[j - 1] = '\n';
++		vars[j] = '\0';
++	} else {
++		/* there are no channel variables; leave it blank */
++		*vars = '\0';
++	}
++	return vars;
++}
++
+ static int ring_entry(struct queue_ent *qe, struct callattempt *tmp, int *busies)
+ {
+ 	int res;
+@@ -1593,21 +1633,23 @@
+ 		do_hang(tmp);
+ 		(*busies)++;
+ 		return 0;
+-	} else {
+-		if (qe-&gt;parent-&gt;eventwhencalled) {
+-			manager_event(EVENT_FLAG_AGENT, &quot;AgentCalled&quot;,
+-						&quot;AgentCalled: %s\r\n&quot;
+-						&quot;ChannelCalling: %s\r\n&quot;
+-						&quot;CallerID: %s\r\n&quot;
+-						&quot;CallerIDName: %s\r\n&quot;
+-						&quot;Context: %s\r\n&quot;
+-						&quot;Extension: %s\r\n&quot;
+-						&quot;Priority: %d\r\n&quot;,
+-						tmp-&gt;interface, qe-&gt;chan-&gt;name,
+-						S_OR(tmp-&gt;chan-&gt;cid.cid_num, &quot;unknown&quot;),
+-						S_OR(tmp-&gt;chan-&gt;cid.cid_name, &quot;unknown&quot;),
+-						qe-&gt;chan-&gt;context, qe-&gt;chan-&gt;exten, qe-&gt;chan-&gt;priority);
+-		}
++	} else if (qe-&gt;parent-&gt;eventwhencalled) {
++		char vars[2048];
++
++		manager_event(EVENT_FLAG_AGENT, &quot;AgentCalled&quot;,
++					&quot;AgentCalled: %s\r\n&quot;
++					&quot;ChannelCalling: %s\r\n&quot;
++					&quot;CallerID: %s\r\n&quot;
++					&quot;CallerIDName: %s\r\n&quot;
++					&quot;Context: %s\r\n&quot;
++					&quot;Extension: %s\r\n&quot;
++					&quot;Priority: %d\r\n&quot;
++					&quot;%s&quot;,
++					tmp-&gt;interface, qe-&gt;chan-&gt;name,
++					tmp-&gt;chan-&gt;cid.cid_num ? tmp-&gt;chan-&gt;cid.cid_num : &quot;unknown&quot;,
++					tmp-&gt;chan-&gt;cid.cid_name ? tmp-&gt;chan-&gt;cid.cid_name : &quot;unknown&quot;,
++					qe-&gt;chan-&gt;context, qe-&gt;chan-&gt;exten, qe-&gt;chan-&gt;priority,
++					qe-&gt;parent-&gt;eventwhencalled == QUEUE_EVENT_VARIABLES ? vars2manager(qe-&gt;chan, vars, sizeof(vars)) : &quot;&quot;);
+ 		if (option_verbose &gt; 2)
+ 			ast_verbose(VERBOSE_PREFIX_3 &quot;Called %s\n&quot;, tmp-&gt;interface);
+ 	}
+@@ -2237,6 +2279,7 @@
+ 	char mixmonargs[1512];
+ 	struct ast_app *mixmonapp = NULL;
+ 	char *p;
++	char vars[2048];
+ 
+ 	memset(&amp;bridge_config, 0, sizeof(bridge_config));
+ 	time(&amp;now);
+@@ -2385,14 +2428,15 @@
+ 				ast_log(LOG_WARNING, &quot;Agent on %s hungup on the customer.  They're going to be pissed.\n&quot;, peer-&gt;name);
+ 				ast_queue_log(queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, &quot;AGENTDUMP&quot;, &quot;%s&quot;, &quot;&quot;);
+ 				record_abandoned(qe);
+-				if (qe-&gt;parent-&gt;eventwhencalled) {
++				if (qe-&gt;parent-&gt;eventwhencalled)
+ 					manager_event(EVENT_FLAG_AGENT, &quot;AgentDump&quot;,
+-						      &quot;Queue: %s\r\n&quot;
+-						      &quot;Uniqueid: %s\r\n&quot;
+-						      &quot;Channel: %s\r\n&quot;
+-						      &quot;Member: %s\r\n&quot;,
+-						      queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, member-&gt;interface);
+-				}
++							&quot;Queue: %s\r\n&quot;
++							&quot;Uniqueid: %s\r\n&quot;
++							&quot;Channel: %s\r\n&quot;
++							&quot;Member: %s\r\n&quot;
++							&quot;%s&quot;,
++							queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, member-&gt;interface,
++							qe-&gt;parent-&gt;eventwhencalled == QUEUE_EVENT_VARIABLES ? vars2manager(qe-&gt;chan, vars, sizeof(vars)) : &quot;&quot;);
+ 				ast_hangup(peer);
+ 				goto out;
+ 			} else if (res2) {
+@@ -2530,14 +2574,16 @@
+ 		ast_queue_log(queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, &quot;CONNECT&quot;, &quot;%ld|%s&quot;, (long)time(NULL) - qe-&gt;start, peer-&gt;uniqueid);
+ 		if (qe-&gt;parent-&gt;eventwhencalled)
+ 			manager_event(EVENT_FLAG_AGENT, &quot;AgentConnect&quot;,
+-				      &quot;Queue: %s\r\n&quot;
+-				      &quot;Uniqueid: %s\r\n&quot;
+-				      &quot;Channel: %s\r\n&quot;
+-				      &quot;Member: %s\r\n&quot;
+-				      &quot;Holdtime: %ld\r\n&quot;
+-				      &quot;BridgedChannel: %s\r\n&quot;,
+-				      queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, member-&gt;interface,
+-				      (long) time(NULL) - qe-&gt;start,peer-&gt;uniqueid);
++					&quot;Queue: %s\r\n&quot;
++					&quot;Uniqueid: %s\r\n&quot;
++					&quot;Channel: %s\r\n&quot;
++					&quot;Member: %s\r\n&quot;
++					&quot;Holdtime: %ld\r\n&quot;
++					&quot;BridgedChannel: %s\r\n&quot;
++					&quot;%s&quot;,
++					queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, member-&gt;interface,
++					(long)time(NULL) - qe-&gt;start, peer-&gt;uniqueid,
++					qe-&gt;parent-&gt;eventwhencalled == QUEUE_EVENT_VARIABLES ? vars2manager(qe-&gt;chan, vars, sizeof(vars)) : &quot;&quot;);
+ 		ast_copy_string(oldcontext, qe-&gt;chan-&gt;context, sizeof(oldcontext));
+ 		ast_copy_string(oldexten, qe-&gt;chan-&gt;exten, sizeof(oldexten));
+ 		time(&amp;callstart);
+@@ -2553,28 +2599,32 @@
+ 				      (long) (callstart - qe-&gt;start), (long) (time(NULL) - callstart));
+ 			if (qe-&gt;parent-&gt;eventwhencalled)
+ 				manager_event(EVENT_FLAG_AGENT, &quot;AgentComplete&quot;,
+-					      &quot;Queue: %s\r\n&quot;
+-					      &quot;Uniqueid: %s\r\n&quot;
+-					      &quot;Channel: %s\r\n&quot;
+-					      &quot;Member: %s\r\n&quot;
+-					      &quot;HoldTime: %ld\r\n&quot;
+-					      &quot;TalkTime: %ld\r\n&quot;
+-					      &quot;Reason: caller\r\n&quot;,
+-					      queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, member-&gt;interface,
+-					      (long) (callstart - qe-&gt;start), (long) (time(NULL) - callstart));
++						&quot;Queue: %s\r\n&quot;
++						&quot;Uniqueid: %s\r\n&quot;
++						&quot;Channel: %s\r\n&quot;
++						&quot;Member: %s\r\n&quot;
++						&quot;HoldTime: %ld\r\n&quot;
++						&quot;TalkTime: %ld\r\n&quot;
++						&quot;Reason: caller\r\n&quot;
++						&quot;%s&quot;,
++						queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, member-&gt;interface,
++						(long)(callstart - qe-&gt;start), (long)(time(NULL) - callstart),
++						qe-&gt;parent-&gt;eventwhencalled == QUEUE_EVENT_VARIABLES ? vars2manager(qe-&gt;chan, vars, sizeof(vars)) : &quot;&quot;);
+ 		} else {
+ 			ast_queue_log(queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, &quot;COMPLETEAGENT&quot;, &quot;%ld|%ld&quot;,
+ 				      (long) (callstart - qe-&gt;start), (long) (time(NULL) - callstart));
+ 			if (qe-&gt;parent-&gt;eventwhencalled)
+ 				manager_event(EVENT_FLAG_AGENT, &quot;AgentComplete&quot;,
+-					      &quot;Queue: %s\r\n&quot;
+-					      &quot;Uniqueid: %s\r\n&quot;
+-					      &quot;Channel: %s\r\n&quot;
+-					      &quot;HoldTime: %ld\r\n&quot;
+-					      &quot;TalkTime: %ld\r\n&quot;
+-					      &quot;Reason: agent\r\n&quot;,
+-					      queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, (long)(callstart - qe-&gt;start),
+-					      (long) (time(NULL) - callstart));
++						&quot;Queue: %s\r\n&quot;
++						&quot;Uniqueid: %s\r\n&quot;
++						&quot;Channel: %s\r\n&quot;
++						&quot;HoldTime: %ld\r\n&quot;
++						&quot;TalkTime: %ld\r\n&quot;
++						&quot;Reason: agent\r\n&quot;
++						&quot;%s&quot;,
++						queuename, qe-&gt;chan-&gt;uniqueid, peer-&gt;name, (long)(callstart - qe-&gt;start),
++						(long)(time(NULL) - callstart),
++						qe-&gt;parent-&gt;eventwhencalled == QUEUE_EVENT_VARIABLES ? vars2manager(qe-&gt;chan, vars, sizeof(vars)) : &quot;&quot;);
+ 		}
+ 
+ 		if (bridge != AST_PBX_NO_HANGUP_PEER)
+
+Modified: trunk/configs/queues.conf.sample
+===================================================================
+--- trunk/configs/queues.conf.sample	2006-06-28 02:34:47 UTC (rev 410)
++++ trunk/configs/queues.conf.sample	2006-06-28 02:36:37 UTC (rev 411)
+@@ -250,10 +250,11 @@
+ ;
+ ;
+ ; If this is set to yes, the following manager events will be generated:
+-; AgentCalled, AgentDump, AgentConnect, AgentComplete
++; AgentCalled, AgentDump, AgentConnect, AgentComplete; setting this to
++; vars also sends all channel variables with the event.
+ ; (may generate some extra manager events, but probably ones you want)
+ ;
+-; eventwhencalled = yes
++; eventwhencalled = yes|no|vars
+ ;
+ ; If this is set to no, the following manager events will be generated:
+ ; QueueMemberStatus
+
+Modified: trunk/sounds/Makefile
+===================================================================
+--- trunk/sounds/Makefile	2006-06-28 02:34:47 UTC (rev 410)
++++ trunk/sounds/Makefile	2006-06-28 02:36:37 UTC (rev 411)
+@@ -11,7 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-.PHONY: dist-clean all
++.PHONY: dist-clean all uninstall
+ 
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000405.html">[solid-pbx-svn] r410 - in trunk: . agi apps cdr channels codecs formats funcs pbx res utils
+</A></li>
+	<LI>Next message: <A HREF="000407.html">[solid-pbx-svn] r412 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#406">[ date ]</a>
+              <a href="thread.html#406">[ thread ]</a>
+              <a href="subject.html#406">[ subject ]</a>
+              <a href="author.html#406">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

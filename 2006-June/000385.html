@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r390 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r390%20-%20trunk/channels&In-Reply-To=%3C200606280201.k5S21jke020032%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000384.html">
+   <LINK REL="Next"  HREF="000386.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r390 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r390%20-%20trunk/channels&In-Reply-To=%3C200606280201.k5S21jke020032%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r390 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:01:45 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000384.html">[solid-pbx-svn] r389 - trunk/build_tools
+</A></li>
+        <LI>Next message: <A HREF="000386.html">[solid-pbx-svn] r391 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#385">[ date ]</a>
+              <a href="thread.html#385">[ thread ]</a>
+              <a href="subject.html#385">[ subject ]</a>
+              <a href="author.html#385">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:01:08 +0200 (Wed, 28 Jun 2006)
+New Revision: 390
+
+Modified:
+   trunk/channels/chan_skinny.c
+Log:
+Update to Asterisk SVN trunk r35033
+
+------------------------------------------------------------------------
+r35032 | north | 2006-06-20 10:09:30 +0200 (Tue, 20 Jun 2006) | 4 lines
+
+fix an issue with dtmf not being sent sometimes
+
+slightly modify handling of digits
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_skinny.c
+===================================================================
+--- trunk/channels/chan_skinny.c	2006-06-28 01:59:17 UTC (rev 389)
++++ trunk/channels/chan_skinny.c	2006-06-28 02:01:08 UTC (rev 390)
+@@ -2258,7 +2258,12 @@
+ 	if (ast-&gt;_state != AST_STATE_UP) {
+ 		ast_setstate(ast, AST_STATE_UP);
+ 	}
++
+ 	transmit_tone(s, SKINNY_SILENCE);
++	/* order matters here...
++	   for some reason, transmit_callinfo must be before transmit_callstate,
++	   or you won't get keypad messages in some situations. */
++	transmit_callinfo(s, ast-&gt;cid.cid_name, ast-&gt;cid.cid_num, ast-&gt;exten, ast-&gt;exten, l-&gt;instance, sub-&gt;callid, 2);
+ 	transmit_callstate(s, l-&gt;instance, SKINNY_CONNECTED, sub-&gt;callid);
+ 	transmit_displaypromptstatus(s, &quot;Connected&quot;, 0, l-&gt;instance, sub-&gt;callid);
+ 	return res;
+@@ -2606,8 +2611,9 @@
+ {
+ 	struct skinny_subchannel *sub = NULL;
+ 	struct skinny_line *l;
++	struct skinny_device *d = s-&gt;device;
+ 	struct ast_frame f = { 0, };
+-	char d;
++	char dgt;
+ 	int digit;
+ 	int lineInstance;
+ 	int callReference;
+@@ -2617,11 +2623,11 @@
+ 	callReference = letohl(req-&gt;data.keypad.callReference);
+ 	f.frametype = AST_FRAME_DTMF;
+ 	if (digit == 14) {
+-		d = '*';
++		dgt = '*';
+ 	} else if (digit == 15) {
+-		d = '#';
++		dgt = '#';
+ 	} else if (digit &gt;=0 &amp;&amp; digit &lt;= 9) {
+-		d = '0' + digit;
++		dgt = '0' + digit;
+ 	} else {
+ 		/* digit=10-13 (A,B,C,D ?), or
+ 		 * digit is bad value
+@@ -2630,14 +2636,16 @@
+ 		 * value for backward compatibility, and log
+ 		 * a warning.
+ 		 */
+-		d = '0' + digit;
++		dgt = '0' + digit;
+ 		ast_log(LOG_WARNING, &quot;Unsupported digit %d\n&quot;, digit);
+ 	}
+-	f.subclass = d;
++	f.subclass = dgt;
+ 	f.src = &quot;skinny&quot;;
+ 
+ 	if (lineInstance &amp;&amp; callReference)
+-		sub = find_subchannel_by_instance_reference(s-&gt;device, lineInstance, callReference);
++		sub = find_subchannel_by_instance_reference(d, lineInstance, callReference);
++	else
++		sub = find_subchannel_by_instance_reference(d, d-&gt;lastlineinstance, d-&gt;lastcallreference);
+ 
+ 	if (!sub)
+ 		return 0;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000384.html">[solid-pbx-svn] r389 - trunk/build_tools
+</A></li>
+	<LI>Next message: <A HREF="000386.html">[solid-pbx-svn] r391 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#385">[ date ]</a>
+              <a href="thread.html#385">[ thread ]</a>
+              <a href="subject.html#385">[ subject ]</a>
+              <a href="author.html#385">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

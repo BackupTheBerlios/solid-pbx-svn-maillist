@@ -1,0 +1,519 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r108 - in trunk: . apps channels include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r108%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk&In-Reply-To=%3C200605091229.k49CTDX4000144%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000103.html">
+   <LINK REL="Next"  HREF="000105.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r108 - in trunk: . apps channels include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r108%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk&In-Reply-To=%3C200605091229.k49CTDX4000144%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r108 - in trunk: . apps channels include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  9 14:29:13 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000103.html">[solid-pbx-svn] r107 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000105.html">[solid-pbx-svn] r109 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#104">[ date ]</a>
+              <a href="thread.html#104">[ thread ]</a>
+              <a href="subject.html#104">[ subject ]</a>
+              <a href="author.html#104">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-09 14:28:58 +0200 (Tue, 09 May 2006)
+New Revision: 108
+
+Modified:
+   trunk/apps/app_dial.c
+   trunk/channels/chan_sip.c
+   trunk/configure.ac
+   trunk/include/asterisk/rtp.h
+   trunk/pbx.c
+   trunk/rtp.c
+   trunk/say.c
+Log:
+Update to Asterisk SVN trunk r26045
+
+------------------------------------------------------------------------
+r26016 | rizzo | 2006-05-09 13:27:33 +0200 (Tue, 09 May 2006) | 3 lines
+
+do not use a variable name that hides a useful library symbol (time())
+
+
+------------------------------------------------------------------------
+r26017 | rizzo | 2006-05-09 13:29:34 +0200 (Tue, 09 May 2006) | 2 lines
+
+change some log_warning into log_debug 
+
+------------------------------------------------------------------------
+r26019 | markster | 2006-05-09 13:44:50 +0200 (Tue, 09 May 2006) | 2 lines
+
+Make SIP early media work more efficiently without so many reinvites
+
+------------------------------------------------------------------------
+r26020 | rizzo | 2006-05-09 13:45:26 +0200 (Tue, 09 May 2006) | 3 lines
+
+add default values for CPPFLAGS and LDFLAGS on FreeBSD
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_dial.c
+===================================================================
+--- trunk/apps/app_dial.c	2006-05-09 11:01:44 UTC (rev 107)
++++ trunk/apps/app_dial.c	2006-05-09 12:28:58 UTC (rev 108)
+@@ -482,7 +482,7 @@
+ 					ast_clear_flag(o, DIAL_STILLGOING);	
+ 					HANDLE_CAUSE(cause, in);
+ 				} else {
+-					ast_rtp_make_compatible(c, in);
++					ast_rtp_make_compatible(c, in, single);
+ 					if (c-&gt;cid.cid_num)
+ 						free(c-&gt;cid.cid_num);
+ 					c-&gt;cid.cid_num = NULL;
+@@ -550,6 +550,8 @@
+ 							       OPT_CALLEE_HANGUP | OPT_CALLER_HANGUP |
+ 							       OPT_CALLEE_MONITOR | OPT_CALLER_MONITOR |
+ 							       DIAL_NOFORWARDHTML);
++						/* Setup early media if appropriate */
++						ast_rtp_early_media(in, peer);
+ 					}
+ 					/* If call has been answered, then the eventual hangup is likely to be normal hangup */
+ 					in-&gt;hangupcause = AST_CAUSE_NORMAL_CLEARING;
+@@ -576,6 +578,9 @@
+ 				case AST_CONTROL_RINGING:
+ 					if (option_verbose &gt; 2)
+ 						ast_verbose(VERBOSE_PREFIX_3 &quot;%s is ringing\n&quot;, c-&gt;name);
++					/* Setup early media if appropriate */
++					if (single)
++						ast_rtp_early_media(in, c);
+ 					if (!(*sentringing) &amp;&amp; !ast_test_flag(outgoing, OPT_MUSICBACK)) {
+ 						ast_indicate(in, AST_CONTROL_RINGING);
+ 						(*sentringing)++;
+@@ -584,6 +589,9 @@
+ 				case AST_CONTROL_PROGRESS:
+ 					if (option_verbose &gt; 2)
+ 						ast_verbose (VERBOSE_PREFIX_3 &quot;%s is making progress passing it to %s\n&quot;, c-&gt;name, in-&gt;name);
++					/* Setup early media if appropriate */
++					if (single)
++						ast_rtp_early_media(in, c);
+ 					if (!ast_test_flag(outgoing, OPT_RINGBACK))
+ 						ast_indicate(in, AST_CONTROL_PROGRESS);
+ 					break;
+@@ -595,6 +603,8 @@
+ 				case AST_CONTROL_PROCEEDING:
+ 					if (option_verbose &gt; 2)
+ 						ast_verbose (VERBOSE_PREFIX_3 &quot;%s is proceeding passing it to %s\n&quot;, c-&gt;name, in-&gt;name);
++					if (single)
++						ast_rtp_early_media(in, c);
+ 					if (!ast_test_flag(outgoing, OPT_RINGBACK))
+ 						ast_indicate(in, AST_CONTROL_PROCEEDING);
+ 					break;
+@@ -1056,7 +1066,7 @@
+ 		}
+ 
+ 		/* Setup outgoing SDP to match incoming one */
+-		ast_rtp_make_compatible(tmp-&gt;chan, chan);
++		ast_rtp_make_compatible(tmp-&gt;chan, chan, !outgoing &amp;&amp; !rest);
+ 		
+ 		/* Inherit specially named variables from parent channel */
+ 		ast_channel_inherit_variables(chan, tmp-&gt;chan);
+@@ -1550,6 +1560,7 @@
+ 		sentringing = 0;
+ 		ast_indicate(chan, -1);
+ 	}
++	ast_rtp_early_media(chan, NULL);
+ 	hanguptree(outgoing, NULL);
+ 	pbx_builtin_setvar_helper(chan, &quot;DIALSTATUS&quot;, status);
+ 	if (option_debug)
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-09 11:01:44 UTC (rev 107)
++++ trunk/channels/chan_sip.c	2006-05-09 12:28:58 UTC (rev 108)
+@@ -13588,6 +13588,7 @@
+ static int sip_set_rtp_peer(struct ast_channel *chan, struct ast_rtp *rtp, struct ast_rtp *vrtp, int codecs, int nat_active)
+ {
+ 	struct sip_pvt *p;
++	int changed = 0;
+ 
+ 	p = chan-&gt;tech_pvt;
+ 	if (!p) 
+@@ -13598,17 +13599,23 @@
+ 		ast_mutex_unlock(&amp;p-&gt;lock);
+ 		return 0;
+ 	}
+-	if (rtp)
+-		ast_rtp_get_peer(rtp, &amp;p-&gt;redirip);
++	if (rtp) 
++		changed |= ast_rtp_get_peer(rtp, &amp;p-&gt;redirip);
+ 	else
+ 		memset(&amp;p-&gt;redirip, 0, sizeof(p-&gt;redirip));
+ 	if (vrtp)
+-		ast_rtp_get_peer(vrtp, &amp;p-&gt;vredirip);
++		changed |= ast_rtp_get_peer(vrtp, &amp;p-&gt;vredirip);
+ 	else
+ 		memset(&amp;p-&gt;vredirip, 0, sizeof(p-&gt;vredirip));
+-	p-&gt;redircodecs = codecs;
+-	if (!ast_test_flag(&amp;p-&gt;flags[0], SIP_GOTREFER)) {
+-		if (!p-&gt;pendinginvite) {
++	if (p-&gt;redircodecs != codecs) {
++		p-&gt;redircodecs = codecs;
++		changed = 1;
++	}
++	if (changed &amp;&amp; !ast_test_flag(&amp;p-&gt;flags[0], SIP_GOTREFER)) {
++		if (chan-&gt;_state != AST_STATE_UP) {
++				char iabuf[INET_ADDRSTRLEN];
++				ast_log(LOG_DEBUG, &quot;Early media setting SIP '%s' - Sending early media to %s\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf), rtp ? p-&gt;redirip.sin_addr : p-&gt;ourip));
++		} else if (!p-&gt;pendinginvite) {
+ 			if (option_debug &gt; 2) {
+ 				char iabuf[INET_ADDRSTRLEN];
+ 				ast_log(LOG_DEBUG, &quot;Sending reinvite on SIP '%s' - It's audio soon redirected to IP %s\n&quot;, p-&gt;callid, ast_inet_ntoa(iabuf, sizeof(iabuf), rtp ? p-&gt;redirip.sin_addr : p-&gt;ourip));
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-05-09 11:01:44 UTC (rev 107)
++++ trunk/configure.ac	2006-05-09 12:28:58 UTC (rev 108)
+@@ -75,6 +75,14 @@
+     AC_DEFINE(FreeBSD, 1,
+               [Define according to your operating system type.])
+     PBX_OSTYPE=&quot;FreeBSD&quot;
++    # XXX temporary hack to let FreeBSD use the default paths
++    # for local stuff. We need a better solution.
++    if test x&quot;${CPPFLAGS}&quot; = x; then
++        CPPFLAGS=&quot;-I /usr/local/include&quot;
++    fi
++    if test x&quot;${LDFLAGS}&quot; = x; then
++        LDFLAGS=&quot;-L /usr/local/lib&quot;
++    fi
+     ;;
+   *openbsd*)
+     AC_DEFINE(OpenBSD, 1,
+
+Modified: trunk/include/asterisk/rtp.h
+===================================================================
+--- trunk/include/asterisk/rtp.h	2006-05-09 11:01:44 UTC (rev 107)
++++ trunk/include/asterisk/rtp.h	2006-05-09 12:28:58 UTC (rev 108)
+@@ -97,7 +97,8 @@
+ 
+ void ast_rtp_set_peer(struct ast_rtp *rtp, struct sockaddr_in *them);
+ 
+-void ast_rtp_get_peer(struct ast_rtp *rtp, struct sockaddr_in *them);
++/* Copies from rtp to them and returns 1 if there was a change or 0 if it was already the same */
++int ast_rtp_get_peer(struct ast_rtp *rtp, struct sockaddr_in *them);
+ 
+ void ast_rtp_get_us(struct ast_rtp *rtp, struct sockaddr_in *us);
+ 
+@@ -154,8 +155,10 @@
+ 
+ void ast_rtp_proto_unregister(struct ast_rtp_protocol *proto);
+ 
+-int ast_rtp_make_compatible(struct ast_channel *dest, struct ast_channel *src);
++int ast_rtp_make_compatible(struct ast_channel *dest, struct ast_channel *src, int media);
+ 
++int ast_rtp_early_media(struct ast_channel *dest, struct ast_channel *src);
++
+ void ast_rtp_stop(struct ast_rtp *rtp);
+ 
+ void ast_rtp_init(void);
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-09 11:01:44 UTC (rev 107)
++++ trunk/pbx.c	2006-05-09 12:28:58 UTC (rev 108)
+@@ -3358,7 +3358,7 @@
+ 	tmp = *extcontexts;
+ 	if (registrar) {
+ 		/* XXX remove previous contexts from same registrar */
+-		ast_log(LOG_WARNING, &quot;must remove any reg %s\n&quot;, registrar);
++		ast_log(LOG_DEBUG, &quot;must remove any reg %s\n&quot;, registrar);
+ 		__ast_context_destroy(NULL,registrar);
+ 		while (tmp) {
+ 			lasttmp = tmp;
+@@ -4692,7 +4692,7 @@
+ 	for (tmp = contexts; tmp; ) {
+ 		struct ast_context *next;	/* next starting point */
+ 		for (; tmp; tmpl = tmp, tmp = tmp-&gt;next) {
+-			ast_log(LOG_WARNING, &quot;check ctx %s %s\n&quot;, tmp-&gt;name, tmp-&gt;registrar);
++			ast_log(LOG_DEBUG, &quot;check ctx %s %s\n&quot;, tmp-&gt;name, tmp-&gt;registrar);
+ 			if ( (!registrar || !strcasecmp(registrar, tmp-&gt;registrar)) &amp;&amp;
+ 			     (!con || !strcasecmp(tmp-&gt;name, con-&gt;name)) )
+ 				break;	/* found it */
+@@ -4700,7 +4700,7 @@
+ 		if (!tmp)	/* not found, we are done */
+ 			break;
+ 		ast_mutex_lock(&amp;tmp-&gt;lock);
+-		ast_log(LOG_WARNING, &quot;delete ctx %s %s\n&quot;, tmp-&gt;name, tmp-&gt;registrar);
++		ast_log(LOG_DEBUG, &quot;delete ctx %s %s\n&quot;, tmp-&gt;name, tmp-&gt;registrar);
+ 		next = tmp-&gt;next;
+ 		if (tmpl)
+ 			tmpl-&gt;next = next;
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-05-09 11:01:44 UTC (rev 107)
++++ trunk/rtp.c	2006-05-09 12:28:58 UTC (rev 108)
+@@ -733,11 +733,83 @@
+ 	return cur;
+ }
+ 
+-int ast_rtp_make_compatible(struct ast_channel *dest, struct ast_channel *src)
++int ast_rtp_early_media(struct ast_channel *dest, struct ast_channel *src)
+ {
++	struct ast_rtp *destp, *srcp=NULL;		/* Audio RTP Channels */
++	struct ast_rtp *vdestp, *vsrcp=NULL;		/* Video RTP channels */
++	struct ast_rtp_protocol *destpr, *srcpr=NULL;
++	int srccodec;
++	/* Lock channels */
++	ast_channel_lock(dest);
++	if (src) {
++		while(ast_channel_trylock(src)) {
++			ast_channel_unlock(dest);
++			usleep(1);
++			ast_channel_lock(dest);
++		}
++	}
++
++	/* Find channel driver interfaces */
++	destpr = get_proto(dest);
++	if (src)
++		srcpr = get_proto(src);
++	if (!destpr) {
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Channel '%s' has no RTP, not doing anything\n&quot;, dest-&gt;name);
++		ast_channel_unlock(dest);
++		if (src)
++			ast_channel_unlock(src);
++		return 0;
++	}
++	if (!srcpr) {
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Channel '%s' has no RTP, not doing anything\n&quot;, src-&gt;name);
++		ast_channel_unlock(dest);
++		if (src)
++			ast_channel_unlock(src);
++		return 0;
++	}
++
++	/* Get audio and video interface (if native bridge is possible) */
++	destp = destpr-&gt;get_rtp_info(dest);
++	vdestp = (destpr-&gt;get_vrtp_info) ? destpr-&gt;get_vrtp_info(dest) : NULL;
++	if (srcpr) {
++		srcp = srcpr-&gt;get_rtp_info(src);
++		vsrcp = (srcpr-&gt;get_vrtp_info) ? srcpr-&gt;get_vrtp_info(src) : NULL;
++	}
++
++	/* Check if bridge is still possible (In SIP canreinvite=no stops this, like NAT) */
++	if (!destp) {
++		/* Somebody doesn't want to play... */
++		ast_channel_unlock(dest);
++		if (src)
++			ast_channel_unlock(src);
++		return 0;
++	}
++	if (srcpr &amp;&amp; srcpr-&gt;get_codec)
++		srccodec = srcpr-&gt;get_codec(src);
++	else
++		srccodec = 0;
++	/* Consider empty media as non-existant */
++	if (srcp &amp;&amp; !srcp-&gt;them.sin_addr.s_addr)
++		srcp = NULL;
++	/* Bridge early media */
++	if (destpr-&gt;set_rtp_peer(dest, srcp, vsrcp, srccodec, srcp ? ast_test_flag(srcp, FLAG_NAT_ACTIVE) : 0))
++		ast_log(LOG_WARNING, &quot;Channel '%s' failed to send early media to '%s'\n&quot;, dest-&gt;name, src ? src-&gt;name : &quot;&lt;unspecified&gt;&quot;);
++	ast_channel_unlock(dest);
++	if (src)
++		ast_channel_unlock(src);
++	if (option_debug)
++		ast_log(LOG_DEBUG, &quot;Setting early  media SDP of '%s' with that of '%s'\n&quot;, dest-&gt;name, src ? src-&gt;name : &quot;&lt;unspecified&gt;&quot;);
++	return 1;
++}
++
++int ast_rtp_make_compatible(struct ast_channel *dest, struct ast_channel *src, int media)
++{
+ 	struct ast_rtp *destp, *srcp;		/* Audio RTP Channels */
+ 	struct ast_rtp *vdestp, *vsrcp;		/* Video RTP channels */
+ 	struct ast_rtp_protocol *destpr, *srcpr;
++	int srccodec;
+ 	/* Lock channels */
+ 	ast_channel_lock(dest);
+ 	while(ast_channel_trylock(src)) {
+@@ -780,6 +852,15 @@
+ 	ast_rtp_pt_copy(destp, srcp);
+ 	if (vdestp &amp;&amp; vsrcp)
+ 		ast_rtp_pt_copy(vdestp, vsrcp);
++	if (srcpr-&gt;get_codec)
++		srccodec = srcpr-&gt;get_codec(src);
++	else
++		srccodec = 0;
++	if (media) {
++		/* Bridge early media */
++		if (destpr-&gt;set_rtp_peer(dest, srcp, vsrcp, srccodec, ast_test_flag(srcp, FLAG_NAT_ACTIVE)))
++			ast_log(LOG_WARNING, &quot;Channel '%s' failed to send early media to '%s'\n&quot;, dest-&gt;name, src-&gt;name);
++	}
+ 	ast_channel_unlock(dest);
+ 	ast_channel_unlock(src);
+ 	if (option_debug)
+@@ -1086,11 +1167,17 @@
+ 	rtp-&gt;rxseqno = 0;
+ }
+ 
+-void ast_rtp_get_peer(struct ast_rtp *rtp, struct sockaddr_in *them)
++int ast_rtp_get_peer(struct ast_rtp *rtp, struct sockaddr_in *them)
+ {
+-	them-&gt;sin_family = AF_INET;
+-	them-&gt;sin_port = rtp-&gt;them.sin_port;
+-	them-&gt;sin_addr = rtp-&gt;them.sin_addr;
++	if ((them-&gt;sin_family != AF_INET) ||
++		(them-&gt;sin_port != rtp-&gt;them.sin_port) ||
++		(them-&gt;sin_addr.s_addr != rtp-&gt;them.sin_addr.s_addr)) {
++		them-&gt;sin_family = AF_INET;
++		them-&gt;sin_port = rtp-&gt;them.sin_port;
++		them-&gt;sin_addr = rtp-&gt;them.sin_addr;
++		return 1;
++	}
++	return 0;
+ }
+ 
+ void ast_rtp_get_us(struct ast_rtp *rtp, struct sockaddr_in *us)
+
+Modified: trunk/say.c
+===================================================================
+--- trunk/say.c	2006-05-09 11:01:44 UTC (rev 107)
++++ trunk/say.c	2006-05-09 12:28:58 UTC (rev 108)
+@@ -4656,13 +4656,13 @@
+ }
+ 
+ /* Polish syntax */
+-int ast_say_date_with_format_pl(struct ast_channel *chan, time_t time, const char *ints, const char *lang, const char *format, const char *timezone)
++int ast_say_date_with_format_pl(struct ast_channel *chan, time_t thetime, const char *ints, const char *lang, const char *format, const char *timezone)
+ {
+ 	struct tm tm;
+ 	int res=0, offset, sndoffset;
+ 	char sndfile[256], nextmsg[256];
+ 
+-	ast_localtime(&amp;time,&amp;tm,timezone);
++	ast_localtime(&amp;thetime, &amp;tm, timezone);
+ 
+ 	for (offset = 0 ; format[offset] != '\0' ; offset++) {
+ 		int remainder;
+@@ -4780,53 +4780,51 @@
+ 			case 'Q':
+ 				/* Shorthand for &quot;Today&quot;, &quot;Yesterday&quot;, or AdBY */
+ 				{
+-					struct timeval now;
++					time_t tv_sec = time(NULL);
+ 					struct tm tmnow;
+ 					time_t beg_today;
+ 
+-					gettimeofday(&amp;now, NULL);
+-					ast_localtime(&amp;now.tv_sec,&amp;tmnow, timezone);
++					ast_localtime(&amp;tv_sec,&amp;tmnow, timezone);
+ 					/* This might be slightly off, if we transcend a leap second, but never more off than 1 second */
+ 					/* In any case, it saves not having to do ast_mktime() */
+-					beg_today = now.tv_sec - (tmnow.tm_hour * 3600) - (tmnow.tm_min * 60) - (tmnow.tm_sec);
+-					if (beg_today &lt; time) {
++					beg_today = tv_sec - (tmnow.tm_hour * 3600) - (tmnow.tm_min * 60) - (tmnow.tm_sec);
++					if (beg_today &lt; thetime) {
+ 						/* Today */
+ 						res = wait_file(chan, ints, &quot;digits/today&quot;, lang);
+-					} else if (beg_today - 86400 &lt; time) {
++					} else if (beg_today - 86400 &lt; thetime) {
+ 						/* Yesterday */
+ 						res = wait_file(chan, ints, &quot;digits/yesterday&quot;, lang);
+ 					} else {
+-						res = ast_say_date_with_format(chan, time, ints, lang, &quot;AdBY&quot;, timezone);
++						res = ast_say_date_with_format(chan, thetime, ints, lang, &quot;AdBY&quot;, timezone);
+ 					}
+ 				}
+ 				break;
+ 			case 'q':
+ 				/* Shorthand for &quot;&quot; (today), &quot;Yesterday&quot;, A (weekday), or AdBY */
+ 				{
+-					struct timeval now;
++					time_t tv_sec = time(NULL);
+ 					struct tm tmnow;
+ 					time_t beg_today;
+ 
+-					gettimeofday(&amp;now, NULL);
+-					ast_localtime(&amp;now.tv_sec, &amp;tmnow, timezone);
++					ast_localtime(&amp;tv_sec, &amp;tmnow, timezone);
+ 					/* This might be slightly off, if we transcend a leap second, but never more off than 1 second */
+ 					/* In any case, it saves not having to do ast_mktime() */
+-					beg_today = now.tv_sec - (tmnow.tm_hour * 3600) - (tmnow.tm_min * 60) - (tmnow.tm_sec);
+-					if (beg_today &lt; time) {
++					beg_today = tv_sec - (tmnow.tm_hour * 3600) - (tmnow.tm_min * 60) - (tmnow.tm_sec);
++					if (beg_today &lt; thetime) {
+ 						/* Today */
+-					} else if ((beg_today - 86400) &lt; time) {
++					} else if ((beg_today - 86400) &lt; thetime) {
+ 						/* Yesterday */
+ 						res = wait_file(chan, ints, &quot;digits/yesterday&quot;, lang);
+-					} else if (beg_today - 86400 * 6 &lt; time) {
++					} else if (beg_today - 86400 * 6 &lt; thetime) {
+ 						/* Within the last week */
+-						res = ast_say_date_with_format(chan, time, ints, lang, &quot;A&quot;, timezone);
++						res = ast_say_date_with_format(chan, thetime, ints, lang, &quot;A&quot;, timezone);
+ 					} else {
+-						res = ast_say_date_with_format(chan, time, ints, lang, &quot;AdBY&quot;, timezone);
++						res = ast_say_date_with_format(chan, thetime, ints, lang, &quot;AdBY&quot;, timezone);
+ 					}
+ 				}
+ 				break;
+ 			case 'R':
+-				res = ast_say_date_with_format(chan, time, ints, lang, &quot;HM&quot;, timezone);
++				res = ast_say_date_with_format(chan, thetime, ints, lang, &quot;HM&quot;, timezone);
+ 				break;
+ 			case 'S':
+ 				/* Seconds */
+@@ -4852,7 +4850,7 @@
+ 				}
+ 				break;
+ 			case 'T':
+-				res = ast_say_date_with_format(chan, time, ints, lang, &quot;HMS&quot;, timezone);
++				res = ast_say_date_with_format(chan, thetime, ints, lang, &quot;HMS&quot;, timezone);
+ 				break;
+ 			case ' ':
+ 			case '	':
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000103.html">[solid-pbx-svn] r107 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000105.html">[solid-pbx-svn] r109 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#104">[ date ]</a>
+              <a href="thread.html#104">[ thread ]</a>
+              <a href="subject.html#104">[ subject ]</a>
+              <a href="author.html#104">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,749 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r124 - in trunk: . apps channels include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r124%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk&In-Reply-To=%3C200605101229.k4ACTIEP013723%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000119.html">
+   <LINK REL="Next"  HREF="000121.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r124 - in trunk: . apps channels include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r124%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk&In-Reply-To=%3C200605101229.k4ACTIEP013723%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r124 - in trunk: . apps channels include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 10 14:29:18 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000119.html">[solid-pbx-svn] r123 - in trunk: . build_tools
+</A></li>
+        <LI>Next message: <A HREF="000121.html">[solid-pbx-svn] r125 - in trunk: . apps build_tools channels funcs include/asterisk pbx res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#120">[ date ]</a>
+              <a href="thread.html#120">[ thread ]</a>
+              <a href="subject.html#120">[ subject ]</a>
+              <a href="author.html#120">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-10 14:29:09 +0200 (Wed, 10 May 2006)
+New Revision: 124
+
+Modified:
+   trunk/apps/app_voicemail.c
+   trunk/channel.c
+   trunk/channels/chan_agent.c
+   trunk/channels/chan_alsa.c
+   trunk/channels/chan_features.c
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_local.c
+   trunk/channels/chan_mgcp.c
+   trunk/channels/chan_nbs.c
+   trunk/channels/chan_oss.c
+   trunk/channels/chan_phone.c
+   trunk/channels/chan_sip.c
+   trunk/channels/chan_skinny.c
+   trunk/channels/chan_vpb.c
+   trunk/channels/chan_zap.c
+   trunk/include/asterisk/channel.h
+Log:
+Update to Asterisk SVN trunk r26417
+
+------------------------------------------------------------------------
+r26378 | rizzo | 2006-05-10 13:38:43 +0200 (Wed, 10 May 2006) | 6 lines
+
+fix a couple of misindented lines;
+prepare reduce nesting level in a couple of blocks by
+inverting an if () statement (indentation change to be committed
+separately).
+
+
+------------------------------------------------------------------------
+r26416 | rizzo | 2006-05-10 14:17:25 +0200 (Wed, 10 May 2006) | 3 lines
+
+fix indentation of two large blocks
+
+
+------------------------------------------------------------------------
+r26417 | kpfleming | 2006-05-10 14:24:11 +0200 (Wed, 10 May 2006) | 4 lines
+
+ensure that control frames with payload can be sent to channel drivers via -&gt;indicate()
+update iax2_indicate to pass control frame payload to the connected channel
+add an API call for sending an indication with payload, and use it for control frames with payload
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/apps/app_voicemail.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -6764,124 +6764,127 @@
+ 
+ 	case 2:	/* Call back */
+ 
+-		if (!ast_strlen_zero(cid)) {
+-			ast_callerid_parse(cid, &amp;name, &amp;num);
+-			while ((res &gt; -1) &amp;&amp; (res != 't')) {
+-				switch(res) {
+-					case '1':
+-						if (num) {
+-							/* Dial the CID number */
+-							res = dialout(chan, vmu, num, vmu-&gt;callback);
+-							if (res)
+-								return 9;
+-						} else {
+-							res = '2';
+-						}
+-						break;
++		if (ast_strlen_zero(cid))
++			break;
+ 
+-					case '2':
+-						/* Want to enter a different number, can only do this if there's a dialout context for this user */
+-						if (!ast_strlen_zero(vmu-&gt;dialout)) {
+-							res = dialout(chan, vmu, NULL, vmu-&gt;dialout);
+-							if (res)
+-								return 9;
+-						} else {
+-							if (option_verbose &gt; 2)
+-								ast_verbose( VERBOSE_PREFIX_3 &quot;Caller can not specify callback number - no dialout context available\n&quot;);
+-							res = ast_play_and_wait(chan, &quot;vm-sorry&quot;);
+-						}
+-						return res;
+-					case '*':
+-						res = 't';
+-						break;
+-					case '3':
+-					case '4':
+-					case '5':
+-					case '6':
+-					case '7':
+-					case '8':
+-					case '9':
+-					case '0':
++		ast_callerid_parse(cid, &amp;name, &amp;num);
++		while ((res &gt; -1) &amp;&amp; (res != 't')) {
++			switch(res) {
++			case '1':
++				if (num) {
++					/* Dial the CID number */
++					res = dialout(chan, vmu, num, vmu-&gt;callback);
++					if (res)
++						return 9;
++				} else {
++					res = '2';
++				}
++				break;
+ 
+-						res = ast_play_and_wait(chan, &quot;vm-sorry&quot;);
+-						retries++;
+-						break;
+-					default:
+-						if (num) {
+-							if (option_verbose &gt; 2)
+-								ast_verbose( VERBOSE_PREFIX_3 &quot;Confirm CID number '%s' is number to use for callback\n&quot;, num);
+-							res = ast_play_and_wait(chan, &quot;vm-num-i-have&quot;);
+-							if (!res)
+-								res = play_message_callerid(chan, vms, num, vmu-&gt;context, 1);
+-							if (!res)
+-								res = ast_play_and_wait(chan, &quot;vm-tocallnum&quot;);
+-							/* Only prompt for a caller-specified number if there is a dialout context specified */
+-							if (!ast_strlen_zero(vmu-&gt;dialout)) {
+-								if (!res)
+-									res = ast_play_and_wait(chan, &quot;vm-calldiffnum&quot;);
+-							}
+-						} else {
+-							res = ast_play_and_wait(chan, &quot;vm-nonumber&quot;);
+-							if (!ast_strlen_zero(vmu-&gt;dialout)) {
+-								if (!res)
+-									res = ast_play_and_wait(chan, &quot;vm-toenternumber&quot;);
+-							}
+-						}
++			case '2':
++				/* Want to enter a different number, can only do this if there's a dialout context for this user */
++				if (!ast_strlen_zero(vmu-&gt;dialout)) {
++					res = dialout(chan, vmu, NULL, vmu-&gt;dialout);
++					if (res)
++						return 9;
++				} else {
++					if (option_verbose &gt; 2)
++						ast_verbose( VERBOSE_PREFIX_3 &quot;Caller can not specify callback number - no dialout context available\n&quot;);
++					res = ast_play_and_wait(chan, &quot;vm-sorry&quot;);
++				}
++				return res;
++			case '*':
++				res = 't';
++				break;
++			case '3':
++			case '4':
++			case '5':
++			case '6':
++			case '7':
++			case '8':
++			case '9':
++			case '0':
++
++				res = ast_play_and_wait(chan, &quot;vm-sorry&quot;);
++				retries++;
++				break;
++			default:
++				if (num) {
++					if (option_verbose &gt; 2)
++						ast_verbose( VERBOSE_PREFIX_3 &quot;Confirm CID number '%s' is number to use for callback\n&quot;, num);
++					res = ast_play_and_wait(chan, &quot;vm-num-i-have&quot;);
++					if (!res)
++						res = play_message_callerid(chan, vms, num, vmu-&gt;context, 1);
++					if (!res)
++						res = ast_play_and_wait(chan, &quot;vm-tocallnum&quot;);
++					/* Only prompt for a caller-specified number if there is a dialout context specified */
++					if (!ast_strlen_zero(vmu-&gt;dialout)) {
+ 						if (!res)
+-							res = ast_play_and_wait(chan, &quot;vm-star-cancel&quot;);
++							res = ast_play_and_wait(chan, &quot;vm-calldiffnum&quot;);
++					}
++				} else {
++					res = ast_play_and_wait(chan, &quot;vm-nonumber&quot;);
++					if (!ast_strlen_zero(vmu-&gt;dialout)) {
+ 						if (!res)
+-							res = ast_waitfordigit(chan, 6000);
+-						if (!res)
+-							retries++;
+-						if (retries &gt; 3)
+-							res = 't';
+-							break; 
++							res = ast_play_and_wait(chan, &quot;vm-toenternumber&quot;);
++					}
++				}
++				if (!res)
++					res = ast_play_and_wait(chan, &quot;vm-star-cancel&quot;);
++				if (!res)
++					res = ast_waitfordigit(chan, 6000);
++				if (!res)
++					retries++;
++				if (retries &gt; 3)
++					res = 't';
++				break; 
+ 
+-						}
+-					if (res == 't')
+-						res = 0;
+-					else if (res == '*')
+-						res = -1;
+-				}
+ 			}
++			if (res == 't')
++				res = 0;
++			else if (res == '*')
++				res = -1;
++		}
+ 		break;
+ 
+ 	case 1:	/* Reply */
+ 		/* Send reply directly to sender */
+-		if (!ast_strlen_zero(cid)) {
+-			ast_callerid_parse(cid, &amp;name, &amp;num);
+-			if (!num) {
++		if (ast_strlen_zero(cid))
++			break;
++
++		ast_callerid_parse(cid, &amp;name, &amp;num);
++		if (!num) {
++			if (option_verbose &gt; 2)
++				ast_verbose(VERBOSE_PREFIX_3 &quot;No CID number available, no reply sent\n&quot;);
++			if (!res)
++				res = ast_play_and_wait(chan, &quot;vm-nonumber&quot;);
++			return res;
++		} else {
++			if (find_user(NULL, vmu-&gt;context, num)) {
++				struct leave_vm_options leave_options;
++				char mailbox[AST_MAX_EXTENSION * 2 + 2];
++				snprintf(mailbox, sizeof(mailbox), &quot;%s@%s&quot;, num, vmu-&gt;context);
++
+ 				if (option_verbose &gt; 2)
+-					ast_verbose(VERBOSE_PREFIX_3 &quot;No CID number available, no reply sent\n&quot;);
++					ast_verbose(VERBOSE_PREFIX_3 &quot;Leaving voicemail for '%s' in context '%s'\n&quot;, num, vmu-&gt;context);
++				
++				memset(&amp;leave_options, 0, sizeof(leave_options));
++				leave_options.record_gain = record_gain;
++				res = leave_voicemail(chan, mailbox, &amp;leave_options);
+ 				if (!res)
+-					res = ast_play_and_wait(chan, &quot;vm-nonumber&quot;);
++					res = 't';
+ 				return res;
+ 			} else {
+-				if (find_user(NULL, vmu-&gt;context, num)) {
+-					struct leave_vm_options leave_options;
+-					char mailbox[AST_MAX_EXTENSION * 2 + 2];
+-					snprintf(mailbox, sizeof(mailbox), &quot;%s@%s&quot;, num, vmu-&gt;context);
++				/* Sender has no mailbox, can't reply */
++				if (option_verbose &gt; 2)
++					ast_verbose( VERBOSE_PREFIX_3 &quot;No mailbox number '%s' in context '%s', no reply sent\n&quot;, num, vmu-&gt;context);
++				ast_play_and_wait(chan, &quot;vm-nobox&quot;);
++				res = 't';
++				return res;
++			}
++		} 
++		res = 0;
+ 
+-					if (option_verbose &gt; 2)
+-						ast_verbose(VERBOSE_PREFIX_3 &quot;Leaving voicemail for '%s' in context '%s'\n&quot;, num, vmu-&gt;context);
+-					
+-					memset(&amp;leave_options, 0, sizeof(leave_options));
+-					leave_options.record_gain = record_gain;
+-					res = leave_voicemail(chan, mailbox, &amp;leave_options);
+-					if (!res)
+-						res = 't';
+-					return res;
+-				} else {
+-					/* Sender has no mailbox, can't reply */
+-					if (option_verbose &gt; 2)
+-						ast_verbose( VERBOSE_PREFIX_3 &quot;No mailbox number '%s' in context '%s', no reply sent\n&quot;, num, vmu-&gt;context);
+-					ast_play_and_wait(chan, &quot;vm-nobox&quot;);
+-					res = 't';
+-					return res;
+-				}
+-			} 
+-			res = 0;
+-		}
+ 		break;
+ 	}
+ 
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channel.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -2098,6 +2098,11 @@
+ 
+ int ast_indicate(struct ast_channel *chan, int condition)
+ {
++	return ast_indicate_data(chan, condition, NULL, 0);
++}
++
++int ast_indicate_data(struct ast_channel *chan, int condition, const void *data, size_t datalen)
++{
+ 	int res = -1;
+ 
+ 	ast_channel_lock(chan);
+@@ -2107,7 +2112,7 @@
+ 		return -1;
+ 	}
+ 	if (chan-&gt;tech-&gt;indicate)
+-		res = chan-&gt;tech-&gt;indicate(chan, condition);
++		res = chan-&gt;tech-&gt;indicate(chan, condition, data, datalen);
+ 	ast_channel_unlock(chan);
+ 	if (!chan-&gt;tech-&gt;indicate || res) {
+ 		/*
+@@ -3334,16 +3339,21 @@
+ 		other = (who == c0) ? c1 : c0; /* the 'other' channel */
+ 
+ 		if ((f-&gt;frametype == AST_FRAME_CONTROL) &amp;&amp; !(config-&gt;flags &amp; AST_BRIDGE_IGNORE_SIGS)) {
+-			if ((f-&gt;subclass == AST_CONTROL_HOLD) || (f-&gt;subclass == AST_CONTROL_UNHOLD) ||
+-			    (f-&gt;subclass == AST_CONTROL_VIDUPDATE)) {
+-				ast_indicate(other, f-&gt;subclass);
+-			} else {
++			switch (f-&gt;subclass) {
++			case AST_CONTROL_HOLD:
++			case AST_CONTROL_UNHOLD:
++			case AST_CONTROL_VIDUPDATE:
++				ast_indicate_data(other, f-&gt;subclass, f-&gt;data, f-&gt;datalen);
++				break;
++			default:
+ 				*fo = f;
+ 				*rc = who;
+ 				res =  AST_BRIDGE_COMPLETE;
+ 				ast_log(LOG_DEBUG, &quot;Got a FRAME_CONTROL (%d) frame on channel %s\n&quot;, f-&gt;subclass, who-&gt;name);
+ 				break;
+ 			}
++			if (res == AST_BRIDGE_COMPLETE)
++				break;
+ 		}
+ 		if ((f-&gt;frametype == AST_FRAME_VOICE) ||
+ 		    (f-&gt;frametype == AST_FRAME_DTMF) ||
+
+Modified: trunk/channels/chan_agent.c
+===================================================================
+--- trunk/channels/chan_agent.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_agent.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -248,7 +248,7 @@
+ static int agent_write(struct ast_channel *ast, struct ast_frame *f);
+ static int agent_sendhtml(struct ast_channel *ast, int subclass, const char *data, int datalen);
+ static int agent_sendtext(struct ast_channel *ast, const char *text);
+-static int agent_indicate(struct ast_channel *ast, int condition);
++static int agent_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen);
+ static int agent_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ static struct ast_channel *agent_bridgedchannel(struct ast_channel *chan, struct ast_channel *bridge);
+ static void set_agentbycallerid(const char *callerid, const char *agent);
+@@ -586,7 +586,7 @@
+ 	return 0;
+ }
+ 
+-static int agent_indicate(struct ast_channel *ast, int condition)
++static int agent_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen)
+ {
+ 	struct agent_pvt *p = ast-&gt;tech_pvt;
+ 	int res = -1;
+
+Modified: trunk/channels/chan_alsa.c
+===================================================================
+--- trunk/channels/chan_alsa.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_alsa.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -183,7 +183,7 @@
+ static struct ast_frame *alsa_read(struct ast_channel *chan);
+ static int alsa_call(struct ast_channel *c, char *dest, int timeout);
+ static int alsa_write(struct ast_channel *chan, struct ast_frame *f);
+-static int alsa_indicate(struct ast_channel *chan, int cond);
++static int alsa_indicate(struct ast_channel *chan, int cond, const void *data, size_t datalen);
+ static int alsa_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ 
+ static const struct ast_channel_tech alsa_tech = {
+@@ -750,7 +750,7 @@
+ 	return 0;
+ }
+ 
+-static int alsa_indicate(struct ast_channel *chan, int cond)
++static int alsa_indicate(struct ast_channel *chan, int cond, const void *data, size_t datalen)
+ {
+ 	int res = 0;
+ 	ast_mutex_lock(&amp;alsalock);
+
+Modified: trunk/channels/chan_features.c
+===================================================================
+--- trunk/channels/chan_features.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_features.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -101,7 +101,7 @@
+ static int features_answer(struct ast_channel *ast);
+ static struct ast_frame *features_read(struct ast_channel *ast);
+ static int features_write(struct ast_channel *ast, struct ast_frame *f);
+-static int features_indicate(struct ast_channel *ast, int condition);
++static int features_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen);
+ static int features_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ 
+ static const struct ast_channel_tech features_tech = {
+@@ -285,7 +285,7 @@
+ 	return 0;
+ }
+ 
+-static int features_indicate(struct ast_channel *ast, int condition)
++static int features_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen)
+ {
+ 	struct feature_pvt *p = ast-&gt;tech_pvt;
+ 	int res = -1;
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_iax2.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -791,7 +791,7 @@
+ static int iax2_do_register(struct iax2_registry *reg);
+ static int iax2_fixup(struct ast_channel *oldchannel, struct ast_channel *newchan);
+ static int iax2_hangup(struct ast_channel *c);
+-static int iax2_indicate(struct ast_channel *c, int condition);
++static int iax2_indicate(struct ast_channel *c, int condition, const void *data, size_t datalen);
+ static int iax2_poke_peer(struct iax2_peer *peer, int heldcall);
+ static int iax2_provision(struct sockaddr_in *end, int sockfd, char *dest, const char *template, int force);
+ static int iax2_send(struct chan_iax2_pvt *pvt, struct ast_frame *f, unsigned int ts, int seqno, int now, int transfer, int final);
+@@ -3493,12 +3493,12 @@
+ 	return send_command_locked(callno, AST_FRAME_CONTROL, AST_CONTROL_ANSWER, 0, NULL, 0, -1);
+ }
+ 
+-static int iax2_indicate(struct ast_channel *c, int condition)
++static int iax2_indicate(struct ast_channel *c, int condition, const void *data, size_t datalen)
+ {
+ 	unsigned short callno = PTR_TO_CALLNO(c-&gt;tech_pvt);
+ 	if (option_debug &amp;&amp; iaxdebug)
+ 		ast_log(LOG_DEBUG, &quot;Indicating condition %d\n&quot;, condition);
+-	return send_command_locked(callno, AST_FRAME_CONTROL, condition, 0, NULL, 0, -1);
++	return send_command_locked(callno, AST_FRAME_CONTROL, condition, 0, data, datalen, -1);
+ }
+ 	
+ static int iax2_transfer(struct ast_channel *c, const char *dest)
+
+Modified: trunk/channels/chan_local.c
+===================================================================
+--- trunk/channels/chan_local.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_local.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -72,7 +72,7 @@
+ static int local_answer(struct ast_channel *ast);
+ static struct ast_frame *local_read(struct ast_channel *ast);
+ static int local_write(struct ast_channel *ast, struct ast_frame *f);
+-static int local_indicate(struct ast_channel *ast, int condition);
++static int local_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen);
+ static int local_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ static int local_sendhtml(struct ast_channel *ast, int subclass, const char *data, int datalen);
+ 
+@@ -261,7 +261,7 @@
+ 	return 0;
+ }
+ 
+-static int local_indicate(struct ast_channel *ast, int condition)
++static int local_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen)
+ {
+ 	struct local_pvt *p = ast-&gt;tech_pvt;
+ 	int res = -1;
+
+Modified: trunk/channels/chan_mgcp.c
+===================================================================
+--- trunk/channels/chan_mgcp.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_mgcp.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -494,7 +494,7 @@
+ static int mgcp_answer(struct ast_channel *ast);
+ static struct ast_frame *mgcp_read(struct ast_channel *ast);
+ static int mgcp_write(struct ast_channel *ast, struct ast_frame *frame);
+-static int mgcp_indicate(struct ast_channel *ast, int ind);
++static int mgcp_indicate(struct ast_channel *ast, int ind, const void *data, size_t datalen);
+ static int mgcp_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ static int mgcp_senddigit(struct ast_channel *ast, char digit);
+ static int mgcp_devicestate(void *data);
+@@ -1401,7 +1401,7 @@
+ 	return &quot;UNKNOWN&quot;;
+ }
+ 
+-static int mgcp_indicate(struct ast_channel *ast, int ind)
++static int mgcp_indicate(struct ast_channel *ast, int ind, const void *data, size_t datalen)
+ {
+ 	struct mgcp_subchannel *sub = ast-&gt;tech_pvt;
+ 	int res = 0;
+
+Modified: trunk/channels/chan_nbs.c
+===================================================================
+--- trunk/channels/chan_nbs.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_nbs.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -296,12 +296,12 @@
+ 	return 0;
+ }
+ 
+-int unload_module(void)
++static int unload_module(void)
+ {
+ 	return __unload_module();
+ }
+ 
+-int load_module(void)
++static int load_module(void)
+ {
+ 	/* Make sure we can register our channel type */
+ 	if (ast_channel_register(&amp;nbs_tech)) {
+
+Modified: trunk/channels/chan_oss.c
+===================================================================
+--- trunk/channels/chan_oss.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_oss.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -373,7 +373,7 @@
+ static struct ast_frame *oss_read(struct ast_channel *chan);
+ static int oss_call(struct ast_channel *c, char *dest, int timeout);
+ static int oss_write(struct ast_channel *chan, struct ast_frame *f);
+-static int oss_indicate(struct ast_channel *chan, int cond);
++static int oss_indicate(struct ast_channel *chan, int cond, const void *data, size_t datalen);
+ static int oss_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ static char tdesc[] = &quot;OSS Console Channel Driver&quot;;
+ 
+@@ -901,7 +901,7 @@
+ 	return 0;
+ }
+ 
+-static int oss_indicate(struct ast_channel *c, int cond)
++static int oss_indicate(struct ast_channel *c, int cond, const void *data, size_t datalen)
+ {
+ 	struct chan_oss_pvt *o = c-&gt;tech_pvt;
+ 	int res;
+
+Modified: trunk/channels/chan_phone.c
+===================================================================
+--- trunk/channels/chan_phone.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_phone.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -169,7 +169,7 @@
+ static struct ast_frame *phone_exception(struct ast_channel *ast);
+ static int phone_send_text(struct ast_channel *ast, const char *text);
+ static int phone_fixup(struct ast_channel *old, struct ast_channel *new);
+-static int phone_indicate(struct ast_channel *chan, int condition);
++static int phone_indicate(struct ast_channel *chan, int condition, const void *data, size_t datalen);
+ 
+ static const struct ast_channel_tech phone_tech = {
+ 	.type = &quot;Phone&quot;,
+@@ -206,7 +206,7 @@
+ 
+ static struct ast_channel_tech *cur_tech;
+ 
+-static int phone_indicate(struct ast_channel *chan, int condition)
++static int phone_indicate(struct ast_channel *chan, int condition, const void *data, size_t datalen)
+ {
+ 	struct phone_pvt *p = chan-&gt;tech_pvt;
+ 	int res=-1;
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_sip.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -1060,7 +1060,7 @@
+ static int sip_answer(struct ast_channel *ast);
+ static struct ast_frame *sip_read(struct ast_channel *ast);
+ static int sip_write(struct ast_channel *ast, struct ast_frame *frame);
+-static int sip_indicate(struct ast_channel *ast, int condition);
++static int sip_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen);
+ static int sip_transfer(struct ast_channel *ast, const char *dest);
+ static int sip_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ static int sip_senddigit(struct ast_channel *ast, char digit);
+@@ -2927,7 +2927,7 @@
+    the indication - busy signal, congestion etc 
+    \return -1 to force ast_indicate to send indication in audio, 0 if SIP can handle the indication by sending a message
+ */
+-static int sip_indicate(struct ast_channel *ast, int condition)
++static int sip_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen)
+ {
+ 	struct sip_pvt *p = ast-&gt;tech_pvt;
+ 	int res = 0;
+
+Modified: trunk/channels/chan_skinny.c
+===================================================================
+--- trunk/channels/chan_skinny.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_skinny.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -901,7 +901,7 @@
+ static int skinny_answer(struct ast_channel *ast);
+ static struct ast_frame *skinny_read(struct ast_channel *ast);
+ static int skinny_write(struct ast_channel *ast, struct ast_frame *frame);
+-static int skinny_indicate(struct ast_channel *ast, int ind);
++static int skinny_indicate(struct ast_channel *ast, int ind, const void *data, size_t datalen);
+ static int skinny_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ static int skinny_senddigit(struct ast_channel *ast, char digit);
+ 
+@@ -2172,7 +2172,7 @@
+ }
+ 
+ 
+-static int skinny_indicate(struct ast_channel *ast, int ind)
++static int skinny_indicate(struct ast_channel *ast, int ind, const void *data, size_t datalen)
+ {
+ 	struct skinny_subchannel *sub = ast-&gt;tech_pvt;
+ 	struct skinny_line *l = sub-&gt;parent;
+
+Modified: trunk/channels/chan_vpb.c
+===================================================================
+--- trunk/channels/chan_vpb.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_vpb.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -349,7 +349,7 @@
+ static struct ast_frame *vpb_read(struct ast_channel *ast);
+ static int vpb_write(struct ast_channel *ast, struct ast_frame *frame);
+ static enum ast_bridge_result ast_vpb_bridge(struct ast_channel *c0, struct ast_channel *c1, int flags, struct ast_frame **fo, struct ast_channel **rc, int timeoutms);
+-static int vpb_indicate(struct ast_channel *ast, int condition);
++static int vpb_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen);
+ static int vpb_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ 
+ static struct ast_channel_tech vpb_tech = {
+@@ -1720,7 +1720,7 @@
+ 	return tmp;
+ }
+ 
+-static int vpb_indicate(struct ast_channel *ast, int condition)
++static int vpb_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen)
+ {
+ 	struct vpb_pvt *p = (struct vpb_pvt *)ast-&gt;tech_pvt;
+ 	int res = 0;
+@@ -1818,7 +1818,7 @@
+ 		else {
+ 			if (option_verbose &gt; 3)
+ 				ast_verbose(VERBOSE_PREFIX_4 &quot;%s: vpb_fixup Calling vpb_indicate\n&quot;, p-&gt;dev);
+-			vpb_indicate(newchan, AST_CONTROL_RINGING);
++			vpb_indicate(newchan, AST_CONTROL_RINGING, NULL, 0);
+ 		}
+ 	}
+ 
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/channels/chan_zap.c	2006-05-10 12:29:09 UTC (rev 124)
+@@ -695,7 +695,7 @@
+ struct ast_frame *zt_read(struct ast_channel *ast);
+ static int zt_write(struct ast_channel *ast, struct ast_frame *frame);
+ struct ast_frame *zt_exception(struct ast_channel *ast);
+-static int zt_indicate(struct ast_channel *chan, int condition);
++static int zt_indicate(struct ast_channel *chan, int condition, const void *data, size_t datalen);
+ static int zt_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ static int zt_setoption(struct ast_channel *chan, int option, void *data, int datalen);
+ static int zt_func_read(struct ast_channel *chan, char *function, char *data, char *buf, size_t len); 
+@@ -3341,7 +3341,7 @@
+ 			p-&gt;subs[x].owner = newchan;
+ 		}
+ 	if (newchan-&gt;_state == AST_STATE_RINGING) 
+-		zt_indicate(newchan, AST_CONTROL_RINGING);
++		zt_indicate(newchan, AST_CONTROL_RINGING, NULL, 0);
+ 	update_conf(p);
+ 	ast_mutex_unlock(&amp;p-&gt;lock);
+ 	return 0;
+@@ -4843,7 +4843,7 @@
+ 	return 0;
+ }
+ 
+-static int zt_indicate(struct ast_channel *chan, int condition)
++static int zt_indicate(struct ast_channel *chan, int condition, const void *data, size_t datalen)
+ {
+ 	struct zt_pvt *p = chan-&gt;tech_pvt;
+ 	int res=-1;
+
+Modified: trunk/include/asterisk/channel.h
+===================================================================
+--- trunk/include/asterisk/channel.h	2006-05-10 11:28:54 UTC (rev 123)
++++ trunk/include/asterisk/channel.h	2006-05-10 12:29:09 UTC (rev 124)
+@@ -250,7 +250,7 @@
+ 						struct ast_frame **fo, struct ast_channel **rc, int timeoutms);
+ 
+ 	/*! Indicate a particular condition (e.g. AST_CONTROL_BUSY or AST_CONTROL_RINGING or AST_CONTROL_CONGESTION */
+-	int (* const indicate)(struct ast_channel *c, int condition);
++	int (* const indicate)(struct ast_channel *c, int condition, const void *data, size_t datalen);
+ 
+ 	/*! Fix up a channel:  If a channel is consumed, this is called.  Basically update any -&gt;owner links */
+ 	int (* const fixup)(struct ast_channel *oldchan, struct ast_channel *newchan);
+@@ -764,6 +764,16 @@
+  */
+ int ast_indicate(struct ast_channel *chan, int condition);
+ 
++/*! \brief Indicates condition of channel, with payload
++ * \note Indicate a condition such as AST_CONTROL_BUSY, AST_CONTROL_RINGING, or AST_CONTROL_CONGESTION on a channel
++ * \param chan channel to change the indication
++ * \param condition which condition to indicate on the channel
++ * \param data pointer to payload data
++ * \param datalen size of payload data
++ * \return Returns 0 on success, -1 on failure
++ */
++int ast_indicate_data(struct ast_channel *chan, int condition, const void *data, size_t datalen);
++
+ /* Misc stuff ------------------------------------------------ */
+ 
+ /*! \brief Wait for input on a channel 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000119.html">[solid-pbx-svn] r123 - in trunk: . build_tools
+</A></li>
+	<LI>Next message: <A HREF="000121.html">[solid-pbx-svn] r125 - in trunk: . apps build_tools channels funcs include/asterisk pbx res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#120">[ date ]</a>
+              <a href="thread.html#120">[ thread ]</a>
+              <a href="subject.html#120">[ subject ]</a>
+              <a href="author.html#120">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

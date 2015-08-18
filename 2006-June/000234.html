@@ -1,0 +1,259 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r239 - trunk/res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r239%20-%20trunk/res&In-Reply-To=%3C200606180158.k5I1wfP3027396%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000233.html">
+   <LINK REL="Next"  HREF="000235.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r239 - trunk/res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r239%20-%20trunk/res&In-Reply-To=%3C200606180158.k5I1wfP3027396%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r239 - trunk/res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 03:58:41 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000233.html">[solid-pbx-svn] r238 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000235.html">[solid-pbx-svn] r240 - in trunk: . include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#234">[ date ]</a>
+              <a href="thread.html#234">[ thread ]</a>
+              <a href="subject.html#234">[ subject ]</a>
+              <a href="author.html#234">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 03:58:35 +0200 (Sun, 18 Jun 2006)
+New Revision: 239
+
+Modified:
+   trunk/res/res_musiconhold.c
+Log:
+Update to Asterisk SVN trunk r31953
+
+------------------------------------------------------------------------
+r31953 | russell | 2006-06-04 08:21:43 +0200 (Sun, 04 Jun 2006) | 10 lines
+
+Use a dynamically sized array to store the list of files for moh &quot;files&quot; mode
+ - Instead of always allocating 64KB of memory for every MOH class, this has
+   been reduced to only a single pointer per class, with more memory only
+   allocatted when using &quot;files&quot; mode, as needed
+ - Instead of imposing a length limit on the full filename, including full
+   path, of 127 characters, use PATH_MAX, the maximum length that the system
+   can handle
+ - There is no longer a limit on the number of files than can be used for a
+   single MOH class using &quot;files&quot; mode
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/res/res_musiconhold.c
+===================================================================
+--- trunk/res/res_musiconhold.c	2006-06-18 01:57:10 UTC (rev 238)
++++ trunk/res/res_musiconhold.c	2006-06-18 01:58:35 UTC (rev 239)
+@@ -72,8 +72,7 @@
+ #include &quot;asterisk/stringfields.h&quot;
+ #include &quot;asterisk/linkedlists.h&quot;
+ 
+-#define MAX_MOHFILES 512
+-#define MAX_MOHFILE_LEN 128
++#define INITIAL_NUM_FILES   8
+ 
+ static char *app0 = &quot;MusicOnHold&quot;;
+ static char *app1 = &quot;WaitMusicOnHold&quot;;
+@@ -133,17 +132,22 @@
+ 	char dir[256];
+ 	char args[256];
+ 	char mode[80];
+-	/* XXX This means that we are allocating 64KB of memory for every musiconhold class XXX */
+-	char filearray[MAX_MOHFILES][MAX_MOHFILE_LEN];
++	/*! A dynamically sized array to hold the list of filenames in &quot;files&quot; mode */
++	char **filearray;
++	/*! The current size of the filearray */
++	int allowed_files;
++	/*! The current number of files loaded into the filearray */
++	int total_files;
+ 	unsigned int flags;
+-	int total_files;
++	/*! The format from the MOH source, not applicable to &quot;files&quot; mode */
+ 	int format;
+-	int pid;		/* PID of mpg123 */
++	/*! The pid of the external application delivering MOH */
++	int pid;
+ 	time_t start;
+ 	pthread_t thread;
+-	/* Source of audio */
++	/*! Source of audio */
+ 	int srcfd;
+-	/* FD for timing source */
++	/*! FD for timing source */
+ 	int pseudofd;
+ 	AST_LIST_HEAD_NOLOCK(, mohdata) members;
+ 	AST_LIST_ENTRY(mohclass) list;
+@@ -164,20 +168,28 @@
+ #define MAX_MP3S 256
+ 
+ 
+-static void ast_moh_free_class(struct mohclass **class) 
++static void ast_moh_free_class(struct mohclass **mohclass) 
+ {
+ 	struct mohdata *member;
++	struct mohclass *class = *mohclass;
++	int i;
+ 	
+-	while ((member = AST_LIST_REMOVE_HEAD(&amp;((*class)-&gt;members), list)))
++	while ((member = AST_LIST_REMOVE_HEAD(&amp;class-&gt;members, list)))
+ 		free(member);
+ 	
+-	if ((*class)-&gt;thread) {
+-		pthread_cancel((*class)-&gt;thread);
+-		(*class)-&gt;thread = 0;
++	if (class-&gt;thread) {
++		pthread_cancel(class-&gt;thread);
++		class-&gt;thread = 0;
+ 	}
+ 
+-	free(*class);
+-	*class = NULL;
++	if (class-&gt;filearray) {
++		for (i = 0; i &lt; class-&gt;total_files; i++)
++			free(class-&gt;filearray[i]);
++		free(class-&gt;filearray);
++	}
++
++	free(class);
++	*mohclass = NULL;
+ }
+ 
+ 
+@@ -402,14 +414,6 @@
+ 		ast_log(LOG_WARNING, &quot;Pipe failed\n&quot;);
+ 		return -1;
+ 	}
+-#if 0
+-	printf(&quot;%d files total, %d args total\n&quot;, files, argc);
+-	{
+-		int x;
+-		for (x=0;argv[x];x++)
+-			printf(&quot;arg%d: %s\n&quot;, x, argv[x]);
+-	}
+-#endif	
+ 	if (!files) {
+ 		ast_log(LOG_WARNING, &quot;Found no files in '%s'\n&quot;, class-&gt;dir);
+ 		close(fds[0]);
+@@ -721,12 +725,35 @@
+ 	generate: moh_generate,
+ };
+ 
++static int moh_add_file(struct mohclass *class, const char *filepath)
++{
++	if (!class-&gt;allowed_files) {
++		if (!(class-&gt;filearray = ast_calloc(1, INITIAL_NUM_FILES * sizeof(*class-&gt;filearray))))
++			return -1;
++		class-&gt;allowed_files = INITIAL_NUM_FILES;
++	} else if (class-&gt;total_files == class-&gt;allowed_files) {
++		if (!(class-&gt;filearray = ast_realloc(class-&gt;filearray, class-&gt;allowed_files * sizeof(*class-&gt;filearray) * 2))) {
++			class-&gt;allowed_files = 0;
++			class-&gt;total_files = 0;
++			return -1;
++		}
++		class-&gt;allowed_files *= 2;
++	}
++
++	if (!(class-&gt;filearray[class-&gt;total_files] = ast_strdup(filepath)))
++		return -1;
++
++	class-&gt;total_files++;
++
++	return 0;
++}
++
+ static int moh_scan_files(struct mohclass *class) {
+ 
+ 	DIR *files_DIR;
+ 	struct dirent *files_dirent;
+ 	char path[512];
+-	char filepath[MAX_MOHFILE_LEN];
++	char filepath[PATH_MAX];
+ 	char *ext;
+ 	struct stat statbuf;
+ 	int dirnamelen;
+@@ -738,16 +765,19 @@
+ 		return -1;
+ 	}
+ 
++	for (i = 0; i &lt; class-&gt;total_files; i++)
++		free(class-&gt;filearray[i]);
++
+ 	class-&gt;total_files = 0;
+ 	dirnamelen = strlen(class-&gt;dir) + 2;
+ 	getcwd(path, 512);
+ 	chdir(class-&gt;dir);
+-	memset(class-&gt;filearray, 0, MAX_MOHFILES*MAX_MOHFILE_LEN);
+ 	while ((files_dirent = readdir(files_DIR))) {
+-		if ((strlen(files_dirent-&gt;d_name) &lt; 4) || ((strlen(files_dirent-&gt;d_name) + dirnamelen) &gt;= MAX_MOHFILE_LEN))
++		/* The file name must be at least long enough to have the file type extension */
++		if ((strlen(files_dirent-&gt;d_name) &lt; 4))
+ 			continue;
+ 
+-		snprintf(filepath, MAX_MOHFILE_LEN, &quot;%s/%s&quot;, class-&gt;dir, files_dirent-&gt;d_name);
++		snprintf(filepath, sizeof(filepath), &quot;%s/%s&quot;, class-&gt;dir, files_dirent-&gt;d_name);
+ 
+ 		if (stat(filepath, &amp;statbuf))
+ 			continue;
+@@ -765,13 +795,10 @@
+ 			if (!strcmp(filepath, class-&gt;filearray[i]))
+ 				break;
+ 
+-		if (i == class-&gt;total_files)
+-			strcpy(class-&gt;filearray[class-&gt;total_files++], filepath);
+-
+-		/* If the new total files is equal to the maximum allowed, stop adding new ones */
+-		if (class-&gt;total_files == MAX_MOHFILES)
+-			break;
+-
++		if (i == class-&gt;total_files) {
++			if (moh_add_file(class, filepath))
++				break;
++		}
+ 	}
+ 
+ 	closedir(files_DIR);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000233.html">[solid-pbx-svn] r238 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000235.html">[solid-pbx-svn] r240 - in trunk: . include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#234">[ date ]</a>
+              <a href="thread.html#234">[ thread ]</a>
+              <a href="subject.html#234">[ subject ]</a>
+              <a href="author.html#234">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

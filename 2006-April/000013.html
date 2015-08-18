@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r16 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-April/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r16%20-%20trunk/channels&In-Reply-To=%3C200604301720.k3UHKEZL000491%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000012.html">
+   <LINK REL="Next"  HREF="000014.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r16 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r16%20-%20trunk/channels&In-Reply-To=%3C200604301720.k3UHKEZL000491%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r16 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Apr 30 19:20:14 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000012.html">[solid-pbx-svn] r15 - in trunk: . apps cdr channels db1-ast doc editline include/asterisk pbx pbx/ael utils
+</A></li>
+        <LI>Next message: <A HREF="000014.html">[solid-pbx-svn] r17 - in trunk: . build_tools channels res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#13">[ date ]</a>
+              <a href="thread.html#13">[ thread ]</a>
+              <a href="subject.html#13">[ subject ]</a>
+              <a href="author.html#13">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-04-30 19:20:05 +0200 (Sun, 30 Apr 2006)
+New Revision: 16
+
+Modified:
+   trunk/channels/chan_iax2.c
+Log:
+Update to Asterisk SVN trunk r23734
+
+------------------------------------------------------------------------
+r23704 | russell | 2006-04-30 17:29:38 +0200 (Sun, 30 Apr 2006) | 2 lines
+
+fix a libtonezone detection issue on FreeBSD
+
+------------------------------------------------------------------------
+r23706 | kpfleming | 2006-04-30 17:48:56 +0200 (Sun, 30 Apr 2006) | 10 lines
+
+Merged revisions 23705 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r23705 | kpfleming | 2006-04-30 10:46:22 -0500 (Sun, 30 Apr 2006) | 2 lines
+
+remove a pointless comparison, since the buffer is smaller than the length being checked for
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-04-30 15:42:56 UTC (rev 15)
++++ trunk/channels/chan_iax2.c	2006-04-30 17:20:05 UTC (rev 16)
+@@ -5062,10 +5062,10 @@
+ 	}
+ 	ast_mutex_unlock(&amp;userl.lock);
+ 	user = best;
+-	if (!user &amp;&amp; !ast_strlen_zero(iaxs[callno]-&gt;username) &amp;&amp; (strlen(iaxs[callno]-&gt;username) &lt; 128)) {
++	if (!user &amp;&amp; !ast_strlen_zero(iaxs[callno]-&gt;username)) {
+ 		user = realtime_user(iaxs[callno]-&gt;username);
+ 		if (user &amp;&amp; !ast_strlen_zero(iaxs[callno]-&gt;context) &amp;&amp;			/* No context specified */
+-			     !apply_context(user-&gt;contexts, iaxs[callno]-&gt;context)) {			/* Context is permitted */
++		    !apply_context(user-&gt;contexts, iaxs[callno]-&gt;context)) {		/* Context is permitted */
+ 			destroy_user(user);
+ 			user = NULL;
+ 		}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000012.html">[solid-pbx-svn] r15 - in trunk: . apps cdr channels db1-ast doc editline include/asterisk pbx pbx/ael utils
+</A></li>
+	<LI>Next message: <A HREF="000014.html">[solid-pbx-svn] r17 - in trunk: . build_tools channels res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#13">[ date ]</a>
+              <a href="thread.html#13">[ thread ]</a>
+              <a href="subject.html#13">[ subject ]</a>
+              <a href="author.html#13">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

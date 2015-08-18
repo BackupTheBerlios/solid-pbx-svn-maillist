@@ -1,0 +1,471 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r134 - in trunk: . build_tools channels include
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r134%20-%20in%20trunk%3A%20.%20build_tools%20channels%20include&In-Reply-To=%3C200605111029.k4BAT2jg010411%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000129.html">
+   <LINK REL="Next"  HREF="000131.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r134 - in trunk: . build_tools channels include</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r134%20-%20in%20trunk%3A%20.%20build_tools%20channels%20include&In-Reply-To=%3C200605111029.k4BAT2jg010411%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r134 - in trunk: . build_tools channels include">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May 11 12:29:02 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000129.html">[solid-pbx-svn] r133 - in trunk: . channels
+</A></li>
+        <LI>Next message: <A HREF="000131.html">[solid-pbx-svn] r135 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#130">[ date ]</a>
+              <a href="thread.html#130">[ thread ]</a>
+              <a href="subject.html#130">[ subject ]</a>
+              <a href="author.html#130">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-11 12:28:58 +0200 (Thu, 11 May 2006)
+New Revision: 134
+
+Modified:
+   trunk/.cleancount
+   trunk/Makefile
+   trunk/build_tools/Makefile
+   trunk/build_tools/cflags.xml
+   trunk/channels/chan_sip.c
+   trunk/configure.ac
+   trunk/include/autoconfig.h.in
+Log:
+Update to Asterisk SVN trunk r26846
+
+------------------------------------------------------------------------
+r26800 | rizzo | 2006-05-11 11:29:37 +0200 (Thu, 11 May 2006) | 5 lines
+
+replace list unlinking with UNLINK macro
+(when the list becomes an astobj this will be revisited;
+however at the moment the change would be too intrusive).
+
+
+------------------------------------------------------------------------
+r26801 | rizzo | 2006-05-11 11:32:51 +0200 (Thu, 11 May 2006) | 3 lines
+
+staticize a variable.
+
+
+------------------------------------------------------------------------
+r26802 | rizzo | 2006-05-11 11:36:10 +0200 (Thu, 11 May 2006) | 3 lines
+
+cleanup init_resp with proper variable names and arguments.
+
+
+------------------------------------------------------------------------
+r26804 | rizzo | 2006-05-11 11:38:53 +0200 (Thu, 11 May 2006) | 6 lines
+
+simplify init_req()
+As the rest of the chan_sip.c changes i am committing, this is
+
+Approved by: oej
+
+
+------------------------------------------------------------------------
+r26808 | russell | 2006-05-11 11:50:41 +0200 (Thu, 11 May 2006) | 5 lines
+
+change the CFLAGS controlled by menuselect to be placed in a header file
+instead of being added to the compiler commands.  This header file will be
+installed and modules built outside of the main tree will be able to use the
+same build options used to build the rest of Asterisk.
+
+------------------------------------------------------------------------
+r26840 | russell | 2006-05-11 12:12:34 +0200 (Thu, 11 May 2006) | 2 lines
+
+remove a trailing tab ... now this Makefile is perfect
+
+------------------------------------------------------------------------
+r26845 | russell | 2006-05-11 12:20:16 +0200 (Thu, 11 May 2006) | 2 lines
+
+add messages at the bottom of the menu for each of the defines
+
+------------------------------------------------------------------------
+r26846 | rizzo | 2006-05-11 12:22:18 +0200 (Thu, 11 May 2006) | 3 lines
+
+remove duplicated code in add_header
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/.cleancount
+===================================================================
+--- trunk/.cleancount	2006-05-11 09:28:50 UTC (rev 133)
++++ trunk/.cleancount	2006-05-11 10:28:58 UTC (rev 134)
+@@ -1 +1 @@
+-15
++16
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-11 09:28:50 UTC (rev 133)
++++ trunk/Makefile	2006-05-11 10:28:58 UTC (rev 134)
+@@ -195,7 +195,6 @@
+   include makeopts
+ endif
+ 
+-ASTCFLAGS+=$(MENUSELECT_CFLAGS)
+ TOPDIR_CFLAGS=-include include/autoconfig.h -Iinclude
+ MOD_SUBDIR_CFLAGS=-include ../include/autoconfig.h -I../include -I..
+ OTHER_SUBDIR_CFLAGS=-include ../include/autoconfig.h -I../include -I..
+@@ -432,7 +431,7 @@
+ 	@echo &quot; +               make install                +&quot;  
+ 	@echo &quot; +-------------------------------------------+&quot;  
+ 
+-all: config.status menuselect.makeopts cleantest depend asterisk subdirs
++all: cleantest config.status menuselect.makeopts depend asterisk subdirs
+ 
+ config.status: configure
+ 	@CFLAGS=&quot;&quot; ./configure
+@@ -525,10 +524,17 @@
+ 	fi
+ 	@rm -f $@.tmp
+ 
++include/asterisk/buildopts.h: menuselect.makeopts
++	@build_tools/make_buildopts_h &gt; $@.tmp
++	@if cmp -s $@.tmp $@ ; then echo; else \
++		mv $@.tmp $@ ; \
++	fi
++	@rm -f $@.tmp
++
+ stdtime/libtime.a:
+ 	CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS) $(ASTCFLAGS)&quot; $(MAKE) -C stdtime libtime.a
+ 
+-asterisk: editline/libedit.a db1-ast/libdb1.a stdtime/libtime.a $(OBJS)
++asterisk: include/asterisk/buildopts.h editline/libedit.a db1-ast/libdb1.a stdtime/libtime.a $(OBJS)
+ 	build_tools/make_build_h &gt; include/asterisk/build.h.tmp
+ 	if cmp -s include/asterisk/build.h.tmp include/asterisk/build.h ; then echo ; else \
+ 		mv include/asterisk/build.h.tmp include/asterisk/build.h ; \
+@@ -567,6 +573,7 @@
+ 	rm -f menuselect.makeopts makeopts makeopts.xml
+ 	rm -f config.log config.status
+ 	rm -f include/autoconfig.h
++	rm -f include/asterisk/buildopts.h
+ 	$(MAKE) -C mxml clean
+ 	$(MAKE) -C build_tools dist-clean
+ 
+@@ -675,7 +682,7 @@
+ 	if [ -f asterisk.dll ]; then $(INSTALL) -m 755 asterisk.dll $(DESTDIR)$(ASTSBINDIR)/; fi
+ 	ln -sf asterisk $(DESTDIR)$(ASTSBINDIR)/rasterisk
+ 	$(INSTALL) -m 755 contrib/scripts/astgenkey $(DESTDIR)$(ASTSBINDIR)/
+-	$(INSTALL) -m 755 contrib/scripts/autosupport $(DESTDIR)$(ASTSBINDIR)/	
++	$(INSTALL) -m 755 contrib/scripts/autosupport $(DESTDIR)$(ASTSBINDIR)/
+ 	if [ ! -f $(DESTDIR)$(ASTSBINDIR)/safe_asterisk ]; then \
+ 		cat contrib/scripts/safe_asterisk | sed 's|__ASTERISK_SBIN_DIR__|$(ASTSBINDIR)|;' &gt; $(DESTDIR)$(ASTSBINDIR)/safe_asterisk ;\
+ 		chmod 755 $(DESTDIR)$(ASTSBINDIR)/safe_asterisk;\
+@@ -862,7 +869,7 @@
+ 
+ rpm: __rpm
+ 
+-__rpm: include/asterisk/version.h spec
++__rpm: include/asterisk/version.h include/asterisk/buildopts.h spec
+ 	rm -rf /tmp/asterisk ; \
+ 	mkdir -p /tmp/asterisk/redhat/RPMS/i386 ; \
+ 	$(MAKE) DESTDIR=/tmp/asterisk install ; \
+@@ -911,10 +918,10 @@
+ 
+ valgrind: dont-optimize
+ 
+-depend: include/asterisk/version.h .depend defaults.h 
++depend: include/asterisk/version.h include/asterisk/buildopts.h .depend defaults.h 
+ 	@for x in $(SUBDIRS); do $(MAKE) -C $$x depend || exit 1 ; done
+ 
+-.depend: include/asterisk/version.h defaults.h
++.depend: include/asterisk/version.h include/asterisk/buildopts.h defaults.h
+ 	build_tools/mkdep $(CFLAGS) $(wildcard *.c)
+ 
+ .tags-depend:
+@@ -958,7 +965,7 @@
+ 
+ cleantest:
+ 	@if cmp -s .cleancount .lastclean ; then echo ; else \
+-		$(MAKE) clean; cp -f .cleancount .lastclean;\
++		$(MAKE) dist-clean; cp -f .cleancount .lastclean;\
+ 	fi
+ 
+ _uninstall:
+
+Modified: trunk/build_tools/Makefile
+===================================================================
+--- trunk/build_tools/Makefile	2006-05-11 09:28:50 UTC (rev 133)
++++ trunk/build_tools/Makefile	2006-05-11 10:28:58 UTC (rev 134)
+@@ -1,5 +1,5 @@
+ MENUSELECT_OBJS=menuselect.o menuselect_curses.o
+-MENUSELECT_CFLAGS=-g -c -D_GNU_SOURCE -I../ -I../include/
++MENUSELECT_CFLAGS=-g -c -D_GNU_SOURCE -DMENUSELECT -I../ -I../include/
+ MENUSELECT_LIBS=../mxml/libmxml.a
+ 
+ ifeq ($(OSARCH),SunOS)
+
+Modified: trunk/build_tools/cflags.xml
+===================================================================
+--- trunk/build_tools/cflags.xml	2006-05-11 09:28:50 UTC (rev 133)
++++ trunk/build_tools/cflags.xml	2006-05-11 10:28:58 UTC (rev 134)
+@@ -1,20 +1,20 @@
+ 	&lt;category name=&quot;MENUSELECT_CFLAGS&quot; displayname=&quot;Compiler Flags&quot; positive_output=&quot;yes&quot; force_clean_on_change=&quot;yes&quot;&gt;
+-		&lt;member name=&quot;-DDEBUG_SCHEDULER&quot;&gt;
++		&lt;member name=&quot;DEBUG_SCHEDULER&quot; displayname=&quot;Enable Scheduler Debugging Output&quot;&gt;
+ 		&lt;/member&gt;
+-		&lt;member name=&quot;-DDEBUG_THREADS&quot;&gt;
++		&lt;member name=&quot;DEBUG_THREADS&quot; displayname=&quot;Enable Thread Debugging&quot;&gt;
+ 		&lt;/member&gt;
+-		&lt;member name=&quot;-DDETECT_DEADLOCKS&quot;&gt;
++		&lt;member name=&quot;DETECT_DEADLOCKS&quot; displayname=&quot;Detect Deadlocks&quot;&gt;
+ 		&lt;/member&gt;
+-		&lt;member name=&quot;-DDUMP_SCHEDULER&quot;&gt;
++		&lt;member name=&quot;DUMP_SCHEDULER&quot; displayname=&quot;Dump Scheduler Contents for Debugging&quot;&gt;
+ 		&lt;/member&gt;
+-		&lt;member name=&quot;-DLOW_MEMORY&quot;&gt;
++		&lt;member name=&quot;LOW_MEMORY&quot; displayname=&quot;Optimize for Low Memory Usage&quot;&gt;
+ 		&lt;/member&gt;
+-		&lt;member name=&quot;-DMALLOC_DEBUG&quot;&gt;
++		&lt;member name=&quot;MALLOC_DEBUG&quot; displayname=&quot;Keep Track of Memory Allocations&quot;&gt;
+ 		&lt;/member&gt;
+-		&lt;member name=&quot;-DRADIO_RELAX&quot;&gt;
++		&lt;member name=&quot;RADIO_RELAX&quot; displayname=&quot;Relax DTMF for Radio Applications&quot;&gt;
+ 		&lt;/member&gt;
+-		&lt;member name=&quot;-DTRACE_FRAMES&quot;&gt;
++		&lt;member name=&quot;TRACE_FRAMES&quot; displayname=&quot;Trace Frame Allocations&quot;&gt;
+ 		&lt;/member&gt;
+-		&lt;member name=&quot;-DMTX_PROFILE&quot;&gt;
++		&lt;member name=&quot;MTX_PROFILE&quot; displayname=&quot;Enable Code Profiling Using TSC Counters&quot;&gt;
+ 		&lt;/member&gt;
+ 	&lt;/category&gt;
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-11 09:28:50 UTC (rev 133)
++++ trunk/channels/chan_sip.c	2006-05-11 10:28:58 UTC (rev 134)
+@@ -1024,7 +1024,7 @@
+ static int ourport;
+ static struct sockaddr_in debugaddr;
+ 
+-struct ast_config *notify_types;		/*!&lt; The list of manual NOTIFY types we know how to send */
++static struct ast_config *notify_types;		/*!&lt; The list of manual NOTIFY types we know how to send */
+ 
+ /*---------------------------- Forward declarations of functions in chan_sip.c */
+ /*! \note Sorted up from start to build_rpid.... Will continue categorization in order to
+@@ -1188,7 +1188,7 @@
+ static void initialize_initreq(struct sip_pvt *p, struct sip_request *req);
+ static int init_req(struct sip_request *req, int sipmethod, const char *recip);
+ static int reqprep(struct sip_request *req, struct sip_pvt *p, int sipmethod, int seqno, int newbranch);
+-static int init_resp(struct sip_request *req, const char *resp, struct sip_request *orig);
++static int init_resp(struct sip_request *resp, const char *msg);
+ static int respprep(struct sip_request *resp, struct sip_pvt *p, const char *msg, struct sip_request *req);
+ static const struct sockaddr_in *sip_real_dst(const struct sip_pvt *p);
+ static void build_via(struct sip_pvt *p);
+@@ -1259,6 +1259,15 @@
+ 	.send_text = sip_sendtext,
+ };
+ 
++/**--- some list management macros. **/
++ 
++#define UNLINK(element, head, prev) do {	\
++	if (prev)				\
++		(prev)-&gt;next = (element)-&gt;next;	\
++	else					\
++		(head) = (element)-&gt;next;	\
++	} while (0)
++
+ /*! \brief Interface structure with callbacks used to connect to RTP module */
+ static struct ast_rtp_protocol sip_rtp = {
+ 	type: &quot;SIP&quot;,
+@@ -1716,10 +1725,7 @@
+ 				p-&gt;pendinginvite = 0;
+ 			}
+ 			/* this is our baby */
+-			if (prev)
+-				prev-&gt;next = cur-&gt;next;
+-			else
+-				p-&gt;packets = cur-&gt;next;
++			UNLINK(cur, p-&gt;packets, prev);
+ 			if (cur-&gt;retransid &gt; -1) {
+ 				if (sipdebug &amp;&amp; option_debug &gt; 3)
+ 					ast_log(LOG_DEBUG, &quot;** SIP TIMER: Cancelling retransmit of packet (reply received) Retransid #%d\n&quot;, cur-&gt;retransid);
+@@ -2487,10 +2493,7 @@
+ 
+ 	for (prev = NULL, cur = iflist; cur; prev = cur, cur = cur-&gt;next) {
+ 		if (cur == p) {
+-			if (prev)
+-				prev-&gt;next = cur-&gt;next;
+-			else
+-				iflist = cur-&gt;next;
++			UNLINK(cur, iflist, prev);
+ 			break;
+ 		}
+ 	}
+@@ -4108,6 +4111,8 @@
+ /*! \brief Add header to SIP message */
+ static int add_header(struct sip_request *req, const char *var, const char *value)
+ {
++	int maxlen = sizeof(req-&gt;data) - 4 - req-&gt;len; /* 4 bytes are for two \r\n ? */
++
+ 	if (req-&gt;headers == SIP_MAX_HEADERS) {
+ 		ast_log(LOG_WARNING, &quot;Out of SIP header space\n&quot;);
+ 		return -1;
+@@ -4118,7 +4123,7 @@
+ 		return -1;
+ 	}
+ 
+-	if (req-&gt;len &gt;= sizeof(req-&gt;data) - 4) {
++	if (maxlen &lt;= 0) {
+ 		ast_log(LOG_WARNING, &quot;Out of space, can't add anymore (%s:%s)\n&quot;, var, value);
+ 		return -1;
+ 	}
+@@ -4128,7 +4133,7 @@
+ 	if (compactheaders)
+ 		var = find_alias(var, var);
+ 
+-	snprintf(req-&gt;header[req-&gt;headers], sizeof(req-&gt;data) - req-&gt;len - 4, &quot;%s: %s\r\n&quot;, var, value);
++	snprintf(req-&gt;header[req-&gt;headers], maxlen, &quot;%s: %s\r\n&quot;, var, value);
+ 	req-&gt;len += strlen(req-&gt;header[req-&gt;headers]);
+ 	req-&gt;headers++;
+ 
+@@ -4378,34 +4383,28 @@
+ }
+ 
+ /*! \brief Initialize SIP response, based on SIP request */
+-static int init_resp(struct sip_request *req, const char *resp, struct sip_request *orig)
++static int init_resp(struct sip_request *resp, const char *msg)
+ {
+ 	/* Initialize a response */
+-	if (req-&gt;headers || req-&gt;len) {
+-		ast_log(LOG_WARNING, &quot;Request already initialized?!?\n&quot;);
+-		return -1;
+-	}
+-	req-&gt;method = SIP_RESPONSE;
+-	req-&gt;header[req-&gt;headers] = req-&gt;data + req-&gt;len;
+-	snprintf(req-&gt;header[req-&gt;headers], sizeof(req-&gt;data) - req-&gt;len, &quot;SIP/2.0 %s\r\n&quot;, resp);
+-	req-&gt;len += strlen(req-&gt;header[req-&gt;headers]);
+-	req-&gt;headers++;
++	memset(resp, 0, sizeof(*resp));
++	resp-&gt;method = SIP_RESPONSE;
++	resp-&gt;header[0] = resp-&gt;data;
++	snprintf(resp-&gt;header[0], sizeof(resp-&gt;data), &quot;SIP/2.0 %s\r\n&quot;, msg);
++	resp-&gt;len = strlen(resp-&gt;header[0]);
++	resp-&gt;headers++;
+ 	return 0;
+ }
+ 
+ /*! \brief Initialize SIP request */
+ static int init_req(struct sip_request *req, int sipmethod, const char *recip)
+ {
+-	/* Initialize a response */
+-	if (req-&gt;headers || req-&gt;len) {
+-		ast_log(LOG_WARNING, &quot;Request already initialized?!?\n&quot;);
+-		return -1;
+-	}
+-	req-&gt;header[req-&gt;headers] = req-&gt;data + req-&gt;len;
+-	snprintf(req-&gt;header[req-&gt;headers], sizeof(req-&gt;data) - req-&gt;len, &quot;%s %s SIP/2.0\r\n&quot;, sip_methods[sipmethod].text, recip);
+-	req-&gt;len += strlen(req-&gt;header[req-&gt;headers]);
++	/* Initialize a request */
++	memset(req, 0, sizeof(*req));
++        req-&gt;method = sipmethod;
++	req-&gt;header[0] = req-&gt;data;
++	snprintf(req-&gt;header[0], sizeof(req-&gt;data), &quot;%s %s SIP/2.0\r\n&quot;, sip_methods[sipmethod].text, recip);
++	req-&gt;len = strlen(req-&gt;header[0]);
+ 	req-&gt;headers++;
+-	req-&gt;method = sipmethod;
+ 	return 0;
+ }
+ 
+@@ -4416,8 +4415,7 @@
+ 	char newto[256];
+ 	const char *ot;
+ 
+-	memset(resp, 0, sizeof(*resp));
+-	init_resp(resp, msg, req);
++	init_resp(resp, msg);
+ 	copy_via_headers(p, resp, req, &quot;Via&quot;);
+ 	if (msg[0] == '2')
+ 		copy_all_header(resp, req, &quot;Record-Route&quot;);
+@@ -5287,7 +5285,6 @@
+ 		snprintf(to, sizeof(to), &quot;&lt;%s&gt;&quot;, p-&gt;uri);
+ 	}
+ 	
+-	memset(req, 0, sizeof(struct sip_request));
+ 	init_req(req, sipmethod, p-&gt;uri);
+ 	snprintf(tmp, sizeof(tmp), &quot;%d %s&quot;, ++p-&gt;ocseq, sip_methods[sipmethod].text);
+ 
+@@ -5875,7 +5872,6 @@
+ 
+ 	p-&gt;branch ^= ast_random();
+ 
+-	memset(&amp;req, 0, sizeof(req));
+ 	init_req(&amp;req, sipmethod, addr);
+ 
+ 	/* Add to CSEQ */
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-05-11 09:28:50 UTC (rev 133)
++++ trunk/configure.ac	2006-05-11 10:28:58 UTC (rev 134)
+@@ -111,6 +111,10 @@
+ AC_GNU_SOURCE
+ 
+ AH_TOP(
++#ifndef MENUSELECT
++#include &quot;asterisk/buildopts.h&quot;
++#endif
++
+ #ifndef _REENTRANT
+ #define _REENTRANT
+ #endif
+
+Modified: trunk/include/autoconfig.h.in
+===================================================================
+--- trunk/include/autoconfig.h.in	2006-05-11 09:28:50 UTC (rev 133)
++++ trunk/include/autoconfig.h.in	2006-05-11 10:28:58 UTC (rev 134)
+@@ -1,5 +1,9 @@
+ /* include/autoconfig.h.in.  Generated from configure.ac by autoheader.  */
+ 
++#ifndef MENUSELECT
++#include &quot;asterisk/buildopts.h&quot;
++#endif
++
+ #ifndef _REENTRANT
+ #define _REENTRANT
+ #endif
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000129.html">[solid-pbx-svn] r133 - in trunk: . channels
+</A></li>
+	<LI>Next message: <A HREF="000131.html">[solid-pbx-svn] r135 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#130">[ date ]</a>
+              <a href="thread.html#130">[ thread ]</a>
+              <a href="subject.html#130">[ subject ]</a>
+              <a href="author.html#130">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

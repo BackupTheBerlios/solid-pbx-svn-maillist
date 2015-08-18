@@ -1,0 +1,260 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r189 - trunk/cdr
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r189%20-%20trunk/cdr&In-Reply-To=%3C200605301226.k4UCQ6mX023709%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000183.html">
+   <LINK REL="Next"  HREF="000185.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r189 - trunk/cdr</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r189%20-%20trunk/cdr&In-Reply-To=%3C200605301226.k4UCQ6mX023709%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r189 - trunk/cdr">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May 30 14:26:06 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000183.html">[solid-pbx-svn] r188 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000185.html">[solid-pbx-svn] r190 - in trunk: . apps codecs/gsm configs res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#184">[ date ]</a>
+              <a href="thread.html#184">[ thread ]</a>
+              <a href="subject.html#184">[ subject ]</a>
+              <a href="author.html#184">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-30 14:25:35 +0200 (Tue, 30 May 2006)
+New Revision: 189
+
+Modified:
+   trunk/cdr/cdr_radius.c
+Log:
+Update to Asterisk SVN trunk r30768
+
+------------------------------------------------------------------------
+r30746 | russell | 2006-05-30 13:23:48 +0200 (Tue, 30 May 2006) | 3 lines
+
+remove a bunch of duplicated log messages.  There is a warning that gets
+logged when this function returns an error
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/cdr/cdr_radius.c
+===================================================================
+--- trunk/cdr/cdr_radius.c	2006-05-29 15:29:59 UTC (rev 188)
++++ trunk/cdr/cdr_radius.c	2006-05-30 12:25:35 UTC (rev 189)
+@@ -100,64 +100,44 @@
+ 	char timestr[128];
+ 	char *tmp;
+ 
+-	if (!rc_avpair_add(rh, send, PW_ACCT_STATUS_TYPE, &amp;recordtype, 0, 0)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_ACCT_STATUS_TYPE, &amp;recordtype, 0, 0))
+ 		return -1;
+-	}
+ 
+ 	/* Account code */
+-	if (!rc_avpair_add(rh, send, PW_AST_ACCT_CODE, &amp;cdr-&gt;accountcode, strlen(cdr-&gt;accountcode), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_ACCT_CODE, &amp;cdr-&gt;accountcode, strlen(cdr-&gt;accountcode), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+  	/* Source */
+-	if (!rc_avpair_add(rh, send, PW_AST_SRC, &amp;cdr-&gt;src, strlen(cdr-&gt;src), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_SRC, &amp;cdr-&gt;src, strlen(cdr-&gt;src), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+  	/* Destination */
+-	if (!rc_avpair_add(rh, send, PW_AST_DST, &amp;cdr-&gt;dst, strlen(cdr-&gt;dst), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_DST, &amp;cdr-&gt;dst, strlen(cdr-&gt;dst), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+  	/* Destination context */
+-	if (!rc_avpair_add(rh, send, PW_AST_DST_CTX, &amp;cdr-&gt;dcontext, strlen(cdr-&gt;dcontext), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_DST_CTX, &amp;cdr-&gt;dcontext, strlen(cdr-&gt;dcontext), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 	/* Caller ID */
+-	if (!rc_avpair_add(rh, send, PW_AST_CLID, &amp;cdr-&gt;clid, strlen(cdr-&gt;clid), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_CLID, &amp;cdr-&gt;clid, strlen(cdr-&gt;clid), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 	/* Channel */
+-	if (!rc_avpair_add(rh, send, PW_AST_CHAN, &amp;cdr-&gt;channel, strlen(cdr-&gt;channel), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_CHAN, &amp;cdr-&gt;channel, strlen(cdr-&gt;channel), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 	/* Destination Channel */
+-	if (!rc_avpair_add(rh, send, PW_AST_DST_CHAN, &amp;cdr-&gt;dstchannel, strlen(cdr-&gt;dstchannel), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_DST_CHAN, &amp;cdr-&gt;dstchannel, strlen(cdr-&gt;dstchannel), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 	/* Last Application */
+-	if (!rc_avpair_add(rh, send, PW_AST_LAST_APP, &amp;cdr-&gt;lastapp, strlen(cdr-&gt;lastapp), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_LAST_APP, &amp;cdr-&gt;lastapp, strlen(cdr-&gt;lastapp), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 	/* Last Data */
+-	if (!rc_avpair_add(rh, send, PW_AST_LAST_DATA, &amp;cdr-&gt;lastdata, strlen(cdr-&gt;lastdata), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_LAST_DATA, &amp;cdr-&gt;lastdata, strlen(cdr-&gt;lastdata), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 
+ 	/* Start Time */
+@@ -166,10 +146,8 @@
+ 	else
+ 		localtime_r(&amp;(cdr-&gt;start.tv_sec), &amp;tm);
+ 	strftime(timestr, sizeof(timestr), DATE_FORMAT, &amp;tm);
+-	if (!rc_avpair_add(rh, send, PW_AST_START_TIME, timestr, strlen(timestr), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_START_TIME, timestr, strlen(timestr), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 	/* Answer Time */
+ 	if (ast_test_flag(&amp;global_flags, RADIUS_FLAG_USEGMTIME))
+@@ -177,10 +155,8 @@
+ 	else
+ 		localtime_r(&amp;(cdr-&gt;answer.tv_sec), &amp;tm);
+ 	strftime(timestr, sizeof(timestr), DATE_FORMAT, &amp;tm);
+-	if (!rc_avpair_add(rh, send, PW_AST_ANSWER_TIME, timestr, strlen(timestr), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_ANSWER_TIME, timestr, strlen(timestr), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 	/* End Time */
+ 	if (ast_test_flag(&amp;global_flags, RADIUS_FLAG_USEGMTIME))
+@@ -188,65 +164,49 @@
+ 	else
+ 		localtime_r(&amp;(cdr-&gt;end.tv_sec), &amp;tm);
+ 	strftime(timestr, sizeof(timestr), DATE_FORMAT, &amp;tm);
+-	if (!rc_avpair_add(rh, send, PW_AST_END_TIME, timestr, strlen(timestr), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_END_TIME, timestr, strlen(timestr), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+  	/* Duration */ 
+-	if (!rc_avpair_add(rh, send, PW_AST_DURATION, &amp;cdr-&gt;duration, 0, VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_DURATION, &amp;cdr-&gt;duration, 0, VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 	/* Billable seconds */
+-	if (!rc_avpair_add(rh, send, PW_AST_BILL_SEC, &amp;cdr-&gt;billsec, 0, VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_BILL_SEC, &amp;cdr-&gt;billsec, 0, VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 	/* Disposition */
+ 	tmp = ast_cdr_disp2str(cdr-&gt;disposition);
+-	if (!rc_avpair_add(rh, send, PW_AST_DISPOSITION, tmp, strlen(tmp), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_DISPOSITION, tmp, strlen(tmp), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 	/* AMA Flags */
+ 	tmp = ast_cdr_flags2str(cdr-&gt;amaflags);
+-	if (!rc_avpair_add(rh, send, PW_AST_AMA_FLAGS, tmp, strlen(tmp), VENDOR_CODE)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_AST_AMA_FLAGS, tmp, strlen(tmp), VENDOR_CODE))
+ 		return -1;
+-	}
+ 
+ 	if (ast_test_flag(&amp;global_flags, RADIUS_FLAG_LOGUNIQUEID)) {
+ 		/* Unique ID */
+-		if (!rc_avpair_add(rh, send, PW_AST_UNIQUE_ID, &amp;cdr-&gt;uniqueid, strlen(cdr-&gt;uniqueid), VENDOR_CODE)) {
+-			ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		if (!rc_avpair_add(rh, send, PW_AST_UNIQUE_ID, &amp;cdr-&gt;uniqueid, strlen(cdr-&gt;uniqueid), VENDOR_CODE))
+ 			return -1;
+-		}
+ 	}
+ 
+ 	if (ast_test_flag(&amp;global_flags, RADIUS_FLAG_LOGUSERFIELD)) {
+ 		/* append the user field */
+-		if (!rc_avpair_add(rh, send, PW_AST_USER_FIELD, &amp;cdr-&gt;userfield, strlen(cdr-&gt;userfield), VENDOR_CODE)) {
+-			ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		if (!rc_avpair_add(rh, send, PW_AST_USER_FIELD, &amp;cdr-&gt;userfield, strlen(cdr-&gt;userfield), VENDOR_CODE))
+ 			return -1;
+-		}
+ 	}
+ 
+ 	/* Setting Acct-Session-Id &amp; User-Name attributes for proper generation
+ 	   of Acct-Unique-Session-Id on server side */ 
+ 	/* Channel */
+-	if (!rc_avpair_add(rh, send, PW_USER_NAME, &amp;cdr-&gt;channel, strlen(cdr-&gt;channel), 0)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_USER_NAME, &amp;cdr-&gt;channel, strlen(cdr-&gt;channel), 0))
+ 		return -1;
+-	}
++
+ 	/* Unique ID */
+-	if (!rc_avpair_add(rh, send, PW_ACCT_SESSION_ID, &amp;cdr-&gt;uniqueid, strlen(cdr-&gt;uniqueid), 0)) {
+-		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++	if (!rc_avpair_add(rh, send, PW_ACCT_SESSION_ID, &amp;cdr-&gt;uniqueid, strlen(cdr-&gt;uniqueid), 0))
+ 		return -1;
+-	}
++
+ 	return 0;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000183.html">[solid-pbx-svn] r188 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000185.html">[solid-pbx-svn] r190 - in trunk: . apps codecs/gsm configs res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#184">[ date ]</a>
+              <a href="thread.html#184">[ thread ]</a>
+              <a href="subject.html#184">[ subject ]</a>
+              <a href="author.html#184">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

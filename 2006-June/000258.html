@@ -1,0 +1,284 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r263 - trunk/include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r263%20-%20trunk/include/asterisk&In-Reply-To=%3C200606181925.k5IJPjs2016738%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000257.html">
+   <LINK REL="Next"  HREF="000259.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r263 - trunk/include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r263%20-%20trunk/include/asterisk&In-Reply-To=%3C200606181925.k5IJPjs2016738%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r263 - trunk/include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 21:25:45 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000257.html">[solid-pbx-svn] r262 - in trunk: . channels include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000259.html">[solid-pbx-svn] r264 - in trunk: . build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#258">[ date ]</a>
+              <a href="thread.html#258">[ thread ]</a>
+              <a href="subject.html#258">[ subject ]</a>
+              <a href="author.html#258">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 21:25:40 +0200 (Sun, 18 Jun 2006)
+New Revision: 263
+
+Modified:
+   trunk/include/asterisk/alaw.h
+   trunk/include/asterisk/channel.h
+   trunk/include/asterisk/file.h
+   trunk/include/asterisk/frame.h
+   trunk/include/asterisk/ulaw.h
+Log:
+Update to Asterisk SVN trunk r32353
+
+------------------------------------------------------------------------
+r32349 | kpfleming | 2006-06-05 20:05:53 +0200 (Mon, 05 Jun 2006) | 2 lines
+
+yet another massive performance and memory savings improvement
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/include/asterisk/alaw.h
+===================================================================
+--- trunk/include/asterisk/alaw.h	2006-06-18 18:25:30 UTC (rev 262)
++++ trunk/include/asterisk/alaw.h	2006-06-18 19:25:40 UTC (rev 263)
+@@ -27,7 +27,7 @@
+ /*!
+  * To init the ulaw to slinear conversion stuff, this needs to be run.
+  */
+-extern void ast_alaw_init(void);
++void ast_alaw_init(void);
+ 
+ /*! converts signed linear to mulaw */
+ /*!
+
+Modified: trunk/include/asterisk/channel.h
+===================================================================
+--- trunk/include/asterisk/channel.h	2006-06-18 18:25:30 UTC (rev 262)
++++ trunk/include/asterisk/channel.h	2006-06-18 19:25:40 UTC (rev 263)
+@@ -999,7 +999,7 @@
+ 
+ /*! Pick the best codec  */
+ /* Choose the best codec...  Uhhh...   Yah. */
+-extern int ast_best_codec(int fmts);
++int ast_best_codec(int fmts);
+ 
+ 
+ /*! Checks the value of an option */
+@@ -1254,10 +1254,10 @@
+ 									ast_set_flag(c, AST_FLAG_BLOCKING); \
+ 									} }
+ 
+-extern ast_group_t ast_get_group(char *s);
++ast_group_t ast_get_group(char *s);
+ 
+ /*! \brief print call- and pickup groups into buffer */
+-extern char *ast_print_group(char *buf, int buflen, ast_group_t group);
++char *ast_print_group(char *buf, int buflen, ast_group_t group);
+ 
+ /*! \brief Convert enum channelreloadreason to text string for manager event
+ 	\param reason	Enum channelreloadreason - reason for reload (manager, cli, start etc)
+@@ -1265,7 +1265,7 @@
+ const char *channelreloadreason2txt(enum channelreloadreason reason);
+ 
+ /*! \brief return an ast_variable list of channeltypes */
+-extern struct ast_variable *ast_channeltype_list(void);
++struct ast_variable *ast_channeltype_list(void);
+ 
+ #if defined(__cplusplus) || defined(c_plusplus)
+ }
+
+Modified: trunk/include/asterisk/file.h
+===================================================================
+--- trunk/include/asterisk/file.h	2006-06-18 18:25:30 UTC (rev 262)
++++ trunk/include/asterisk/file.h	2006-06-18 19:25:40 UTC (rev 263)
+@@ -394,7 +394,7 @@
+  * Initializes all the various file stuff.  Basically just registers the cli stuff
+  * Returns 0 all the time
+  */
+-extern int ast_file_init(void);
++int ast_file_init(void);
+ 
+ 
+ #define AST_RESERVED_POINTERS 20
+
+Modified: trunk/include/asterisk/frame.h
+===================================================================
+--- trunk/include/asterisk/frame.h	2006-06-18 18:25:30 UTC (rev 262)
++++ trunk/include/asterisk/frame.h	2006-06-18 19:25:40 UTC (rev 263)
+@@ -408,7 +408,7 @@
+  * \param format id of format
+  * \return A static string containing the name of the format or &quot;UNKN&quot; if unknown.
+  */
+-extern char* ast_getformatname(int format);
++char* ast_getformatname(int format);
+ 
+ /*! \brief Get the names of a set of formats
+  * \param buf a buffer for the output string
+@@ -418,33 +418,33 @@
+  * ex: for format=AST_FORMAT_GSM|AST_FORMAT_SPEEX|AST_FORMAT_ILBC it will return &quot;0x602 (GSM|SPEEX|ILBC)&quot;
+  * \return The return value is buf.
+  */
+-extern char* ast_getformatname_multiple(char *buf, size_t size, int format);
++char* ast_getformatname_multiple(char *buf, size_t size, int format);
+ 
+ /*!
+  * \brief Gets a format from a name.
+  * \param name string of format
+  * \return This returns the form of the format in binary on success, 0 on error.
+  */
+-extern int ast_getformatbyname(const char *name);
++int ast_getformatbyname(const char *name);
+ 
+ /*! \brief Get a name from a format 
+  * Gets a name from a format
+  * \param codec codec number (1,2,4,8,16,etc.)
+  * \return This returns a static string identifying the format on success, 0 on error.
+  */
+-extern char *ast_codec2str(int codec);
++char *ast_codec2str(int codec);
+ 
+ struct ast_smoother;
+ 
+-extern struct ast_format_list *ast_get_format_list_index(int index);
+-extern struct ast_format_list *ast_get_format_list(size_t *size);
+-extern struct ast_smoother *ast_smoother_new(int bytes);
+-extern void ast_smoother_set_flags(struct ast_smoother *smoother, int flags);
+-extern int ast_smoother_get_flags(struct ast_smoother *smoother);
+-extern void ast_smoother_free(struct ast_smoother *s);
+-extern void ast_smoother_reset(struct ast_smoother *s, int bytes);
+-extern int __ast_smoother_feed(struct ast_smoother *s, struct ast_frame *f, int swap);
+-extern struct ast_frame *ast_smoother_read(struct ast_smoother *s);
++struct ast_format_list *ast_get_format_list_index(int index);
++struct ast_format_list *ast_get_format_list(size_t *size);
++struct ast_smoother *ast_smoother_new(int bytes);
++void ast_smoother_set_flags(struct ast_smoother *smoother, int flags);
++int ast_smoother_get_flags(struct ast_smoother *smoother);
++void ast_smoother_free(struct ast_smoother *s);
++void ast_smoother_reset(struct ast_smoother *s, int bytes);
++int __ast_smoother_feed(struct ast_smoother *s, struct ast_frame *f, int swap);
++struct ast_frame *ast_smoother_read(struct ast_smoother *s);
+ #define ast_smoother_feed(s,f) __ast_smoother_feed(s, f, 0)
+ #if __BYTE_ORDER == __LITTLE_ENDIAN
+ #define ast_smoother_feed_be(s,f) __ast_smoother_feed(s, f, 1)
+@@ -454,7 +454,7 @@
+ #define ast_smoother_feed_le(s,f) __ast_smoother_feed(s, f, 1)
+ #endif
+ 
+-extern void ast_frame_dump(const char *name, struct ast_frame *f, char *prefix);
++void ast_frame_dump(const char *name, struct ast_frame *f, char *prefix);
+ 
+ /*! \par AudioCodecPref Audio Codec Preferences
+ 	In order to negotiate audio codecs in the order they are configured
+@@ -470,43 +470,43 @@
+ */
+ 
+ /*! \brief Initialize an audio codec preference to &quot;no preference&quot; See \ref AudioCodecPref */
+-extern void ast_codec_pref_init(struct ast_codec_pref *pref);
++void ast_codec_pref_init(struct ast_codec_pref *pref);
+ 
+ /*! \brief Codec located at a particular place in the preference index See \ref AudioCodecPref */
+-extern int ast_codec_pref_index(struct ast_codec_pref *pref, int index);
++int ast_codec_pref_index(struct ast_codec_pref *pref, int index);
+ 
+ /*! \brief Remove audio a codec from a preference list */
+-extern void ast_codec_pref_remove(struct ast_codec_pref *pref, int format);
++void ast_codec_pref_remove(struct ast_codec_pref *pref, int format);
+ 
+ /*! \brief Append a audio codec to a preference list, removing it first if it was already there 
+ */
+-extern int ast_codec_pref_append(struct ast_codec_pref *pref, int format);
++int ast_codec_pref_append(struct ast_codec_pref *pref, int format);
+ 
+ /*! \brief Select the best audio format according to preference list from supplied options. 
+    If &quot;find_best&quot; is non-zero then if nothing is found, the &quot;Best&quot; format of 
+    the format list is selected, otherwise 0 is returned. */
+-extern int ast_codec_choose(struct ast_codec_pref *pref, int formats, int find_best);
++int ast_codec_choose(struct ast_codec_pref *pref, int formats, int find_best);
+ 
+ /*! \brief Parse an &quot;allow&quot; or &quot;deny&quot; line in a channel or device configuration 
+         and update the capabilities mask and pref if provided.
+ 	Video codecs are not added to codec preference lists, since we can not transcode
+  */
+-extern void ast_parse_allow_disallow(struct ast_codec_pref *pref, int *mask, const char *list, int allowing);
++void ast_parse_allow_disallow(struct ast_codec_pref *pref, int *mask, const char *list, int allowing);
+ 
+ /*! \brief Dump audio codec preference list into a string */
+-extern int ast_codec_pref_string(struct ast_codec_pref *pref, char *buf, size_t size);
++int ast_codec_pref_string(struct ast_codec_pref *pref, char *buf, size_t size);
+ 
+ /*! \brief Shift an audio codec preference list up or down 65 bytes so that it becomes an ASCII string */
+-extern void ast_codec_pref_convert(struct ast_codec_pref *pref, char *buf, size_t size, int right);
++void ast_codec_pref_convert(struct ast_codec_pref *pref, char *buf, size_t size, int right);
+ 
+ /*! \brief Returns the number of samples contained in the frame */
+-extern int ast_codec_get_samples(struct ast_frame *f);
++int ast_codec_get_samples(struct ast_frame *f);
+ 
+ /*! \brief Returns the number of bytes for the number of samples of the given format */
+-extern int ast_codec_get_len(int format, int samples);
++int ast_codec_get_len(int format, int samples);
+ 
+ /*! \brief Appends a frame to the end of a list of frames, truncating the maximum length of the list */
+-extern struct ast_frame *ast_frame_enqueue(struct ast_frame *head, struct ast_frame *f, int maxlen, int dupe);
++struct ast_frame *ast_frame_enqueue(struct ast_frame *head, struct ast_frame *f, int maxlen, int dupe);
+ 
+ 
+ /*! \brief Gets duration in ms of interpolation frame for a format */
+
+Modified: trunk/include/asterisk/ulaw.h
+===================================================================
+--- trunk/include/asterisk/ulaw.h	2006-06-18 18:25:30 UTC (rev 262)
++++ trunk/include/asterisk/ulaw.h	2006-06-18 19:25:40 UTC (rev 263)
+@@ -27,7 +27,7 @@
+ /*!
+  * To init the ulaw to slinear conversion stuff, this needs to be run.
+  */
+-extern void ast_ulaw_init(void);
++void ast_ulaw_init(void);
+ 
+ /*! converts signed linear to mulaw */
+ /*!
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000257.html">[solid-pbx-svn] r262 - in trunk: . channels include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000259.html">[solid-pbx-svn] r264 - in trunk: . build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#258">[ date ]</a>
+              <a href="thread.html#258">[ thread ]</a>
+              <a href="subject.html#258">[ subject ]</a>
+              <a href="author.html#258">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

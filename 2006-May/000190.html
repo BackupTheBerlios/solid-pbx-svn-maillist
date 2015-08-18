@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r195 - in trunk: . doc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r195%20-%20in%20trunk%3A%20.%20doc&In-Reply-To=%3C200605302229.k4UMTeI1005222%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000189.html">
+   <LINK REL="Next"  HREF="000191.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r195 - in trunk: . doc</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r195%20-%20in%20trunk%3A%20.%20doc&In-Reply-To=%3C200605302229.k4UMTeI1005222%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r195 - in trunk: . doc">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 31 00:29:40 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000189.html">[solid-pbx-svn] r194 - in trunk: . channels
+</A></li>
+        <LI>Next message: <A HREF="000191.html">[solid-pbx-svn] r196 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#190">[ date ]</a>
+              <a href="thread.html#190">[ thread ]</a>
+              <a href="subject.html#190">[ subject ]</a>
+              <a href="author.html#190">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-31 00:29:35 +0200 (Wed, 31 May 2006)
+New Revision: 195
+
+Modified:
+   trunk/asterisk.c
+   trunk/doc/asterisk-conf.txt
+   trunk/doc/speechrec.txt
+Log:
+Update to Asterisk SVN trunk r30963
+
+------------------------------------------------------------------------
+r30934 | kpfleming | 2006-05-30 23:37:11 +0200 (Tue, 30 May 2006) | 3 lines
+
+move processing of 'languageprefix' option to proper section of config file
+document that option :-)
+
+------------------------------------------------------------------------
+r30959 | file | 2006-05-31 00:11:34 +0200 (Wed, 31 May 2006) | 2 lines
+
+Tiny documentation fix
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/asterisk.c
+===================================================================
+--- trunk/asterisk.c	2006-05-30 21:25:32 UTC (rev 194)
++++ trunk/asterisk.c	2006-05-30 22:29:35 UTC (rev 195)
+@@ -2190,8 +2190,8 @@
+ 	if (!cfg) {
+ 		return;
+ 	}
+-	v = ast_variable_browse(cfg, &quot;files&quot;);
+-	while (v) {
++
++	for (v = ast_variable_browse(cfg, &quot;files&quot;); v; v = v-&gt;next) {
+ 		if (!strcasecmp(v-&gt;name, &quot;astctlpermissions&quot;)) {
+ 			ast_copy_string(ast_config_AST_CTL_PERMISSIONS, v-&gt;value, sizeof(ast_config_AST_CTL_PERMISSIONS));
+ 		} else if (!strcasecmp(v-&gt;name, &quot;astctlowner&quot;)) {
+@@ -2201,10 +2201,9 @@
+ 		} else if (!strcasecmp(v-&gt;name, &quot;astctl&quot;)) {
+ 			ast_copy_string(ast_config_AST_CTL, v-&gt;value, sizeof(ast_config_AST_CTL));
+ 		}
+-		v = v-&gt;next;
+ 	}
+-	v = ast_variable_browse(cfg, &quot;directories&quot;);
+-	while(v) {
++
++	for (v = ast_variable_browse(cfg, &quot;directories&quot;); v; v = v-&gt;next) {
+ 		if (!strcasecmp(v-&gt;name, &quot;astetcdir&quot;)) {
+ 			ast_copy_string(ast_config_AST_CONFIG_DIR, v-&gt;value, sizeof(ast_config_AST_CONFIG_DIR));
+ 		} else if (!strcasecmp(v-&gt;name, &quot;astspooldir&quot;)) {
+@@ -2226,13 +2225,10 @@
+ 			ast_copy_string(ast_config_AST_RUN_DIR, v-&gt;value, sizeof(ast_config_AST_RUN_DIR));
+ 		} else if (!strcasecmp(v-&gt;name, &quot;astmoddir&quot;)) {
+ 			ast_copy_string(ast_config_AST_MODULE_DIR, v-&gt;value, sizeof(ast_config_AST_MODULE_DIR));
+-		} else if (!strcasecmp(v-&gt;name, &quot;languageprefix&quot;)) {
+-			ast_language_is_prefix = ast_true(v-&gt;value);
+ 		}
+-		v = v-&gt;next;
+ 	}
+-	v = ast_variable_browse(cfg, &quot;options&quot;);
+-	while(v) {
++
++	for (v = ast_variable_browse(cfg, &quot;options&quot;); v; v = v-&gt;next) {
+ 		/* verbose level (-v at startup) */
+ 		if (!strcasecmp(v-&gt;name, &quot;verbose&quot;)) {
+ 			option_verbose = atoi(v-&gt;value);
+@@ -2311,8 +2307,9 @@
+ 			ast_copy_string(ast_config_AST_RUN_GROUP, v-&gt;value, sizeof(ast_config_AST_RUN_GROUP));
+ 		} else if (!strcasecmp(v-&gt;name, &quot;systemname&quot;)) {
+ 			ast_copy_string(ast_config_AST_SYSTEM_NAME, v-&gt;value, sizeof(ast_config_AST_SYSTEM_NAME));
++		} else if (!strcasecmp(v-&gt;name, &quot;languageprefix&quot;)) {
++			ast_language_is_prefix = ast_true(v-&gt;value);
+ 		}
+-		v = v-&gt;next;
+ 	}
+ 	ast_config_destroy(cfg);
+ }
+
+Modified: trunk/doc/asterisk-conf.txt
+===================================================================
+--- trunk/doc/asterisk-conf.txt	2006-05-30 21:25:32 UTC (rev 194)
++++ trunk/doc/asterisk-conf.txt	2006-05-30 22:29:35 UTC (rev 195)
+@@ -65,6 +65,10 @@
+ execincludes = yes | no 			; Allow #exec entries in configuration files
+ dontwarn = yes | no				; Don't over-inform the Asterisk sysadm, he's a guru
+ systemname = &lt;a_string&gt;				; System name. Used to prefix CDR uniqueid and to fill ${SYSTEMNAME}
++languageprefix = yes | no			; Should language code be last component of sound file name or first?
++	       	       				; when off, sound files are searched as &lt;path&gt;/&lt;lang&gt;/&lt;file&gt;
++						; when on, sound files are search as &lt;lang&gt;/&lt;path&gt;/&lt;file&gt;
++						; (only affects relative paths for sound files)
+ 
+ [files]
+ ; Changing the following lines may compromise your security
+
+Modified: trunk/doc/speechrec.txt
+===================================================================
+--- trunk/doc/speechrec.txt	2006-05-30 21:25:32 UTC (rev 194)
++++ trunk/doc/speechrec.txt	2006-05-30 22:29:35 UTC (rev 195)
+@@ -148,8 +148,7 @@
+ 	exten =&gt; s,3,SpeechStart()
+ 	exten =&gt; s,4,SpeechBackground(who-would-you-like-to-dial)
+ 	exten =&gt; s,5,SpeechDeactivateGrammar(company-directory)
+-	exten =&gt; s,6,SpeechDestroy()
+-	exten =&gt; s,7,Goto(internal-extensions-${SPEECH_TEXT(0)})
++	exten =&gt; s,6,Goto(internal-extensions-${SPEECH_TEXT(0)})
+ 
+ - Useful Dialplan Tidbits:
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000189.html">[solid-pbx-svn] r194 - in trunk: . channels
+</A></li>
+	<LI>Next message: <A HREF="000191.html">[solid-pbx-svn] r196 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#190">[ date ]</a>
+              <a href="thread.html#190">[ thread ]</a>
+              <a href="subject.html#190">[ subject ]</a>
+              <a href="author.html#190">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

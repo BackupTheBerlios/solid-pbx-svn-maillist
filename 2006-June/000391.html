@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r396 - in trunk: apps formats
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r396%20-%20in%20trunk%3A%20apps%20formats&In-Reply-To=%3C200606280207.k5S27nZk021132%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000390.html">
+   <LINK REL="Next"  HREF="000392.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r396 - in trunk: apps formats</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r396%20-%20in%20trunk%3A%20apps%20formats&In-Reply-To=%3C200606280207.k5S27nZk021132%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r396 - in trunk: apps formats">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:07:49 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000390.html">[solid-pbx-svn] r395 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000392.html">[solid-pbx-svn] r397 - in trunk: channels res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#391">[ date ]</a>
+              <a href="thread.html#391">[ thread ]</a>
+              <a href="subject.html#391">[ subject ]</a>
+              <a href="author.html#391">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:06:59 +0200 (Wed, 28 Jun 2006)
+New Revision: 396
+
+Modified:
+   trunk/apps/app_amd.c
+   trunk/formats/format_wav_gsm.c
+Log:
+Update to Asterisk SVN trunk r35193
+
+------------------------------------------------------------------------
+r35184 | tilghman | 2006-06-21 00:22:47 +0200 (Wed, 21 Jun 2006) | 3 lines
+
+Bug 7372:  Wrong size for the block alignment (should have been 4 bytes;
+writing 4 from a 2-byte integer caused extra (wrong) bytes set in the header)
+
+------------------------------------------------------------------------
+r35185 | tilghman | 2006-06-21 00:26:16 +0200 (Wed, 21 Jun 2006) | 2 lines
+
+Bug 7399 - Sample config showed [general] as the context, so the app should look there, too.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_amd.c
+===================================================================
+--- trunk/apps/app_amd.c	2006-06-28 02:06:10 UTC (rev 395)
++++ trunk/apps/app_amd.c	2006-06-28 02:06:59 UTC (rev 396)
+@@ -346,7 +346,7 @@
+ 	cat = ast_category_browse(cfg, NULL);
+ 
+ 	while (cat) {
+-		if (!strcasecmp(cat, &quot;amd&quot;) ) {
++		if (!strcasecmp(cat, &quot;general&quot;) ) {
+ 			var = ast_variable_browse(cfg, cat);
+ 			while (var) {
+ 				if (!strcasecmp(var-&gt;name, &quot;initial_silence&quot;)) {
+
+Modified: trunk/formats/format_wav_gsm.c
+===================================================================
+--- trunk/formats/format_wav_gsm.c	2006-06-28 02:06:10 UTC (rev 395)
++++ trunk/formats/format_wav_gsm.c	2006-06-28 02:06:59 UTC (rev 396)
+@@ -281,7 +281,7 @@
+ 	/* Mono = 1 channel */
+ 	unsigned short chans = htols(1);
+ 	/* Each block of data is exactly 65 bytes in size. */
+-	unsigned short block_align = htols(MSGSM_FRAME_SIZE);
++	unsigned int block_align = htoll(MSGSM_FRAME_SIZE);
+ 	/* Not actually 2, but rounded up to the nearest bit */
+ 	unsigned short bits_per_sample = htols(2);
+ 	/* Needed for compressed formats */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000390.html">[solid-pbx-svn] r395 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000392.html">[solid-pbx-svn] r397 - in trunk: channels res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#391">[ date ]</a>
+              <a href="thread.html#391">[ thread ]</a>
+              <a href="subject.html#391">[ subject ]</a>
+              <a href="author.html#391">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

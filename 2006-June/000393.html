@@ -1,0 +1,1057 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r398 - in trunk/channels: . misdn
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r398%20-%20in%20trunk/channels%3A%20.%20misdn&In-Reply-To=%3C200606280210.k5S2AcBc022079%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000392.html">
+   <LINK REL="Next"  HREF="000394.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r398 - in trunk/channels: . misdn</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r398%20-%20in%20trunk/channels%3A%20.%20misdn&In-Reply-To=%3C200606280210.k5S2AcBc022079%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r398 - in trunk/channels: . misdn">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:10:38 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000392.html">[solid-pbx-svn] r397 - in trunk: channels res
+</A></li>
+        <LI>Next message: <A HREF="000394.html">[solid-pbx-svn] r399 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#393">[ date ]</a>
+              <a href="thread.html#393">[ thread ]</a>
+              <a href="subject.html#393">[ subject ]</a>
+              <a href="author.html#393">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:10:06 +0200 (Wed, 28 Jun 2006)
+New Revision: 398
+
+Modified:
+   trunk/channels/chan_misdn.c
+   trunk/channels/misdn/isdn_lib.c
+Log:
+Update to Asterisk SVN trunk r35243
+
+------------------------------------------------------------------------
+r35241 | crichter | 2006-06-21 17:21:46 +0200 (Wed, 21 Jun 2006) | 20 lines
+
+* added support for PID export/import to identify bridging in misdn_call already
+* fixed a few inband Alerting issues, sometimes we need to create alerting, some
+times it's inband
+* beautified the state debugging of misdn_hangup
+* removed &quot;real&quot;  bchannel activating/deactivating in chan_misdn.c
+* fixed &quot;round_robin&quot; bug when there's only 1 port
+* added more informative prints when channel could not be created
+* changed some warnings to notices
+* reworked the whole bchannel state machine stuff, 
+  it is now like in the examples of mISDNuser and therefore a lot easier, 
+  and it is now harder to create bugs
+* bchannel_activate/deactivate is now only called in setup/cleanup bc, 
+  they may merge sometime
+* it is very important to setup/cleanup the bchannels under the correct 
+  conditions, especially in the NT Side we can only setup the bchannels 
+  when we send a Message! 
+  In the TE side we can only setup the bchannel when we received the channel 
+  of course
+	      
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_misdn.c
+===================================================================
+--- trunk/channels/chan_misdn.c	2006-06-28 02:08:36 UTC (rev 397)
++++ trunk/channels/chan_misdn.c	2006-06-28 02:10:06 UTC (rev 398)
+@@ -126,6 +126,7 @@
+ 	MISDN_CONNECTED, /*!&lt;  when connected */
+ 	MISDN_PRECONNECTED, /*!&lt;  when connected */
+ 	MISDN_DISCONNECTED, /*!&lt;  when connected */
++	MISDN_RELEASED, /*!&lt;  when connected */
+ 	MISDN_BRIDGED, /*!&lt;  when bridged */
+ 	MISDN_CLEANING, /*!&lt; when hangup from * but we were connected before */
+ 	MISDN_HUNGUP_FROM_MISDN, /*!&lt; when DISCONNECT/RELEASE/REL_COMP  cam from misdn */
+@@ -644,6 +645,8 @@
+ 	{MISDN_ALERTING,&quot;ALERTING&quot;}, /*  when Alerting */
+ 	{MISDN_BUSY,&quot;BUSY&quot;}, /*  when BUSY */
+ 	{MISDN_CONNECTED,&quot;CONNECTED&quot;}, /*  when connected */
++	{MISDN_DISCONNECTED,&quot;DISCONNECTED&quot;}, /*  when connected */
++	{MISDN_RELEASED,&quot;RELEASED&quot;}, /*  when connected */
+ 	{MISDN_BRIDGED,&quot;BRIDGED&quot;}, /*  when bridged */
+ 	{MISDN_CLEANING,&quot;CLEANING&quot;}, /* when hangup from * but we were connected before */
+ 	{MISDN_HUNGUP_FROM_MISDN,&quot;HUNGUP_FROM_MISDN&quot;}, /* when DISCONNECT/RELEASE/REL_COMP  cam from misdn */
+@@ -1853,14 +1856,29 @@
+ 				chan_misdn_log(1, p-&gt;bc-&gt;port, &quot; --&gt; * IND :\tringing pid:%d\n&quot;,p-&gt;bc?p-&gt;bc-&gt;pid:-1);
+ 				misdn_lib_send_event( p-&gt;bc, EVENT_ALERTING);
+ 			
+-				if (p-&gt;other_ch &amp;&amp; p-&gt;other_ch-&gt;bc &amp;&amp; misdn_inband_avail(p-&gt;other_ch-&gt;bc)) {
+-					chan_misdn_log(1,p-&gt;bc-&gt;port, &quot; --&gt; other End is mISDN and has inband info available\n&quot;);
+-					break;
++				if (p-&gt;other_ch &amp;&amp; p-&gt;other_ch-&gt;bc) {
++					if (misdn_inband_avail(p-&gt;other_ch-&gt;bc)) {
++						chan_misdn_log(1,p-&gt;bc-&gt;port, &quot; --&gt; other End is mISDN and has inband info available\n&quot;);
++						break;
++					}
++
++					if (!p-&gt;other_ch-&gt;bc-&gt;nt) {
++						chan_misdn_log(1,p-&gt;bc-&gt;port, &quot; --&gt; other End is mISDN TE so it has inband info for sure (?)\n&quot;);
++						break;
++					}
++#if 0
++					if (p-&gt;other_ch-&gt;bc-&gt;nt) {
++						chan_misdn_log(1,p-&gt;bc-&gt;port, &quot; --&gt; other End is mISDN NT .. \n&quot;);
++						break;
++					}
++#endif
++
+ 				}
++
+ 			
+ 				if ( !p-&gt;bc-&gt;nt &amp;&amp; (p-&gt;orginator==ORG_MISDN) &amp;&amp; !p-&gt;incoming_early_audio ) 
+ 					chan_misdn_log(1,p-&gt;bc-&gt;port, &quot; --&gt; incoming_early_audio off\n&quot;);
+-				 else 
++				else 
+ 					 tone_indicate(p, TONE_ALERTING);
+ 				chan_misdn_log(1, p-&gt;bc-&gt;port, &quot; --&gt; * SEND: State Ring pid:%d\n&quot;,p-&gt;bc?p-&gt;bc-&gt;pid:-1);
+ 				ast_setstate(ast,AST_STATE_RINGING);
+@@ -1919,7 +1937,7 @@
+ 		chan_misdn_log(1, p-&gt;bc-&gt;port, &quot; --&gt; *\tUNHOLD pid:%d\n&quot;,p-&gt;bc?p-&gt;bc-&gt;pid:-1);
+ 		break;
+ 	default:
+-		ast_log(LOG_WARNING, &quot; --&gt; * Unknown Indication:%d pid:%d\n&quot;,cond,p-&gt;bc?p-&gt;bc-&gt;pid:-1);
++		ast_log(LOG_NOTICE, &quot; --&gt; * Unknown Indication:%d pid:%d\n&quot;,cond,p-&gt;bc?p-&gt;bc-&gt;pid:-1);
+ 	}
+   
+ 	return 0;
+@@ -1991,6 +2009,7 @@
+ 		chan_misdn_log(2, bc-&gt;port, &quot; --&gt; l3id:%x\n&quot;,p-&gt;l3id);
+ 		chan_misdn_log(1, bc-&gt;port, &quot; --&gt; cause:%d\n&quot;,bc-&gt;cause);
+ 		chan_misdn_log(1, bc-&gt;port, &quot; --&gt; out_cause:%d\n&quot;,bc-&gt;out_cause);
++		chan_misdn_log(1, bc-&gt;port, &quot; --&gt; state:%s\n&quot;, misdn_get_ch_state(p));
+ 		
+ 		switch (p-&gt;state) {
+ 		case MISDN_CALLING:
+@@ -2013,8 +2032,6 @@
+ 		case MISDN_ALERTING:
+ 		case MISDN_PROGRESS:
+ 		case MISDN_PROCEEDING:
+-			chan_misdn_log(2, bc-&gt;port, &quot; --&gt; * State Alerting\n&quot;);
+-
+ 			if (p-&gt;orginator != ORG_AST) 
+ 				tone_indicate(p, TONE_HANGUP);
+       
+@@ -2023,7 +2040,6 @@
+ 			break;
+ 		case MISDN_CONNECTED:
+ 			/*  Alerting or Disconect */
+-			chan_misdn_log(2, bc-&gt;port, &quot; --&gt; * State Connected\n&quot;);
+ 			start_bc_tones(p);
+ 			tone_indicate(p, TONE_HANGUP);
+ 			misdn_lib_send_event( bc, EVENT_DISCONNECT);
+@@ -2031,17 +2047,16 @@
+ 			p-&gt;state=MISDN_CLEANING; /* MISDN_HUNGUP_FROM_AST; */
+ 			break;
+ 		case MISDN_DISCONNECTED:
+-			chan_misdn_log(2, bc-&gt;port, &quot; --&gt; * State Disconnected\n&quot;);
+ 			misdn_lib_send_event( bc, EVENT_RELEASE);
+ 			p-&gt;state=MISDN_CLEANING; /* MISDN_HUNGUP_FROM_AST; */
+ 			break;
+ 
++		case MISDN_RELEASED:
+ 		case MISDN_CLEANING:
+ 			break;
+       
+ 		case MISDN_HOLD_DISCONNECT:
+ 			/* need to send release here */
+-			chan_misdn_log(2, bc-&gt;port, &quot; --&gt; state HOLD_DISC\n&quot;);
+ 			chan_misdn_log(1, bc-&gt;port, &quot; --&gt; cause %d\n&quot;,bc-&gt;cause);
+ 			chan_misdn_log(1, bc-&gt;port, &quot; --&gt; out_cause %d\n&quot;,bc-&gt;out_cause);
+ 			
+@@ -2358,7 +2373,7 @@
+ 	chan_misdn_log(3,cl-&gt;bc-&gt;port,&quot;Tone Indicate:\n&quot;);
+ 	
+ 	if (!cl-&gt;ast) {
+-		chan_misdn_log(-1,cl-&gt;bc-&gt;port,&quot;Ast Ptr Not existing anymore.. we need to generate tones ourselves now (tbd)\n&quot;);
++		chan_misdn_log(3,cl-&gt;bc-&gt;port,&quot;Ast Ptr Not existing anymore.. we need to generate tones ourselves now (tbd)\n&quot;);
+ 		
+ 		misdn_lib_send_tone(cl-&gt;bc,tone);
+ 		return 0;
+@@ -2407,7 +2422,7 @@
+ 
+ static int start_bc_tones(struct chan_list* cl)
+ {
+-	manager_bchannel_activate(cl-&gt;bc);
++/*	manager_bchannel_activate(cl-&gt;bc); */
+ 	misdn_lib_tone_generator_stop(cl-&gt;bc);
+ 	cl-&gt;notxtone=0;
+ 	cl-&gt;norxtone=0;
+@@ -2416,9 +2431,10 @@
+ 
+ static int stop_bc_tones(struct chan_list *cl)
+ {
+-	if (cl-&gt;bc) {
++/*	if (cl-&gt;bc) {
+ 		manager_bchannel_deactivate(cl-&gt;bc);
+ 	}
++*/
+ 	cl-&gt;notxtone=1;
+ 	cl-&gt;norxtone=1;
+ 	
+@@ -2514,7 +2530,7 @@
+ 					if (port &gt;= port_start)
+ 						next_chan = 1;
+ 					
+-					if (port &lt; port_start &amp;&amp; next_chan) {
++					if (port &lt;= port_start &amp;&amp; next_chan) {
+ 						if (++robin_channel &gt;= MAX_BCHANS) {
+ 							robin_channel = 1;
+ 						}
+@@ -2528,13 +2544,17 @@
+ 						int check;
+ 						misdn_cfg_get(port, MISDN_CFG_PMP_L1_CHECK, &amp;check, sizeof(int));
+ 						port_up = misdn_lib_port_up(port, check);
++
++						if (check &amp;&amp; !port_up) 
++							chan_misdn_log(1,port,&quot;L1 is not Up on this Port\n&quot;);
+ 						
++						
+ 						if ( port_up )	{
+ 							newbc = misdn_lib_get_free_bc(port, robin_channel);
+ 							if (newbc) {
+ 								chan_misdn_log(4, port, &quot; Success! Found port:%d channel:%d\n&quot;, newbc-&gt;port, newbc-&gt;channel);
+ 								if (port_up)
+-									chan_misdn_log(4, port, &quot;ortup:%d\n&quot;,  port_up);
++									chan_misdn_log(4, port, &quot;portup:%d\n&quot;,  port_up);
+ 								rr-&gt;port = newbc-&gt;port;
+ 								rr-&gt;channel = newbc-&gt;channel;
+ 								break;
+@@ -2579,8 +2599,7 @@
+ 	}
+ 	
+ 	if (!newbc) {
+-		chan_misdn_log(-1, 0, &quot; --&gt; ! No free channel chan ext:%s even after Group Call\n&quot;,ext);
+-		chan_misdn_log(-1, 0, &quot; --&gt; SEND: State Down\n&quot;);
++		chan_misdn_log(-1, 0, &quot;Could not create channel on port:%d with extensions:%s\n&quot;,port,ext);
+ 		return NULL;
+ 	}
+ 
+@@ -3144,7 +3163,7 @@
+ 		ch=find_chan_by_l3id(cl_te, bc-&gt;l3_id);
+ 	
+ 	if (event != EVENT_BCHAN_DATA &amp;&amp; event != EVENT_TONE_GENERATE) { /*  Debug Only Non-Bchan */
+-		chan_misdn_log(1, bc-&gt;port, &quot;I IND :%s oad:%s dad:%s\n&quot;, manager_isdn_get_info(event), bc-&gt;oad, bc-&gt;dad);
++		chan_misdn_log(1, bc-&gt;port, &quot;I IND :%s oad:%s dad:%s pid:%d\n&quot;, manager_isdn_get_info(event), bc-&gt;oad, bc-&gt;dad, bc-&gt;pid);
+ 		misdn_lib_log_ies(bc);
+ 		chan_misdn_log(2,bc-&gt;port,&quot; --&gt; bc_state:%s\n&quot;,bc_state2str(bc-&gt;bc_state));
+ 	}
+@@ -3152,7 +3171,7 @@
+ 	if (event != EVENT_SETUP) {
+ 		if (!ch) {
+ 			if (event != EVENT_CLEANUP )
+-				ast_log(LOG_WARNING, &quot;Chan not existing at the moment bc-&gt;l3id:%x bc:%p event:%s port:%d channel:%d\n&quot;,bc-&gt;l3_id, bc, manager_isdn_get_info( event), bc-&gt;port,bc-&gt;channel);
++				ast_log(LOG_NOTICE, &quot;Chan not existing at the moment bc-&gt;l3id:%x bc:%p event:%s port:%d channel:%d\n&quot;,bc-&gt;l3_id, bc, manager_isdn_get_info( event), bc-&gt;port,bc-&gt;channel);
+ 			return -1;
+ 		}
+ 	}
+@@ -3164,12 +3183,13 @@
+ 		case EVENT_RELEASE_COMPLETE:
+ 		case EVENT_CLEANUP:
+ 		case EVENT_TIMEOUT:
+-			chan_misdn_log(3,bc-&gt;port,&quot;ast_hangup already called, so we have no ast ptr anymore in event(%s)\n&quot;,manager_isdn_get_info(event));
++			if (!ch-&gt;ast)
++				chan_misdn_log(3,bc-&gt;port,&quot;ast_hangup already called, so we have no ast ptr anymore in event(%s)\n&quot;,manager_isdn_get_info(event));
+ 			break;
+ 		default:
+ 			if ( !ch-&gt;ast  || !MISDN_ASTERISK_PVT(ch-&gt;ast) || !MISDN_ASTERISK_TECH_PVT(ch-&gt;ast)) {
+ 				if (event!=EVENT_BCHAN_DATA)
+-					ast_log(LOG_WARNING, &quot;No Ast or No private Pointer in Event (%d:%s)\n&quot;, event, manager_isdn_get_info(event));
++					ast_log(LOG_NOTICE, &quot;No Ast or No private Pointer in Event (%d:%s)\n&quot;, event, manager_isdn_get_info(event));
+ 				return -1;
+ 			}
+ 		}
+@@ -3674,7 +3694,7 @@
+ 			   alternative number, then play it instead of
+ 			   immediately releasing the call */
+ 			chan_misdn_log(0,bc-&gt;port, &quot; --&gt; Inband Info Avail, not sending RELEASE\n&quot;);
+-			ch-&gt;state = MISDN_DISCONNECTED;
++			ch-&gt;state=MISDN_DISCONNECTED;
+ 			start_bc_tones(ch);
+ 			break;
+ 		}
+@@ -3699,6 +3719,9 @@
+ 		*/
+ 		
+ 		misdn_lib_send_event(bc,EVENT_RELEASE);
++
++		if (ch-&gt;state == MISDN_CONNECTED)
++			ch-&gt;state=MISDN_RELEASED;
+ 	}
+ 	break;
+ 	
+@@ -3725,7 +3748,10 @@
+ 			/*stop_bc_tones(ch);
+ 			  release_chan(bc);*/
+ 			
++			if (!bc-&gt;nt) release_chan(bc);
++			
+ 			misdn_lib_send_event(bc,EVENT_RELEASE_COMPLETE);
++
+ 		}
+ 		break;
+ 	case EVENT_RELEASE_COMPLETE:
+@@ -3755,7 +3781,7 @@
+ 		generate = ast-&gt;generator-&gt;generate;
+ 
+ 		if (tone_len &lt;0 || tone_len &gt; 512 ) {
+-			ast_log(LOG_WARNING, &quot;TONE_GEN: len was %d, set to 128\n&quot;,tone_len);
++			ast_log(LOG_NOTICE, &quot;TONE_GEN: len was %d, set to 128\n&quot;,tone_len);
+ 			tone_len=128;
+ 		}
+ 
+@@ -3950,7 +3976,7 @@
+ 		break;
+ 				
+ 	default:
+-		ast_log(LOG_WARNING, &quot;Got Unknown Event\n&quot;);
++		ast_log(LOG_NOTICE, &quot;Got Unknown Event\n&quot;);
+ 		break;
+ 	}
+ 	
+
+Modified: trunk/channels/misdn/isdn_lib.c
+===================================================================
+--- trunk/channels/misdn/isdn_lib.c	2006-06-28 02:08:36 UTC (rev 397)
++++ trunk/channels/misdn/isdn_lib.c	2006-06-28 02:10:06 UTC (rev 398)
+@@ -363,7 +363,7 @@
+ 	int i;
+ 
+ 	for (i=0; i &lt;stack-&gt;b_num; i++) {
+-		cb_log(8, stack-&gt;port, &quot;Idx:%d stack-&gt;cchan:%d Chan:%d\n&quot;,i,stack-&gt;channels[i], i+1);
++		cb_log(6, stack-&gt;port, &quot;Idx:%d stack-&gt;cchan:%d Chan:%d\n&quot;,i,stack-&gt;channels[i], i+1);
+ 	}
+ }
+ 
+@@ -550,14 +550,6 @@
+ 	bc-&gt;te_choose_channel = 0;
+ 
+ 	bc-&gt;holded_bc=NULL;
+-	
+-	
+-	if (bc-&gt;bc_state != BCHAN_SETUP) {
+-		bc_state_change(bc,BCHAN_EMPTY);
+-		bc_next_state_change(bc,BCHAN_EMPTY);
+-	} else {
+-		cb_log(-1,bc-&gt;port,&quot;Emptying bc(%x) within SETSTACK!\n&quot;,bc-&gt;addr);
+-	}
+ }
+ 
+ 
+@@ -567,7 +559,7 @@
+ 	unsigned char buff[32];
+ 	struct misdn_stack * stack;
+ 
+-	cb_log(3, 0, &quot;$$$ CLEANUP CALLED\n&quot;);
++	cb_log(3, bc?bc-&gt;port:0, &quot;$$$ CLEANUP CALLED pid:%d\n&quot;, bc?bc-&gt;pid:-1);
+ 	
+ 	if (!bc  ) return -1;
+ 	stack=get_stack_by_bc(bc);
+@@ -575,44 +567,27 @@
+ 	if (!stack) return -1;
+ 	
+ 	switch (bc-&gt;bc_state ) {
+-		
+ 	case BCHAN_CLEANED:
+ 		cb_log(5, stack-&gt;port, &quot;$$$ Already cleaned up bc with stid :%x\n&quot;, bc-&gt;b_stid);
+ 		return -1;
+ 		
+-	case BCHAN_ACTIVATED:
+-		cb_log(2, stack-&gt;port, &quot;$$$ bc still active, deactivatiing .. stid :%x\n&quot;, bc-&gt;b_stid);
+-		manager_bchannel_deactivate(bc);
+-		break;
+-		
+-	case BCHAN_BRIDGED:
+-		cb_log(2, stack-&gt;port, &quot;$$$ bc still bridged\n&quot;);
+-		break;
+-
+-
+-	case BCHAN_SETUP:
+-		bc_state_change(bc,BCHAN_CLEAN_REQUEST);
+-		return -1;
+ 	default:
+ 		break;
+ 	}
+ 	
+-	cb_log(5, stack-&gt;port, &quot;$$$ Cleaning up bc with stid :%x\n&quot;, bc-&gt;b_stid);
++	cb_log(2, stack-&gt;port, &quot;$$$ Cleaning up bc with stid :%x pid:%d\n&quot;, bc-&gt;b_stid, bc-&gt;pid);
+ 	
++	manager_bchannel_deactivate(bc);
++
+ 	if ( misdn_cap_is_speech(bc-&gt;capability) &amp;&amp; bc-&gt;ec_enable) {
+ 		manager_ec_disable(bc);
+ 	}
+ 
++	mISDN_write_frame(stack-&gt;midev, buff, bc-&gt;layer_id|FLG_MSG_TARGET|FLG_MSG_DOWN, MGR_DELLAYER | REQUEST, 0, 0, NULL, TIMEOUT_1SEC);
+ 	
+-	mISDN_write_frame(stack-&gt;midev, buff, bc-&gt;layer_id|FLG_MSG_DOWN, MGR_DELLAYER | REQUEST, 0, 0, NULL, TIMEOUT_1SEC);
++	/*mISDN_clear_stack(stack-&gt;midev, bc-&gt;b_stid);*/
+ 
+-#if 0
+-	cb_log(3, stack-&gt;port, &quot;$$$ CLEARING STACK\n&quot;);
+-	ret=mISDN_clear_stack(stack-&gt;midev,bc-&gt;b_stid);
+-	if (ret&lt;0 &amp;&amp; errno) {
+-		cb_log(-1,stack-&gt;port,&quot;clear stack failed [%s]\n&quot;,strerror(errno));
+-	}
+-#endif
++	
+ 
+ 	bc-&gt;b_stid = 0;
+ 	bc_state_change(bc, BCHAN_CLEANED);
+@@ -887,9 +862,12 @@
+ 	int b_stid=stack-&gt;b_stids[channel&gt;=0?channel:0];
+ 
+ 
+-	if ( bc-&gt;bc_state != BCHAN_CLEANED) {
+-		cb_log(4, stack-&gt;port, &quot;$$$ bc already upsetted stid :%x (state:%s)\n&quot;, b_stid, bc_state2str(bc-&gt;bc_state) );
+-		return -1;
++	switch (bc-&gt;bc_state) {
++		case BCHAN_CLEANED:
++			break;
++		default:
++			cb_log(4, stack-&gt;port, &quot;$$$ bc already upsetted stid :%x (state:%s)\n&quot;, b_stid, bc_state2str(bc-&gt;bc_state) );
++			return -1;
+ 	}
+ 	
+ 	cb_log(5, stack-&gt;port, &quot;$$$ Setting up bc with stid :%x\n&quot;, b_stid);
+@@ -1000,9 +978,32 @@
+ 		return(-EINVAL);
+ 	}
+ 
+-	bc_state_change(bc,BCHAN_SETUP);
+ 
++	ret = mISDN_get_setstack_ind(midev, bc-&gt;layer_id);
++
++	if (ret) {
++		cb_log(-1, stack-&gt;port,&quot;$$$ Set StackIND Err: %d %s\n&quot;,ret,strerror(errno));
++		mISDN_write_frame(midev, buff, bc-&gt;layer_id, MGR_DELLAYER | REQUEST, 0, 0, NULL, TIMEOUT_1SEC);
++		
++		bc_state_change(bc,BCHAN_ERROR);
++		return(-EINVAL);
++	}
++
++	ret = mISDN_get_layerid(midev, bc-&gt;b_stid, bc-&gt;layer) ;
++
++	bc-&gt;addr = ret&gt;0? ret : 0;
++
++	if (!bc-&gt;addr) {
++		cb_log(-1, stack-&gt;port,&quot;$$$ Get Layerid Err: %d %s\n&quot;,ret,strerror(errno));
++		mISDN_write_frame(midev, buff, bc-&gt;layer_id, MGR_DELLAYER | REQUEST, 0, 0, NULL, TIMEOUT_1SEC);
++		
++		bc_state_change(bc,BCHAN_ERROR);
++	}
++
++	manager_bchannel_activate(bc);
+ 	
++	bc_state_change(bc,BCHAN_ACTIVATED);
++
+ 	return 0;
+ }
+ 
+@@ -1388,15 +1389,14 @@
+ 		switch (event) {
+ 
+ 		case EVENT_CONNECT_ACKNOWLEDGE:
+-			
++#if 0
+ 			if ( !misdn_cap_is_speech(bc-&gt;capability)) {
+ 				int ret=setup_bc(bc);
+ 				if (ret == -EINVAL){
+ 					cb_log(-1,bc-&gt;port,&quot;send_event: setup_bc failed\n&quot;);
+ 				}
+ 			}
+-			
+-			manager_bchannel_activate(bc);
++#endif	
+ 			break;
+ 		case EVENT_CONNECT:
+ 
+@@ -1404,14 +1404,14 @@
+ 				cb_log(4, stack-&gt;port, &quot;ENABLING BLOWFISH channel:%d oad%d:%s dad%d:%s\n&quot;, bc-&gt;channel, bc-&gt;onumplan,bc-&gt;oad, bc-&gt;dnumplan,bc-&gt;dad);
+ 				manager_ph_control_block(bc,  BF_ENABLE_KEY, bc-&gt;crypt_key, strlen(bc-&gt;crypt_key) );
+ 			}
+-		case EVENT_SETUP:
+-			if (bc-&gt;channel&gt;0 &amp;&amp; bc-&gt;channel&lt;255)
+-				set_chan_in_stack(stack, bc-&gt;channel);
+-			break;
+ 		case EVENT_ALERTING:
+ 		case EVENT_PROGRESS:
+ 		case EVENT_PROCEEDING:
+ 		case EVENT_SETUP_ACKNOWLEDGE:
++
++		setup_bc(bc);
++		
++		case EVENT_SETUP:
+ 			
+ 		{
+ 			if (bc-&gt;channel == 0xff) {
+@@ -1420,17 +1420,23 @@
+ 					cb_log(-1, stack-&gt;port, &quot;Any Channel Requested, but we have no more!!\n&quot;);
+ 					break;
+ 				}
+-			} 
+-			
+-			if (!stack-&gt;nt) {
+-				int ret=setup_bc(bc);
+-				if (ret == -EINVAL){
+-					cb_log(-1,bc-&gt;port,&quot;handle_event: setup_bc failed\n&quot;);
+-					misdn_lib_send_event(bc,EVENT_RELEASE_COMPLETE);
+-				}
++			}  	
++#if 0
++			int ret=setup_bc(bc);
++			if (ret == -EINVAL){
++				cb_log(-1,bc-&gt;port,&quot;handle_event: setup_bc failed\n&quot;);
++				misdn_lib_send_event(bc,EVENT_RELEASE_COMPLETE);
+ 			}
++#endif
+ 		}
+-		
++		break;
++
++		case EVENT_RELEASE_COMPLETE:
++		case EVENT_RELEASE:
++			empty_chan_in_stack(stack,bc-&gt;channel);
++			empty_bc(bc);
++			clean_up_bc(bc);
++			break;
+ 		default:
+ 			break;
+ 		}
+@@ -1496,11 +1502,10 @@
+ 				empty_chan_in_stack(stack,bc-&gt;channel);
+ 				empty_bc(bc);
+ 				
+-				bc_state_change(bc, BCHAN_EMPTY);
+-
+ 				clean_up_bc(bc);
++				
+ 				dump_chan_list(stack);
+-				bc-&gt;pid = 0;
++				/*bc-&gt;pid = 0;*/
+ 				cb_event(EVENT_CLEANUP, bc, glob_mgr-&gt;user_data);
+ 				if (bc-&gt;stack_holder) {
+ 					cb_log(4,stack-&gt;port, &quot;REMOVEING Holder\n&quot;);
+@@ -1719,8 +1724,6 @@
+ 						
+ 					}
+ 				}
+-				
+-				manager_bchannel_activate(bc);
+ 			}
+ 		}
+ #endif
+@@ -1732,6 +1735,7 @@
+ 			if(!stack-&gt;ptp) break;	
+ 		case CC_CONNECT|INDICATION:
+ 		{
++#if 0
+ 			struct misdn_bchannel *bc=find_bc_by_l3id(stack, hh-&gt;dinfo);
+ 			
+ 			if (!bc) {
+@@ -1750,6 +1754,7 @@
+ 				cb_log(-1,bc-&gt;port,&quot;handle_event_nt: setup_bc failed\n&quot;);
+ 				misdn_lib_send_event(bc,EVENT_RELEASE_COMPLETE);
+ 			}
++#endif
+ 		}
+ 		break;
+ 		case CC_DISCONNECT|INDICATION:
+@@ -1868,6 +1873,7 @@
+ 		}
+ 		break;
+ 
++
+ 		case DL_RELEASE | INDICATION:
+ 		case DL_RELEASE | CONFIRM:
+ 		{
+@@ -1900,6 +1906,45 @@
+ 		}
+ 		if (bc ) {
+ 			isdn_msg_parse_event(msgs_g,msg,bc, 1);
++
++			switch (event) {
++				case EVENT_SETUP:
++					if (bc-&gt;channel&gt;0 &amp;&amp; bc-&gt;channel&lt;255) {
++
++						if (stack-&gt;ptp) 
++							set_chan_in_stack(stack, bc-&gt;channel);
++						else 
++							cb_log(-1,stack-&gt;port,&quot; --&gt; PTMP but channel requested\n&quot;);
++
++					} else {
++
++						bc-&gt;channel = find_free_chan_in_stack(stack, 0);
++						if (!bc-&gt;channel) {
++							cb_log(-1, stack-&gt;port, &quot; No free channel at the moment\n&quot;);
++					
++							msg_t *dmsg;
++				
++							cb_log(-1, stack-&gt;port, &quot;Releaseing call %x (No free Chan for you..)\n&quot;, hh-&gt;dinfo);
++								dmsg = create_l3msg(CC_RELEASE_COMPLETE | REQUEST,MT_RELEASE_COMPLETE, hh-&gt;dinfo,sizeof(RELEASE_COMPLETE_t), 1);
++							stack-&gt;nst.manager_l3(&amp;stack-&gt;nst, dmsg);
++							free_msg(msg);
++							return 0;
++						}
++						
++					}
++#if 0
++					setup_bc(bc);
++#endif
++
++					break;
++				case EVENT_RELEASE:
++				case EVENT_RELEASE_COMPLETE:
++					clean_up_bc(bc);
++					break;
++
++				default:
++				break;
++			}
+ 			
+ 			if(!isdn_get_info(msgs_g,event,1)) {
+ 				cb_log(4, stack-&gt;port, &quot;Unknown Event Ind: prim %x dinfo %x\n&quot;,hh-&gt;prim, hh-&gt;dinfo);
+@@ -2072,9 +2117,9 @@
+ int handle_bchan(msg_t *msg)
+ {
+ 	iframe_t *frm= (iframe_t*)msg-&gt;data;
+-	struct misdn_bchannel *bc;
+ 
+-	bc=find_bc_by_addr(frm-&gt;addr);
++
++	struct misdn_bchannel *bc=find_bc_by_addr(frm-&gt;addr);
+ 	
+ 	if (!bc) {
+ 		cb_log(0,0,&quot;handle_bchan: BC not found for prim:%x with addr:%x dinfo:%x\n&quot;, frm-&gt;prim, frm-&gt;addr, frm-&gt;dinfo);
+@@ -2091,12 +2136,13 @@
+ 	switch (frm-&gt;prim) {
+ 
+ 	case MGR_SETSTACK| CONFIRM:
+-		cb_log(2, stack-&gt;port, &quot;BCHAN: MGR_SETSTACK|CONFIRM \n&quot;);
++		cb_log(2, stack-&gt;port, &quot;BCHAN: MGR_SETSTACK|CONFIRM pid:%d\n&quot;,bc-&gt;pid);
+ 		break;
+ 		
+ 	case MGR_SETSTACK| INDICATION:
+-		cb_log(2, stack-&gt;port, &quot;BCHAN: MGR_SETSTACK|IND \n&quot;);
+-		
++		cb_log(2, stack-&gt;port, &quot;BCHAN: MGR_SETSTACK|IND pid:%d\n&quot;,bc-&gt;pid);
++	break;
++#if 0
+ 	AGAIN:
+ 		bc-&gt;addr = mISDN_get_layerid(stack-&gt;midev, bc-&gt;b_stid, bc-&gt;layer);
+ 		if (!bc-&gt;addr) {
+@@ -2124,60 +2170,71 @@
+ 		switch(bc-&gt;bc_state) {
+ 		case BCHAN_SETUP:
+ 			bc_state_change(bc,BCHAN_SETUPED);
+-			manager_bchannel_activate(bc);
+ 		break;
+ 
+ 		case BCHAN_CLEAN_REQUEST:
+ 		default:
+-			cb_log(-1, stack-&gt;port,&quot; --&gt; STATE WASN'T SETUP (but %s) in SETSTACK|IND\n&quot;,bc_state2str(bc-&gt;bc_state));
++			cb_log(-1, stack-&gt;port,&quot; --&gt; STATE WASN'T SETUP (but %s) in SETSTACK|IND pid:%d\n&quot;,bc_state2str(bc-&gt;bc_state), bc-&gt;pid);
+ 			clean_up_bc(bc);
+ 		}
+ 		return 1;
++#endif
+ 
+ 	case MGR_DELLAYER| INDICATION:
+-		cb_log(2, stack-&gt;port, &quot;BCHAN: MGR_DELLAYER|IND\n&quot;);
++		cb_log(2, stack-&gt;port, &quot;BCHAN: MGR_DELLAYER|IND pid:%d\n&quot;,bc-&gt;pid);
+ 		break;
+ 		
+ 	case MGR_DELLAYER| CONFIRM:
+-		cb_log(2, stack-&gt;port, &quot;BCHAN: MGR_DELLAYER|CNF \n&quot;);
++		cb_log(2, stack-&gt;port, &quot;BCHAN: MGR_DELLAYER|CNF pid:%d\n&quot;,bc-&gt;pid);
+ 		
+-		bc_state_change(bc,BCHAN_CLEANED);
++		bc-&gt;pid=0;
++		bc-&gt;addr=0;
+ 		
+ 		free_msg(msg);
+ 		return 1;
+ 		
+ 	case PH_ACTIVATE | INDICATION:
+ 	case DL_ESTABLISH | INDICATION:
+-		cb_log(4, stack-&gt;port, &quot;BCHAN: ACT Ind\n&quot;);
++		cb_log(2, stack-&gt;port, &quot;BCHAN: ACT Ind pid:%d\n&quot;, bc-&gt;pid);
+ 
+-		bc_state_change(bc,BCHAN_ACTIVATED);
+-		
+ 		free_msg(msg);
+ 		return 1;    
+ 
+ 	case PH_ACTIVATE | CONFIRM:
+ 	case DL_ESTABLISH | CONFIRM:
+ 		
+-		bc_state_change(bc,BCHAN_ACTIVATED);
+-		
+-		cb_log(4, stack-&gt;port, &quot;BCHAN: bchan ACT Confirm\n&quot;);
++		cb_log(2, stack-&gt;port, &quot;BCHAN: bchan ACT Confirm pid:%d\n&quot;,bc-&gt;pid);
+ 		free_msg(msg);
+ 		
+ 		return 1;    
++
++	case DL_ESTABLISH | REQUEST:
++		{
++			char buf[128];
++			mISDN_write_frame(stack-&gt;midev, buf, bc-&gt;addr | FLG_MSG_TARGET | FLG_MSG_DOWN,  DL_ESTABLISH | CONFIRM, 0,0, NULL, TIMEOUT_1SEC);
++		}
++		free_msg(msg);
++		return 1;
++
++	case DL_RELEASE|REQUEST:
++		{
++			char buf[128];
++			mISDN_write_frame(stack-&gt;midev, buf, bc-&gt;addr | FLG_MSG_TARGET | FLG_MSG_DOWN,  DL_RELEASE| CONFIRM, 0,0, NULL, TIMEOUT_1SEC);
++		}
++		free_msg(msg);
++		return 1;
+ 		
+ 	case PH_DEACTIVATE | INDICATION:
+ 	case DL_RELEASE | INDICATION:
+-		cb_log (4, stack-&gt;port, &quot;BCHAN: DeACT Ind\n&quot;);
++		cb_log (2, stack-&gt;port, &quot;BCHAN: DeACT Ind pid:%d\n&quot;,bc-&gt;pid);
+ 		
+-		bc_state_change(bc,BCHAN_RELEASED);
+ 		free_msg(msg);
+ 		return 1;
+     
+ 	case PH_DEACTIVATE | CONFIRM:
+ 	case DL_RELEASE | CONFIRM:
+-		cb_log(4, stack-&gt;port, &quot;BCHAN: DeACT Conf\n&quot;);
++		cb_log(4, stack-&gt;port, &quot;BCHAN: DeACT Conf pid:%d\n&quot;,bc-&gt;pid);
+ 		
+-		bc_state_change(bc,BCHAN_RELEASED);
+ 		free_msg(msg);
+ 		return 1;
+     
+@@ -2637,13 +2694,14 @@
+ {
+ 	msg_t *msg=alloc_msg(MAX_MSG_SIZE);
+ 	int r;
+-	fd_set rdfs;
++/*	fd_set rdfs; */
+ 
+ 	if (!msg) {
+ 		cb_log(-1, 0, &quot;fetch_msg: alloc msg failed !!&quot;);
+ 		return NULL;
+ 	}
+-	
++
++#if 0
+ 	FD_ZERO(&amp;rdfs);
+ 	FD_SET(midev,&amp;rdfs);
+   
+@@ -2651,14 +2709,15 @@
+ 	//select(FD_SETSIZE, &amp;rdfs, NULL, NULL, NULL);
+   
+ 	if (FD_ISSET(midev, &amp;rdfs)) {
++#endif
+ 
+ 	AGAIN:
+-		r=mISDN_read(midev,msg-&gt;data,MAX_MSG_SIZE, 5000);
++		r=mISDN_read(midev,msg-&gt;data,MAX_MSG_SIZE, TIMEOUT_10SEC);
+ 		msg-&gt;len=r;
+     
+ 		if (r==0) {
+ 			free_msg(msg); /* danger, cauz usualy freeing in main_loop */
+-			printf (&quot;Got empty Msg?\n&quot;);
++			cb_log(6,0,&quot;Got empty Msg..\n&quot;);
+ 			return NULL;
+ 		}
+ 
+@@ -2674,9 +2733,12 @@
+ 		}
+ 
+ 		return msg;
++
++#if 0
+ 	} else {
+ 		printf (&quot;Select timeout\n&quot;);
+ 	}
++#endif
+   
+ 	return NULL;
+ }
+@@ -2831,8 +2893,10 @@
+ 	struct misdn_stack *stack;
+ 	int i;
+ 	
+-	if (channel &lt; 0 || channel &gt; MAX_BCHANS)
++	if (channel &lt; 0 || channel &gt; MAX_BCHANS) {
++		cb_log(-1,port,&quot;Requested channel out of bounds (%d)\n&quot;,channel);
+ 		return NULL;
++	}
+ 
+ 	for (stack=glob_mgr-&gt;stack_list; stack; stack=stack-&gt;next) {
+     
+@@ -2841,11 +2905,14 @@
+ 				if (channel &lt;= stack-&gt;b_num) {
+ 					for (i = 0; i &lt; stack-&gt;b_num; i++) {
+ 						if (stack-&gt;bc[i].in_use &amp;&amp; stack-&gt;bc[i].channel == channel) {
++							cb_log(-1,port,&quot;Requested channel:%d on port:%d is already in use\n&quot;,channel, port);
+ 							return NULL;
+ 						}
+ 					}
+-				} else
++				} else {
++					cb_log(-1,port,&quot;Requested channel:%d is out of bounds on port:%d\n&quot;,channel, port);
+ 					return NULL;
++				}
+ 			}
+ 			for (i = 0; i &lt; stack-&gt;b_num; i++) {
+ 				if (!stack-&gt;bc[i].in_use) {
+@@ -2855,9 +2922,13 @@
+ 					return &amp;stack-&gt;bc[i];
+ 				}
+ 			}
++
++			cb_log(-1,port,&quot;There is no free channel on port (%d)\n&quot;,port);
+ 			return NULL;
+ 		}
+ 	}
++
++	cb_log(-1,port,&quot;Port is not configured (%d)\n&quot;,port);
+ 	return NULL;
+ }
+ 
+@@ -2917,6 +2988,7 @@
+ {
+ 	msg_t *msg; 
+ 	int err = -1 ;
++	int ret=0;
+   
+ 	if (!bc) goto ERR; 
+ 	
+@@ -2937,7 +3009,7 @@
+ 		return 0;
+ 	}
+ 	
+-	cb_log(1, stack-&gt;port, &quot;I SEND:%s oad:%s dad:%s \n&quot;, isdn_get_info(msgs_g, event, 0), bc-&gt;oad, bc-&gt;dad);
++	cb_log(1, stack-&gt;port, &quot;I SEND:%s oad:%s dad:%s pid:%d\n&quot;, isdn_get_info(msgs_g, event, 0), bc-&gt;oad, bc-&gt;dad, bc-&gt;pid);
+ 	cb_log(1, stack-&gt;port, &quot; --&gt; bc_state:%s\n&quot;,bc_state2str(bc-&gt;bc_state));
+ 	misdn_lib_log_ies(bc);
+ 	
+@@ -2949,6 +3021,12 @@
+ 			err=-ENOCHAN;
+ 			goto ERR;
+ 		}
++#if 0
++		ret=setup_bc(bc);
++		if (ret == -EINVAL) {
++			cb_log(-1,bc-&gt;port,&quot;send_event: setup_bc failed\n&quot;);
++		}
++#endif
+ 		break;
+ 
+ 	case EVENT_PROGRESS:
+@@ -2972,13 +3050,10 @@
+ 			/* Its that i generate channels */
+ 		}
+ 		
+-		if ( bc-&gt;nt || misdn_cap_is_speech(bc-&gt;capability)) {
+-			int ret=setup_bc(bc);
+-			if (ret == -EINVAL){
+-				cb_log(-1,bc-&gt;port,&quot;send_event: setup_bc failed\n&quot;);
+-				
+-			}
+-		} 
++		ret=setup_bc(bc);
++		if (ret == -EINVAL) {
++			cb_log(-1,bc-&gt;port,&quot;send_event: setup_bc failed\n&quot;);
++		}
+ 		
+ 		if ( (event == EVENT_CONNECT ) &amp;&amp; misdn_cap_is_speech(bc-&gt;capability) ) {
+ 			if ( *bc-&gt;crypt_key ) {
+@@ -3004,7 +3079,7 @@
+ 		}
+ 		
+ 		if (event == EVENT_RETRIEVE_ACKNOWLEDGE) {
+-			manager_bchannel_activate(bc);
++			cb_log(0,bc-&gt;port,&quot;DO WE NEED TO DO SOMETHING HERE WITH THE BC ?\n&quot;);
+ 		}
+ 		break;
+ 
+@@ -3019,8 +3094,6 @@
+ 			if (bc-&gt;bc_state == BCHAN_BRIDGED) {
+ 				misdn_split_conf(bc,bc-&gt;conf_id);
+ 				misdn_split_conf(bc-&gt;holded_bc,bc-&gt;holded_bc-&gt;conf_id);
+-				/*bc_state_change(bc,BCHAN_SETUPED);
+-				manager_bchannel_activate(bc);*/
+ 			}
+ 
+ 			empty_chan_in_stack(stack,bc-&gt;channel);
+@@ -3038,13 +3111,21 @@
+ 	break;
+ 	
+ 	case EVENT_RELEASE:
+-		break;
+-		
+ 	case EVENT_RELEASE_COMPLETE:
+ 		/*we do the cleanup in EVENT_CLEANUP*/
++		/*clean_up_bc(bc);*/
+ 		break;
+     
+ 	case EVENT_CONNECT_ACKNOWLEDGE:
++
++		if ( bc-&gt;nt || misdn_cap_is_speech(bc-&gt;capability)) {
++			int ret=setup_bc(bc);
++			if (ret == -EINVAL){
++				cb_log(-1,bc-&gt;port,&quot;send_event: setup_bc failed\n&quot;);
++				
++			}
++		}
++	
+ 		
+ 		if (misdn_cap_is_speech(bc-&gt;capability)) {
+ 			if (  !bc-&gt;nodsp) manager_ph_control(bc,  DTMF_TONE_START, 0);
+@@ -3460,7 +3541,7 @@
+ 				} else {
+ 					iframe_t *frm = (iframe_t *)msg-&gt;data;
+ 					struct misdn_bchannel *bc = find_bc_by_l3id(stack, frm-&gt;dinfo);
+-					cb_log(0,stack-&gt;port,&quot;Sending msg, prim:%x addr:%x dinfo:%x\n&quot;,frm-&gt;prim,frm-&gt;addr,frm-&gt;dinfo);
++					cb_log(4,stack-&gt;port,&quot;Sending msg, prim:%x addr:%x dinfo:%x\n&quot;,frm-&gt;prim,frm-&gt;addr,frm-&gt;dinfo);
+ 					if (bc) send_msg(glob_mgr-&gt;midev, bc, msg);
+ 				}
+ 			}
+@@ -3655,9 +3736,10 @@
+ 
+ void manager_bchannel_activate(struct misdn_bchannel *bc)
+ {
+-	msg_t *msg=alloc_msg(MAX_MSG_SIZE);
+-	iframe_t *frm;
+-	
++	char buf[128];
++	iframe_t *ifrm;
++	int ret;
++
+ 	struct misdn_stack *stack=get_stack_by_bc(bc);
+ 
+ 	if (!stack) {
+@@ -3665,43 +3747,23 @@
+ 		return ;
+ 	}
+ 	
+-	if (!msg) {
+-		cb_log(-1, stack-&gt;port, &quot;bchannel_activate: alloc_msg failed !&quot;);
+-
+-		return ;
+-	}
+-
+-
+-	switch (bc-&gt;bc_state) {
+-
+-	case BCHAN_SETUPED:
+-		break;
+-		
+-	default:
+-		cb_log(1, stack-&gt;port, &quot;bchannel_activate: BC Not properly upsetted (state:%s) addr:%x\n&quot;, bc_state2str(bc-&gt;bc_state), bc-&gt;addr);
+-
+-		
+-		return;
+-	}
+-	
+-
+-	
+-	frm=(iframe_t*)msg-&gt;data;
+ 	/* we must activate if we are deactivated */
+ 	clear_ibuffer(bc-&gt;astbuf);
+ 	
+ 	cb_log(5, stack-&gt;port, &quot;$$$ Bchan Activated addr %x\n&quot;, bc-&gt;addr);
+ 	
+-	/* activate bchannel */
+-	frm-&gt;prim = DL_ESTABLISH | REQUEST;
+-	frm-&gt;addr = bc-&gt;addr | FLG_MSG_DOWN ;
+-	frm-&gt;dinfo = 0;
+-	frm-&gt;len = 0;
++	mISDN_write_frame(stack-&gt;midev, buf, bc-&gt;addr | FLG_MSG_DOWN,  DL_ESTABLISH | REQUEST, 0,0, NULL, TIMEOUT_1SEC);
++
++	ret=mISDN_read(stack-&gt;midev,buf,128,TIMEOUT_10SEC);
++
++	ifrm=(iframe_t*)buf;
+ 	
+-	msg_queue_tail(&amp;glob_mgr-&gt;activatequeue, msg);
+-	sem_post(&amp;glob_mgr-&gt;new_msg);
++	if (ret&gt;0) {
++		if (ifrm-&gt;prim== (DL_ESTABLISH|CONFIRM)) {
++			cb_log(2,stack-&gt;port,&quot;bchan: DL_ESTABLISH|CNF\n&quot;);
++		}
++	}
+ 	
+-	bc_state_change(bc, BCHAN_ACTIVE);
+ 	
+ 	return ;
+   
+@@ -3736,7 +3798,7 @@
+ 	dact.dinfo = 0;
+ 	dact.len = 0;
+ 	char buf[128];	
+-	mISDN_write_frame(stack-&gt;midev, buf, bc-&gt;addr| FLG_MSG_DOWN, DL_RELEASE|REQUEST,0,0,NULL, TIMEOUT_1SEC);
++	mISDN_write_frame(stack-&gt;midev, buf, bc-&gt;addr | FLG_MSG_DOWN, DL_RELEASE|REQUEST,0,0,NULL, TIMEOUT_1SEC);
+ 
+ 	mISDN_read(stack-&gt;midev, buf, 128, TIMEOUT_1SEC);
+ 
+@@ -3940,6 +4002,16 @@
+ 		manager_ph_control(bc, TONE_PATT_OFF, TONE_GERMAN_HANGUP);	
+ 	}
+ 
++	char buf[mISDN_HEADER_LEN+128];
++	iframe_t *frm=(iframe_t*)buf;
++	memset(buf,0,mISDN_HEADER_LEN+128);
++
++	frm-&gt;prim=DL_DATA|REQUEST;
++	frm-&gt;addr=bc-&gt;addr|FLG_MSG_DOWN;
++	frm-&gt;dinfo=0;
++	frm-&gt;len=128;
++	
++	mISDN_write(glob_mgr-&gt;midev, frm, mISDN_HEADER_LEN+frm-&gt;len, TIMEOUT_1SEC);
+ }
+ 
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000392.html">[solid-pbx-svn] r397 - in trunk: channels res
+</A></li>
+	<LI>Next message: <A HREF="000394.html">[solid-pbx-svn] r399 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#393">[ date ]</a>
+              <a href="thread.html#393">[ thread ]</a>
+              <a href="subject.html#393">[ subject ]</a>
+              <a href="author.html#393">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

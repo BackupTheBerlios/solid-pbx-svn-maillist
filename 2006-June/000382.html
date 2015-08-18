@@ -1,0 +1,312 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r387 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r387%20-%20trunk/channels&In-Reply-To=%3C200606280148.k5S1mmfC018996%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000381.html">
+   <LINK REL="Next"  HREF="000383.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r387 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r387%20-%20trunk/channels&In-Reply-To=%3C200606280148.k5S1mmfC018996%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r387 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:48:48 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000381.html">[solid-pbx-svn] r386 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000383.html">[solid-pbx-svn] r388 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#382">[ date ]</a>
+              <a href="thread.html#382">[ thread ]</a>
+              <a href="subject.html#382">[ subject ]</a>
+              <a href="author.html#382">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:48:44 +0200 (Wed, 28 Jun 2006)
+New Revision: 387
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r34953
+
+------------------------------------------------------------------------
+r34951 | oej | 2006-06-19 23:09:24 +0200 (Mon, 19 Jun 2006) | 3 lines
+
+- Formatting 
+- Create larger buffer for managing long auth headers from clients (adviced by SNOM)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-28 01:47:41 UTC (rev 386)
++++ trunk/channels/chan_sip.c	2006-06-28 01:48:44 UTC (rev 387)
+@@ -7608,7 +7608,27 @@
+ 	const char *reqheader = &quot;Proxy-Authorization&quot;;
+ 	const char *respheader = &quot;Proxy-Authenticate&quot;;
+ 	const char *authtoken;
++	char a1_hash[256];
++	char resp_hash[256]=&quot;&quot;;
++	char tmp[BUFSIZ * 2];                /* Make a large enough buffer */
++	char *c;
++	int  wrongnonce = FALSE;
++	int  good_response;
++	const char *usednonce = p-&gt;randdata;
+ 
++	/* table of recognised keywords, and their value in the digest */
++	enum keys { K_RESP, K_URI, K_USER, K_NONCE, K_LAST };
++	struct x {
++		const char *key;
++		const char *s;
++	} *i, keys[] = {
++		[K_RESP] = { &quot;response=&quot;, &quot;&quot; },
++		[K_URI] = { &quot;uri=&quot;, &quot;&quot; },
++		[K_USER] = { &quot;username=&quot;, &quot;&quot; },
++		[K_NONCE] = { &quot;nonce=&quot;, &quot;&quot; },
++		[K_LAST] = { NULL, NULL}
++	};
++
+ 	/* Always OK if no secret */
+ 	if (ast_strlen_zero(secret) &amp;&amp; ast_strlen_zero(md5secret))
+ 		return AUTH_SUCCESSFUL;
+@@ -7639,120 +7659,102 @@
+ 		/* Schedule auto destroy in 32 seconds */
+ 		sip_scheddestroy(p, SIP_TRANS_TIMEOUT);
+ 		return AUTH_CHALLENGE_SENT;
+-	} else {	/* We have auth, so check it */
++	} 
+ 
+-		/* XXX reduce nesting here */
++	/* --- We have auth, so check it */
+ 
+-		/* Whoever came up with the authentication section of SIP can suck my %&amp;#$&amp;* for not putting
+-	   	an example in the spec of just what it is you're doing a hash on. */
+-		char a1_hash[256];
+-		char resp_hash[256]=&quot;&quot;;
+-		char tmp[256];
+-		char *c;
+-		int  wrongnonce = FALSE;
+-		int  good_response;
+-		const char *usednonce = p-&gt;randdata; /* XXX check */
++	/* Whoever came up with the authentication section of SIP can suck my %&amp;#$&amp;* for not putting
++   	   an example in the spec of just what it is you're doing a hash on. */
+ 
+-		/* table of recognised keywords, and their value in the digest */
+-		enum keys { K_RESP, K_URI, K_USER, K_NONCE, K_LAST };
+-		struct x {
+-			const char *key;
+-			const char *s;
+-		} *i, keys[] = {
+-			[K_RESP] = { &quot;response=&quot;, &quot;&quot; },
+-			[K_URI] = { &quot;uri=&quot;, &quot;&quot; },
+-			[K_USER] = { &quot;username=&quot;, &quot;&quot; },
+-			[K_NONCE] = { &quot;nonce=&quot;, &quot;&quot; },
+-			[K_LAST] = { NULL, NULL}
+-		};
+ 
+-		/* Make a copy of the response and parse it */
+-		ast_copy_string(tmp, authtoken, sizeof(tmp));
+-		c = tmp;
++	/* Make a copy of the response and parse it */
++	ast_copy_string(tmp, authtoken, sizeof(tmp));
++	c = tmp;
+ 
+-		while(c &amp;&amp; *(c = ast_skip_blanks(c)) ) { /* lookup for keys */
+-			for (i = keys; i-&gt;key != NULL; i++) {
+-				const char *separator = &quot;,&quot;;	/* default */
++	while(c &amp;&amp; *(c = ast_skip_blanks(c)) ) { /* lookup for keys */
++		for (i = keys; i-&gt;key != NULL; i++) {
++			const char *separator = &quot;,&quot;;	/* default */
+ 
+-				if (strncasecmp(c, i-&gt;key, strlen(i-&gt;key)) != 0)
+-					continue;
+-				/* Found. Skip keyword, take text in quotes or up to the separator. */
+-				c += strlen(i-&gt;key);
+-				if (*c == '&quot;') { /* in quotes. Skip first and look for last */
+-					c++;
+-					separator = &quot;\&quot;&quot;;
+-				}
+-				i-&gt;s = c;
+-				strsep(&amp;c, separator);
+-				break;
++			if (strncasecmp(c, i-&gt;key, strlen(i-&gt;key)) != 0)
++				continue;
++			/* Found. Skip keyword, take text in quotes or up to the separator. */
++			c += strlen(i-&gt;key);
++			if (*c == '&quot;') { /* in quotes. Skip first and look for last */
++				c++;
++				separator = &quot;\&quot;&quot;;
+ 			}
+-			if (i-&gt;key == NULL) /* not found, jump after space or comma */
+-				strsep(&amp;c, &quot; ,&quot;);
++			i-&gt;s = c;
++			strsep(&amp;c, separator);
++			break;
+ 		}
+-		/* Verify that digest username matches  the username we auth as */
+-		if (strcmp(username, keys[K_USER].s)) {
+-			ast_log(LOG_WARNING, &quot;username mismatch, have &lt;%s&gt;, digest has &lt;%s&gt;\n&quot;,
+-				username, keys[K_USER].s);
+-			/* Oops, we're trying something here */
+-			return AUTH_USERNAME_MISMATCH;
+-		}
++		if (i-&gt;key == NULL) /* not found, jump after space or comma */
++			strsep(&amp;c, &quot; ,&quot;);
++	}
+ 
+-		/* Verify nonce from request matches our nonce.  If not, send 401 with new nonce */
+-		if (strcasecmp(p-&gt;randdata, keys[K_NONCE].s)) { /* XXX it was 'n'casecmp ? */
+-			wrongnonce = TRUE;
+-			usednonce = keys[K_NONCE].s;
+-		}
++	/* Verify that digest username matches  the username we auth as */
++	if (strcmp(username, keys[K_USER].s)) {
++		ast_log(LOG_WARNING, &quot;username mismatch, have &lt;%s&gt;, digest has &lt;%s&gt;\n&quot;,
++			username, keys[K_USER].s);
++		/* Oops, we're trying something here */
++		return AUTH_USERNAME_MISMATCH;
++	}
+ 
+-		if (!ast_strlen_zero(md5secret))
+-			ast_copy_string(a1_hash, md5secret, sizeof(a1_hash));
+-		else {
+-			char a1[256];
+-			snprintf(a1, sizeof(a1), &quot;%s:%s:%s&quot;, username, global_realm, secret);
+-			ast_md5_hash(a1_hash, a1);
+-		}
++	/* Verify nonce from request matches our nonce.  If not, send 401 with new nonce */
++	if (strcasecmp(p-&gt;randdata, keys[K_NONCE].s)) { /* XXX it was 'n'casecmp ? */
++		wrongnonce = TRUE;
++		usednonce = keys[K_NONCE].s;
++	}
+ 
+-		/* compute the expected response to compare with what we received */
+-		{
+-			char a2[256];
+-			char a2_hash[256];
+-			char resp[256];
++	if (!ast_strlen_zero(md5secret))
++		ast_copy_string(a1_hash, md5secret, sizeof(a1_hash));
++	else {
++		char a1[256];
++		snprintf(a1, sizeof(a1), &quot;%s:%s:%s&quot;, username, global_realm, secret);
++		ast_md5_hash(a1_hash, a1);
++	}
+ 
+-			snprintf(a2, sizeof(a2), &quot;%s:%s&quot;, sip_methods[sipmethod].text,
+-					S_OR(keys[K_URI].s, uri));
+-			ast_md5_hash(a2_hash, a2);
+-			snprintf(resp, sizeof(resp), &quot;%s:%s:%s&quot;, a1_hash, usednonce, a2_hash);
+-			ast_md5_hash(resp_hash, resp);
+-		}
++	/* compute the expected response to compare with what we received */
++	{
++		char a2[256];
++		char a2_hash[256];
++		char resp[256];
+ 
+-		good_response = keys[K_RESP].s &amp;&amp;
+-				!strncasecmp(keys[K_RESP].s, resp_hash, strlen(resp_hash));
+-		if (wrongnonce) {
+-			ast_string_field_build(p, randdata, &quot;%08lx&quot;, ast_random());
+-			if (good_response) {
+-				if (sipdebug)
+-					ast_log(LOG_NOTICE, &quot;stale nonce received from '%s'\n&quot;, get_header(req, &quot;To&quot;));
+-				/* We got working auth token, based on stale nonce . */
+-				transmit_response_with_auth(p, response, req, p-&gt;randdata, reliable, respheader, 1);
+-			} else {
+-				/* Everything was wrong, so give the device one more try with a new challenge */
+-				if (sipdebug)
+-					ast_log(LOG_NOTICE, &quot;Bad authentication received from '%s'\n&quot;, get_header(req, &quot;To&quot;));
+-				transmit_response_with_auth(p, response, req, p-&gt;randdata, reliable, respheader, 0);
+-			}
++		snprintf(a2, sizeof(a2), &quot;%s:%s&quot;, sip_methods[sipmethod].text,
++				S_OR(keys[K_URI].s, uri));
++		ast_md5_hash(a2_hash, a2);
++		snprintf(resp, sizeof(resp), &quot;%s:%s:%s&quot;, a1_hash, usednonce, a2_hash);
++		ast_md5_hash(resp_hash, resp);
++	}
+ 
+-			/* Schedule auto destroy in 32 seconds */
+-			sip_scheddestroy(p, SIP_TRANS_TIMEOUT);
+-			return AUTH_CHALLENGE_SENT;
+-		} 
+-		if (good_response)
+-			return AUTH_SUCCESSFUL;
++	good_response = keys[K_RESP].s &amp;&amp;
++			!strncasecmp(keys[K_RESP].s, resp_hash, strlen(resp_hash));
++	if (wrongnonce) {
++		ast_string_field_build(p, randdata, &quot;%08lx&quot;, ast_random());
++		if (good_response) {
++			if (sipdebug)
++				ast_log(LOG_NOTICE, &quot;Correct auth, but based on stale nonce received from '%s'\n&quot;, get_header(req, &quot;To&quot;));
++			/* We got working auth token, based on stale nonce . */
++			transmit_response_with_auth(p, response, req, p-&gt;randdata, reliable, respheader, 1);
++		} else {
++			/* Everything was wrong, so give the device one more try with a new challenge */
++			if (sipdebug)
++				ast_log(LOG_NOTICE, &quot;Bad authentication received from '%s'\n&quot;, get_header(req, &quot;To&quot;));
++			transmit_response_with_auth(p, response, req, p-&gt;randdata, reliable, respheader, 0);
++		}
+ 
+-		/* Ok, we have a bad username/secret pair */
+-		/* Challenge again, and again, and again */
+-		transmit_response_with_auth(p, response, req, p-&gt;randdata, reliable, respheader, 0);
++		/* Schedule auto destroy in 32 seconds */
+ 		sip_scheddestroy(p, SIP_TRANS_TIMEOUT);
+ 		return AUTH_CHALLENGE_SENT;
+-	}
++	} 
++	if (good_response)
++		return AUTH_SUCCESSFUL;
++
++	/* Ok, we have a bad username/secret pair */
++	/* Challenge again, and again, and again */
++	transmit_response_with_auth(p, response, req, p-&gt;randdata, reliable, respheader, 0);
++	sip_scheddestroy(p, SIP_TRANS_TIMEOUT);
++
++	return AUTH_CHALLENGE_SENT;
+ }
+ 
+ /*! \brief Callback for the devicestate notification (SUBSCRIBE) support subsystem
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000381.html">[solid-pbx-svn] r386 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000383.html">[solid-pbx-svn] r388 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#382">[ date ]</a>
+              <a href="thread.html#382">[ thread ]</a>
+              <a href="subject.html#382">[ subject ]</a>
+              <a href="author.html#382">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

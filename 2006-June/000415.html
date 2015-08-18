@@ -1,0 +1,1244 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r420 - in trunk: . apps channels include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r420%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk&In-Reply-To=%3C200606280825.k5S8Ppnj016443%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000414.html">
+   <LINK REL="Next"  HREF="000416.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r420 - in trunk: . apps channels include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r420%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk&In-Reply-To=%3C200606280825.k5S8Ppnj016443%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r420 - in trunk: . apps channels include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 10:25:51 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000414.html">[solid-pbx-svn] r419 - trunk/codecs/gsm/inc
+</A></li>
+        <LI>Next message: <A HREF="000416.html">[solid-pbx-svn] r421 - in trunk: . apps channels codecs codecs/gsm configs formats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#415">[ date ]</a>
+              <a href="thread.html#415">[ thread ]</a>
+              <a href="subject.html#415">[ subject ]</a>
+              <a href="author.html#415">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 10:25:38 +0200 (Wed, 28 Jun 2006)
+New Revision: 420
+
+Modified:
+   trunk/apps/app_playback.c
+   trunk/apps/app_voicemail.c
+   trunk/channels/Makefile
+   trunk/frame.c
+   trunk/include/asterisk/file.h
+   trunk/include/asterisk/frame.h
+   trunk/include/asterisk/translate.h
+Log:
+Update to Asterisk SVN trunk r70
+
+------------------------------------------------------------------------
+r61 | markster | 1999-11-15 23:07:30 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.1.11 from FTP
+
+------------------------------------------------------------------------
+r62 | markster | 1999-11-15 23:07:31 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.1.12 from FTP
+
+------------------------------------------------------------------------
+r63 | markster | 1999-11-15 23:07:32 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.2.0 from FTP
+
+------------------------------------------------------------------------
+r64 | markster | 1999-11-15 23:07:33 +0100 (Mon, 15 Nov 1999) | 2 lines
+
+Version 0.3.0 from FTP
+
+------------------------------------------------------------------------
+r65 | markster | 1999-11-21 03:26:43 +0100 (Sun, 21 Nov 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r66 | markster | 1999-11-21 22:15:14 +0100 (Sun, 21 Nov 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r67 | markster | 1999-12-01 06:25:44 +0100 (Wed, 01 Dec 1999) | 2 lines
+
+Version 0.1.0 from FTP
+
+------------------------------------------------------------------------
+r68 | markster | 1999-12-01 06:25:45 +0100 (Wed, 01 Dec 1999) | 2 lines
+
+Version 0.1.1 from FTP
+
+------------------------------------------------------------------------
+r69 | markster | 1999-12-01 06:25:46 +0100 (Wed, 01 Dec 1999) | 2 lines
+
+Version 0.1.2 from FTP
+
+------------------------------------------------------------------------
+r70 | markster | 1999-12-01 06:25:47 +0100 (Wed, 01 Dec 1999) | 2 lines
+
+Version 0.1.3 from FTP
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_playback.c
+===================================================================
+--- trunk/apps/app_playback.c	2006-06-28 07:26:01 UTC (rev 419)
++++ trunk/apps/app_playback.c	2006-06-28 08:25:38 UTC (rev 420)
+@@ -1,4 +1,75 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Trivial application to playback a sound file
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++ 
++#include &lt;asterisk/file.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;asterisk/channel.h&gt;
++#include &lt;asterisk/pbx.h&gt;
++#include &lt;asterisk/module.h&gt;
++#include &lt;asterisk/translate.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;pthread.h&gt;
++
++static char *tdesc = &quot;Trivial Playback Application&quot;;
++
++static char *app = &quot;Playback&quot;;
++
++STANDARD_LOCAL_USER;
++
++LOCAL_USER_DECL;
++
++static int playback_exec(struct ast_channel *chan, void *data)
++{
++	int res;
++	struct localuser *u;
++	if (!data) {
++		ast_log(LOG_WARNING, &quot;Playback requires an argument (filename)\n&quot;);
++		return -1;
++	}
++	LOCAL_USER_ADD(u);
++	ast_stopstream(chan);
++	res = ast_streamfile(chan, (char *)data);
++	if (!res)
++		res = ast_waitstream(chan, &quot;&quot;);
++	ast_stopstream(chan);
++	LOCAL_USER_REMOVE(u);
++	return res;
++}
++
++int unload_module(void)
++{
++	STANDARD_HANGUP_LOCALUSERS;
++	return ast_unregister_application(app);
++}
++
++int load_module(void)
++{
++	return ast_register_application(app, playback_exec);
++}
++
++char *description(void)
++{
++	return tdesc;
++}
++
++int usecount(void)
++{
++	int res;
++	STANDARD_USECOUNT(res);
++	return res;
++}
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2005, Digium, Inc.
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-06-28 07:26:01 UTC (rev 419)
++++ trunk/apps/app_voicemail.c	2006-06-28 08:25:38 UTC (rev 420)
+@@ -1,4 +1,599 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Voicemail System (did you ever think it could be so easy?)
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++
++#include &lt;asterisk/file.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;asterisk/channel.h&gt;
++#include &lt;asterisk/pbx.h&gt;
++#include &lt;asterisk/options.h&gt;
++#include &lt;asterisk/config.h&gt;
++#include &lt;asterisk/say.h&gt;
++#include &lt;asterisk/module.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;sys/time.h&gt;
++#include &lt;sys/stat.h&gt;
++#include &lt;time.h&gt;
++
++#include &lt;pthread.h&gt;
++#include &quot;../asterisk.h&quot;
++
++#define COMMAND_TIMEOUT 5000
++
++#define VOICEMAIL_CONFIG &quot;voicemail.conf&quot;
++#define ASTERISK_USERNAME &quot;asterisk&quot;
++
++/*
++#define HOSTNAME_OVERRIDE &quot;linux-support.net&quot;
++*/
++
++#define SENDMAIL &quot;/usr/sbin/sendmail -t&quot;
++
++#define INTRO &quot;vm-intro&quot;
++
++#define MAXMSG 100
++
++#define MAX_OTHER_FORMATS 10
++
++#define VM_SPOOL_DIR AST_SPOOL_DIR &quot;/vm&quot;
++
++
++static char *tdesc = &quot;Comedian Mail (Voicemail System)&quot;;
++
++/* Leave a message */
++static char *app = &quot;VoiceMail&quot;;
++
++/* Check mail, control, etc */
++static char *app2 = &quot;VoiceMailMain&quot;;
++
++STANDARD_LOCAL_USER;
++
++LOCAL_USER_DECL;
++
++static char *get_dir(char *ext, char *mailbox)
++{
++	char *tmp = malloc(strlen(ext) + strlen(VM_SPOOL_DIR) + 3 + strlen(mailbox));
++	sprintf(tmp, &quot;%s/%s/%s&quot;, VM_SPOOL_DIR, ext, mailbox);
++	return tmp;
++}
++static char *get_fn(char *dir, int num)
++{
++	char *tmp = malloc(strlen(dir) + 10);
++	sprintf(tmp, &quot;%s/msg%04d&quot;, dir, num);
++	return tmp;
++}
++
++static int announce_message(struct ast_channel *chan, char *dir, int msgcnt)
++{
++	char *fn;
++	int res;
++	res = ast_streamfile(chan, &quot;vm-message&quot;);
++	if (!res) {
++		res = ast_waitstream(chan, AST_DIGIT_ANY);
++		if (!res) {
++			res = ast_say_number(chan, msgcnt+1);
++			if (!res) {
++				fn = get_fn(dir, msgcnt);
++				if (fn) {
++					res = ast_streamfile(chan, fn);
++					free(fn);
++				}
++			}
++		}
++	}
++	if (res &lt; 0)
++		ast_log(LOG_WARNING, &quot;Unable to announce message\n&quot;);
++	return res;
++}
++static int sendmail(char *email, char *name, int msgnum, char *mailbox)
++{
++	FILE *p;
++	char date[256];
++	char host[256];
++	time_t t;
++	struct tm *tm;
++	p = popen(SENDMAIL, &quot;w&quot;);
++	if (p) {
++		gethostname(host, sizeof(host));
++		time(&amp;t);
++		tm = localtime(&amp;t);
++		strftime(date, sizeof(date), &quot;%a, %d %b %Y %H:%M:%S %z&quot;, tm);
++		fprintf(p, &quot;Date: %s\n&quot;, date);
++		fprintf(p, &quot;Message-ID: &lt;Asterisk-%d-%s-%d@%s&gt;\n&quot;, msgnum, mailbox, getpid(), host);
++		fprintf(p, &quot;From: Asterisk PBX &lt;%s@%s&gt;\n&quot;, ASTERISK_USERNAME,
++#ifdef HOSTNAME_OVERRIDE
++				HOSTNAME_OVERRIDE
++#else
++				host
++#endif
++				);
++		fprintf(p, &quot;To: %s &lt;%s&gt;\n&quot;, name, email);
++		fprintf(p, &quot;Subject: [PBX]: New message %d in mailbox %s\n\n&quot;, msgnum, mailbox);
++		strftime(date, sizeof(date), &quot;%A, %B %d, %Y at %r&quot;, tm);
++		fprintf(p, &quot;Dear %s:\n\n\tJust wanted to let you know you were just left a message (number %d)\n&quot;
++		           &quot;in mailbox %s, on %s so you might\n&quot;
++				   &quot;want to check it when you get a chance.  Thanks!\n\n\t\t\t\t--Asterisk\n&quot;, name, msgnum, mailbox, date);
++		fprintf(p, &quot;.\n&quot;);
++		pclose(p);
++	} else {
++		ast_log(LOG_WARNING, &quot;Unable to launch '%s'\n&quot;, SENDMAIL);
++		return -1;
++	}
++	return 0;
++}
++
++static int leave_voicemail(struct ast_channel *chan, char *ext, int silent)
++{
++	struct ast_config *cfg;
++	char *copy, *name, *passwd, *email, *dir, *fmt, *fmts, *fn=NULL;
++	char comment[256];
++	struct ast_filestream *writer, *others[MAX_OTHER_FORMATS];
++	char *sfmt[MAX_OTHER_FORMATS];
++	int res = -1, fmtcnt=0, x;
++	int msgnum;
++	int outmsg=0;
++	struct ast_frame *f;
++	
++	cfg = ast_load(VOICEMAIL_CONFIG);
++	if (!cfg) {
++		ast_log(LOG_WARNING, &quot;No such configuration file %s\n&quot;, VOICEMAIL_CONFIG);
++		return -1;
++	}
++	if ((copy = ast_variable_retrieve(cfg, chan-&gt;context, ext))) {
++		/* Make sure they have an entry in the config */
++		copy = strdup(copy);
++		passwd = strtok(copy, &quot;,&quot;);
++		name = strtok(NULL, &quot;,&quot;);
++		email = strtok(NULL, &quot;,&quot;);
++		dir = get_dir(ext, &quot;&quot;);
++		/* It's easier just to try to make it than to check for its existence */
++		if (mkdir(dir, 0700) &amp;&amp; (errno != EEXIST))
++			ast_log(LOG_WARNING, &quot;mkdir '%s' failed: %s\n&quot;, dir, strerror(errno));
++		dir = get_dir(ext, &quot;INBOX&quot;);
++		if (mkdir(dir, 0700) &amp;&amp; (errno != EEXIST))
++			ast_log(LOG_WARNING, &quot;mkdir '%s' failed: %s\n&quot;, dir, strerror(errno));
++		/* Stream an info message */
++		if (silent || !ast_streamfile(chan, INTRO)) {
++			/* Wait for the message to finish */
++			if (silent || !ast_waitstream(chan, &quot;&quot;)) {
++				fmt = ast_variable_retrieve(cfg, &quot;general&quot;, &quot;format&quot;);
++				if (fmt) {
++					fmts = strdup(fmt);
++					fmt = strtok(fmts, &quot;|&quot;);
++					msgnum = 0;
++					do {
++						if (fn)
++							free(fn);
++						fn = get_fn(dir, msgnum);
++						snprintf(comment, sizeof(comment), &quot;Voicemail from %s to %s (%s) on %s\n&quot;,
++											(chan-&gt;callerid ? chan-&gt;callerid : &quot;Unknown&quot;), 
++											name, ext, chan-&gt;name);
++						writer = ast_writefile(fn, fmt, comment, O_EXCL, 1 /* check for other formats */, 0700);
++						if (!writer &amp;&amp; (errno != EEXIST))
++							break;
++						msgnum++;
++					} while(!writer &amp;&amp; (msgnum &lt; MAXMSG));
++					if (writer) {
++						/* We need to reset these values */
++						free(fmts);
++						fmt = ast_variable_retrieve(cfg, &quot;general&quot;, &quot;format&quot;);
++						fmts = strdup(fmt);
++						strtok(fmts, &quot;|&quot;);
++						while((fmt = strtok(NULL, &quot;|&quot;))) {
++							if (fmtcnt &gt; MAX_OTHER_FORMATS - 1) {
++								ast_log(LOG_WARNING, &quot;Please increase MAX_OTHER_FORMATS in app_voicemail.c\n&quot;);
++								break;
++							}
++							sfmt[fmtcnt++] = strdup(fmt);
++						}
++						for (x=0;x&lt;fmtcnt;x++) {
++							others[x] = ast_writefile(fn, sfmt[x], comment, 0, 0, 0700);
++							if (!others[x]) {
++								/* Ick, the other format didn't work, but be sure not
++								   to leak memory here */
++								int y;
++								for(y=x+1;y &lt; fmtcnt;y++)
++									free(sfmt[y]);
++								break;
++							}
++							free(sfmt[x]);
++						}
++						if (x == fmtcnt) {
++							/* Loop forever, writing the packets we read to the writer(s), until
++							   we read a # or get a hangup */
++							if (option_verbose &gt; 2) 
++								ast_verbose( VERBOSE_PREFIX_3 &quot;Recording to %s\n&quot;, fn);
++							while((f = ast_read(chan))) {
++								if (f-&gt;frametype == AST_FRAME_VOICE) {
++									/* Write the primary format */
++									res = ast_writestream(writer, f);
++									/* And each of the others */
++									for (x=0;x&lt;fmtcnt;x++)
++										res |= ast_writestream(others[x], f);
++									ast_frfree(f);
++									/* Exit on any error */
++									if (res) {
++										ast_log(LOG_WARNING, &quot;Error writing frame\n&quot;);
++										break;
++									}
++								}
++								if (f-&gt;frametype == AST_FRAME_DTMF) {
++									if (f-&gt;subclass == '#') {
++										if (option_verbose &gt; 2) 
++											ast_verbose( VERBOSE_PREFIX_3 &quot;User ended message by pressing %c\n&quot;, f-&gt;subclass);
++										outmsg=2;
++										break;
++									}
++								}
++							}
++							if (!f) {
++								if (option_verbose &gt; 2) 
++									ast_verbose( VERBOSE_PREFIX_3 &quot;User hung up\n&quot;);
++								res = -1;
++								outmsg=1;
++							}
++						} else {
++							ast_log(LOG_WARNING, &quot;Error creating writestream '%s', format '%s'\n&quot;, fn, sfmt[x]); 
++							free(sfmt[x]);
++						}
++						ast_closestream(writer);
++						for (x=0;x&lt;fmtcnt;x++) {
++							if (!others[x])
++								break;
++							ast_closestream(others[x]);
++						}
++						if (outmsg) {
++							if (outmsg &gt; 1) {
++								/* Let them know it worked */
++								ast_streamfile(chan, &quot;vm-msgsaved&quot;);
++								ast_waitstream(chan, &quot;&quot;);
++							}
++							/* Send e-mail if applicable */
++							if (email) 
++								sendmail(email, name, msgnum, ext);
++						}
++					} else {
++						if (msgnum &lt; MAXMSG)
++							ast_log(LOG_WARNING, &quot;Error writing to mailbox %s\n&quot;, ext);
++						else
++							ast_log(LOG_WARNING, &quot;Too many messages in mailbox %s\n&quot;, ext);
++					}
++					if (fn)
++						free(fn);
++					free(fmts);
++				} else 
++					ast_log(LOG_WARNING, &quot;No format to save messages in \n&quot;);
++			}
++		} else
++			ast_log(LOG_WARNING, &quot;Unable to playback instructions\n&quot;);
++			
++		free(dir);
++		free(copy);
++	} else
++		ast_log(LOG_WARNING, &quot;No entry in voicemail config file for '%s'\n&quot;, ext);
++	ast_destroy(cfg);
++	/* Leave voicemail for someone */
++	return res;
++}
++
++static int vm_execmain(struct ast_channel *chan, void *data)
++{
++	/* XXX This is, admittedly, some pretty horrendus code XXX */
++	int res=-1;
++	int valid = 0;
++	int curmsg = 0;
++	int maxmsg = 0;
++	int x;
++	char *fn, *nfn;
++	char d;
++	struct localuser *u;
++	char username[80];
++	char password[80], *copy;
++	int deleted[MAXMSG];
++	struct ast_config *cfg;
++	int state;
++	char *dir=NULL;
++	
++	LOCAL_USER_ADD(u);
++	cfg = ast_load(VOICEMAIL_CONFIG);
++	if (!cfg) {
++		ast_log(LOG_WARNING, &quot;No voicemail configuration\n&quot;);
++		goto out;
++	}
++	if (ast_streamfile(chan, &quot;vm-login&quot;))
++		goto out;
++	do {
++		/* Prompt for, and read in the username */
++		if (ast_readstring(chan, username, sizeof(username), 2000, 5000, &quot;#&quot;))
++			goto out;
++		if (ast_streamfile(chan, &quot;vm-password&quot;))
++			goto out;
++		if (ast_readstring(chan, password, sizeof(password), 2000, 5000, &quot;#&quot;))
++			goto out;
++		copy = ast_variable_retrieve(cfg, chan-&gt;context, username);
++		if (copy) {
++			copy = strdup(copy);
++			strtok(copy, &quot;,&quot;);
++			if (!strcmp(password,copy))
++				valid++;
++			else if (option_verbose &gt; 2)
++				ast_verbose( VERBOSE_PREFIX_3 &quot;Incorrect password '%s' for user '%s'\n&quot;, password, username);
++			free(copy);
++		} else if (option_verbose &gt; 2)
++			ast_verbose( VERBOSE_PREFIX_3 &quot;No such user '%s' in config file\n&quot;, username);
++		if (!valid) {
++			if (ast_streamfile(chan, &quot;vm-incorrect&quot;))
++				break;
++			if (ast_waitstream(chan, &quot;&quot;))
++				break;
++		}
++	} while (!valid);
++	if (valid) {
++		dir = get_dir(username, &quot;INBOX&quot;);
++		if (!dir) 
++			goto out;
++
++		deleted[0] = 0;
++		/* Find out how many messages are there, mark all as
++		   not deleted. */
++		do {
++			fn = get_fn(dir, maxmsg);
++			if ((res = ast_fileexists(fn, NULL))&gt;0) {
++				maxmsg++;
++				deleted[maxmsg] = 0;
++			}
++			free(fn);
++		} while(res &gt; 0);
++		if (ast_streamfile(chan, &quot;vm-youhave&quot;))
++			goto out;
++		if ((d=ast_waitstream(chan, AST_DIGIT_ANY)) &lt; 0)
++			goto out;
++		ast_stopstream(chan);
++		if (!d) {
++			/* If they haven't interrupted us, play the message count */
++			if (maxmsg &gt; 0) {
++				if ((d = ast_say_number(chan, maxmsg)) &lt; 0)
++					goto out;
++			} else {
++				if (ast_streamfile(chan, &quot;vm-no&quot;))
++					goto out;
++				if ((d=ast_waitstream(chan, AST_DIGIT_ANY)) &lt; 0)
++					goto out;
++				ast_stopstream(chan);
++			}
++			if (!d) {
++				/* And if they still haven't, give them the last word */
++				if (ast_streamfile(chan, ((maxmsg == 1) ? &quot;vm-message&quot; : &quot;vm-messages&quot;)))
++					goto out;
++				if (ast_waitstream(chan, AST_DIGIT_ANY) &lt; 0)
++					goto out;
++				ast_stopstream(chan);
++			}
++		}
++		res = -1;
++				
++#define STATE_STARTING 1
++#define STATE_MESSAGE 2
++#define STATE_MESSAGE_PLAYING 3
++		state = STATE_STARTING;
++		ast_log(LOG_EVENT, &quot;User '%s' logged in on channel '%s' with %d message(s).\n&quot;, username, chan-&gt;name, maxmsg);
++		if (option_verbose &gt; 2)
++			ast_verbose( VERBOSE_PREFIX_3 &quot;User '%s' logged in on channel %s with %d messages\n&quot;, username, chan-&gt;name, maxmsg);
++		if (!ast_streamfile(chan, &quot;vm-instructions&quot;)) {
++			for(;;) {
++				if (chan-&gt;stream || (chan-&gt;trans &amp;&amp; chan-&gt;trans-&gt;stream)) {
++					d = ast_waitstream(chan, AST_DIGIT_ANY);
++					ast_stopstream(chan);
++					if (!d &amp;&amp; (state == STATE_MESSAGE_PLAYING)) {
++						state  = STATE_MESSAGE;
++						/* If it runs out playing a message, then give directions */
++						if (!(d = ast_streamfile(chan, &quot;vm-msginstruct&quot;)))
++							d = ast_waitstream(chan, AST_DIGIT_ANY);
++						ast_stopstream(chan);
++					}
++					if (!d)
++						d = ast_waitfordigit(chan, COMMAND_TIMEOUT);
++				} else
++					d = ast_waitfordigit(chan, COMMAND_TIMEOUT);
++				if (d &lt; 0)
++					goto out;
++restart:
++				if (!d || (d == '*')) {
++					/* If they don't say anything, play back a message.  We'll decide which one is
++					   best based up on where they are.  Ditto if they press the '*' key. */
++					switch(state) {
++					case STATE_STARTING:
++						if (ast_streamfile(chan, &quot;vm-instructions&quot;))
++							goto out;
++						break;
++					case STATE_MESSAGE:
++					case STATE_MESSAGE_PLAYING:
++						if (ast_streamfile(chan, &quot;vm-msginstruct&quot;))
++							goto out;
++						break;
++					default:
++						ast_log(LOG_WARNING, &quot;What do I do when they timeout/* in state %d?\n&quot;, state);
++					}
++				} else {
++					/* XXX Should we be command-compatible with Meridian mail?  Their system seems
++					       very confusing, but also widely used XXX */
++					/* They've entered (or started to enter) a command */
++					switch(d) {
++					case '0':
++						if (curmsg &lt; maxmsg) {
++							deleted[curmsg] = !deleted[curmsg];
++							if (deleted[curmsg]) {
++								if (ast_streamfile(chan, &quot;vm-deleted&quot;))
++									goto out;
++							} else {
++								if (ast_streamfile(chan, &quot;vm-undeleted&quot;))
++									goto out;
++							}
++						} else {
++							if (ast_streamfile(chan, &quot;vm-nomore&quot;))
++								goto out;
++						}
++						break;
++					case '1':
++						curmsg = 0;
++						if (maxmsg &gt; 0) {
++							/* Yuck */
++							if ((d = announce_message(chan, dir, curmsg)) &gt; 0)
++								goto restart;
++							else if (d &lt; 0)
++								goto out;
++						} else {
++							if (ast_streamfile(chan, &quot;vm-nomore&quot;))
++								goto out;
++						}
++						state = STATE_MESSAGE_PLAYING;
++						break;
++					case '4':
++						if (curmsg &gt; 0)
++							curmsg--;
++						/* Yuck */
++						if ((d = announce_message(chan, dir, curmsg)) &gt; 0)
++							goto restart;
++						else if (d &lt; 0)
++							goto out;
++						state = STATE_MESSAGE_PLAYING;
++						break;
++					case '5':
++						if ((d = announce_message(chan, dir, curmsg)) &gt; 0)
++							goto restart;
++						else if (d &lt; 0)
++							goto out;
++						state = STATE_MESSAGE_PLAYING;
++						break;
++					case '6':
++						if (curmsg &lt; maxmsg - 1) {
++							curmsg++;
++							if ((d = announce_message(chan, dir, curmsg)) &gt; 0)
++								goto restart;
++							else if (d &lt; 0)
++								goto out;
++						} else {
++							if (ast_streamfile(chan, &quot;vm-nomore&quot;))
++								goto out;
++						}
++						state = STATE_MESSAGE_PLAYING;
++						break;
++					/* XXX Message compose? It's easy!  Just read their # and, assuming it's in the config, 
++					       call the routine as if it were called from the PBX proper XXX */
++					case '#':
++						if (ast_streamfile(chan, &quot;vm-goodbye&quot;))
++							goto out;
++						if (ast_waitstream(chan, &quot;&quot;))
++							goto out;
++						res = 0;
++						goto out;
++						break;
++					default:
++						/* Double yuck */
++						d = '*';
++						goto restart;
++					}
++				}
++			}
++		}
++	}
++	
++out:
++	ast_stopstream(chan);
++	if (maxmsg) {
++		/* Get the deleted messages fixed */
++		curmsg = -1;
++		for (x=0;x&lt;maxmsg;x++) {
++			if (!deleted[x]) {
++				curmsg++;
++				fn = get_fn(dir, x);
++				nfn = get_fn(dir, curmsg);
++				if (strcmp(fn, nfn))
++					ast_filerename(fn, nfn, NULL);
++				free(fn);
++				free(nfn);
++			}
++		}
++		for (x = curmsg + 1; x&lt;maxmsg; x++) {
++			fn = get_fn(dir, x);
++			if (fn) {
++				ast_filedelete(fn, NULL);
++				free(fn);
++			}
++		}
++	}
++	if (dir)
++		free(dir);
++	if (cfg)
++		ast_destroy(cfg);
++	LOCAL_USER_REMOVE(u);
++	return res;
++}
++
++static int vm_exec(struct ast_channel *chan, void *data)
++{
++	int res=0, silent=0;
++	struct localuser *u;
++	char *ext = (char *)data;
++	
++	if (!data) {
++		ast_log(LOG_WARNING, &quot;vm requires an argument (extension)\n&quot;);
++		return -1;
++	}
++	LOCAL_USER_ADD(u);
++	if (*ext == 's') {
++		silent++;
++		ext++;
++	}
++	res = leave_voicemail(chan, ext, silent);
++	LOCAL_USER_REMOVE(u);
++	return res;
++}
++
++int unload_module(void)
++{
++	int res;
++	STANDARD_HANGUP_LOCALUSERS;
++	res = ast_unregister_application(app);
++	res |= ast_unregister_application(app2);
++	return res;
++}
++
++int load_module(void)
++{
++	int res;
++	res = ast_register_application(app, vm_exec);
++	if (!res)
++		res = ast_register_application(app2, vm_execmain);
++	return res;
++}
++
++char *description(void)
++{
++	return tdesc;
++}
++
++int usecount(void)
++{
++	int res;
++	STANDARD_USECOUNT(res);
++	return res;
++}
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2006, Digium, Inc.
+
+Modified: trunk/channels/Makefile
+===================================================================
+--- trunk/channels/Makefile	2006-06-28 07:26:01 UTC (rev 419)
++++ trunk/channels/Makefile	2006-06-28 08:25:38 UTC (rev 420)
+@@ -1,6 +1,33 @@
+ #
+ # Asterisk -- A telephony toolkit for Linux.
+ # 
++# Makefile for Channel backends (dynamically loaded)
++#
++# Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++#
++# Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++#
++# This program is free software, distributed under the terms of
++# the GNU General Public License
++#
++
++CHANNEL_LIBS=chan_vofr.so chan_ixj.so
++
++CFLAGS+=#-DVOFRDUMPER
++
++all: $(CHANNEL_LIBS)
++
++clean:
++	rm -f *.so *.o
++
++%.so : %.o
++	$(CC) -shared -Xlinker -x -o $@ $&lt;
++
++install: all
++	for x in $(CHANNEL_LIBS); do $(INSTALL) -m 755 $$x $(MODULES_DIR) ; done
++#
++# Asterisk -- A telephony toolkit for Linux.
++# 
+ # Makefile for channel drivers
+ #
+ # Copyright (C) 1999-2006, Digium, Inc.
+
+Modified: trunk/frame.c
+===================================================================
+--- trunk/frame.c	2006-06-28 07:26:01 UTC (rev 419)
++++ trunk/frame.c	2006-06-28 08:25:38 UTC (rev 420)
+@@ -1,4 +1,93 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Frame manipulation routines
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++
++#include &lt;asterisk/frame.h&gt;
++#include &lt;asterisk/logger.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;string.h&gt;
++
++/*
++ * Important: I should be made more efficient.  Frame headers should
++ * most definitely be cached
++ */
++
++void ast_frfree(struct ast_frame *fr)
++{
++	if (fr-&gt;mallocd &amp; AST_MALLOCD_DATA) {
++		if (fr-&gt;data) 
++			free(fr-&gt;data - fr-&gt;offset);
++	}
++	if (fr-&gt;mallocd &amp; AST_MALLOCD_SRC) {
++		if (fr-&gt;src)
++			free(fr-&gt;src);
++	}
++	if (fr-&gt;mallocd &amp; AST_MALLOCD_HDR) {
++		free(fr);
++	}
++}
++
++void ast_frchain(struct ast_frame_chain *fc)
++{
++	struct ast_frame_chain *last;
++	while(fc) {
++		last = fc;
++		fc = fc-&gt;next;
++		if (last-&gt;fr)
++			ast_frfree(last-&gt;fr);
++		free(last);
++	}
++}
++
++struct ast_frame *ast_frisolate(struct ast_frame *fr)
++{
++	struct ast_frame *out;
++	if (!(fr-&gt;mallocd &amp; AST_MALLOCD_HDR)) {
++		/* Allocate a new header if needed */
++		out = malloc(sizeof(struct ast_frame));
++		if (!out) {
++			ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++			return NULL;
++		}
++		out-&gt;frametype = fr-&gt;frametype;
++		out-&gt;subclass = fr-&gt;subclass;
++		out-&gt;datalen = 0;
++		out-&gt;timelen = fr-&gt;timelen;
++		out-&gt;offset = 0;
++		out-&gt;src = NULL;
++		out-&gt;data = NULL;
++	} else {
++		out = fr;
++	}
++	if (!(fr-&gt;mallocd &amp; AST_MALLOCD_SRC)) {
++		if (fr-&gt;src)
++			out-&gt;src = strdup(fr-&gt;src);
++	} else
++		out-&gt;src = fr-&gt;src;
++	if (!(fr-&gt;mallocd &amp; AST_MALLOCD_DATA))  {
++		out-&gt;data = malloc(fr-&gt;datalen + fr-&gt;offset);
++		out-&gt;data += fr-&gt;offset;
++		out-&gt;offset = fr-&gt;offset;
++		out-&gt;datalen = fr-&gt;datalen;
++		memcpy(out-&gt;data, fr-&gt;data, fr-&gt;datalen);
++		if (!out-&gt;data) {
++			ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++			return NULL;
++		}
++	}
++	out-&gt;mallocd = AST_MALLOCD_HDR | AST_MALLOCD_SRC | AST_MALLOCD_DATA;
++	return out;
++}
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2005, Digium, Inc.
+
+Modified: trunk/include/asterisk/file.h
+===================================================================
+--- trunk/include/asterisk/file.h	2006-06-28 07:26:01 UTC (rev 419)
++++ trunk/include/asterisk/file.h	2006-06-28 08:25:38 UTC (rev 420)
+@@ -1,4 +1,88 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Generic File Format Support.
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++
++#ifndef _ASTERISK_FILE_H
++#define _ASTERISK_FILE_H
++
++#include &lt;asterisk/channel.h&gt;
++#include &lt;asterisk/frame.h&gt;
++#include &lt;fcntl.h&gt;
++
++
++#if defined(__cplusplus) || defined(c_plusplus)
++extern &quot;C&quot; {
++#endif
++
++
++/* Convenient for waiting */
++#define AST_DIGIT_ANY &quot;0123456789#*&quot;
++
++/* Defined by individual formats.  First item MUST be a
++   pointer for use by the stream manager */
++struct ast_filestream;
++
++/* Register a new file format capability */
++int ast_format_register(char *name, char *exts, int format,
++						struct ast_filestream * (*open)(int fd),
++						struct ast_filestream * (*rewrite)(int fd, char *comment),
++						int (*apply)(struct ast_channel *, struct ast_filestream *),
++						int (*write)(struct ast_filestream *, struct ast_frame *),
++						struct ast_frame * (*read)(struct ast_filestream *),
++						void (*close)(struct ast_filestream *),
++						char * (*getcomment)(struct ast_filestream *));
++	
++int ast_format_unregister(char *name);
++
++/* Start streaming a file */
++int ast_streamfile(struct ast_channel *c, char *filename);
++
++/* Stop playback of a stream */
++int ast_stopstream(struct ast_channel *c);
++
++/* See if a given file exists in a given format.  If fmt is NULL,  any format is accepted.*/
++int ast_fileexists(char *filename, char *fmt);
++
++/* Rename a given file in a given format, or if fmt is NULL, then do so for all */
++int ast_filerename(char *oldname, char *newname, char *fmt);
++
++/* Delete a given file in a given format, or if fmt is NULL, then do so for all */
++int ast_filedelete(char *filename, char *fmt);
++
++/* Wait for a stream to stop or for any one of a given digit to arrive,  Returns
++   0 if the stream finishes, the character if it was interrupted, and -1 on error */
++char ast_waitstream(struct ast_channel *c, char *breakon);
++
++/* Create an outgoing file stream.  oflags are flags for the open() command, and
++   if check is non-zero, then it will not write a file if there are any files that
++   start with that name and have an extension */
++struct ast_filestream *ast_writefile(char *filename, char *type, char *comment, int oflags, int check, mode_t mode);
++
++/* Send a frame to a filestream -- note: does NOT free the frame, call ast_frfree manually */
++int ast_writestream(struct ast_filestream *fs, struct ast_frame *f);
++
++/* Close a playback or recording stream */
++int ast_closestream(struct ast_filestream *f);
++
++#define AST_RESERVED_POINTERS 4
++
++#if defined(__cplusplus) || defined(c_plusplus)
++}
++#endif
++
++
++
++#endif
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2005, Digium, Inc.
+
+Modified: trunk/include/asterisk/frame.h
+===================================================================
+--- trunk/include/asterisk/frame.h	2006-06-28 07:26:01 UTC (rev 419)
++++ trunk/include/asterisk/frame.h	2006-06-28 08:25:38 UTC (rev 420)
+@@ -1,4 +1,105 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Asterisk internal frame definitions.
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++
++#ifndef _ASTERISK_FRAME_H
++#define _ASTERISK_FRAME_H
++
++#if defined(__cplusplus) || defined(c_plusplus)
++extern &quot;C&quot; {
++#endif
++
++/* A frame of data read used to communicate between 
++   between channels and applications */
++struct ast_frame {
++	int frametype;				/* Kind of frame */
++	int subclass;				/* Subclass, frame dependent */
++	int datalen;				/* Length of data */
++	int timelen;				/* Amount of time associated with this frame */
++	int mallocd;				/* Was the data malloc'd?  i.e. should we
++								   free it when we discard the frame? */
++	int offset;					/* How far into &quot;data&quot; the data really starts */
++	char *src;					/* Optional source of frame for debugging */
++	void *data;					/* Pointer to actual data */
++};
++
++struct ast_frame_chain {
++	/* XXX Should ast_frame chain's be just prt of frames, i.e. should they just link? XXX */
++	struct ast_frame *fr;
++	struct ast_frame_chain *next;
++};
++
++#define AST_FRIENDLY_OFFSET 	64		/* It's polite for a a new frame to
++										   have at least this number of bytes
++										   of offset before your real frame data
++										   so that additional headers can be
++										   added. */
++
++#define AST_MALLOCD_HDR		(1 &lt;&lt; 0)	/* Need the header be free'd? */
++#define AST_MALLOCD_DATA	(1 &lt;&lt; 1)	/* Need the data be free'd? */
++#define AST_MALLOCD_SRC		(1 &lt;&lt; 2)	/* Need the source be free'd? (haha!) */
++
++/* Frame types */
++#define AST_FRAME_DTMF		1		/* A DTMF digit, subclass is the digit */
++#define AST_FRAME_VOICE		2		/* Voice data, subclass is AST_FORMAT_* */
++#define AST_FRAME_VIDEO		3		/* Video frame, maybe?? :) */
++#define AST_FRAME_CONTROL	4		/* A control frame, subclass is AST_CONTROL_* */
++#define AST_FRAME_NULL		5		/* An empty, useless frame */
++
++/* Data formats for capabilities and frames alike */
++#define AST_FORMAT_G723_1	(1 &lt;&lt; 0)	/* G.723.1 compression */
++#define AST_FORMAT_GSM		(1 &lt;&lt; 1)	/* GSM compression */
++#define AST_FORMAT_ULAW		(1 &lt;&lt; 2)	/* Raw mu-law data (G.711) */
++#define AST_FORMAT_ALAW		(1 &lt;&lt; 3)	/* Raw A-law data (G.711) */
++#define AST_FORMAT_MP3		(1 &lt;&lt; 4)	/* MPEG-2 layer 3 */
++#define AST_FORMAT_ADPCM	(1 &lt;&lt; 5)	/* ADPCM */
++#define AST_FORMAT_SLINEAR	(1 &lt;&lt; 6)	/* Raw 16-bit Signed Linear (8000 Hz) PCM */
++#define AST_FORMAT_MAX_AUDIO (1 &lt;&lt; 15)	/* Maximum audio format */
++#define AST_FORMAT_JPEG		(1 &lt;&lt; 16)	/* JPEG Images */
++#define AST_FORMAT_PNG		(1 &lt;&lt; 17)	/* PNG Images */
++#define AST_FORMAT_H261		(1 &lt;&lt; 18)	/* H.261 Video */
++#define AST_FORMAT_H263		(1 &lt;&lt; 19)	/* H.263 Video */
++
++/* Control frame types */
++#define AST_CONTROL_HANGUP		1			/* Other end has hungup */
++#define AST_CONTROL_RING		2			/* Local ring */
++#define AST_CONTROL_RINGING 	3			/* Remote end is ringing */
++#define AST_CONTROL_ANSWER		4			/* Remote end has answered */
++#define AST_CONTROL_BUSY		5			/* Remote end is busy */
++#define AST_CONTROL_TAKEOFFHOOK 6			/* Make it go off hook */
++#define AST_CONTROL_OFFHOOK		7			/* Line is off hook */
++
++/* Request a frame be allocated.  source is an optional source of the frame, 
++   len is the requested length, or &quot;0&quot; if the caller will supply the buffer */
++struct ast_frame *ast_fralloc(char *source, int len);
++
++/* Free a frame, and the memory it used if applicable */
++void ast_frfree(struct ast_frame *fr);
++
++/* Take a frame, and if it's not been malloc'd, make a malloc'd copy
++   and if the data hasn't been malloced then make the
++   data malloc'd.  If you need to store frames, say for queueing, then
++   you should call this function. */
++struct ast_frame *ast_frisolate(struct ast_frame *fr);
++
++void ast_frchain(struct ast_frame_chain *fc);
++
++#if defined(__cplusplus) || defined(c_plusplus)
++}
++#endif
++
++
++#endif
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2005, Digium, Inc.
+
+Modified: trunk/include/asterisk/translate.h
+===================================================================
+--- trunk/include/asterisk/translate.h	2006-06-28 07:26:01 UTC (rev 419)
++++ trunk/include/asterisk/translate.h	2006-06-28 08:25:38 UTC (rev 420)
+@@ -1,4 +1,80 @@
+ /*
++ * Asterisk -- A telephony toolkit for Linux.
++ *
++ * Translate via the use of pseudo channels
++ * 
++ * Copyright (C) 1999, Adtran Inc. and Linux Support Services, LLC
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at linux-support.net</A>&gt;
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License
++ */
++
++#ifndef _ASTERISK_TRANSLATE_H
++#define _ASTERISK_TRANSLATE_H
++
++#define MAX_FORMAT 32
++
++#if defined(__cplusplus) || defined(c_plusplus)
++extern &quot;C&quot; {
++#endif
++
++#include &lt;asterisk/frame.h&gt;
++
++/* Declared by individual translators */
++struct ast_translator_pvt;
++
++struct ast_translator {
++	char name[80];
++	int srcfmt;
++	int dstfmt;
++	struct ast_translator_pvt *(*new)();
++	int (*framein)(struct ast_translator_pvt *pvt, struct ast_frame *in);
++	struct ast_frame * (*frameout)(struct ast_translator_pvt *pvt);
++	void (*destroy)(struct ast_translator_pvt *pvt);
++	/* For performance measurements */
++	/* Generate an example frame */
++	struct ast_frame * (*sample)(void);
++	/* Cost in milliseconds for encoding/decoding 1 second of sound */
++	int cost;
++	/* For linking, not to be modified by the translator */
++	struct ast_translator *next;
++};
++
++struct ast_trans_pvt;
++
++/* Create a pseudo channel which translates from a real channel into our
++   desired format.  When a translator is installed, you should not use the
++   sub channel until you have stopped the translator.  For all other
++   actions, use the real channel. Generally, translators should be created 
++   when needed and immediately destroyed when no longer needed.  */
++
++/* Directions */
++#define AST_DIRECTION_OUT  1
++#define AST_DIRECTION_IN   2
++#define AST_DIRECTION_BOTH 3
++
++extern struct ast_channel *ast_translator_create(struct ast_channel *real, int format, int direction);
++extern void ast_translator_destroy(struct ast_channel *tran);
++/* Register a Codec translator */
++extern int ast_register_translator(struct ast_translator *t);
++/* Unregister same */
++extern int ast_unregister_translator(struct ast_translator *t);
++/* Given a list of sources, and a designed destination format, which should
++   I choose? */
++extern int ast_translator_best_choice(int dst, int srcs);
++extern struct ast_trans_pvt *ast_translator_build_path(int source, int dest);
++extern void ast_translator_free_path(struct ast_trans_pvt *tr);
++extern struct ast_frame_chain *ast_translate(struct ast_trans_pvt *tr, struct ast_frame *f);
++
++
++#if defined(__cplusplus) || defined(c_plusplus)
++}
++#endif
++
++#endif
++/*
+  * Asterisk -- An open source telephony toolkit.
+  *
+  * Copyright (C) 1999 - 2006, Digium, Inc.
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000414.html">[solid-pbx-svn] r419 - trunk/codecs/gsm/inc
+</A></li>
+	<LI>Next message: <A HREF="000416.html">[solid-pbx-svn] r421 - in trunk: . apps channels codecs codecs/gsm configs formats
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#415">[ date ]</a>
+              <a href="thread.html#415">[ thread ]</a>
+              <a href="subject.html#415">[ subject ]</a>
+              <a href="author.html#415">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

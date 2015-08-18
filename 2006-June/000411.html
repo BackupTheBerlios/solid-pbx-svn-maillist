@@ -1,0 +1,544 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r416 - in trunk: . channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r416%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200606280325.k5S3PjBC024583%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000410.html">
+   <LINK REL="Next"  HREF="000412.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r416 - in trunk: . channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r416%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200606280325.k5S3PjBC024583%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r416 - in trunk: . channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 05:25:45 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000410.html">[solid-pbx-svn] r415 - in trunk: . apps build_tools funcs res
+</A></li>
+        <LI>Next message: <A HREF="000412.html">[solid-pbx-svn] r417 - in trunk: . apps codecs include/asterisk pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#411">[ date ]</a>
+              <a href="thread.html#411">[ thread ]</a>
+              <a href="subject.html#411">[ subject ]</a>
+              <a href="author.html#411">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 05:25:40 +0200 (Wed, 28 Jun 2006)
+New Revision: 416
+
+Modified:
+   trunk/Makefile
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_zap.c
+Log:
+Update to Asterisk SVN trunk r35633
+
+------------------------------------------------------------------------
+r35628 | russell | 2006-06-23 04:03:21 +0200 (Fri, 23 Jun 2006) | 2 lines
+
+reduce indentation
+
+------------------------------------------------------------------------
+r35629 | russell | 2006-06-23 04:08:10 +0200 (Fri, 23 Jun 2006) | 2 lines
+
+reduce indentation
+
+------------------------------------------------------------------------
+r35630 | russell | 2006-06-23 04:15:35 +0200 (Fri, 23 Jun 2006) | 3 lines
+
+remove the autom4te.cache dir on a &quot;make distclean&quot; and add distclean to the
+.PHONY list
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-28 02:45:27 UTC (rev 415)
++++ trunk/Makefile	2006-06-28 03:25:40 UTC (rev 416)
+@@ -513,6 +513,7 @@
+ 	@$(MAKE) -C sounds dist-clean
+ 	rm -f menuselect.makeopts makeopts makeopts.xml
+ 	rm -f config.log config.status
++	rm -rf autom4te.cache
+ 	rm -f include/autoconfig.h
+ 	rm -f include/asterisk/buildopts.h
+ 
+@@ -887,4 +888,4 @@
+ 	cp -ar . ../solid-pbx-$(ASTERISKVERSION)
+ 	cd ../solid-pbx-$(ASTERISKVERSION) &amp;&amp; rm -rf `ls -Rd .svn */.svn */*/.svn */*/*/.svn */*/*/*/.svn` sounds
+ 
+-.PHONY: sounds clean clean-depend dist-clean all _all depend cleantest uninstall _uninstall uninstall-all dont-optimize valgrind $(SUBDIRS_INSTALL) $(SUBDIRS_CLEAN) $(SUBDIRS_CLEAN_DEPEND) $(SUBDIRS_DEPEND) $(SUBDIRS_UNINSTALL) $(SUBDIRS)
++.PHONY: sounds clean clean-depend dist-clean distclean all _all depend cleantest uninstall _uninstall uninstall-all dont-optimize valgrind $(SUBDIRS_INSTALL) $(SUBDIRS_CLEAN) $(SUBDIRS_CLEAN_DEPEND) $(SUBDIRS_DEPEND) $(SUBDIRS_UNINSTALL) $(SUBDIRS)
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-06-28 02:45:27 UTC (rev 415)
++++ trunk/channels/chan_iax2.c	2006-06-28 03:25:40 UTC (rev 416)
+@@ -3270,60 +3270,67 @@
+ 	struct chan_iax2_pvt *i;
+ 	struct ast_variable *v = NULL;
+ 
++	if (!(i = iaxs[callno])) {
++		ast_log(LOG_WARNING, &quot;No IAX2 pvt found for callno '%d' !\n&quot;, callno);
++		return NULL;
++	}
++
+ 	/* Don't hold call lock */
+ 	ast_mutex_unlock(&amp;iaxsl[callno]);
+ 	tmp = ast_channel_alloc(1);
+ 	ast_mutex_lock(&amp;iaxsl[callno]);
+-	i = iaxs[callno];
+-	if (i &amp;&amp; tmp) {
+-		tmp-&gt;tech = &amp;iax2_tech;
+-		ast_string_field_build(tmp, name, &quot;IAX2/%s-%d&quot;, i-&gt;host, i-&gt;callno);
+-		/* We can support any format by default, until we get restricted */
+-		tmp-&gt;nativeformats = capability;
+-		tmp-&gt;readformat = ast_best_codec(capability);
+-		tmp-&gt;writeformat = ast_best_codec(capability);
+-		tmp-&gt;tech_pvt = CALLNO_TO_PTR(i-&gt;callno);
++	if (!tmp)
++		return NULL;
++	tmp-&gt;tech = &amp;iax2_tech;
++	ast_string_field_build(tmp, name, &quot;IAX2/%s-%d&quot;, i-&gt;host, i-&gt;callno);
++	/* We can support any format by default, until we get restricted */
++	tmp-&gt;nativeformats = capability;
++	tmp-&gt;readformat = ast_best_codec(capability);
++	tmp-&gt;writeformat = ast_best_codec(capability);
++	tmp-&gt;tech_pvt = CALLNO_TO_PTR(i-&gt;callno);
+ 
+-		if (!ast_strlen_zero(i-&gt;cid_num))
+-			tmp-&gt;cid.cid_num = ast_strdup(i-&gt;cid_num);
+-		if (!ast_strlen_zero(i-&gt;cid_name))
+-			tmp-&gt;cid.cid_name = ast_strdup(i-&gt;cid_name);
+-		if (!ast_strlen_zero(i-&gt;ani))
+-			tmp-&gt;cid.cid_ani = ast_strdup(i-&gt;ani);
+-		if (!ast_strlen_zero(i-&gt;language))
+-			ast_string_field_set(tmp, language, i-&gt;language);
+-		if (!ast_strlen_zero(i-&gt;dnid))
+-			tmp-&gt;cid.cid_dnid = ast_strdup(i-&gt;dnid);
+-		if (!ast_strlen_zero(i-&gt;rdnis))
+-			tmp-&gt;cid.cid_rdnis = ast_strdup(i-&gt;rdnis);
+-		tmp-&gt;cid.cid_pres = i-&gt;calling_pres;
+-		tmp-&gt;cid.cid_ton = i-&gt;calling_ton;
+-		tmp-&gt;cid.cid_tns = i-&gt;calling_tns;
+-		if (!ast_strlen_zero(i-&gt;accountcode))
+-			ast_string_field_set(tmp, accountcode, i-&gt;accountcode);
+-		if (i-&gt;amaflags)
+-			tmp-&gt;amaflags = i-&gt;amaflags;
+-		ast_copy_string(tmp-&gt;context, i-&gt;context, sizeof(tmp-&gt;context));
+-		ast_copy_string(tmp-&gt;exten, i-&gt;exten, sizeof(tmp-&gt;exten));
+-		tmp-&gt;adsicpe = i-&gt;peeradsicpe;
+-		i-&gt;owner = tmp;
+-		i-&gt;capability = capability;
+-		ast_setstate(tmp, state);
+-		if (state != AST_STATE_DOWN) {
+-			if (ast_pbx_start(tmp)) {
+-				ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, tmp-&gt;name);
+-				ast_hangup(tmp);
+-				i-&gt;owner = NULL;
+-				return NULL;
+-			}
++	if (!ast_strlen_zero(i-&gt;cid_num))
++		tmp-&gt;cid.cid_num = ast_strdup(i-&gt;cid_num);
++	if (!ast_strlen_zero(i-&gt;cid_name))
++		tmp-&gt;cid.cid_name = ast_strdup(i-&gt;cid_name);
++	if (!ast_strlen_zero(i-&gt;ani))
++		tmp-&gt;cid.cid_ani = ast_strdup(i-&gt;ani);
++	if (!ast_strlen_zero(i-&gt;language))
++		ast_string_field_set(tmp, language, i-&gt;language);
++	if (!ast_strlen_zero(i-&gt;dnid))
++		tmp-&gt;cid.cid_dnid = ast_strdup(i-&gt;dnid);
++	if (!ast_strlen_zero(i-&gt;rdnis))
++		tmp-&gt;cid.cid_rdnis = ast_strdup(i-&gt;rdnis);
++	tmp-&gt;cid.cid_pres = i-&gt;calling_pres;
++	tmp-&gt;cid.cid_ton = i-&gt;calling_ton;
++	tmp-&gt;cid.cid_tns = i-&gt;calling_tns;
++	if (!ast_strlen_zero(i-&gt;accountcode))
++		ast_string_field_set(tmp, accountcode, i-&gt;accountcode);
++	if (i-&gt;amaflags)
++		tmp-&gt;amaflags = i-&gt;amaflags;
++	ast_copy_string(tmp-&gt;context, i-&gt;context, sizeof(tmp-&gt;context));
++	ast_copy_string(tmp-&gt;exten, i-&gt;exten, sizeof(tmp-&gt;exten));
++	tmp-&gt;adsicpe = i-&gt;peeradsicpe;
++	i-&gt;owner = tmp;
++	i-&gt;capability = capability;
++	ast_setstate(tmp, state);
++	if (state != AST_STATE_DOWN) {
++		if (ast_pbx_start(tmp)) {
++			ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, tmp-&gt;name);
++			ast_hangup(tmp);
++			i-&gt;owner = NULL;
++			return NULL;
+ 		}
+-		for (v = i-&gt;vars ; v ; v = v-&gt;next)
+-			pbx_builtin_setvar_helper(tmp,v-&gt;name,v-&gt;value);
+-		ast_mutex_lock(&amp;usecnt_lock);
+-		usecnt++;
+-		ast_mutex_unlock(&amp;usecnt_lock);
+-		ast_update_use_count();
+ 	}
++
++	for (v = i-&gt;vars ; v ; v = v-&gt;next)
++		pbx_builtin_setvar_helper(tmp, v-&gt;name, v-&gt;value);
++
++	ast_mutex_lock(&amp;usecnt_lock);
++	usecnt++;
++	ast_mutex_unlock(&amp;usecnt_lock);
++	ast_update_use_count();
++	
+ 	return tmp;
+ }
+ 
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-06-28 02:45:27 UTC (rev 415)
++++ trunk/channels/chan_zap.c	2006-06-28 03:25:40 UTC (rev 416)
+@@ -5041,173 +5041,168 @@
+ 		ast_log(LOG_WARNING, &quot;Channel %d already has a %s call\n&quot;, i-&gt;channel,subnames[index]);
+ 		return NULL;
+ 	}
+-	tmp = ast_channel_alloc(0);
+-	if (tmp) {
+-		tmp-&gt;tech = &amp;zap_tech;
+-		ps.channo = i-&gt;channel;
+-		res = ioctl(i-&gt;subs[SUB_REAL].zfd, ZT_GET_PARAMS, &amp;ps);
+-		if (res) {
+-			ast_log(LOG_WARNING, &quot;Unable to get parameters, assuming MULAW\n&quot;);
+-			ps.curlaw = ZT_LAW_MULAW;
+-		}
+-		if (ps.curlaw == ZT_LAW_ALAW)
++	if (!(tmp = ast_channel_alloc(0)))
++		return NULL;
++	tmp-&gt;tech = &amp;zap_tech;
++	ps.channo = i-&gt;channel;
++	res = ioctl(i-&gt;subs[SUB_REAL].zfd, ZT_GET_PARAMS, &amp;ps);
++	if (res) {
++		ast_log(LOG_WARNING, &quot;Unable to get parameters, assuming MULAW\n&quot;);
++		ps.curlaw = ZT_LAW_MULAW;
++	}
++	if (ps.curlaw == ZT_LAW_ALAW)
++		deflaw = AST_FORMAT_ALAW;
++	else
++		deflaw = AST_FORMAT_ULAW;
++	if (law) {
++		if (law == ZT_LAW_ALAW)
+ 			deflaw = AST_FORMAT_ALAW;
+ 		else
+ 			deflaw = AST_FORMAT_ULAW;
+-		if (law) {
+-			if (law == ZT_LAW_ALAW)
+-				deflaw = AST_FORMAT_ALAW;
+-			else
+-				deflaw = AST_FORMAT_ULAW;
+-		}
+-		y = 1;
+-		do {
++	}
++	y = 1;
++	do {
+ #ifdef HAVE_LIBPRI
+-			if (i-&gt;bearer || (i-&gt;pri &amp;&amp; (i-&gt;sig == SIG_FXSKS)))
+-				ast_string_field_build(tmp, name, &quot;Zap/%d:%d-%d&quot;, i-&gt;pri-&gt;trunkgroup, i-&gt;channel, y);
+-			else
++		if (i-&gt;bearer || (i-&gt;pri &amp;&amp; (i-&gt;sig == SIG_FXSKS)))
++			ast_string_field_build(tmp, name, &quot;Zap/%d:%d-%d&quot;, i-&gt;pri-&gt;trunkgroup, i-&gt;channel, y);
++		else
+ #endif
+-			if (i-&gt;channel == CHAN_PSEUDO)
+-				ast_string_field_build(tmp, name, &quot;Zap/pseudo-%d&quot;, ast_random());
+-			else	
+-				ast_string_field_build(tmp, name, &quot;Zap/%d-%d&quot;, i-&gt;channel, y);
+-			for (x = 0; x &lt; 3; x++) {
+-				if ((index != x) &amp;&amp; i-&gt;subs[x].owner &amp;&amp; !strcasecmp(tmp-&gt;name, i-&gt;subs[x].owner-&gt;name))
+-					break;
+-			}
+-			y++;
+-		} while (x &lt; 3);
+-		tmp-&gt;fds[0] = i-&gt;subs[index].zfd;
+-		tmp-&gt;nativeformats = AST_FORMAT_SLINEAR | deflaw;
+-		/* Start out assuming ulaw since it's smaller :) */
+-		tmp-&gt;rawreadformat = deflaw;
+-		tmp-&gt;readformat = deflaw;
+-		tmp-&gt;rawwriteformat = deflaw;
+-		tmp-&gt;writeformat = deflaw;
+-		i-&gt;subs[index].linear = 0;
+-		zt_setlinear(i-&gt;subs[index].zfd, i-&gt;subs[index].linear);
+-		features = 0;
+-		if (i-&gt;busydetect &amp;&amp; CANBUSYDETECT(i)) {
+-			features |= DSP_FEATURE_BUSY_DETECT;
++		if (i-&gt;channel == CHAN_PSEUDO)
++			ast_string_field_build(tmp, name, &quot;Zap/pseudo-%d&quot;, ast_random());
++		else	
++			ast_string_field_build(tmp, name, &quot;Zap/%d-%d&quot;, i-&gt;channel, y);
++		for (x = 0; x &lt; 3; x++) {
++			if ((index != x) &amp;&amp; i-&gt;subs[x].owner &amp;&amp; !strcasecmp(tmp-&gt;name, i-&gt;subs[x].owner-&gt;name))
++				break;
+ 		}
+-		if ((i-&gt;callprogress &amp; 1) &amp;&amp; CANPROGRESSDETECT(i)) {
+-			features |= DSP_FEATURE_CALL_PROGRESS;
+-		}
+-		if ((!i-&gt;outgoing &amp;&amp; (i-&gt;callprogress &amp; 4)) || 
+-		    (i-&gt;outgoing &amp;&amp; (i-&gt;callprogress &amp; 2))) {
+-			features |= DSP_FEATURE_FAX_DETECT;
+-		}
++		y++;
++	} while (x &lt; 3);
++	tmp-&gt;fds[0] = i-&gt;subs[index].zfd;
++	tmp-&gt;nativeformats = AST_FORMAT_SLINEAR | deflaw;
++	/* Start out assuming ulaw since it's smaller :) */
++	tmp-&gt;rawreadformat = deflaw;
++	tmp-&gt;readformat = deflaw;
++	tmp-&gt;rawwriteformat = deflaw;
++	tmp-&gt;writeformat = deflaw;
++	i-&gt;subs[index].linear = 0;
++	zt_setlinear(i-&gt;subs[index].zfd, i-&gt;subs[index].linear);
++	features = 0;
++	if (i-&gt;busydetect &amp;&amp; CANBUSYDETECT(i))
++		features |= DSP_FEATURE_BUSY_DETECT;
++	if ((i-&gt;callprogress &amp; 1) &amp;&amp; CANPROGRESSDETECT(i))
++		features |= DSP_FEATURE_CALL_PROGRESS;
++	if ((!i-&gt;outgoing &amp;&amp; (i-&gt;callprogress &amp; 4)) || 
++	    (i-&gt;outgoing &amp;&amp; (i-&gt;callprogress &amp; 2))) {
++		features |= DSP_FEATURE_FAX_DETECT;
++	}
+ #ifdef ZT_TONEDETECT
+-		x = ZT_TONEDETECT_ON | ZT_TONEDETECT_MUTE;
+-		if (ioctl(i-&gt;subs[index].zfd, ZT_TONEDETECT, &amp;x)) {
++	x = ZT_TONEDETECT_ON | ZT_TONEDETECT_MUTE;
++	if (ioctl(i-&gt;subs[index].zfd, ZT_TONEDETECT, &amp;x)) {
+ #endif		
+-			i-&gt;hardwaredtmf = 0;
+-			features |= DSP_FEATURE_DTMF_DETECT;
++		i-&gt;hardwaredtmf = 0;
++		features |= DSP_FEATURE_DTMF_DETECT;
+ #ifdef ZT_TONEDETECT
+-		} else if (NEED_MFDETECT(i)) {
+-			i-&gt;hardwaredtmf = 1;
+-			features |= DSP_FEATURE_DTMF_DETECT;
+-		}
++	} else if (NEED_MFDETECT(i)) {
++		i-&gt;hardwaredtmf = 1;
++		features |= DSP_FEATURE_DTMF_DETECT;
++	}
+ #endif
+-		if (features) {
++	if (features) {
++		if (i-&gt;dsp) {
++			ast_log(LOG_DEBUG, &quot;Already have a dsp on %s?\n&quot;, tmp-&gt;name);
++		} else {
++			if (i-&gt;channel != CHAN_PSEUDO)
++				i-&gt;dsp = ast_dsp_new();
++			else
++				i-&gt;dsp = NULL;
+ 			if (i-&gt;dsp) {
+-				ast_log(LOG_DEBUG, &quot;Already have a dsp on %s?\n&quot;, tmp-&gt;name);
+-			} else {
+-				if (i-&gt;channel != CHAN_PSEUDO)
+-					i-&gt;dsp = ast_dsp_new();
+-				else
+-					i-&gt;dsp = NULL;
+-				if (i-&gt;dsp) {
+-					i-&gt;dsp_features = features &amp; ~DSP_PROGRESS_TALK;
++				i-&gt;dsp_features = features &amp; ~DSP_PROGRESS_TALK;
+ #ifdef HAVE_LIBPRI
+-					/* We cannot do progress detection until receives PROGRESS message */
+-					if (i-&gt;outgoing &amp;&amp; (i-&gt;sig == SIG_PRI)) {
+-						/* Remember requested DSP features, don't treat
+-						   talking as ANSWER */
+-						features = 0;
+-					}
++				/* We cannot do progress detection until receives PROGRESS message */
++				if (i-&gt;outgoing &amp;&amp; (i-&gt;sig == SIG_PRI)) {
++					/* Remember requested DSP features, don't treat
++					   talking as ANSWER */
++					features = 0;
++				}
+ #endif
+-					ast_dsp_set_features(i-&gt;dsp, features);
+-					ast_dsp_digitmode(i-&gt;dsp, DSP_DIGITMODE_DTMF | i-&gt;dtmfrelax);
+-					if (!ast_strlen_zero(progzone))
+-						ast_dsp_set_call_progress_zone(i-&gt;dsp, progzone);
+-					if (i-&gt;busydetect &amp;&amp; CANBUSYDETECT(i)) {
+-						ast_dsp_set_busy_count(i-&gt;dsp, i-&gt;busycount);
+-						ast_dsp_set_busy_pattern(i-&gt;dsp, i-&gt;busy_tonelength, i-&gt;busy_quietlength);
+-					}
++				ast_dsp_set_features(i-&gt;dsp, features);
++				ast_dsp_digitmode(i-&gt;dsp, DSP_DIGITMODE_DTMF | i-&gt;dtmfrelax);
++				if (!ast_strlen_zero(progzone))
++					ast_dsp_set_call_progress_zone(i-&gt;dsp, progzone);
++				if (i-&gt;busydetect &amp;&amp; CANBUSYDETECT(i)) {
++					ast_dsp_set_busy_count(i-&gt;dsp, i-&gt;busycount);
++					ast_dsp_set_busy_pattern(i-&gt;dsp, i-&gt;busy_tonelength, i-&gt;busy_quietlength);
+ 				}
+ 			}
+ 		}
++	}
+ 		
+-		if (state == AST_STATE_RING)
+-			tmp-&gt;rings = 1;
+-		tmp-&gt;tech_pvt = i;
+-		if ((i-&gt;sig == SIG_FXOKS) || (i-&gt;sig == SIG_FXOGS) || (i-&gt;sig == SIG_FXOLS)) {
+-			/* Only FXO signalled stuff can be picked up */
+-			tmp-&gt;callgroup = i-&gt;callgroup;
+-			tmp-&gt;pickupgroup = i-&gt;pickupgroup;
+-		}
+-		if (!ast_strlen_zero(i-&gt;language))
+-			ast_string_field_set(tmp, language, i-&gt;language);
+-		if (!ast_strlen_zero(i-&gt;musicclass))
+-			ast_string_field_set(tmp, musicclass, i-&gt;musicclass);
+-		if (!i-&gt;owner)
+-			i-&gt;owner = tmp;
+-		if (!ast_strlen_zero(i-&gt;accountcode))
+-			ast_string_field_set(tmp, accountcode, i-&gt;accountcode);
+-		if (i-&gt;amaflags)
+-			tmp-&gt;amaflags = i-&gt;amaflags;
+-		i-&gt;subs[index].owner = tmp;
+-		ast_copy_string(tmp-&gt;context, i-&gt;context, sizeof(tmp-&gt;context));
+-		ast_string_field_set(tmp, call_forward, i-&gt;call_forward);
+-		/* If we've been told &quot;no ADSI&quot; then enforce it */
+-		if (!i-&gt;adsi)
+-			tmp-&gt;adsicpe = AST_ADSI_UNAVAILABLE;
+-		if (!ast_strlen_zero(i-&gt;exten))
+-			ast_copy_string(tmp-&gt;exten, i-&gt;exten, sizeof(tmp-&gt;exten));
+-		if (!ast_strlen_zero(i-&gt;rdnis))
+-			tmp-&gt;cid.cid_rdnis = ast_strdup(i-&gt;rdnis);
+-		if (!ast_strlen_zero(i-&gt;dnid))
+-			tmp-&gt;cid.cid_dnid = ast_strdup(i-&gt;dnid);
++	if (state == AST_STATE_RING)
++		tmp-&gt;rings = 1;
++	tmp-&gt;tech_pvt = i;
++	if ((i-&gt;sig == SIG_FXOKS) || (i-&gt;sig == SIG_FXOGS) || (i-&gt;sig == SIG_FXOLS)) {
++		/* Only FXO signalled stuff can be picked up */
++		tmp-&gt;callgroup = i-&gt;callgroup;
++		tmp-&gt;pickupgroup = i-&gt;pickupgroup;
++	}
++	if (!ast_strlen_zero(i-&gt;language))
++		ast_string_field_set(tmp, language, i-&gt;language);
++	if (!ast_strlen_zero(i-&gt;musicclass))
++		ast_string_field_set(tmp, musicclass, i-&gt;musicclass);
++	if (!i-&gt;owner)
++		i-&gt;owner = tmp;
++	if (!ast_strlen_zero(i-&gt;accountcode))
++		ast_string_field_set(tmp, accountcode, i-&gt;accountcode);
++	if (i-&gt;amaflags)
++		tmp-&gt;amaflags = i-&gt;amaflags;
++	i-&gt;subs[index].owner = tmp;
++	ast_copy_string(tmp-&gt;context, i-&gt;context, sizeof(tmp-&gt;context));
++	ast_string_field_set(tmp, call_forward, i-&gt;call_forward);
++	/* If we've been told &quot;no ADSI&quot; then enforce it */
++	if (!i-&gt;adsi)
++		tmp-&gt;adsicpe = AST_ADSI_UNAVAILABLE;
++	if (!ast_strlen_zero(i-&gt;exten))
++		ast_copy_string(tmp-&gt;exten, i-&gt;exten, sizeof(tmp-&gt;exten));
++	if (!ast_strlen_zero(i-&gt;rdnis))
++		tmp-&gt;cid.cid_rdnis = ast_strdup(i-&gt;rdnis);
++	if (!ast_strlen_zero(i-&gt;dnid))
++		tmp-&gt;cid.cid_dnid = ast_strdup(i-&gt;dnid);
+ 
+ #ifdef PRI_ANI
+-		ast_set_callerid(tmp, i-&gt;cid_num, i-&gt;cid_name, S_OR(i-&gt;cid_ani, i-&gt;cid_num));
++	ast_set_callerid(tmp, i-&gt;cid_num, i-&gt;cid_name, S_OR(i-&gt;cid_ani, i-&gt;cid_num));
+ #else
+-		ast_set_callerid(tmp, i-&gt;cid_num, i-&gt;cid_name, i-&gt;cid_num);
++	ast_set_callerid(tmp, i-&gt;cid_num, i-&gt;cid_name, i-&gt;cid_num);
+ #endif
+-		tmp-&gt;cid.cid_pres = i-&gt;callingpres;
+-		tmp-&gt;cid.cid_ton = i-&gt;cid_ton;
++	tmp-&gt;cid.cid_pres = i-&gt;callingpres;
++	tmp-&gt;cid.cid_ton = i-&gt;cid_ton;
+ #ifdef HAVE_LIBPRI
+-		tmp-&gt;transfercapability = transfercapability;
+-		pbx_builtin_setvar_helper(tmp, &quot;TRANSFERCAPABILITY&quot;, ast_transfercapability2str(transfercapability));
+-		if (transfercapability &amp; PRI_TRANS_CAP_DIGITAL) {
+-			i-&gt;digital = 1;
+-		}
+-		/* Assume calls are not idle calls unless we're told differently */
+-		i-&gt;isidlecall = 0;
+-		i-&gt;alreadyhungup = 0;
++	tmp-&gt;transfercapability = transfercapability;
++	pbx_builtin_setvar_helper(tmp, &quot;TRANSFERCAPABILITY&quot;, ast_transfercapability2str(transfercapability));
++	if (transfercapability &amp; PRI_TRANS_CAP_DIGITAL)
++		i-&gt;digital = 1;
++	/* Assume calls are not idle calls unless we're told differently */
++	i-&gt;isidlecall = 0;
++	i-&gt;alreadyhungup = 0;
+ #endif
+-		/* clear the fake event in case we posted one before we had ast_channel */
+-		i-&gt;fake_event = 0;
+-		/* Assure there is no confmute on this channel */
+-		zt_confmute(i, 0);
+-		ast_setstate(tmp, state);
+-		/* Configure the new channel jb */
+-		if (ast_jb_configure(tmp, &amp;global_jbconf)) {
++	/* clear the fake event in case we posted one before we had ast_channel */
++	i-&gt;fake_event = 0;
++	/* Assure there is no confmute on this channel */
++	zt_confmute(i, 0);
++	ast_setstate(tmp, state);
++	/* Configure the new channel jb */
++	if (ast_jb_configure(tmp, &amp;global_jbconf)) {
++		ast_hangup(tmp);
++		i-&gt;owner = NULL;
++		return NULL;
++	}
++	if (startpbx) {
++		if (ast_pbx_start(tmp)) {
++			ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, tmp-&gt;name);
+ 			ast_hangup(tmp);
+ 			i-&gt;owner = NULL;
+ 			return NULL;
+ 		}
+-		if (startpbx) {
+-			if (ast_pbx_start(tmp)) {
+-				ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, tmp-&gt;name);
+-				ast_hangup(tmp);
+-				i-&gt;owner = NULL;
+-				return NULL;
+-			}
+-		}
+-	} else
+-		ast_log(LOG_WARNING, &quot;Unable to allocate channel structure\n&quot;);
++	}
+ 
+ 	ast_mutex_lock(&amp;usecnt_lock);
+ 	usecnt++;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000410.html">[solid-pbx-svn] r415 - in trunk: . apps build_tools funcs res
+</A></li>
+	<LI>Next message: <A HREF="000412.html">[solid-pbx-svn] r417 - in trunk: . apps codecs include/asterisk pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#411">[ date ]</a>
+              <a href="thread.html#411">[ thread ]</a>
+              <a href="subject.html#411">[ subject ]</a>
+              <a href="author.html#411">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

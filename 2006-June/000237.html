@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r242 - in trunk: apps channels funcs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r242%20-%20in%20trunk%3A%20apps%20channels%20funcs&In-Reply-To=%3C200606180226.k5I2QncM001861%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000236.html">
+   <LINK REL="Next"  HREF="000238.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r242 - in trunk: apps channels funcs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r242%20-%20in%20trunk%3A%20apps%20channels%20funcs&In-Reply-To=%3C200606180226.k5I2QncM001861%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r242 - in trunk: apps channels funcs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 04:26:49 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000236.html">[solid-pbx-svn] r241 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000238.html">[solid-pbx-svn] r243 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#237">[ date ]</a>
+              <a href="thread.html#237">[ thread ]</a>
+              <a href="subject.html#237">[ subject ]</a>
+              <a href="author.html#237">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 04:25:55 +0200 (Sun, 18 Jun 2006)
+New Revision: 242
+
+Modified:
+   trunk/apps/app_dumpchan.c
+   trunk/channels/chan_sip.c
+   trunk/funcs/func_channel.c
+Log:
+Update to Asterisk SVN trunk r32023
+
+------------------------------------------------------------------------
+r32017 | oej | 2006-06-04 13:09:14 +0200 (Sun, 04 Jun 2006) | 3 lines
+
+- Typo in chan_sip (: missing)
+- Only print formats once in dumpchan()
+
+------------------------------------------------------------------------
+r32018 | oej | 2006-06-04 13:47:51 +0200 (Sun, 04 Jun 2006) | 2 lines
+
+Make tonezone writeable in CHANNEL() (from my old func_tonezone.c)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_dumpchan.c
+===================================================================
+--- trunk/apps/app_dumpchan.c	2006-06-18 02:07:42 UTC (rev 241)
++++ trunk/apps/app_dumpchan.c	2006-06-18 02:25:55 UTC (rev 242)
+@@ -87,9 +87,9 @@
+ 			 &quot;DNIDDigits=         %s\n&quot;
+ 			 &quot;State=              %s (%d)\n&quot;
+ 			 &quot;Rings=              %d\n&quot;
+-			 &quot;NativeFormat=       %d %s\n&quot;
+-			 &quot;WriteFormat=        %d %s\n&quot;
+-			 &quot;ReadFormat=         %d %s\n&quot;
++			 &quot;NativeFormat=       %s\n&quot;
++			 &quot;WriteFormat=        %s\n&quot;
++			 &quot;ReadFormat=         %s\n&quot;
+ 			 &quot;1stFileDescriptor=  %d\n&quot;
+ 			 &quot;Framesin=           %d %s\n&quot;
+ 			 &quot;Framesout=          %d %s\n&quot;
+@@ -112,11 +112,8 @@
+ 			 ast_state2str(c-&gt;_state),
+ 			 c-&gt;_state,
+ 			 c-&gt;rings,
+-			 c-&gt;nativeformats,
+ 			 ast_getformatname_multiple(formatbuf, sizeof(formatbuf), c-&gt;nativeformats),
+-			 c-&gt;writeformat,
+ 			 ast_getformatname_multiple(formatbuf, sizeof(formatbuf), c-&gt;writeformat),
+-			 c-&gt;readformat,
+ 			 ast_getformatname_multiple(formatbuf, sizeof(formatbuf), c-&gt;readformat),
+ 			 c-&gt;fds[0], c-&gt;fin &amp; ~DEBUGCHAN_FLAG, (c-&gt;fin &amp; DEBUGCHAN_FLAG) ? &quot; (DEBUGGED)&quot; : &quot;&quot;,
+ 			 c-&gt;fout &amp; ~DEBUGCHAN_FLAG, (c-&gt;fout &amp; DEBUGCHAN_FLAG) ? &quot; (DEBUGGED)&quot; : &quot;&quot;, (long)c-&gt;whentohangup,
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-18 02:07:42 UTC (rev 241)
++++ trunk/channels/chan_sip.c	2006-06-18 02:25:55 UTC (rev 242)
+@@ -9257,7 +9257,7 @@
+ 			ast_cli(fd, &quot;  Non-Codec Capability (DTMF):   %d\n&quot;, cur-&gt;noncodeccapability);
+ 			ast_cli(fd, &quot;  Their Codec Capability:   %d\n&quot;, cur-&gt;peercapability);
+ 			ast_cli(fd, &quot;  Joint Codec Capability:   %d\n&quot;, cur-&gt;jointcapability);
+-			ast_cli(fd, &quot;  Format                  %s\n&quot;, ast_getformatname_multiple(formatbuf, sizeof(formatbuf), cur-&gt;owner ? cur-&gt;owner-&gt;nativeformats : 0) );
++			ast_cli(fd, &quot;  Format:                 %s\n&quot;, ast_getformatname_multiple(formatbuf, sizeof(formatbuf), cur-&gt;owner ? cur-&gt;owner-&gt;nativeformats : 0) );
+ 			ast_cli(fd, &quot;  Theoretical Address:    %s:%d\n&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), cur-&gt;sa.sin_addr), ntohs(cur-&gt;sa.sin_port));
+ 			ast_cli(fd, &quot;  Received Address:       %s:%d\n&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), cur-&gt;recv.sin_addr), ntohs(cur-&gt;recv.sin_port));
+ 			ast_cli(fd, &quot;  SIP Transfer mode:      %s\n&quot;, transfermode2str(cur-&gt;allowtransfer));
+
+Modified: trunk/funcs/func_channel.c
+===================================================================
+--- trunk/funcs/func_channel.c	2006-06-18 02:07:42 UTC (rev 241)
++++ trunk/funcs/func_channel.c	2006-06-18 02:25:55 UTC (rev 242)
+@@ -108,7 +108,14 @@
+ 		locked_string_field_set(chan, language, value);
+ 	else if (!strcasecmp(data, &quot;musicclass&quot;))
+ 		locked_string_field_set(chan, musicclass, value);
+-	else if (!strcasecmp(data, &quot;callgroup&quot;))
++	else if (!strcasecmp(data, &quot;tonezone&quot;)) {
++		struct tone_zone *new_zone;
++		if (!(new_zone = ast_get_indication_zone(data))) {
++			ast_log(LOG_ERROR, &quot;Unknown country code for tonezone. Check indications.conf for available country codes.\n&quot;);
++			ret = -1;	
++		} else 
++			chan-&gt;zone = new_zone;
++	} else if (!strcasecmp(data, &quot;callgroup&quot;))
+ 		chan-&gt;callgroup = ast_get_group(data);
+ 	else if (!strcasecmp(data, &quot;txgain&quot;)) {
+ 		sscanf(value, &quot;%hhd&quot;, &amp;gainset);
+@@ -149,7 +156,7 @@
+ 		&quot;R/W	musicclass 		class (from musiconhold.conf) for hold music\n&quot;
+ 		&quot;R/W	rxgain			set rxgain level on channel drivers that support it\n&quot;
+ 		&quot;R/O	state			state for channel\n&quot;
+-		&quot;R/O	tonezone 		zone for indications played\n&quot;
++		&quot;R/W	tonezone 		zone for indications played\n&quot;
+ 		&quot;R/W	txgain			set txgain level on channel drivers that support it\n&quot;
+ 		&quot;R/O	videonativeformat 	format used natively for video\n&quot;
+ 		&quot;\n&quot;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000236.html">[solid-pbx-svn] r241 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000238.html">[solid-pbx-svn] r243 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#237">[ date ]</a>
+              <a href="thread.html#237">[ thread ]</a>
+              <a href="subject.html#237">[ subject ]</a>
+              <a href="author.html#237">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

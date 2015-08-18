@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r386 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r386%20-%20trunk/apps&In-Reply-To=%3C200606280148.k5S1m3Ub018735%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000380.html">
+   <LINK REL="Next"  HREF="000382.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r386 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r386%20-%20trunk/apps&In-Reply-To=%3C200606280148.k5S1m3Ub018735%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r386 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:48:03 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000380.html">[solid-pbx-svn] r385 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000382.html">[solid-pbx-svn] r387 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#381">[ date ]</a>
+              <a href="thread.html#381">[ thread ]</a>
+              <a href="subject.html#381">[ subject ]</a>
+              <a href="author.html#381">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:47:41 +0200 (Wed, 28 Jun 2006)
+New Revision: 386
+
+Modified:
+   trunk/apps/app_voicemail.c
+Log:
+Update to Asterisk SVN trunk r34913
+
+------------------------------------------------------------------------
+r34912 | file | 2006-06-19 22:29:08 +0200 (Mon, 19 Jun 2006) | 10 lines
+
+Merged revisions 34911 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r34911 | file | 2006-06-19 17:27:44 -0300 (Mon, 19 Jun 2006) | 2 lines
+
+Call reset_user_pw upon changing the password using externpass (issue #7395 reported by Ryan Cumming)
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-06-28 01:46:26 UTC (rev 385)
++++ trunk/apps/app_voicemail.c	2006-06-28 01:47:41 UTC (rev 386)
+@@ -792,8 +792,10 @@
+ {
+ 	char buf[255];
+ 	snprintf(buf,255,&quot;%s %s %s %s&quot;,ext_pass_cmd,vmu-&gt;context,vmu-&gt;mailbox,newpassword);
+-	if (!ast_safe_system(buf))
++	if (!ast_safe_system(buf)) {
++		reset_user_pw(vmu-&gt;context, vmu-&gt;mailbox, newpassword);
+ 		ast_copy_string(vmu-&gt;password, newpassword, sizeof(vmu-&gt;password));
++	}
+ }
+ 
+ static int make_dir(char *dest, int len, const char *context, const char *ext, const char *folder)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000380.html">[solid-pbx-svn] r385 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000382.html">[solid-pbx-svn] r387 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#381">[ date ]</a>
+              <a href="thread.html#381">[ thread ]</a>
+              <a href="subject.html#381">[ subject ]</a>
+              <a href="author.html#381">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

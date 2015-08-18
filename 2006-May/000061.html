@@ -1,0 +1,452 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r64 - in trunk: . apps include/asterisk res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r64%20-%20in%20trunk%3A%20.%20apps%20include/asterisk%20res&In-Reply-To=%3C200605052118.k45LIW6p012795%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000060.html">
+   <LINK REL="Next"  HREF="000062.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r64 - in trunk: . apps include/asterisk res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r64%20-%20in%20trunk%3A%20.%20apps%20include/asterisk%20res&In-Reply-To=%3C200605052118.k45LIW6p012795%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r64 - in trunk: . apps include/asterisk res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May  5 23:18:32 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000060.html">[solid-pbx-svn] r63 - trunk/doc
+</A></li>
+        <LI>Next message: <A HREF="000062.html">[solid-pbx-svn] r65 - in trunk: . apps channels codecs configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#61">[ date ]</a>
+              <a href="thread.html#61">[ thread ]</a>
+              <a href="subject.html#61">[ subject ]</a>
+              <a href="author.html#61">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-05 23:18:26 +0200 (Fri, 05 May 2006)
+New Revision: 64
+
+Modified:
+   trunk/UPGRADE.txt
+   trunk/apps/app_exec.c
+   trunk/apps/app_while.c
+   trunk/cli.c
+   trunk/include/asterisk/manager.h
+   trunk/include/asterisk/utils.h
+   trunk/manager.c
+   trunk/res/res_agi.c
+   trunk/utils.c
+Log:
+Update to Asterisk SVN trunk r25055
+
+------------------------------------------------------------------------
+r25012 | bweschke | 2006-05-05 22:12:59 +0200 (Fri, 05 May 2006) | 3 lines
+
+ Adding documentation about API change approved in order to fix bug(s).
+
+
+------------------------------------------------------------------------
+r25013 | russell | 2006-05-05 22:43:16 +0200 (Fri, 05 May 2006) | 2 lines
+
+move ExecIf from app_while.c to app_exec.c (issue #7094, north)
+
+------------------------------------------------------------------------
+r25016 | russell | 2006-05-05 22:50:28 +0200 (Fri, 05 May 2006) | 1 line
+
+
+------------------------------------------------------------------------
+r25017 | bweschke | 2006-05-05 22:52:25 +0200 (Fri, 05 May 2006) | 3 lines
+
+ Blocking r25014 from coming into /trunk as the fix was different for /trunk and was already applied earlier. #7064
+ 
+
+------------------------------------------------------------------------
+r25026 | russell | 2006-05-05 23:01:39 +0200 (Fri, 05 May 2006) | 3 lines
+
+move ast_carefulwrite from manager.c to utils.c so that cli.c and
+res_agi.c no longer depend on manager.h (issue #6397, casper)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/UPGRADE.txt
+===================================================================
+--- trunk/UPGRADE.txt	2006-05-05 20:18:11 UTC (rev 63)
++++ trunk/UPGRADE.txt	2006-05-05 21:18:26 UTC (rev 64)
+@@ -93,6 +93,16 @@
+   option, it will default to &quot;no&quot; to keep backward compatability with the old 
+   behavior.
+ 
++* ast_play_and_record would attempt to cancel the recording if a DTMF
++  '0' was received.  This behavior was not documented in most of the
++  applications that used ast_play_and_record and the return codes from
++  ast_play_and_record weren't checked for properly.
++  ast_play_and_record has been changed so that '0' no longer cancels a
++  recording.  If you want to allow DTMF digits to cancel an
++  in-progress recording use ast_play_and_record_full which allows you
++  to specify which DTMF digits can be used to accept a recording and
++  which digits can be used to cancel a recording.
++
+ Manager:
+ 
+ * After executing the 'status' manager action, the &quot;Status&quot; manager events
+
+Modified: trunk/apps/app_exec.c
+===================================================================
+--- trunk/apps/app_exec.c	2006-05-05 20:18:11 UTC (rev 63)
++++ trunk/apps/app_exec.c	2006-05-05 21:18:26 UTC (rev 64)
+@@ -83,6 +83,14 @@
+ &quot;    NOAPP     if the application was not found or was not specified\n&quot;
+ &quot;    NOMEMORY  if there was not enough memory to execute.\n&quot;;
+ 
++static char *app_execif = &quot;ExecIf&quot;;
++static char *execif_synopsis = &quot;Executes dialplan application, conditionally&quot;;
++static char *execif_descrip = 
++&quot;Usage:  ExecIF (&lt;expr&gt;|&lt;app&gt;|&lt;data&gt;)\n&quot;
++&quot;If &lt;expr&gt; is true, execute and return the result of &lt;app&gt;(&lt;data&gt;).\n&quot;
++&quot;If &lt;expr&gt; is true, but &lt;app&gt; is not found, then the application\n&quot;
++&quot;will return a non-zero value.\n&quot;;
++
+ LOCAL_USER_DECL;
+ 
+ static int exec_exec(struct ast_channel *chan, void *data)
+@@ -160,12 +168,54 @@
+ 	return 0;
+ }
+ 
++static int execif_exec(struct ast_channel *chan, void *data) {
++	int res=0;
++	struct localuser *u;
++	char *myapp = NULL;
++	char *mydata = NULL;
++	char *expr = NULL;
++	struct ast_app *app = NULL;
++
++	LOCAL_USER_ADD(u);
++
++	if (!(expr = ast_strdupa(data))) {
++		LOCAL_USER_REMOVE(u);
++		return -1;
++	}
++
++	if ((myapp = strchr(expr,'|'))) {
++		*myapp = '\0';
++		myapp++;
++		if ((mydata = strchr(myapp,'|'))) {
++			*mydata = '\0';
++			mydata++;
++		} else
++			mydata = &quot;&quot;;
++
++		if (pbx_checkcondition(expr)) { 
++			if ((app = pbx_findapp(myapp))) {
++				res = pbx_exec(chan, app, mydata);
++			} else {
++				ast_log(LOG_WARNING, &quot;Count not find application! (%s)\n&quot;, myapp);
++				res = -1;
++			}
++		}
++	} else {
++		ast_log(LOG_ERROR,&quot;Invalid Syntax.\n&quot;);
++		res = -1;
++	}
++		
++	LOCAL_USER_REMOVE(u);
++	return res;
++}
++
+ static int unload_module(void *mod)
+ {
+ 	int res;
+ 
+ 	res = ast_unregister_application(app_exec);
+ 	res |= ast_unregister_application(app_tryexec);
++	res |= ast_unregister_application(app_execif);
+ 
+ 	STANDARD_HANGUP_LOCALUSERS;
+ 
+@@ -176,6 +226,7 @@
+ {
+ 	int res = ast_register_application(app_exec, exec_exec, exec_synopsis, exec_descrip);
+ 	res |= ast_register_application(app_tryexec, tryexec_exec, tryexec_synopsis, tryexec_descrip);
++	res |= ast_register_application(app_execif, execif_exec, execif_synopsis, execif_descrip);
+ 	return res;
+ }
+ 
+
+Modified: trunk/apps/app_while.c
+===================================================================
+--- trunk/apps/app_while.c	2006-05-05 20:18:11 UTC (rev 63)
++++ trunk/apps/app_while.c	2006-05-05 21:18:26 UTC (rev 64)
+@@ -18,7 +18,7 @@
+ 
+ /*! \file
+  *
+- * \brief While Loop and ExecIf Implementations
++ * \brief While Loop Implementation
+  *
+  * \author Anthony Minessale &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">anthmct at yahoo.com</A>&gt;
+  * 
+@@ -47,14 +47,6 @@
+ #define ALL_DONE(u,ret) {LOCAL_USER_REMOVE(u); return ret;}
+ 
+ 
+-static char *exec_app = &quot;ExecIf&quot;;
+-static char *exec_desc = 
+-&quot;Usage:  ExecIF (&lt;expr&gt;|&lt;app&gt;|&lt;data&gt;)\n&quot;
+-&quot;If &lt;expr&gt; is true, execute and return the result of &lt;app&gt;(&lt;data&gt;).\n&quot;
+-&quot;If &lt;expr&gt; is true, but &lt;app&gt; is not found, then the application\n&quot;
+-&quot;will return a non-zero value.\n&quot;;
+-static char *exec_synopsis = &quot;Conditional exec&quot;;
+-
+ static char *start_app = &quot;While&quot;;
+ static char *start_desc = 
+ &quot;Usage:  While(&lt;expr&gt;)\n&quot;
+@@ -87,46 +79,6 @@
+ 
+ LOCAL_USER_DECL;
+ 
+-static int execif_exec(struct ast_channel *chan, void *data) {
+-	int res=0;
+-	struct localuser *u;
+-	char *myapp = NULL;
+-	char *mydata = NULL;
+-	char *expr = NULL;
+-	struct ast_app *app = NULL;
+-
+-	LOCAL_USER_ADD(u);
+-
+-	if (!(expr = ast_strdupa(data))) {
+-		LOCAL_USER_REMOVE(u);
+-		return -1;
+-	}
+-
+-	if ((myapp = strchr(expr,'|'))) {
+-		*myapp = '\0';
+-		myapp++;
+-		if ((mydata = strchr(myapp,'|'))) {
+-			*mydata = '\0';
+-			mydata++;
+-		} else
+-			mydata = &quot;&quot;;
+-
+-		if (pbx_checkcondition(expr)) { 
+-			if ((app = pbx_findapp(myapp))) {
+-				res = pbx_exec(chan, app, mydata);
+-			} else {
+-				ast_log(LOG_WARNING, &quot;Count not find application! (%s)\n&quot;, myapp);
+-				res = -1;
+-			}
+-		}
+-	} else {
+-		ast_log(LOG_ERROR,&quot;Invalid Syntax.\n&quot;);
+-		res = -1;
+-	}
+-		
+-	ALL_DONE(u,res);
+-}
+-
+ #define VAR_SIZE 64
+ 
+ 
+@@ -364,7 +316,6 @@
+ 	int res;
+ 	
+ 	res = ast_unregister_application(start_app);
+-	res |= ast_unregister_application(exec_app);
+ 	res |= ast_unregister_application(stop_app);
+ 	res |= ast_unregister_application(exit_app);
+ 	res |= ast_unregister_application(continue_app);
+@@ -379,7 +330,6 @@
+ 	int res;
+ 
+ 	res = ast_register_application(start_app, while_start_exec, start_synopsis, start_desc);
+-	res |= ast_register_application(exec_app, execif_exec, exec_synopsis, exec_desc);
+ 	res |= ast_register_application(stop_app, while_end_exec, stop_synopsis, stop_desc);
+ 	res |= ast_register_application(exit_app, while_exit_exec, exit_synopsis, exit_desc);
+ 	res |= ast_register_application(continue_app, while_continue_exec, continue_synopsis, continue_desc);
+
+Modified: trunk/cli.c
+===================================================================
+--- trunk/cli.c	2006-05-05 20:18:11 UTC (rev 63)
++++ trunk/cli.c	2006-05-05 21:18:26 UTC (rev 64)
+@@ -44,7 +44,6 @@
+ #include &quot;asterisk/module.h&quot;
+ #include &quot;asterisk/pbx.h&quot;
+ #include &quot;asterisk/channel.h&quot;
+-#include &quot;asterisk/manager.h&quot;
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/app.h&quot;
+ #include &quot;asterisk/lock.h&quot;
+
+Modified: trunk/include/asterisk/manager.h
+===================================================================
+--- trunk/include/asterisk/manager.h	2006-05-05 20:18:11 UTC (rev 63)
++++ trunk/include/asterisk/manager.h	2006-05-05 21:18:26 UTC (rev 64)
+@@ -81,8 +81,6 @@
+ 	struct manager_action *next;
+ };
+ 
+-int ast_carefulwrite(int fd, char *s, int len, int timeoutms);
+-
+ /* External routines may register/unregister manager callbacks this way */
+ #define ast_manager_register(a, b, c, d) ast_manager_register2(a, b, c, d, NULL)
+ 
+
+Modified: trunk/include/asterisk/utils.h
+===================================================================
+--- trunk/include/asterisk/utils.h	2006-05-05 20:18:11 UTC (rev 63)
++++ trunk/include/asterisk/utils.h	2006-05-05 21:18:26 UTC (rev 64)
+@@ -217,6 +217,17 @@
+ int ast_utils_init(void);
+ int ast_wait_for_input(int fd, int ms);
+ 
++/*! ast_carefulwrite
++	\brief Try to write string, but wait no more than ms milliseconds
++	before timing out.
++
++	\note If you are calling ast_carefulwrite, it is assumed that you are calling
++	it on a file descriptor that _DOES_ have NONBLOCK set.  This way,
++	there is only one system call made to do a write, unless we actually
++	have a need to wait.  This way, we get better performance.
++*/
++int ast_carefulwrite(int fd, char *s, int len, int timeoutms);
++
+ /*! Compares the source address and port of two sockaddr_in */
+ static force_inline int inaddrcmp(const struct sockaddr_in *sin1, const struct sockaddr_in *sin2)
+ {
+
+Modified: trunk/manager.c
+===================================================================
+--- trunk/manager.c	2006-05-05 20:18:11 UTC (rev 63)
++++ trunk/manager.c	2006-05-05 21:18:26 UTC (rev 64)
+@@ -168,38 +168,6 @@
+ static struct manager_action *first_action = NULL;
+ AST_MUTEX_DEFINE_STATIC(actionlock);
+ 
+-/*! If you are calling ast_carefulwrite, it is assumed that you are calling
+-   it on a file descriptor that _DOES_ have NONBLOCK set.  This way,
+-   there is only one system call made to do a write, unless we actually
+-   have a need to wait.  This way, we get better performance. */
+-int ast_carefulwrite(int fd, char *s, int len, int timeoutms) 
+-{
+-	/* Try to write string, but wait no more than ms milliseconds
+-	   before timing out */
+-	int res = 0;
+-	struct pollfd fds[1];
+-	while (len) {
+-		res = write(fd, s, len);
+-		if ((res &lt; 0) &amp;&amp; (errno != EAGAIN)) {
+-			return -1;
+-		}
+-		if (res &lt; 0)
+-			res = 0;
+-		len -= res;
+-		s += res;
+-		res = 0;
+-		if (len) {
+-			fds[0].fd = fd;
+-			fds[0].events = POLLOUT;
+-			/* Wait until writable again */
+-			res = poll(fds, 1, timeoutms);
+-			if (res &lt; 1)
+-				return -1;
+-		}
+-	}
+-	return res;
+-}
+-
+ /*! authority_to_str: Convert authority code to string with serveral options */
+ static char *authority_to_str(int authority, char *res, int reslen)
+ {
+
+Modified: trunk/res/res_agi.c
+===================================================================
+--- trunk/res/res_agi.c	2006-05-05 20:18:11 UTC (rev 63)
++++ trunk/res/res_agi.c	2006-05-05 21:18:26 UTC (rev 64)
+@@ -59,7 +59,6 @@
+ #include &quot;asterisk/app.h&quot;
+ #include &quot;asterisk/dsp.h&quot;
+ #include &quot;asterisk/musiconhold.h&quot;
+-#include &quot;asterisk/manager.h&quot;
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/lock.h&quot;
+ #include &quot;asterisk/strings.h&quot;
+
+Modified: trunk/utils.c
+===================================================================
+--- trunk/utils.c	2006-05-05 20:18:11 UTC (rev 63)
++++ trunk/utils.c	2006-05-05 21:18:26 UTC (rev 64)
+@@ -591,6 +591,34 @@
+ 	return poll(pfd, 1, ms);
+ }
+ 
++int ast_carefulwrite(int fd, char *s, int len, int timeoutms) 
++{
++	/* Try to write string, but wait no more than ms milliseconds
++	   before timing out */
++	int res = 0;
++	struct pollfd fds[1];
++	while (len) {
++		res = write(fd, s, len);
++		if ((res &lt; 0) &amp;&amp; (errno != EAGAIN)) {
++			return -1;
++		}
++		if (res &lt; 0)
++			res = 0;
++		len -= res;
++		s += res;
++		res = 0;
++		if (len) {
++			fds[0].fd = fd;
++			fds[0].events = POLLOUT;
++			/* Wait until writable again */
++			res = poll(fds, 1, timeoutms);
++			if (res &lt; 1)
++				return -1;
++		}
++	}
++	return res;
++}
++
+ char *ast_strip_quoted(char *s, const char *beg_quotes, const char *end_quotes)
+ {
+ 	char *e;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000060.html">[solid-pbx-svn] r63 - trunk/doc
+</A></li>
+	<LI>Next message: <A HREF="000062.html">[solid-pbx-svn] r65 - in trunk: . apps channels codecs configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#61">[ date ]</a>
+              <a href="thread.html#61">[ thread ]</a>
+              <a href="subject.html#61">[ subject ]</a>
+              <a href="author.html#61">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

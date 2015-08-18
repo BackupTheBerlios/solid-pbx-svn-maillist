@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r212 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r212%20-%20trunk/channels&In-Reply-To=%3C200606011625.k51GPQAm024749%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000206.html">
+   <LINK REL="Next"  HREF="000208.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r212 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r212%20-%20trunk/channels&In-Reply-To=%3C200606011625.k51GPQAm024749%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r212 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu Jun  1 18:25:26 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000206.html">[solid-pbx-svn] r211 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000208.html">[solid-pbx-svn] r213 - in trunk: . channels channels/misdn configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#207">[ date ]</a>
+              <a href="thread.html#207">[ thread ]</a>
+              <a href="subject.html#207">[ subject ]</a>
+              <a href="author.html#207">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-01 18:25:25 +0200 (Thu, 01 Jun 2006)
+New Revision: 212
+
+Modified:
+   trunk/channels/chan_skinny.c
+Log:
+Update to Asterisk SVN trunk r31407
+
+------------------------------------------------------------------------
+r31385 | north | 2006-06-01 17:44:35 +0200 (Thu, 01 Jun 2006) | 2 lines
+
+This is what I get for coding while tired..  sorry ;/
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_skinny.c
+===================================================================
+--- trunk/channels/chan_skinny.c	2006-06-01 15:26:10 UTC (rev 211)
++++ trunk/channels/chan_skinny.c	2006-06-01 16:25:25 UTC (rev 212)
+@@ -3123,8 +3123,7 @@
+ 	v = ast_variable_browse(cfg, &quot;general&quot;);
+ 	while(v) {
+ 		/* handle jb conf */
+-		if (!ast_jb_read_conf(&amp;global_jbconf, v-&gt;name, v-&gt;value))
+-		{
++		if (!ast_jb_read_conf(&amp;global_jbconf, v-&gt;name, v-&gt;value)) {
+ 			v = v-&gt;next;
+ 			continue;
+ 		}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000206.html">[solid-pbx-svn] r211 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000208.html">[solid-pbx-svn] r213 - in trunk: . channels channels/misdn configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#207">[ date ]</a>
+              <a href="thread.html#207">[ thread ]</a>
+              <a href="subject.html#207">[ subject ]</a>
+              <a href="author.html#207">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

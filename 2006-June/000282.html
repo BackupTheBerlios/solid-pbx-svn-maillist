@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r287 - in trunk/channels: . misdn
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r287%20-%20in%20trunk/channels%3A%20.%20misdn&In-Reply-To=%3C200606182238.k5IMcZ5w022565%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000281.html">
+   <LINK REL="Next"  HREF="000283.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r287 - in trunk/channels: . misdn</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r287%20-%20in%20trunk/channels%3A%20.%20misdn&In-Reply-To=%3C200606182238.k5IMcZ5w022565%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r287 - in trunk/channels: . misdn">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon Jun 19 00:38:35 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000281.html">[solid-pbx-svn] r286 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000283.html">[solid-pbx-svn] r288 - in trunk: apps build_tools cdr channels codecs formats funcs pbx res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#282">[ date ]</a>
+              <a href="thread.html#282">[ thread ]</a>
+              <a href="subject.html#282">[ subject ]</a>
+              <a href="author.html#282">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-19 00:38:32 +0200 (Mon, 19 Jun 2006)
+New Revision: 287
+
+Modified:
+   trunk/channels/chan_misdn.c
+   trunk/channels/misdn/isdn_lib.c
+Log:
+Update to Asterisk SVN trunk r32783
+
+------------------------------------------------------------------------
+r32779 | crichter | 2006-06-07 15:01:02 +0200 (Wed, 07 Jun 2006) | 1 line
+
+changed the clean_up_bc function to work proper again. fixed the print with the conference nr. when bridged
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_misdn.c
+===================================================================
+--- trunk/channels/chan_misdn.c	2006-06-18 22:37:53 UTC (rev 286)
++++ trunk/channels/chan_misdn.c	2006-06-18 22:38:32 UTC (rev 287)
+@@ -2273,7 +2273,7 @@
+ 		}
+ 		
+ 		/* trying to make a mISDN_dsp conference */
+-		chan_misdn_log(1, ch1-&gt;bc-&gt;port, &quot;I SEND: Making conference with Number:%d\n&quot;, (ch1-&gt;bc-&gt;pid&lt;&lt;1) +1);
++		chan_misdn_log(1, ch1-&gt;bc-&gt;port, &quot;I SEND: Making conference with Number:%d\n&quot;, ch1-&gt;bc-&gt;pid +1);
+ 
+ 		misdn_lib_bridge(ch1-&gt;bc,ch2-&gt;bc);
+ 	}
+@@ -2281,7 +2281,7 @@
+ 	if (option_verbose &gt; 2) 
+ 		ast_verbose(VERBOSE_PREFIX_3 &quot;Native bridging %s and %s\n&quot;, c0-&gt;name, c1-&gt;name);
+ 
+-	chan_misdn_log(1, ch1-&gt;bc-&gt;port, &quot;* Makeing Native Bridge between %s and %s\n&quot;, ch1-&gt;bc-&gt;oad, ch2-&gt;bc-&gt;oad);
++	chan_misdn_log(1, ch1-&gt;bc-&gt;port, &quot;* Making Native Bridge between %s and %s\n&quot;, ch1-&gt;bc-&gt;oad, ch2-&gt;bc-&gt;oad);
+   
+ 	while(1) {
+ 		to=-1;
+
+Modified: trunk/channels/misdn/isdn_lib.c
+===================================================================
+--- trunk/channels/misdn/isdn_lib.c	2006-06-18 22:37:53 UTC (rev 286)
++++ trunk/channels/misdn/isdn_lib.c	2006-06-18 22:38:32 UTC (rev 287)
+@@ -591,17 +591,16 @@
+ 		manager_ec_disable(bc);
+ 	}
+ 
+-	if (bc-&gt;bc_state == BCHAN_SETUP) 
+-		mISDN_write_frame(stack-&gt;midev, buff, bc-&gt;layer_id|FLG_MSG_DOWN, MGR_DELLAYER | REQUEST, 0, 0, NULL, TIMEOUT_1SEC);
+-	else
+-		mISDN_write_frame(stack-&gt;midev, buff, bc-&gt;addr|FLG_MSG_DOWN, MGR_DELLAYER | REQUEST, 0, 0, NULL, TIMEOUT_1SEC);
++	
++	mISDN_write_frame(stack-&gt;midev, buff, bc-&gt;layer_id|FLG_MSG_DOWN, MGR_DELLAYER | REQUEST, 0, 0, NULL, TIMEOUT_1SEC);
+ 
++#if 0
+ 	cb_log(3, stack-&gt;port, &quot;$$$ CLEARING STACK\n&quot;);
+-	
+ 	ret=mISDN_clear_stack(stack-&gt;midev,bc-&gt;b_stid);
+ 	if (ret&lt;0 &amp;&amp; errno) {
+ 		cb_log(-1,stack-&gt;port,&quot;clear stack failed [%s]\n&quot;,strerror(errno));
+ 	}
++#endif
+ 
+ 	bc-&gt;b_stid = 0;
+ 	bc_state_change(bc, BCHAN_CLEANED);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000281.html">[solid-pbx-svn] r286 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000283.html">[solid-pbx-svn] r288 - in trunk: apps build_tools cdr channels codecs formats funcs pbx res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#282">[ date ]</a>
+              <a href="thread.html#282">[ thread ]</a>
+              <a href="subject.html#282">[ subject ]</a>
+              <a href="author.html#282">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

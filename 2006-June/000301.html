@@ -1,0 +1,270 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r306 - in trunk: . build_tools channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r306%20-%20in%20trunk%3A%20.%20build_tools%20channels&In-Reply-To=%3C200606240220.k5O2KK5Y026216%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000300.html">
+   <LINK REL="Next"  HREF="000302.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r306 - in trunk: . build_tools channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r306%20-%20in%20trunk%3A%20.%20build_tools%20channels&In-Reply-To=%3C200606240220.k5O2KK5Y026216%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r306 - in trunk: . build_tools channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 24 04:20:20 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000300.html">[solid-pbx-svn] r305 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000302.html">[solid-pbx-svn] r307 - in trunk: build_tools include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#301">[ date ]</a>
+              <a href="thread.html#301">[ thread ]</a>
+              <a href="subject.html#301">[ subject ]</a>
+              <a href="author.html#301">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-24 04:20:03 +0200 (Sat, 24 Jun 2006)
+New Revision: 306
+
+Modified:
+   trunk/build_tools/menuselect.c
+   trunk/channels/chan_sip.c
+   trunk/rtp.c
+Log:
+Update to Asterisk SVN trunk r33113
+
+------------------------------------------------------------------------
+r33108 | oej | 2006-06-08 22:05:36 +0200 (Thu, 08 Jun 2006) | 2 lines
+
+Avoid using the name &quot;early media&quot; for media that is not early
+
+------------------------------------------------------------------------
+r33109 | oej | 2006-06-08 22:06:04 +0200 (Thu, 08 Jun 2006) | 2 lines
+
+Improve SIP history
+
+------------------------------------------------------------------------
+r33110 | oej | 2006-06-08 22:07:05 +0200 (Thu, 08 Jun 2006) | 2 lines
+
+Don't crash if chan2 does not exist (one-legged call situations, like echo)
+
+------------------------------------------------------------------------
+r33111 | oej | 2006-06-08 22:14:54 +0200 (Thu, 08 Jun 2006) | 2 lines
+
+At least reply if we get a fatal error in handling a packet.
+
+------------------------------------------------------------------------
+r33112 | oej | 2006-06-08 22:16:19 +0200 (Thu, 08 Jun 2006) | 2 lines
+
+Make menuselect compile on os/x...
+
+------------------------------------------------------------------------
+r33113 | oej | 2006-06-08 22:30:20 +0200 (Thu, 08 Jun 2006) | 2 lines
+
+Debug logging fixes
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/build_tools/menuselect.c
+===================================================================
+--- trunk/build_tools/menuselect.c	2006-06-24 02:18:12 UTC (rev 305)
++++ trunk/build_tools/menuselect.c	2006-06-24 02:20:03 UTC (rev 306)
+@@ -24,13 +24,13 @@
+  * \brief A menu-driven system for Asterisk module selection
+  */
+ 
+-#include &quot;asterisk.h&quot;
+-
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;unistd.h&gt;
+ 
++#include &quot;asterisk.h&quot;
++
+ #include &quot;mxml/mxml.h&quot;
+ #include &quot;menuselect.h&quot;
+ 
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-24 02:18:12 UTC (rev 305)
++++ trunk/channels/chan_sip.c	2006-06-24 02:20:03 UTC (rev 306)
+@@ -1112,7 +1112,6 @@
+ static int update_call_counter(struct sip_pvt *fup, int event);
+ static int hangup_sip2cause(int cause);
+ static const char *hangup_cause2sip(int cause);
+-static int sip_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ static struct sip_pvt *find_call(struct sip_request *req, struct sockaddr_in *sin, const int intended_method);
+ int local_attended_transfer(struct sip_pvt *transferer, struct sip_dual *current, struct sip_request *req, int seqno);
+ 
+@@ -1701,7 +1700,7 @@
+ 
+ 	if (option_debug)
+ 		ast_log(LOG_DEBUG, &quot;Auto destroying call '%s'\n&quot;, p-&gt;callid);
+-	append_history(p, &quot;AutoDestroy&quot;, &quot;&quot;);
++	append_history(p, &quot;AutoDestroy&quot;, &quot;%s&quot;, p-&gt;callid);
+ 	if (p-&gt;owner) {
+ 		ast_log(LOG_WARNING, &quot;Autodestruct on dialog '%s' with owner in place (Method: %s)\n&quot;, p-&gt;callid, sip_methods[p-&gt;method].text);
+ 		ast_queue_hangup(p-&gt;owner);
+@@ -2880,8 +2879,6 @@
+ 		ast_log(LOG_DEBUG, &quot;Asked to hangup channel that was not connected\n&quot;);
+ 		return 0;
+ 	}
+-	if (option_debug &amp;&amp; sipdebug)
+-		ast_log(LOG_DEBUG, &quot;Hangup call %s, SIP callid %s)\n&quot;, ast-&gt;name, p-&gt;callid);
+ 
+ 	if (ast_test_flag(&amp;p-&gt;flags[0], SIP_DEFER_BYE_ON_TRANSFER)) {
+ 		if (option_debug &gt;3)
+@@ -3089,8 +3086,16 @@
+ 	int ret = -1;
+ 	struct sip_pvt *p;
+ 
++	if (newchan &amp;&amp; ast_test_flag(newchan, AST_FLAG_ZOMBIE))
++		ast_log(LOG_DEBUG, &quot;New channel is zombie\n&quot;);
++	if (oldchan &amp;&amp; ast_test_flag(oldchan, AST_FLAG_ZOMBIE))
++		ast_log(LOG_DEBUG, &quot;Old channel is zombie\n&quot;);
++
+ 	if (!newchan || !newchan-&gt;tech_pvt) {
+-		ast_log(LOG_WARNING, &quot;No SIP tech_pvt! Fixup of %s failed.\n&quot;, oldchan-&gt;name);
++		if (!newchan)
++			ast_log(LOG_WARNING, &quot;No new channel! Fixup of %s failed.\n&quot;, oldchan-&gt;name);
++		else
++			ast_log(LOG_WARNING, &quot;No SIP tech_pvt! Fixup of %s failed.\n&quot;, oldchan-&gt;name);
+ 		return -1;
+ 	}
+ 	p = newchan-&gt;tech_pvt;
+@@ -11893,6 +11898,7 @@
+ 			copy_request(&amp;p-&gt;initreq, req);
+ 			if (debug)
+ 				ast_verbose(&quot;Using INVITE request as basis request - %s\n&quot;, p-&gt;callid);
++			append_history(p, &quot;Invite&quot;, &quot;New call: %s&quot;, p-&gt;callid);
+ 			parse_ok_contact(p, req);
+ 		} else {	/* Re-invite on existing call */
+ 			/* Handle SDP here if we already have an owner */
+@@ -12442,7 +12448,7 @@
+ 		return -1;
+ 	}
+ 
+-	if (sipdebug &amp;&amp; option_debug &gt; 3)
++	if (current.chan2 &amp;&amp; sipdebug &amp;&amp; option_debug &gt; 3)
+ 		ast_log(LOG_DEBUG, &quot;Got SIP transfer, applying to bridged peer '%s'\n&quot;, current.chan2-&gt;name);
+ 
+ 	/* Stop music on hold on this channel */
+@@ -13237,7 +13243,7 @@
+ 		/* becaues this is deadlock-prone, we need to try and unlock if failed */
+ 		if (p-&gt;owner &amp;&amp; ast_channel_trylock(p-&gt;owner)) {
+ 			if (option_debug)
+-				ast_log(LOG_DEBUG, &quot;Failed to grab lock, trying again...\n&quot;);
++				ast_log(LOG_DEBUG, &quot;Failed to grab owner channel lock, trying again. (SIP call %s)\n&quot;, p-&gt;callid);
+ 			ast_mutex_unlock(&amp;p-&gt;lock);
+ 			ast_mutex_unlock(&amp;netlock);
+ 			/* Sleep for a very short amount of time */
+@@ -13245,15 +13251,19 @@
+ 			if (--lockretry)
+ 				goto retrylock;
+ 		}
++		p-&gt;recv = sin;
++
++		if (recordhistory) /* This is a request or response, note what it was for */
++			append_history(p, &quot;Rx&quot;, &quot;%s / %s / %s&quot;, req.data, get_header(&amp;req, &quot;CSeq&quot;), req.rlPart2);
++
+ 		if (!lockretry) {
+-			ast_log(LOG_ERROR, &quot;We could NOT get the channel lock for %s! \n&quot;, p-&gt;owner-&gt;name);
+-			ast_log(LOG_ERROR, &quot;SIP MESSAGE JUST IGNORED: %s \n&quot;, req.data);
+-			ast_log(LOG_ERROR, &quot;BAD! BAD! BAD!\n&quot;);
++			ast_log(LOG_ERROR, &quot;We could NOT get the channel lock for %s! \n&quot;, p-&gt;owner-&gt;name ? p-&gt;owner-&gt;name : &quot;- no channel name ??? - &quot;);
++			ast_log(LOG_ERROR, &quot;SIP transaction failed: %s \n&quot;, p-&gt;callid);
++			transmit_response(p, &quot;503 Server error&quot;, &amp;req);	/* We must respond according to RFC 3261 sec 12.2 */
++					/* XXX We could add retry-after to make sure they come back */
++			append_history(p, &quot;LockFail&quot;, &quot;Owner lock failed, transaction failed.&quot;);
+ 			return 1;
+ 		}
+-		p-&gt;recv = sin;
+-		if (recordhistory) /* This is a request or response, note what it was for */
+-			append_history(p, &quot;Rx&quot;, &quot;%s / %s / %s&quot;, req.data, get_header(&amp;req, &quot;CSeq&quot;), req.rlPart2);
+ 		nounlock = 0;
+ 		if (handle_request(p, &amp;req, &amp;sin, &amp;recount, &amp;nounlock) == -1) {
+ 			/* Request failed */
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-06-24 02:18:12 UTC (rev 305)
++++ trunk/rtp.c	2006-06-24 02:20:03 UTC (rev 306)
+@@ -1225,6 +1225,7 @@
+ 	struct ast_rtp *vdestp, *vsrcp=NULL;		/* Video RTP channels */
+ 	struct ast_rtp_protocol *destpr, *srcpr=NULL;
+ 	int srccodec;
++
+ 	/* Lock channels */
+ 	ast_channel_lock(dest);
+ 	if (src) {
+@@ -1279,14 +1280,14 @@
+ 	/* Consider empty media as non-existant */
+ 	if (srcp &amp;&amp; !srcp-&gt;them.sin_addr.s_addr)
+ 		srcp = NULL;
+-	/* Bridge early media */
++	/* Bridge media early */
+ 	if (destpr-&gt;set_rtp_peer(dest, srcp, vsrcp, srccodec, srcp ? ast_test_flag(srcp, FLAG_NAT_ACTIVE) : 0))
+-		ast_log(LOG_WARNING, &quot;Channel '%s' failed to send early media to '%s'\n&quot;, dest-&gt;name, src ? src-&gt;name : &quot;&lt;unspecified&gt;&quot;);
++		ast_log(LOG_WARNING, &quot;Channel '%s' failed to setup early bridge to '%s'\n&quot;, dest-&gt;name, src ? src-&gt;name : &quot;&lt;unspecified&gt;&quot;);
+ 	ast_channel_unlock(dest);
+ 	if (src)
+ 		ast_channel_unlock(src);
+ 	if (option_debug)
+-		ast_log(LOG_DEBUG, &quot;Setting early  media SDP of '%s' with that of '%s'\n&quot;, dest-&gt;name, src ? src-&gt;name : &quot;&lt;unspecified&gt;&quot;);
++		ast_log(LOG_DEBUG, &quot;Setting early bridge SDP of '%s' with that of '%s'\n&quot;, dest-&gt;name, src ? src-&gt;name : &quot;&lt;unspecified&gt;&quot;);
+ 	return 1;
+ }
+ 
+@@ -1343,9 +1344,9 @@
+ 	else
+ 		srccodec = 0;
+ 	if (media) {
+-		/* Bridge early media */
++		/* Bridge early */
+ 		if (destpr-&gt;set_rtp_peer(dest, srcp, vsrcp, srccodec, ast_test_flag(srcp, FLAG_NAT_ACTIVE)))
+-			ast_log(LOG_WARNING, &quot;Channel '%s' failed to send early media to '%s'\n&quot;, dest-&gt;name, src-&gt;name);
++			ast_log(LOG_WARNING, &quot;Channel '%s' failed to setup early bridge to '%s'\n&quot;, dest-&gt;name, src-&gt;name);
+ 	}
+ 	ast_channel_unlock(dest);
+ 	ast_channel_unlock(src);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000300.html">[solid-pbx-svn] r305 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000302.html">[solid-pbx-svn] r307 - in trunk: build_tools include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#301">[ date ]</a>
+              <a href="thread.html#301">[ thread ]</a>
+              <a href="subject.html#301">[ subject ]</a>
+              <a href="author.html#301">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

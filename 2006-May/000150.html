@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r155 - in trunk: . funcs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r155%20-%20in%20trunk%3A%20.%20funcs&In-Reply-To=%3C200605160330.k4G3Uatw011299%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000149.html">
+   <LINK REL="Next"  HREF="000151.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r155 - in trunk: . funcs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r155%20-%20in%20trunk%3A%20.%20funcs&In-Reply-To=%3C200605160330.k4G3Uatw011299%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r155 - in trunk: . funcs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May 16 05:30:36 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000149.html">[solid-pbx-svn] r154 - trunk/funcs
+</A></li>
+        <LI>Next message: <A HREF="000151.html">[solid-pbx-svn] r156 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#150">[ date ]</a>
+              <a href="thread.html#150">[ thread ]</a>
+              <a href="subject.html#150">[ subject ]</a>
+              <a href="author.html#150">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-16 05:30:26 +0200 (Tue, 16 May 2006)
+New Revision: 155
+
+Modified:
+   trunk/funcs/func_cdr.c
+   trunk/image.c
+Log:
+Update to Asterisk SVN trunk r27270
+
+------------------------------------------------------------------------
+r27269 | russell | 2006-05-16 05:18:22 +0200 (Tue, 16 May 2006) | 3 lines
+
+fix bogus patch to allow setting the CDR amaflags.  (The original patch in
+issue #7166 was fine.)
+
+------------------------------------------------------------------------
+r27270 | russell | 2006-05-16 05:18:57 +0200 (Tue, 16 May 2006) | 2 lines
+
+return the result of the cli command registration
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/funcs/func_cdr.c
+===================================================================
+--- trunk/funcs/func_cdr.c	2006-05-15 20:30:05 UTC (rev 154)
++++ trunk/funcs/func_cdr.c	2006-05-16 03:30:26 UTC (rev 155)
+@@ -99,7 +99,7 @@
+ 	else if (!strcasecmp(args.variable, &quot;userfield&quot;))
+ 		ast_cdr_setuserfield(chan, value);
+ 	else if (!strcasecmp(args.variable, &quot;amaflags&quot;))
+-		ast_cdr_setuserfield(chan, value);
++		ast_cdr_setamaflags(chan, value);
+ 	else if (chan-&gt;cdr)
+ 		ast_cdr_setvar(chan-&gt;cdr, args.variable, value, ast_test_flag(&amp;flags, OPT_RECURSIVE));
+ 		/* No need to worry about the u flag, as all fields for which setting
+
+Modified: trunk/image.c
+===================================================================
+--- trunk/image.c	2006-05-15 20:30:05 UTC (rev 154)
++++ trunk/image.c	2006-05-16 03:30:26 UTC (rev 155)
+@@ -205,7 +205,6 @@
+ 
+ int ast_image_init(void)
+ {
+-	ast_cli_register(&amp;show_images);
+-	return 0;
++	return ast_cli_register(&amp;show_images);
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000149.html">[solid-pbx-svn] r154 - trunk/funcs
+</A></li>
+	<LI>Next message: <A HREF="000151.html">[solid-pbx-svn] r156 - in trunk: . channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#150">[ date ]</a>
+              <a href="thread.html#150">[ thread ]</a>
+              <a href="subject.html#150">[ subject ]</a>
+              <a href="author.html#150">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

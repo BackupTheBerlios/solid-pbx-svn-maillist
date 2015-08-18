@@ -1,0 +1,179 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r194 - in trunk: . channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r194%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200605302125.k4ULPX9g029402%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000188.html">
+   <LINK REL="Next"  HREF="000190.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r194 - in trunk: . channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r194%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200605302125.k4ULPX9g029402%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r194 - in trunk: . channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May 30 23:25:33 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000188.html">[solid-pbx-svn] r193 - trunk/codecs/gsm
+</A></li>
+        <LI>Next message: <A HREF="000190.html">[solid-pbx-svn] r195 - in trunk: . doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#189">[ date ]</a>
+              <a href="thread.html#189">[ thread ]</a>
+              <a href="subject.html#189">[ subject ]</a>
+              <a href="author.html#189">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-30 23:25:32 +0200 (Tue, 30 May 2006)
+New Revision: 194
+
+Modified:
+   trunk/channels/chan_jingle.c
+   trunk/sounds.txt
+Log:
+Update to Asterisk SVN trunk r30932
+
+------------------------------------------------------------------------
+r30906 | tilghman | 2006-05-30 22:24:40 +0200 (Tue, 30 May 2006) | 2 lines
+
+Bug 7237 - Replace recoded thread_safe_rand with the existing ast_random API
+
+------------------------------------------------------------------------
+r30907 | kpfleming | 2006-05-30 22:25:34 +0200 (Tue, 30 May 2006) | 2 lines
+
+remove some files that don't actually get used by the code
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_jingle.c
+===================================================================
+--- trunk/channels/chan_jingle.c	2006-05-30 20:25:30 UTC (rev 193)
++++ trunk/channels/chan_jingle.c	2006-05-30 21:25:32 UTC (rev 194)
+@@ -161,9 +161,6 @@
+ /* Protect the interface list (of sip_pvt's) */
+ AST_MUTEX_DEFINE_STATIC(jinglelock);
+ 
+-AST_MUTEX_DEFINE_STATIC(rand_lock);	/*!&lt; Lock for thread-safe random generator */
+-
+-
+ static struct ast_channel *jingle_request(const char *type, int format, void *data, int *cause);
+ static int jingle_digit(struct ast_channel *ast, char digit);
+ static int jingle_call(struct ast_channel *ast, char *dest, int timeout);
+@@ -393,17 +390,6 @@
+ 	return res;
+ }
+ 
+-static force_inline int thread_safe_rand(void)
+-{
+-	int val;
+-
+-	ast_mutex_lock(&amp;rand_lock);
+-	val = rand();
+-	ast_mutex_unlock(&amp;rand_lock);
+-
+-	return val;
+-}
+-
+ static struct ast_rtp *jingle_get_rtp_peer(struct ast_channel *chan)
+ {
+ 	struct jingle_pvt *p;
+@@ -567,8 +553,8 @@
+ 	ast_copy_string(ours1-&gt;name, &quot;rtp&quot;, sizeof(ours1-&gt;name));
+ 	ours1-&gt;port = ntohs(sin.sin_port);
+ 	ours1-&gt;preference = 1;
+-	snprintf(user, sizeof(user), &quot;%08x%08x&quot;, thread_safe_rand(), thread_safe_rand());
+-	snprintf(pass, sizeof(pass), &quot;%08x%08x&quot;, thread_safe_rand(), thread_safe_rand());
++	snprintf(user, sizeof(user), &quot;%08lx%08lx&quot;, ast_random(), ast_random());
++	snprintf(pass, sizeof(pass), &quot;%08lx%08lx&quot;, ast_random(), ast_random());
+ 	ast_copy_string(ours1-&gt;username, user, sizeof(ours1-&gt;username));
+ 	ast_copy_string(ours1-&gt;password, pass, sizeof(ours1-&gt;password));
+ 	ast_inet_ntoa(ours1-&gt;ip, sizeof(ours1-&gt;ip), us);
+@@ -579,8 +565,8 @@
+ 
+ 	if (!ast_strlen_zero(externip)) {
+ 		/* XXX We should really stun for this one not just go with externip XXX */
+-		snprintf(user, sizeof(user), &quot;%08x%08x&quot;, thread_safe_rand(), thread_safe_rand());
+-		snprintf(pass, sizeof(pass), &quot;%08x%08x&quot;, thread_safe_rand(), thread_safe_rand());
++		snprintf(user, sizeof(user), &quot;%08lx%08lx&quot;, ast_random(), ast_random());
++		snprintf(pass, sizeof(pass), &quot;%08lx%08lx&quot;, ast_random(), ast_random());
+ 		ast_copy_string(ours2-&gt;username, user, sizeof(ours2-&gt;username));
+ 		ast_copy_string(ours2-&gt;password, pass, sizeof(ours2-&gt;password));
+ 		ast_copy_string(ours2-&gt;ip, externip, sizeof(ours2-&gt;ip));
+
+Modified: trunk/sounds.txt
+===================================================================
+--- trunk/sounds.txt	2006-05-30 20:25:30 UTC (rev 193)
++++ trunk/sounds.txt	2006-05-30 21:25:32 UTC (rev 194)
+@@ -246,16 +246,6 @@
+ 
+ %vm-newuser.gsm%Welcome to Comedian Mail. First, I will guide you through a short setup process.
+ 
+-;%priv-sayname.gsm%After the tone, please say your name or the company you represent.
+-
+-;%priv-trying.gsm%Please hold while I attempt to contact your party.
+-
+-;%priv-callfrom.gsm%You have a call from
+-
+-;%priv-at.gsm%at
+-
+-;%priv-instruct.gsm%Press 1 to accept this call.  Press 2 to not accept this call.  Press 3 to always accept calls from this number.  Press 4 to never accept calls from this number.  Press 5 to reject calls from this number and request that they add you to their do not call list.
+-
+ %priv-callee-options.gsm%Dial 1 if you wish this caller to reach you directly now, and in the future.  Dial 2 if you wish to send this caller to voicemail now and forevermore.  Dial 3 to send this caller to the torture menus, now and forevermore.  Dial 4 to send this caller to a polite &quot;don't call&quot; menu, now and forevermore.  Dial 5 to allow this caller to come straight thru to you in the future, but just this once, send them to voicemail.
+ 
+ %screen-callee-options.gsm%You have these options: Dial 1 if you wish to immediately connect to the incoming call.  Dial 2 if you wish to send this caller to voicemail.  Dial 3 to send this caller to the torture menus.  Dial 4 to send this caller to a polite &quot;don't call&quot; menu.
+@@ -292,8 +282,6 @@
+ 
+ %forhelp.gsm%press 0 for help
+ 
+-%inithelp.gsm%1 to switch to playback mode
+-
+ %pause.gsm%pause
+ 
+ %paused.gsm%paused
+@@ -655,8 +643,6 @@
+ 
+ ; Misc 
+ 
+-%percent.gsm%percent [%]
+-
+ %plus.gsm%plus [+]
+ 
+ %exclaimation-point.gsm%exclaimation-point [!]
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000188.html">[solid-pbx-svn] r193 - trunk/codecs/gsm
+</A></li>
+	<LI>Next message: <A HREF="000190.html">[solid-pbx-svn] r195 - in trunk: . doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#189">[ date ]</a>
+              <a href="thread.html#189">[ thread ]</a>
+              <a href="subject.html#189">[ subject ]</a>
+              <a href="author.html#189">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

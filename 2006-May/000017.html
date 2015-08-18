@@ -1,0 +1,1101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r20 - in trunk: channels pbx pbx/ael
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r20%20-%20in%20trunk%3A%20channels%20pbx%20pbx/ael&In-Reply-To=%3C200605010119.k411J66N003093%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000016.html">
+   <LINK REL="Next"  HREF="000018.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r20 - in trunk: channels pbx pbx/ael</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r20%20-%20in%20trunk%3A%20channels%20pbx%20pbx/ael&In-Reply-To=%3C200605010119.k411J66N003093%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r20 - in trunk: channels pbx pbx/ael">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  1 03:19:06 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000016.html">[solid-pbx-svn] r19 - trunk/pbx/ael
+</A></li>
+        <LI>Next message: <A HREF="000018.html">[solid-pbx-svn] r21 - trunk/pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#17">[ date ]</a>
+              <a href="thread.html#17">[ thread ]</a>
+              <a href="subject.html#17">[ subject ]</a>
+              <a href="author.html#17">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-01 03:18:49 +0200 (Mon, 01 May 2006)
+New Revision: 20
+
+Modified:
+   trunk/channels/chan_zap.c
+   trunk/pbx/ael/ael.flex
+   trunk/pbx/ael/ael_lex.c
+   trunk/pbx/pbx_dundi.c
+Log:
+Update to Asterisk SVN trunk r23830
+
+------------------------------------------------------------------------
+r23805 | rizzo | 2006-05-01 02:20:11 +0200 (Mon, 01 May 2006) | 3 lines
+
+comment usage of contexts
+
+
+------------------------------------------------------------------------
+r23806 | rizzo | 2006-05-01 02:27:27 +0200 (Mon, 01 May 2006) | 3 lines
+
+always trim the trailing ';'
+
+
+------------------------------------------------------------------------
+r23807 | rizzo | 2006-05-01 02:31:47 +0200 (Mon, 01 May 2006) | 3 lines
+
+more simplifications
+
+
+------------------------------------------------------------------------
+r23808 | russell | 2006-05-01 02:33:24 +0200 (Mon, 01 May 2006) | 3 lines
+
+- convert the dundi precache list to use the list macros
+- change an instance of malloc+memset to ast_calloc
+
+------------------------------------------------------------------------
+r23809 | rizzo | 2006-05-01 02:51:38 +0200 (Mon, 01 May 2006) | 4 lines
+
+move some code used only --with-pri in the proper
+conditionally-compiled area.
+
+
+------------------------------------------------------------------------
+r23810 | russell | 2006-05-01 02:56:04 +0200 (Mon, 01 May 2006) | 2 lines
+
+conver the lists of dundi packets to use the list macros
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-05-01 00:19:38 UTC (rev 19)
++++ trunk/channels/chan_zap.c	2006-05-01 01:18:49 UTC (rev 20)
+@@ -941,15 +941,6 @@
+ }
+ 
+ 
+-static int zt_setlaw(int zfd, int law)
+-{
+-	int res;
+-	res = ioctl(zfd, ZT_SETLAW, &amp;law);
+-	if (res)
+-		return res;
+-	return 0;
+-}
+-
+ static int alloc_sub(struct zt_pvt *p, int x)
+ {
+ 	ZT_BUFFERINFO bi;
+@@ -8048,6 +8039,15 @@
+ 	}
+ }
+ 
++static int zt_setlaw(int zfd, int law)
++{
++	int res;
++	res = ioctl(zfd, ZT_SETLAW, &amp;law);
++	if (res)
++		return res;
++	return 0;
++}
++
+ static void *pri_dchannel(void *vpri)
+ {
+ 	struct zt_pri *pri = vpri;
+
+Modified: trunk/pbx/ael/ael.flex
+===================================================================
+--- trunk/pbx/ael/ael.flex	2006-05-01 00:19:38 UTC (rev 19)
++++ trunk/pbx/ael/ael.flex	2006-05-01 01:18:49 UTC (rev 20)
+@@ -74,7 +74,6 @@
+ static int pbcpop(char x);
+ 
+ static int parencount = 0;
+-static int commaout = 0;
+ 
+ /*
+  * current line, column and filename, updated as we read the input.
+@@ -224,7 +223,13 @@
+ 
+ 
+ 
+-
++	/*
++	 * context used for arguments of if_head, random_head, switch_head,
++	 * for (last statement), while (XXX why not iftime_head ?).
++	 * End with the matching parentheses.
++	 * A comma at the top level is valid here, unlike in argg where it
++	 * is an argument separator so it must be returned as a token.
++	 */
+ &lt;paren&gt;{NOPARENS}\)	{
+ 		if ( pbcpop(')') ) {	/* error */
+ 			STORE_LOC;
+@@ -268,6 +273,15 @@
+ 		yymore();
+ 	}
+ 
++
++	/*
++	 * handlers for arguments to a macro or application calls.
++	 * We enter this context when we find the initial '(' and
++	 * stay here until we close all matching parentheses,
++	 * and find the comma (argument separator) or the closing ')'
++	 * of the (external) call, which happens when parencount == 0
++	 * before the decrement.
++	 */
+ &lt;argg&gt;{NOARGG}[\(\[\{]	  {
+ 		char c = yytext[yyleng-1];
+ 		if (c == '(')
+@@ -305,23 +319,12 @@
+ 			yymore();
+ 		} else  {
+ 			STORE_LOC;
+-			if( !commaout ) {
+-				if( !strcmp(yytext,&quot;,&quot; ) ) {
+-					commaout = 0;
+-					my_col+=1;
+-					return COMMA;
+-				}
+-				yylval-&gt;str = strdup(yytext);
+-				/* printf(&quot;Got argg2 word %s\n&quot;, yylval-&gt;str); */
+-				unput(',');
+-				commaout = 1;
+-				yylval-&gt;str[yyleng-1] = '\0';
+-				return word;
+-			} else {
+-				commaout = 0;
+-				my_col+=1;
++			if( !strcmp(yytext,&quot;,&quot; ) )
+ 				return COMMA;
+-			}
++			yylval-&gt;str = strdup(yytext);
++			yylval-&gt;str[yyleng-1] = '\0';
++			unput(',');
++			return word;
+ 		}
+ 	}
+ 
+@@ -337,8 +340,11 @@
+ 		yymore();
+ 	}
+ 
+-
+-
++	/*
++	 * context used to find tokens in the right hand side of assignments,
++	 * or in the first and second operand of a 'for'. As above, match
++	 * commas and use ';' as a separator (hence return it as a separate token).
++	 */
+ &lt;semic&gt;{NOSEMIC}[\(\[\{]	{
+ 		char c = yytext[yyleng-1];
+ 		yymore();
+@@ -360,8 +366,7 @@
+ &lt;semic&gt;{NOSEMIC};	{
+ 		STORE_LOC;
+ 		yylval-&gt;str = strdup(yytext);
+-		if(yyleng &gt; 1)
+-			*(yylval-&gt;str+yyleng-1)=0;
++		yylval-&gt;str[yyleng-1] = '\0';
+ 		unput(';');
+ 		BEGIN(0);
+ 		return word;
+@@ -504,7 +509,7 @@
+ 	struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+ 	parencount = 0;
+ 	pbcpos = 0;
+-	pbcpush('(');
++	pbcpush('(');	/* push '(' so the last pcbpop (parencount= -1) will succeed */
+ 	c_prevword();
+ 	BEGIN(paren);
+ }
+@@ -523,8 +528,7 @@
+ 	struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+ 	parencount = 0;
+ 	pbcpos = 0;
+-	commaout = 0;
+-	pbcpush('(');
++	pbcpush('(');	/* push '(' so the last pcbpop (parencount= -1) will succeed */
+ 	c_prevword();
+ 	BEGIN(argg);
+ }
+
+Modified: trunk/pbx/ael/ael_lex.c
+===================================================================
+--- trunk/pbx/ael/ael_lex.c	2006-05-01 00:19:38 UTC (rev 19)
++++ trunk/pbx/ael/ael_lex.c	2006-05-01 01:18:49 UTC (rev 20)
+@@ -690,7 +690,6 @@
+ static int pbcpop(char x);
+ 
+ static int parencount = 0;
+-static int commaout = 0;
+ 
+ /*
+  * current line, column and filename, updated as we read the input.
+@@ -776,7 +775,7 @@
+ #define	STORE_POS
+ #define	STORE_LOC
+ #endif
+-#line 780 &quot;ael_lex.c&quot;
++#line 779 &quot;ael_lex.c&quot;
+ 
+ #define INITIAL 0
+ #define paren 1
+@@ -1016,10 +1015,10 @@
+ 	register int yy_act;
+     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+ 
+-#line 172 &quot;ael.flex&quot;
++#line 171 &quot;ael.flex&quot;
+ 
+ 
+-#line 1023 &quot;ael_lex.c&quot;
++#line 1022 &quot;ael_lex.c&quot;
+ 
+     yylval = yylval_param;
+ 
+@@ -1110,218 +1109,218 @@
+ 
+ case 1:
+ YY_RULE_SETUP
+-#line 174 &quot;ael.flex&quot;
++#line 173 &quot;ael.flex&quot;
+ { STORE_POS; return LC;}
+ 	YY_BREAK
+ case 2:
+ YY_RULE_SETUP
+-#line 175 &quot;ael.flex&quot;
++#line 174 &quot;ael.flex&quot;
+ { STORE_POS; return RC;}
+ 	YY_BREAK
+ case 3:
+ YY_RULE_SETUP
+-#line 176 &quot;ael.flex&quot;
++#line 175 &quot;ael.flex&quot;
+ { STORE_POS; return LP;}
+ 	YY_BREAK
+ case 4:
+ YY_RULE_SETUP
+-#line 177 &quot;ael.flex&quot;
++#line 176 &quot;ael.flex&quot;
+ { STORE_POS; return RP;}
+ 	YY_BREAK
+ case 5:
+ YY_RULE_SETUP
+-#line 178 &quot;ael.flex&quot;
++#line 177 &quot;ael.flex&quot;
+ { STORE_POS; return SEMI;}
+ 	YY_BREAK
+ case 6:
+ YY_RULE_SETUP
+-#line 179 &quot;ael.flex&quot;
++#line 178 &quot;ael.flex&quot;
+ { STORE_POS; return EQ;}
+ 	YY_BREAK
+ case 7:
+ YY_RULE_SETUP
+-#line 180 &quot;ael.flex&quot;
++#line 179 &quot;ael.flex&quot;
+ { STORE_POS; return COMMA;}
+ 	YY_BREAK
+ case 8:
+ YY_RULE_SETUP
+-#line 181 &quot;ael.flex&quot;
++#line 180 &quot;ael.flex&quot;
+ { STORE_POS; return COLON;}
+ 	YY_BREAK
+ case 9:
+ YY_RULE_SETUP
+-#line 182 &quot;ael.flex&quot;
++#line 181 &quot;ael.flex&quot;
+ { STORE_POS; return AMPER;}
+ 	YY_BREAK
+ case 10:
+ YY_RULE_SETUP
+-#line 183 &quot;ael.flex&quot;
++#line 182 &quot;ael.flex&quot;
+ { STORE_POS; return BAR;}
+ 	YY_BREAK
+ case 11:
+ YY_RULE_SETUP
+-#line 184 &quot;ael.flex&quot;
++#line 183 &quot;ael.flex&quot;
+ { STORE_POS; return EXTENMARK;}
+ 	YY_BREAK
+ case 12:
+ YY_RULE_SETUP
+-#line 185 &quot;ael.flex&quot;
++#line 184 &quot;ael.flex&quot;
+ { STORE_POS; return AT;}
+ 	YY_BREAK
+ case 13:
+ YY_RULE_SETUP
+-#line 186 &quot;ael.flex&quot;
++#line 185 &quot;ael.flex&quot;
+ {/*comment*/}
+ 	YY_BREAK
+ case 14:
+ YY_RULE_SETUP
+-#line 187 &quot;ael.flex&quot;
++#line 186 &quot;ael.flex&quot;
+ { STORE_POS; return KW_CONTEXT;}
+ 	YY_BREAK
+ case 15:
+ YY_RULE_SETUP
+-#line 188 &quot;ael.flex&quot;
++#line 187 &quot;ael.flex&quot;
+ { STORE_POS; return KW_ABSTRACT;}
+ 	YY_BREAK
+ case 16:
+ YY_RULE_SETUP
+-#line 189 &quot;ael.flex&quot;
++#line 188 &quot;ael.flex&quot;
+ { STORE_POS; return KW_MACRO;};
+ 	YY_BREAK
+ case 17:
+ YY_RULE_SETUP
+-#line 190 &quot;ael.flex&quot;
++#line 189 &quot;ael.flex&quot;
+ { STORE_POS; return KW_GLOBALS;}
+ 	YY_BREAK
+ case 18:
+ YY_RULE_SETUP
+-#line 191 &quot;ael.flex&quot;
++#line 190 &quot;ael.flex&quot;
+ { STORE_POS; return KW_IGNOREPAT;}
+ 	YY_BREAK
+ case 19:
+ YY_RULE_SETUP
+-#line 192 &quot;ael.flex&quot;
++#line 191 &quot;ael.flex&quot;
+ { STORE_POS; return KW_SWITCH;}
+ 	YY_BREAK
+ case 20:
+ YY_RULE_SETUP
+-#line 193 &quot;ael.flex&quot;
++#line 192 &quot;ael.flex&quot;
+ { STORE_POS; return KW_IF;}
+ 	YY_BREAK
+ case 21:
+ YY_RULE_SETUP
+-#line 194 &quot;ael.flex&quot;
++#line 193 &quot;ael.flex&quot;
+ { STORE_POS; return KW_IFTIME;}
+ 	YY_BREAK
+ case 22:
+ YY_RULE_SETUP
+-#line 195 &quot;ael.flex&quot;
++#line 194 &quot;ael.flex&quot;
+ { STORE_POS; return KW_RANDOM;}
+ 	YY_BREAK
+ case 23:
+ YY_RULE_SETUP
+-#line 196 &quot;ael.flex&quot;
++#line 195 &quot;ael.flex&quot;
+ { STORE_POS; return KW_REGEXTEN;}
+ 	YY_BREAK
+ case 24:
+ YY_RULE_SETUP
+-#line 197 &quot;ael.flex&quot;
++#line 196 &quot;ael.flex&quot;
+ { STORE_POS; return KW_HINT;}
+ 	YY_BREAK
+ case 25:
+ YY_RULE_SETUP
+-#line 198 &quot;ael.flex&quot;
++#line 197 &quot;ael.flex&quot;
+ { STORE_POS; return KW_ELSE;}
+ 	YY_BREAK
+ case 26:
+ YY_RULE_SETUP
+-#line 199 &quot;ael.flex&quot;
++#line 198 &quot;ael.flex&quot;
+ { STORE_POS; return KW_GOTO;}
+ 	YY_BREAK
+ case 27:
+ YY_RULE_SETUP
+-#line 200 &quot;ael.flex&quot;
++#line 199 &quot;ael.flex&quot;
+ { STORE_POS; return KW_JUMP;}
+ 	YY_BREAK
+ case 28:
+ YY_RULE_SETUP
+-#line 201 &quot;ael.flex&quot;
++#line 200 &quot;ael.flex&quot;
+ { STORE_POS; return KW_RETURN;}
+ 	YY_BREAK
+ case 29:
+ YY_RULE_SETUP
+-#line 202 &quot;ael.flex&quot;
++#line 201 &quot;ael.flex&quot;
+ { STORE_POS; return KW_BREAK;}
+ 	YY_BREAK
+ case 30:
+ YY_RULE_SETUP
+-#line 203 &quot;ael.flex&quot;
++#line 202 &quot;ael.flex&quot;
+ { STORE_POS; return KW_CONTINUE;}
+ 	YY_BREAK
+ case 31:
+ YY_RULE_SETUP
+-#line 204 &quot;ael.flex&quot;
++#line 203 &quot;ael.flex&quot;
+ { STORE_POS; return KW_FOR;}
+ 	YY_BREAK
+ case 32:
+ YY_RULE_SETUP
+-#line 205 &quot;ael.flex&quot;
++#line 204 &quot;ael.flex&quot;
+ { STORE_POS; return KW_WHILE;}
+ 	YY_BREAK
+ case 33:
+ YY_RULE_SETUP
+-#line 206 &quot;ael.flex&quot;
++#line 205 &quot;ael.flex&quot;
+ { STORE_POS; return KW_CASE;}
+ 	YY_BREAK
+ case 34:
+ YY_RULE_SETUP
+-#line 207 &quot;ael.flex&quot;
++#line 206 &quot;ael.flex&quot;
+ { STORE_POS; return KW_DEFAULT;}
+ 	YY_BREAK
+ case 35:
+ YY_RULE_SETUP
+-#line 208 &quot;ael.flex&quot;
++#line 207 &quot;ael.flex&quot;
+ { STORE_POS; return KW_PATTERN;}
+ 	YY_BREAK
+ case 36:
+ YY_RULE_SETUP
+-#line 209 &quot;ael.flex&quot;
++#line 208 &quot;ael.flex&quot;
+ { STORE_POS; return KW_CATCH;}
+ 	YY_BREAK
+ case 37:
+ YY_RULE_SETUP
+-#line 210 &quot;ael.flex&quot;
++#line 209 &quot;ael.flex&quot;
+ { STORE_POS; return KW_SWITCHES;}
+ 	YY_BREAK
+ case 38:
+ YY_RULE_SETUP
+-#line 211 &quot;ael.flex&quot;
++#line 210 &quot;ael.flex&quot;
+ { STORE_POS; return KW_ESWITCHES;}
+ 	YY_BREAK
+ case 39:
+ YY_RULE_SETUP
+-#line 212 &quot;ael.flex&quot;
++#line 211 &quot;ael.flex&quot;
+ { STORE_POS; return KW_INCLUDES;}
+ 	YY_BREAK
+ case 40:
+ /* rule 40 can match eol */
+ YY_RULE_SETUP
+-#line 214 &quot;ael.flex&quot;
++#line 213 &quot;ael.flex&quot;
+ { my_lineno++; my_col = 1; }
+ 	YY_BREAK
+ case 41:
+ YY_RULE_SETUP
+-#line 215 &quot;ael.flex&quot;
++#line 214 &quot;ael.flex&quot;
+ { my_col += yyleng; }
+ 	YY_BREAK
+ case 42:
+ YY_RULE_SETUP
+-#line 216 &quot;ael.flex&quot;
++#line 215 &quot;ael.flex&quot;
+ { my_col += (yyleng*8)-(my_col%8); }
+ 	YY_BREAK
+ case 43:
+ YY_RULE_SETUP
+-#line 218 &quot;ael.flex&quot;
++#line 217 &quot;ael.flex&quot;
+ {
+ 		STORE_POS;
+ 		yylval-&gt;str = strdup(yytext);
+@@ -1329,10 +1328,17 @@
+ 		return word;
+ 	}
+ 	YY_BREAK
++/*
++	 * context used for arguments of if_head, random_head, switch_head,
++	 * for (last statement), while (XXX why not iftime_head ?).
++	 * End with the matching parentheses.
++	 * A comma at the top level is valid here, unlike in argg where it
++	 * is an argument separator so it must be returned as a token.
++	 */
+ case 44:
+ /* rule 44 can match eol */
+ YY_RULE_SETUP
+-#line 228 &quot;ael.flex&quot;
++#line 233 &quot;ael.flex&quot;
+ {
+ 		if ( pbcpop(')') ) {	/* error */
+ 			STORE_LOC;
+@@ -1358,7 +1364,7 @@
+ case 45:
+ /* rule 45 can match eol */
+ YY_RULE_SETUP
+-#line 250 &quot;ael.flex&quot;
++#line 255 &quot;ael.flex&quot;
+ {
+ 		char c = yytext[yyleng-1];
+ 		if (c == '(')
+@@ -1370,7 +1376,7 @@
+ case 46:
+ /* rule 46 can match eol */
+ YY_RULE_SETUP
+-#line 258 &quot;ael.flex&quot;
++#line 263 &quot;ael.flex&quot;
+ {
+ 		char c = yytext[yyleng-1];
+ 		if ( pbcpop(c))  { /* error */
+@@ -1384,10 +1390,18 @@
+ 		yymore();
+ 	}
+ 	YY_BREAK
++/*
++	 * handlers for arguments to a macro or application calls.
++	 * We enter this context when we find the initial '(' and
++	 * stay here until we close all matching parentheses,
++	 * and find the comma (argument separator) or the closing ')'
++	 * of the (external) call, which happens when parencount == 0
++	 * before the decrement.
++	 */
+ case 47:
+ /* rule 47 can match eol */
+ YY_RULE_SETUP
+-#line 271 &quot;ael.flex&quot;
++#line 285 &quot;ael.flex&quot;
+ {
+ 		char c = yytext[yyleng-1];
+ 		if (c == '(')
+@@ -1399,7 +1413,7 @@
+ case 48:
+ /* rule 48 can match eol */
+ YY_RULE_SETUP
+-#line 279 &quot;ael.flex&quot;
++#line 293 &quot;ael.flex&quot;
+ {
+ 		if ( pbcpop(')') ) { /* error */
+ 			STORE_LOC;
+@@ -1427,36 +1441,25 @@
+ case 49:
+ /* rule 49 can match eol */
+ YY_RULE_SETUP
+-#line 303 &quot;ael.flex&quot;
++#line 317 &quot;ael.flex&quot;
+ {
+ 		if( parencount != 0) { /* printf(&quot;Folding in a comma!\n&quot;); */
+ 			yymore();
+ 		} else  {
+ 			STORE_LOC;
+-			if( !commaout ) {
+-				if( !strcmp(yytext,&quot;,&quot; ) ) {
+-					commaout = 0;
+-					my_col+=1;
+-					return COMMA;
+-				}
+-				yylval-&gt;str = strdup(yytext);
+-				/* printf(&quot;Got argg2 word %s\n&quot;, yylval-&gt;str); */
+-				unput(',');
+-				commaout = 1;
+-				yylval-&gt;str[yyleng-1] = '\0';
+-				return word;
+-			} else {
+-				commaout = 0;
+-				my_col+=1;
++			if( !strcmp(yytext,&quot;,&quot; ) )
+ 				return COMMA;
+-			}
++			yylval-&gt;str = strdup(yytext);
++			yylval-&gt;str[yyleng-1] = '\0';
++			unput(',');
++			return word;
+ 		}
+ 	}
+ 	YY_BREAK
+ case 50:
+ /* rule 50 can match eol */
+ YY_RULE_SETUP
+-#line 328 &quot;ael.flex&quot;
++#line 331 &quot;ael.flex&quot;
+ {
+ 		char c = yytext[yyleng-1];
+ 		if ( pbcpop(c) ) { /* error */
+@@ -1469,10 +1472,15 @@
+ 		yymore();
+ 	}
+ 	YY_BREAK
++/*
++	 * context used to find tokens in the right hand side of assignments,
++	 * or in the first and second operand of a 'for'. As above, match
++	 * commas and use ';' as a separator (hence return it as a separate token).
++	 */
+ case 51:
+ /* rule 51 can match eol */
+ YY_RULE_SETUP
+-#line 342 &quot;ael.flex&quot;
++#line 348 &quot;ael.flex&quot;
+ {
+ 		char c = yytext[yyleng-1];
+ 		yymore();
+@@ -1482,7 +1490,7 @@
+ case 52:
+ /* rule 52 can match eol */
+ YY_RULE_SETUP
+-#line 348 &quot;ael.flex&quot;
++#line 354 &quot;ael.flex&quot;
+ {
+ 		char c = yytext[yyleng-1];
+ 		if ( pbcpop(c) ) { /* error */
+@@ -1498,12 +1506,11 @@
+ case 53:
+ /* rule 53 can match eol */
+ YY_RULE_SETUP
+-#line 360 &quot;ael.flex&quot;
++#line 366 &quot;ael.flex&quot;
+ {
+ 		STORE_LOC;
+ 		yylval-&gt;str = strdup(yytext);
+-		if(yyleng &gt; 1)
+-			*(yylval-&gt;str+yyleng-1)=0;
++		yylval-&gt;str[yyleng-1] = '\0';
+ 		unput(';');
+ 		BEGIN(0);
+ 		return word;
+@@ -1512,7 +1519,7 @@
+ case 54:
+ /* rule 54 can match eol */
+ YY_RULE_SETUP
+-#line 370 &quot;ael.flex&quot;
++#line 375 &quot;ael.flex&quot;
+ {
+ 		FILE *in1;
+ 		char fnamebuf[1024],*p1,*p2;
+@@ -1579,7 +1586,7 @@
+ case YY_STATE_EOF(paren):
+ case YY_STATE_EOF(semic):
+ case YY_STATE_EOF(argg):
+-#line 432 &quot;ael.flex&quot;
++#line 437 &quot;ael.flex&quot;
+ {
+ 		if ( --include_stack_index &lt; 0 ) {
+ 			yyterminate();
+@@ -1595,10 +1602,10 @@
+ 	YY_BREAK
+ case 55:
+ YY_RULE_SETUP
+-#line 445 &quot;ael.flex&quot;
++#line 450 &quot;ael.flex&quot;
+ ECHO;
+ 	YY_BREAK
+-#line 1602 &quot;ael_lex.c&quot;
++#line 1609 &quot;ael_lex.c&quot;
+ 
+ 	case YY_END_OF_BUFFER:
+ 		{
+@@ -2728,7 +2735,7 @@
+ 
+ #define YYTABLES_NAME &quot;yytables&quot;
+ 
+-#line 445 &quot;ael.flex&quot;
++#line 450 &quot;ael.flex&quot;
+ 
+ 
+ 
+@@ -2792,7 +2799,7 @@
+ 	struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+ 	parencount = 0;
+ 	pbcpos = 0;
+-	pbcpush('(');
++	pbcpush('(');	/* push '(' so the last pcbpop (parencount= -1) will succeed */
+ 	c_prevword();
+ 	BEGIN(paren);
+ }
+@@ -2811,8 +2818,7 @@
+ 	struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+ 	parencount = 0;
+ 	pbcpos = 0;
+-	commaout = 0;
+-	pbcpush('(');
++	pbcpush('(');	/* push '(' so the last pcbpop (parencount= -1) will succeed */
+ 	c_prevword();
+ 	BEGIN(argg);
+ }
+
+Modified: trunk/pbx/pbx_dundi.c
+===================================================================
+--- trunk/pbx/pbx_dundi.c	2006-05-01 00:19:38 UTC (rev 19)
++++ trunk/pbx/pbx_dundi.c	2006-05-01 01:18:49 UTC (rev 20)
+@@ -139,8 +139,8 @@
+ };
+ 
+ struct dundi_packet {
++	AST_LIST_ENTRY(dundi_packet) list;
+ 	struct dundi_hdr *h;
+-	struct dundi_packet *next;
+ 	int datalen;
+ 	struct dundi_transaction *parent;
+ 	int retransid;
+@@ -154,7 +154,7 @@
+ };
+ 
+ struct dundi_precache_queue {
+-	struct dundi_precache_queue *next;
++	AST_LIST_ENTRY(dundi_precache_queue) list;
+ 	char *context;
+ 	time_t expiration;
+ 	char number[0];
+@@ -183,8 +183,8 @@
+ 	unsigned char oiseqno;                         /*!&lt; Last received incoming seqno */
+ 	unsigned char oseqno;                          /*!&lt; Next transmitted seqno */
+ 	unsigned char aseqno;                          /*!&lt; Last acknowledge seqno */
+-	struct dundi_packet *packets;                  /*!&lt; Packets to be retransmitted */
+-	struct dundi_packet *lasttrans;                /*!&lt; Last transmitted / ACK'd packet */
++	AST_LIST_HEAD_NOLOCK(packetlist, dundi_packet) packets;  /*!&lt; Packets to be retransmitted */
++	struct packetlist lasttrans;                   /*!&lt; Last transmitted / ACK'd packet */
+ 	struct dundi_request *parent;                  /*!&lt; Parent request (if there is one) */
+ 	AST_LIST_ENTRY(dundi_transaction) parentlist;  /*!&lt; Next with respect to the parent */
+ 	AST_LIST_ENTRY(dundi_transaction) all;         /*!&lt; Next with respect to all DUNDi transactions */
+@@ -259,14 +259,11 @@
+ };
+ 
+ AST_LIST_HEAD_STATIC(peers, dundi_peer);
++AST_LIST_HEAD_STATIC(pcq, dundi_precache_queue);
+ AST_LIST_HEAD_NOLOCK_STATIC(mappings, dundi_mapping);
+ AST_LIST_HEAD_NOLOCK_STATIC(requests, dundi_request);
+ AST_LIST_HEAD_NOLOCK_STATIC(alltrans, dundi_transaction);
+ 
+-static struct dundi_precache_queue *pcq;
+-
+-AST_MUTEX_DEFINE_STATIC(pclock);
+-
+ static int dundi_xmit(struct dundi_packet *pack);
+ 
+ static void dundi_debug_output(const char *data)
+@@ -1796,7 +1793,7 @@
+ 			dundi_send(trans, DUNDI_COMMAND_CANCEL, 0, 1, NULL);
+ 		break;
+ 	case DUNDI_COMMAND_ENCREJ:
+-		if ((ast_test_flag(trans, FLAG_SENDFULLKEY)) || !trans-&gt;lasttrans || !(peer = find_peer(&amp;trans-&gt;them_eid))) {
++		if ((ast_test_flag(trans, FLAG_SENDFULLKEY)) || AST_LIST_EMPTY(&amp;trans-&gt;lasttrans) || !(peer = find_peer(&amp;trans-&gt;them_eid))) {
+ 			/* No really, it's over at this point */
+ 			if (!final) 
+ 				dundi_send(trans, DUNDI_COMMAND_CANCEL, 0, 1, NULL);
+@@ -1813,7 +1810,7 @@
+ 					hdr-&gt;cmdresp &amp;= 0x7f;
+ 					/* Parse the message we transmitted */
+ 					memset(&amp;ies, 0, sizeof(ies));
+-					dundi_parse_ies(&amp;ies, trans-&gt;lasttrans-&gt;h-&gt;ies, trans-&gt;lasttrans-&gt;datalen - sizeof(struct dundi_hdr));
++					dundi_parse_ies(&amp;ies, (AST_LIST_FIRST(&amp;trans-&gt;lasttrans))-&gt;h-&gt;ies, (AST_LIST_FIRST(&amp;trans-&gt;lasttrans))-&gt;datalen - sizeof(struct dundi_hdr));
+ 					/* Reconstruct outgoing encrypted packet */
+ 					memset(&amp;ied, 0, sizeof(ied));
+ 					dundi_ie_append_eid(&amp;ied, DUNDI_IE_EID, &amp;trans-&gt;us_eid);
+@@ -1821,7 +1818,7 @@
+ 					dundi_ie_append_raw(&amp;ied, DUNDI_IE_SIGNATURE, peer-&gt;txenckey + 128, 128);
+ 					if (ies.encblock) 
+ 						dundi_ie_append_encdata(&amp;ied, DUNDI_IE_ENCDATA, ies.encblock-&gt;iv, ies.encblock-&gt;encdata, ies.enclen);
+-					dundi_send(trans, DUNDI_COMMAND_ENCRYPT, 0, trans-&gt;lasttrans-&gt;h-&gt;cmdresp &amp; 0x80, &amp;ied);
++					dundi_send(trans, DUNDI_COMMAND_ENCRYPT, 0, (AST_LIST_FIRST(&amp;trans-&gt;lasttrans))-&gt;h-&gt;cmdresp &amp; 0x80, &amp;ied);
+ 					peer-&gt;sentfullkey = 1;
+ 				}
+ 			}
+@@ -1880,39 +1877,38 @@
+ }
+ 
+ static void destroy_packet(struct dundi_packet *pack, int needfree);
+-static void destroy_packets(struct dundi_packet *p)
++static void destroy_packets(struct packetlist *p)
+ {
+-	struct dundi_packet *prev;
+-	while(p) {
+-		prev = p;
+-		p = p-&gt;next;
+-		if (prev-&gt;retransid &gt; -1)
+-			ast_sched_del(sched, prev-&gt;retransid);
+-		free(prev);
++	struct dundi_packet *pack;
++	
++	while ((pack = AST_LIST_REMOVE_HEAD(p, list))) {
++		if (pack-&gt;retransid &gt; -1)
++			ast_sched_del(sched, pack-&gt;retransid);
++		free(pack);
+ 	}
+ }
+ 
+ 
+ static int ack_trans(struct dundi_transaction *trans, int iseqno)
+ {
+-	/* Ack transmitted packet corresponding to iseqno */
+ 	struct dundi_packet *pack;
+-	pack = trans-&gt;packets;
+-	while(pack) {
++
++	/* Ack transmitted packet corresponding to iseqno */
++	AST_LIST_TRAVERSE(&amp;trans-&gt;packets, pack, list) {
+ 		if ((pack-&gt;h-&gt;oseqno + 1) % 255 == iseqno) {
+ 			destroy_packet(pack, 0);
+-			if (trans-&gt;lasttrans) {
++			if (!AST_LIST_EMPTY(&amp;trans-&gt;lasttrans)) {
+ 				ast_log(LOG_WARNING, &quot;Whoa, there was still a last trans?\n&quot;);
+-				destroy_packets(trans-&gt;lasttrans);
++				destroy_packets(&amp;trans-&gt;lasttrans);
+ 			}
+-			trans-&gt;lasttrans = pack;
++			AST_LIST_INSERT_HEAD(&amp;trans-&gt;lasttrans, pack, list);
+ 			if (trans-&gt;autokillid &gt; -1)
+ 				ast_sched_del(sched, trans-&gt;autokillid);
+ 			trans-&gt;autokillid = -1;
+ 			return 1;
+ 		}
+-		pack = pack-&gt;next;
+ 	}
++
+ 	return 0;
+ }
+ 
+@@ -1942,8 +1938,7 @@
+ 			trans-&gt;aseqno = trans-&gt;iseqno;
+ 		}
+ 		/* Delete any saved last transmissions */
+-		destroy_packets(trans-&gt;lasttrans);
+-		trans-&gt;lasttrans = NULL;
++		destroy_packets(&amp;trans-&gt;lasttrans);
+ 		if (h-&gt;cmdresp &amp; 0x80) {
+ 			/* Final -- destroy now */
+ 			destroy_trans(trans, 0);
+@@ -2099,30 +2094,31 @@
+ 	char context[256];
+ 	char number[256];
+ 	int run;
++
+ 	for (;;) {
+ 		time(&amp;now);
+ 		run = 0;
+-		ast_mutex_lock(&amp;pclock);
+-		if (pcq) {
+-			if (!pcq-&gt;expiration) {
++		AST_LIST_LOCK(&amp;pcq);
++		if ((qe = AST_LIST_FIRST(&amp;pcq))) {
++			if (!qe-&gt;expiration) {
+ 				/* Gone...  Remove... */
+-				qe = pcq;
+-				pcq = pcq-&gt;next;
++				AST_LIST_REMOVE_HEAD(&amp;pcq, list);
+ 				free(qe);
+-			} else if (pcq-&gt;expiration &lt; now) {
++			} else if (qe-&gt;expiration &lt; now) {
+ 				/* Process this entry */
+-				pcq-&gt;expiration = 0;
+-				ast_copy_string(context, pcq-&gt;context, sizeof(context));
+-				ast_copy_string(number, pcq-&gt;number, sizeof(number));
++				qe-&gt;expiration = 0;
++				ast_copy_string(context, qe-&gt;context, sizeof(context));
++				ast_copy_string(number, qe-&gt;number, sizeof(number));
+ 				run = 1;
+ 			}
+ 		}
+-		ast_mutex_unlock(&amp;pclock);
++		AST_LIST_UNLOCK(&amp;pcq);
+ 		if (run) {
+ 			dundi_precache(context, number);
+ 		} else
+ 			sleep(1);
+ 	}
++
+ 	return NULL;
+ }
+ 
+@@ -2606,9 +2602,9 @@
+ 	if (argc != 3)
+ 		return RESULT_SHOWUSAGE;
+ 	time(&amp;now);
+-	ast_mutex_lock(&amp;pclock);
+ 	ast_cli(fd, FORMAT2, &quot;Number&quot;, &quot;Context&quot;, &quot;Expiration&quot;);
+-	for (qe = pcq;qe;qe = qe-&gt;next) {
++	AST_LIST_LOCK(&amp;pcq);
++	AST_LIST_TRAVERSE(&amp;pcq, qe, list) {
+ 		s = qe-&gt;expiration - now;
+ 		h = s / 3600;
+ 		s = s % 3600;
+@@ -2616,7 +2612,8 @@
+ 		s = s % 60;
+ 		ast_cli(fd, FORMAT, qe-&gt;number, qe-&gt;context, h,m,s);
+ 	}
+-	ast_mutex_unlock(&amp;pclock);
++	AST_LIST_UNLOCK(&amp;pcq);
++	
+ 	return RESULT_SUCCESS;
+ #undef FORMAT
+ #undef FORMAT2
+@@ -2789,30 +2786,14 @@
+ 
+ static void destroy_packet(struct dundi_packet *pack, int needfree)
+ {
+-	struct dundi_packet *prev, *cur;
+-	if (pack-&gt;parent) {
+-		prev = NULL;
+-		cur = pack-&gt;parent-&gt;packets;
+-		while(cur) {
+-			if (cur == pack) {
+-				if (prev)
+-					prev-&gt;next = cur-&gt;next;
+-				else
+-					pack-&gt;parent-&gt;packets = cur-&gt;next;
+-				break;
+-			}
+-			prev = cur;
+-			cur = cur-&gt;next;
+-		}
+-	}
++	if (pack-&gt;parent)
++		AST_LIST_REMOVE(&amp;pack-&gt;parent-&gt;packets, pack, list);
+ 	if (pack-&gt;retransid &gt; -1)
+ 		ast_sched_del(sched, pack-&gt;retransid);
+ 	if (needfree)
+ 		free(pack);
+-	else {
++	else
+ 		pack-&gt;retransid = -1;
+-		pack-&gt;next = NULL;
+-	}
+ }
+ 
+ static void destroy_trans(struct dundi_transaction *trans, int fromtimeout)
+@@ -2886,10 +2867,8 @@
+ 	}
+ 	/* Unlink from all trans */
+ 	AST_LIST_REMOVE(&amp;alltrans, trans, all);
+-	destroy_packets(trans-&gt;packets);
+-	destroy_packets(trans-&gt;lasttrans);
+-	trans-&gt;packets = NULL;
+-	trans-&gt;lasttrans = NULL;
++	destroy_packets(&amp;trans-&gt;packets);
++	destroy_packets(&amp;trans-&gt;lasttrans);
+ 	if (trans-&gt;autokillid &gt; -1)
+ 		ast_sched_del(sched, trans-&gt;autokillid);
+ 	trans-&gt;autokillid = -1;
+@@ -2942,8 +2921,7 @@
+ 		if (cmdresp != DUNDI_COMMAND_ACK) {
+ 			pack-&gt;retransid = ast_sched_add(sched, trans-&gt;retranstimer, dundi_rexmit, pack);
+ 			pack-&gt;retrans = DUNDI_DEFAULT_RETRANS - 1;
+-			pack-&gt;next = trans-&gt;packets;
+-			trans-&gt;packets = pack;
++			AST_LIST_INSERT_HEAD(&amp;trans-&gt;packets, pack, list);
+ 		}
+ 		pack-&gt;parent = trans;
+ 		pack-&gt;h-&gt;strans = htons(trans-&gt;strans);
+@@ -3553,45 +3531,37 @@
+ static void reschedule_precache(const char *number, const char *context, int expiration)
+ {
+ 	int len;
+-	struct dundi_precache_queue *qe, *prev=NULL;
+-	ast_mutex_lock(&amp;pclock);
+-	qe = pcq;
+-	while(qe) {
++	struct dundi_precache_queue *qe, *prev;
++
++	AST_LIST_LOCK(&amp;pcq);
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;pcq, qe, list) {
+ 		if (!strcmp(number, qe-&gt;number) &amp;&amp; !strcasecmp(context, qe-&gt;context)) {
+-			if (prev)
+-				prev-&gt;next = qe-&gt;next;
+-			else
+-				pcq = qe-&gt;next;
+-			qe-&gt;next = NULL;
++			AST_LIST_REMOVE_CURRENT(&amp;pcq, list);
+ 			break;
+ 		}
+-		prev = qe;
+-		qe = qe-&gt;next;
+-	};
++	}
++	AST_LIST_TRAVERSE_SAFE_END
+ 	if (!qe) {
+-		len = sizeof(struct dundi_precache_queue);
++		len = sizeof(*qe);
+ 		len += strlen(number) + 1;
+ 		len += strlen(context) + 1;
+-		qe = malloc(len);
+-		if (qe) {
+-			memset(qe, 0, len);
+-			strcpy(qe-&gt;number, number);
+-			qe-&gt;context = qe-&gt;number + strlen(number) + 1;
+-			strcpy(qe-&gt;context, context);
++		if (!(qe = ast_calloc(1, len))) {
++			AST_LIST_UNLOCK(&amp;pcq);
++			return;
+ 		}
++		strcpy(qe-&gt;number, number);
++		qe-&gt;context = qe-&gt;number + strlen(number) + 1;
++		strcpy(qe-&gt;context, context);
+ 	}
+ 	time(&amp;qe-&gt;expiration);
+ 	qe-&gt;expiration += expiration;
+-	prev = pcq;
+-	if (prev) {
+-		while(prev-&gt;next &amp;&amp; (prev-&gt;next-&gt;expiration &lt;= qe-&gt;expiration))
+-			prev = prev-&gt;next;
+-		qe-&gt;next = prev-&gt;next;
+-		prev-&gt;next = qe;
++	if ((prev = AST_LIST_FIRST(&amp;pcq))) {
++		while (AST_LIST_NEXT(prev, list) &amp;&amp; ((AST_LIST_NEXT(prev, list))-&gt;expiration &lt;= qe-&gt;expiration))
++			prev = AST_LIST_NEXT(prev, list);
++		AST_LIST_INSERT_AFTER(&amp;pcq, prev, qe, list);
+ 	} else
+-		pcq = qe;
+-	ast_mutex_unlock(&amp;pclock);
+-	
++		AST_LIST_INSERT_HEAD(&amp;pcq, qe, list);
++	AST_LIST_UNLOCK(&amp;pcq);
+ }
+ 
+ static void dundi_precache_full(void)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000016.html">[solid-pbx-svn] r19 - trunk/pbx/ael
+</A></li>
+	<LI>Next message: <A HREF="000018.html">[solid-pbx-svn] r21 - trunk/pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#17">[ date ]</a>
+              <a href="thread.html#17">[ thread ]</a>
+              <a href="subject.html#17">[ subject ]</a>
+              <a href="author.html#17">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,271 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r129 - in trunk: . pbx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r129%20-%20in%20trunk%3A%20.%20pbx&In-Reply-To=%3C200605102128.k4ALSxZY020774%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000124.html">
+   <LINK REL="Next"  HREF="000126.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r129 - in trunk: . pbx</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r129%20-%20in%20trunk%3A%20.%20pbx&In-Reply-To=%3C200605102128.k4ALSxZY020774%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r129 - in trunk: . pbx">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 10 23:28:59 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000124.html">[solid-pbx-svn] r128 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000126.html">[solid-pbx-svn] r130 - in trunk: . pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#125">[ date ]</a>
+              <a href="thread.html#125">[ thread ]</a>
+              <a href="subject.html#125">[ subject ]</a>
+              <a href="author.html#125">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-10 23:28:56 +0200 (Wed, 10 May 2006)
+New Revision: 129
+
+Modified:
+   trunk/pbx.c
+   trunk/pbx/pbx_realtime.c
+Log:
+Update to Asterisk SVN trunk r26655
+
+------------------------------------------------------------------------
+r26624 | rizzo | 2006-05-10 22:34:18 +0200 (Wed, 10 May 2006) | 6 lines
+
+lots of comments trying to document the agreed behaviour of
+E_MATCHMORE and '!'.
+If the comments are correct, the code must be slightly changed
+(simplified).
+
+
+------------------------------------------------------------------------
+r26625 | rizzo | 2006-05-10 22:44:28 +0200 (Wed, 10 May 2006) | 3 lines
+
+lock conlock before accessing the list.
+
+
+------------------------------------------------------------------------
+r26655 | rizzo | 2006-05-10 23:12:55 +0200 (Wed, 10 May 2006) | 3 lines
+
+start cleanup indentation etc.
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/pbx/pbx_realtime.c
+===================================================================
+--- trunk/pbx/pbx_realtime.c	2006-05-10 20:28:50 UTC (rev 128)
++++ trunk/pbx/pbx_realtime.c	2006-05-10 21:28:56 UTC (rev 129)
+@@ -76,34 +76,27 @@
+ */
+ 
+ 
+-#define REALTIME_COMMON(mode) \
+-	char *buf; \
+-	char *opts; \
+-	const char *cxt; \
+-	char *table; \
+-	int res=-1; \
+-	struct ast_variable *var=NULL; \
+-	buf = ast_strdupa(data); \
+-	if (buf) { \
+-		opts = strchr(buf, '/'); \
+-		if (opts) { \
+-			*opts='\0'; \
+-			opts++; \
+-		} else \
+-			opts=&quot;&quot;; \
+-		table = strchr(buf, '@'); \
+-		if (table) { \
+-			*table = '\0'; \
+-			table++;\
+-			cxt = buf; \
+-		} else cxt = NULL; \
+-		if (ast_strlen_zero(cxt)) \
+-			cxt = context;\
+-		if (ast_strlen_zero(table)) \
+-			table = &quot;extensions&quot;; \
+-		var = realtime_switch_common(table, cxt, exten, priority, mode); \
+-	} else \
+-		res = -1; 
++#define REALTIME_COMMON(mode)				\
++	const char *ctx = NULL;				\
++	char *table;					\
++	int res = -1;					\
++	struct ast_variable *var=NULL;			\
++	char *buf = ast_strdupa(data);			\
++	if (buf) {					\
++		char *opts = strchr(buf, '/');		\
++		if (opts)				\
++			*opts++ = '\0';			\
++		else					\
++			opts=&quot;&quot;;			\
++		table = strchr(buf, '@');		\
++		if (table) {				\
++			*table++ = '\0';		\
++			ctx = buf;			\
++		}					\
++		ctx = S_OR(ctx, context);		\
++		table = S_OR(table, &quot;extensions&quot;);	\
++		var = realtime_switch_common(table, ctx, exten, priority, mode); \
++	}
+ 
+ static struct ast_variable *realtime_switch_common(const char *table, const char *context, const char *exten, int priority, int mode)
+ {
+@@ -161,8 +154,9 @@
+ static int realtime_exists(struct ast_channel *chan, const char *context, const char *exten, int priority, const char *callerid, const char *data)
+ {
+ 	REALTIME_COMMON(MODE_MATCH);
+-	if (var) ast_variables_destroy(var);
+ 	if (var)
++		ast_variables_destroy(var);
++	if (var)
+ 		res = 1;
+ 	return res &gt; 0 ? res : 0;
+ }
+@@ -170,8 +164,9 @@
+ static int realtime_canmatch(struct ast_channel *chan, const char *context, const char *exten, int priority, const char *callerid, const char *data)
+ {
+ 	REALTIME_COMMON(MODE_CANMATCH);
+-	if (var) ast_variables_destroy(var);
+ 	if (var)
++		ast_variables_destroy(var);
++	if (var)
+ 		res = 1;
+ 	return res &gt; 0 ? res : 0;
+ }
+@@ -188,13 +183,11 @@
+ 	struct ast_variable *v;
+ 	REALTIME_COMMON(MODE_MATCH);
+ 	if (var) {
+-		v = var;
+-		while(v) {
++		for (v = var; v ; v = v-&gt;next) {
+ 			if (!strcasecmp(v-&gt;name, &quot;app&quot;))
+ 				strncpy(app, v-&gt;value, sizeof(app) -1 );
+ 			else if (!strcasecmp(v-&gt;name, &quot;appdata&quot;))
+ 				tmp = ast_strdupa(v-&gt;value);
+-			v = v-&gt;next;
+ 		}
+ 		ast_variables_destroy(var);
+ 		if (!ast_strlen_zero(app)) {
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-10 20:28:50 UTC (rev 128)
++++ trunk/pbx.c	2006-05-10 21:28:56 UTC (rev 129)
+@@ -569,6 +569,12 @@
+  *		a pattern.
+  *	!	zero or more of anything. Also impacts the result of CANMATCH
+  *		and MATCHMORE. Only allowed at the end of a pattern.
++ *		In the core routine, ! causes a match with a return code of 2.
++ *		In turn, depending on the search mode: (XXX check if it is implemented)
++ *		- E_MATCH retuns 1 (does match)
++ *		- E_MATCHMORE returns 0 (no match)
++ *		- E_CANMATCH returns 1 (does match)
++ *
+  *	/	should not appear as it is considered the separator of the CID info.
+  *		XXX at the moment we may stop on this char.
+  *
+@@ -939,22 +945,25 @@
+ 	}
+ 	if (q-&gt;status &lt; STATUS_NO_EXTENSION)
+ 		q-&gt;status = STATUS_NO_EXTENSION;
++
++	/* scan the list trying to match extension and CID */
+ 	for (eroot = tmp-&gt;root; eroot; eroot = eroot-&gt;next) {
+-		int match;
+-		/* Match extension */
+-		if ( (match = extension_match_core(eroot-&gt;exten, exten, action)) &amp;&amp;
+-		     (!eroot-&gt;matchcid || matchcid(eroot-&gt;cidmatch, callerid))) {
++		int match = extension_match_core(eroot-&gt;exten, exten, action);
++		/* 0 on fail, 1 on match, 2 on earlymatch */
+ 
+-			if (action == E_MATCHMORE &amp;&amp; match == 2 &amp;&amp; !earlymatch) {
+-				/* XXX not sure the logic is correct here.
+-				 * we should go in irrespective of earlymatch
++		if (match &amp;&amp; (!eroot-&gt;matchcid || matchcid(eroot-&gt;cidmatch, callerid))) {
++			if (match == 2 &amp;&amp; action == E_MATCHMORE &amp;&amp; !earlymatch) {
++				/* Match an extension ending in '!'.
++				 * As far as I can tell the decision in this case is final
++				 * and we should just return NULL to mark failure
++				 * (and get rid of the earlymatch variable and the associated
++				 * processing outside the loop).
+ 				 */
+-				/* It matched an extension ending in a '!' wildcard
+-				   So ignore it for now, unless there's a better match */
+ 				earlymatch = eroot;
+ 			} else {
+ 				if (q-&gt;status &lt; STATUS_NO_PRIORITY)
+ 					q-&gt;status = STATUS_NO_PRIORITY;
++				/* now look for the right priority */
+ 				for (e = eroot; e; e = e-&gt;peer) {
+ 					/* Match priority */
+ 					if (action == E_FINDLABEL) {
+@@ -1000,7 +1009,7 @@
+ 			aswf = asw-&gt;canmatch;
+ 		else if (action == E_MATCHMORE)
+ 			aswf = asw-&gt;matchmore;
+-		else
++		else /* action == E_MATCH */
+ 			aswf = asw-&gt;exists;
+ 		datap = sw-&gt;eval ? sw-&gt;tmpdata : sw-&gt;data;
+ 		res = !aswf ? 0 : aswf(chan, context, exten, priority, callerid, datap);
+@@ -3413,12 +3422,11 @@
+ struct ast_context *ast_context_create(struct ast_context **extcontexts, const char *name, const char *registrar)
+ {
+ 	struct ast_context *tmp, **local_contexts;
+-	int length;
+-	length = sizeof(struct ast_context);
+-	length += strlen(name) + 1;
++	int length = sizeof(struct ast_context) + strlen(name) + 1;
++
+ 	if (!extcontexts) {
++		ast_mutex_lock(&amp;conlock);
+ 		local_contexts = &contexts;
+-		ast_mutex_lock(&amp;conlock);
+ 	} else
+ 		local_contexts = extcontexts;
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000124.html">[solid-pbx-svn] r128 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000126.html">[solid-pbx-svn] r130 - in trunk: . pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#125">[ date ]</a>
+              <a href="thread.html#125">[ thread ]</a>
+              <a href="subject.html#125">[ subject ]</a>
+              <a href="author.html#125">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

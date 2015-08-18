@@ -1,0 +1,252 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r133 - in trunk: . channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r133%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200605110928.k4B9SrK3004207%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000128.html">
+   <LINK REL="Next"  HREF="000130.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r133 - in trunk: . channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r133%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200605110928.k4B9SrK3004207%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r133 - in trunk: . channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May 11 11:28:53 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000128.html">[solid-pbx-svn] r132 - in trunk: . channels
+</A></li>
+        <LI>Next message: <A HREF="000130.html">[solid-pbx-svn] r134 - in trunk: . build_tools channels include
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#129">[ date ]</a>
+              <a href="thread.html#129">[ thread ]</a>
+              <a href="subject.html#129">[ subject ]</a>
+              <a href="author.html#129">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-11 11:28:50 +0200 (Thu, 11 May 2006)
+New Revision: 133
+
+Modified:
+   trunk/channels/chan_sip.c
+   trunk/enum.c
+   trunk/rtp.c
+Log:
+Update to Asterisk SVN trunk r26799
+
+------------------------------------------------------------------------
+r26757 | oej | 2006-05-11 10:25:20 +0200 (Thu, 11 May 2006) | 2 lines
+
+Ignore CANCEL on call that is already answered
+
+------------------------------------------------------------------------
+r26758 | markster | 2006-05-11 10:28:16 +0200 (Thu, 11 May 2006) | 2 lines
+
+Make sure we handle long information elements (bug #6654)
+
+------------------------------------------------------------------------
+r26759 | markster | 2006-05-11 10:47:37 +0200 (Thu, 11 May 2006) | 2 lines
+
+Set &quot;MARK&quot; whenever SSRC changes (bug #6934)
+
+------------------------------------------------------------------------
+r26764 | kpfleming | 2006-05-11 11:01:53 +0200 (Thu, 11 May 2006) | 10 lines
+
+Merged revisions 26760 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r26760 | kpfleming | 2006-05-11 03:52:46 -0500 (Thu, 11 May 2006) | 2 lines
+
+ensure that we send a response to REGISTER requests that are successfully authenticated but contain invalid Contact URIs
+
+.......
+
+------------------------------------------------------------------------
+r26781 | kpfleming | 2006-05-11 11:07:45 +0200 (Thu, 11 May 2006) | 2 lines
+
+block revision for fix that was committed here before 1.2
+
+------------------------------------------------------------------------
+r26799 | rizzo | 2006-05-11 11:24:35 +0200 (Thu, 11 May 2006) | 4 lines
+
+simplify sip_pretend_ack also removing a bug in the existing
+code which called ast_skip_blanks erroneously.
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-11 08:28:55 UTC (rev 132)
++++ trunk/channels/chan_sip.c	2006-05-11 09:28:50 UTC (rev 133)
+@@ -1738,27 +1738,20 @@
+ }
+ 
+ /*! \brief Pretend to ack all packets */
++/* maybe the lock on p is not strictly necessary but there might be a race */
+ static int __sip_pretend_ack(struct sip_pvt *p)
+ {
+ 	struct sip_pkt *cur = NULL;
+ 
+ 	while (p-&gt;packets) {
++		int method;
+ 		if (cur == p-&gt;packets) {
+ 			ast_log(LOG_WARNING, &quot;Have a packet that doesn't want to give up! %s\n&quot;, sip_methods[cur-&gt;method].text);
+ 			return -1;
+ 		}
+ 		cur = p-&gt;packets;
+-		if (cur-&gt;method)
+-			__sip_ack(p, p-&gt;packets-&gt;seqno, (ast_test_flag(p-&gt;packets, FLAG_RESPONSE)), cur-&gt;method, FALSE);
+-		else {	/* Unknown packet type */
+-			char *c;
+-			char method[128];
+-
+-			ast_copy_string(method, p-&gt;packets-&gt;data, sizeof(method));
+-			c = ast_skip_blanks(method); /* XXX what ? */
+-			*c = '\0';
+-			__sip_ack(p, p-&gt;packets-&gt;seqno, (ast_test_flag(p-&gt;packets, FLAG_RESPONSE)), find_sip_method(method), FALSE);
+-		}
++		method = (cur-&gt;method) ? cur-&gt;method : find_sip_method(cur-&gt;data);
++		__sip_ack(p, cur-&gt;seqno, ast_test_flag(cur, FLAG_RESPONSE), method, FALSE);
+ 	}
+ 	return 0;
+ }
+@@ -6814,6 +6807,9 @@
+ 				switch (parse_register_contact(p, peer, req)) {
+ 				case PARSE_REGISTER_FAILED:
+ 					ast_log(LOG_WARNING, &quot;Failed to parse contact info\n&quot;);
++					transmit_response_with_date(p, &quot;400 Bad Request&quot;, req);
++					peer-&gt;lastmsgssent = -1;
++					res = 0;
+ 					break;
+ 				case PARSE_REGISTER_QUERY:
+ 					transmit_response_with_date(p, &quot;200 OK&quot;, req);
+@@ -6837,11 +6833,13 @@
+ 		peer = temp_peer(name);
+ 		if (peer) {
+ 			ASTOBJ_CONTAINER_LINK(&amp;peerl, peer);
+-			peer-&gt;lastmsgssent = -1;
+ 			sip_cancel_destroy(p);
+ 			switch (parse_register_contact(p, peer, req)) {
+ 			case PARSE_REGISTER_FAILED:
+ 				ast_log(LOG_WARNING, &quot;Failed to parse contact info\n&quot;);
++				transmit_response_with_date(p, &quot;400 Bad Request&quot;, req);
++				peer-&gt;lastmsgssent = -1;
++				res = 0;
+ 				break;
+ 			case PARSE_REGISTER_QUERY:
+ 				transmit_response_with_date(p, &quot;200 OK&quot;, req);
+@@ -11436,6 +11434,14 @@
+ 		
+ 	check_via(p, req);
+ 	ast_set_flag(&amp;p-&gt;flags[0], SIP_ALREADYGONE);	
++	
++	if (p-&gt;owner &amp;&amp; p-&gt;owner-&gt;_state == AST_STATE_UP) {
++		/* This call is up, cancel is ignored, we need a bye */
++		transmit_response(p, &quot;200 OK&quot;, req);
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Got CANCEL on an answered call. Ignoring... \n&quot;);
++		return 0;
++	}
+ 	if (p-&gt;rtp) {
+ 		/* Immediately stop RTP */
+ 		ast_rtp_stop(p-&gt;rtp);
+
+Modified: trunk/enum.c
+===================================================================
+--- trunk/enum.c	2006-05-11 08:28:55 UTC (rev 132)
++++ trunk/enum.c	2006-05-11 09:28:50 UTC (rev 133)
+@@ -95,7 +95,7 @@
+ } __attribute__ ((__packed__));
+ 
+ /*! \brief Parse NAPTR record information elements */
+-static int parse_ie(char *data, int maxdatalen, char *src, int srclen)
++static int parse_ie(unsigned char *data, int maxdatalen, unsigned char *src, int srclen)
+ {
+ 	int len, olen;
+ 
+@@ -113,7 +113,7 @@
+ }
+ 
+ /*! \brief Parse DNS NAPTR record used in ENUM ---*/
+-static int parse_naptr(char *dst, int dstsize, char *tech, int techsize, char *answer, int len, char *naptrinput)
++static int parse_naptr(unsigned char *dst, int dstsize, char *tech, int techsize, unsigned char *answer, int len, unsigned char *naptrinput)
+ {
+ 
+ 	char tech_return[80];
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-05-11 08:28:55 UTC (rev 132)
++++ trunk/rtp.c	2006-05-11 09:28:50 UTC (rev 133)
+@@ -93,6 +93,7 @@
+ 	struct ast_frame f;
+ 	unsigned char rawdata[8192 + AST_FRIENDLY_OFFSET];
+ 	unsigned int ssrc;		/*!&lt; Synchronization source, RFC 3550, page 10. */
++	unsigned int rxssrc;
+ 	unsigned int lastts;
+ 	unsigned int lastdigitts;
+ 	unsigned int lastrxts;
+@@ -430,6 +431,7 @@
+ 	int ext;
+ 	int x;
+ 	char iabuf[INET_ADDRSTRLEN];
++	unsigned int ssrc;
+ 	unsigned int timestamp;
+ 	unsigned int *rtpheader;
+ 	struct rtpPayloadType rtpPT;
+@@ -485,7 +487,15 @@
+ 	ext = seqno &amp; (1 &lt;&lt; 28);
+ 	seqno &amp;= 0xffff;
+ 	timestamp = ntohl(rtpheader[1]);
++	ssrc = ntohl(rtpheader[2]);
+ 	
++	if (!mark &amp;&amp; rtp-&gt;rxssrc &amp;&amp; rtp-&gt;rxssrc != ssrc) {
++		ast_log(LOG_WARNING, &quot;Forcing Marker bit, because SSRC has changed\n&quot;);
++		mark = 1;
++	}
++
++	rtp-&gt;rxssrc = ssrc;
++	
+ 	if (padding) {
+ 		/* Remove padding bytes */
+ 		res -= rtp-&gt;rawdata[AST_FRIENDLY_OFFSET + res - 1];
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000128.html">[solid-pbx-svn] r132 - in trunk: . channels
+</A></li>
+	<LI>Next message: <A HREF="000130.html">[solid-pbx-svn] r134 - in trunk: . build_tools channels include
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#129">[ date ]</a>
+              <a href="thread.html#129">[ thread ]</a>
+              <a href="subject.html#129">[ subject ]</a>
+              <a href="author.html#129">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

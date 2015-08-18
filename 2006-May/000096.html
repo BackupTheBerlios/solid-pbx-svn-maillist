@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r103 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r103%20-%20trunk&In-Reply-To=%3C200605090719.k497J6Yn005865%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000093.html">
+   <LINK REL="Next"  HREF="000095.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r103 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r103%20-%20trunk&In-Reply-To=%3C200605090719.k497J6Yn005865%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r103 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  9 09:19:06 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000093.html">[solid-pbx-svn] r102 - in trunk: . apps
+</A></li>
+        <LI>Next message: <A HREF="000095.html">[solid-pbx-svn] r104 - in trunk: . apps build_tools include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#96">[ date ]</a>
+              <a href="thread.html#96">[ thread ]</a>
+              <a href="subject.html#96">[ subject ]</a>
+              <a href="author.html#96">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-09 09:18:29 +0200 (Tue, 09 May 2006)
+New Revision: 103
+
+Modified:
+   trunk/cli.c
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r25888
+
+------------------------------------------------------------------------
+r25860 | rizzo | 2006-05-09 08:14:30 +0200 (Tue, 09 May 2006) | 4 lines
+
+use S_OR where appropriate, comment an unclear difference in format
+between CONCISE and VERBOSE
+
+
+------------------------------------------------------------------------
+r25861 | rizzo | 2006-05-09 08:17:42 +0200 (Tue, 09 May 2006) | 4 lines
+
+simplify matchcid()
+define struct pbx_find_info for later use
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/cli.c
+===================================================================
+--- trunk/cli.c	2006-05-09 06:18:43 UTC (rev 102)
++++ trunk/cli.c	2006-05-09 07:18:29 UTC (rev 103)
+@@ -422,15 +422,21 @@
+ 		}
+ 		if (concise) {
+ 			ast_cli(fd, CONCISE_FORMAT_STRING, c-&gt;name, c-&gt;context, c-&gt;exten, c-&gt;priority, ast_state2str(c-&gt;_state),
+-			        c-&gt;appl ? c-&gt;appl : &quot;(None)&quot;, c-&gt;data ? c-&gt;data : &quot;&quot;,
++			        c-&gt;appl ? c-&gt;appl : &quot;(None)&quot;,
++				S_OR(c-&gt;data, &quot;&quot;),	/* XXX different from verbose ? */
+ 			        S_OR(c-&gt;cid.cid_num, &quot;&quot;),
+-			        c-&gt;accountcode ? c-&gt;accountcode : &quot;&quot;, c-&gt;amaflags, 
+-			        durbuf, bc ? bc-&gt;name : &quot;(None)&quot;);
++			        S_OR(c-&gt;accountcode, &quot;&quot;),
++				c-&gt;amaflags, 
++			        durbuf,
++				bc ? bc-&gt;name : &quot;(None)&quot;);
+ 		} else if (verbose) {
+ 			ast_cli(fd, VERBOSE_FORMAT_STRING, c-&gt;name, c-&gt;context, c-&gt;exten, c-&gt;priority, ast_state2str(c-&gt;_state),
+-			        c-&gt;appl ? c-&gt;appl : &quot;(None)&quot;, c-&gt;data ? S_OR(c-&gt;data, &quot;(Empty)&quot; ): &quot;(None)&quot;,
+-			        S_OR(c-&gt;cid.cid_num, &quot;&quot;), durbuf,
+-			        c-&gt;accountcode ? c-&gt;accountcode : &quot;&quot;, bc ? bc-&gt;name : &quot;(None)&quot;);
++			        c-&gt;appl ? c-&gt;appl : &quot;(None)&quot;,
++				c-&gt;data ? S_OR(c-&gt;data, &quot;(Empty)&quot; ): &quot;(None)&quot;,
++			        S_OR(c-&gt;cid.cid_num, &quot;&quot;),
++				durbuf,
++			        S_OR(c-&gt;accountcode, &quot;&quot;),
++				bc ? bc-&gt;name : &quot;(None)&quot;);
+ 		} else {
+ 			if (!ast_strlen_zero(c-&gt;context) &amp;&amp; !ast_strlen_zero(c-&gt;exten)) 
+ 				snprintf(locbuf, sizeof(locbuf), &quot;%s@%s:%d&quot;, c-&gt;exten, c-&gt;context, c-&gt;priority);
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-09 06:18:43 UTC (rev 102)
++++ trunk/pbx.c	2006-05-09 07:18:29 UTC (rev 103)
+@@ -700,22 +700,31 @@
+ 
+ static int matchcid(const char *cidpattern, const char *callerid)
+ {
+-	int failresult;
+-	
+ 	/* If the Caller*ID pattern is empty, then we're matching NO Caller*ID, so
+ 	   failing to get a number should count as a match, otherwise not */
+ 
+-	if (!ast_strlen_zero(cidpattern))
+-		failresult = 0;
+-	else
+-		failresult = 1;
++	if (ast_strlen_zero(callerid))
++		return ast_strlen_zero(cidpattern) ? 1 : 0;
+ 
+-	if (!callerid)
+-		return failresult;
+-
+ 	return ast_extension_match(cidpattern, callerid);
+ }
+ 
++/* request and result for pbx_find_extension */
++struct pbx_find_info {
++#if 0
++	const char *context;
++	const char *exten;
++	int priority;
++#endif
++
++	char *incstack[AST_PBX_MAX_STACK];      /* filled during the search */
++	int stacklen;                   /* modified during the search */
++	int status;                     /* set on return */
++	struct ast_switch *swo;         /* set on return */
++	const char *data;               /* set on return */
++	const char *foundcontext;       /* set on return */
++};
++
+ static struct ast_exten *pbx_find_extension(struct ast_channel *chan,
+ 	struct ast_context *bypass,
+ 	const char *context, const char *exten, int priority,
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000093.html">[solid-pbx-svn] r102 - in trunk: . apps
+</A></li>
+	<LI>Next message: <A HREF="000095.html">[solid-pbx-svn] r104 - in trunk: . apps build_tools include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#96">[ date ]</a>
+              <a href="thread.html#96">[ thread ]</a>
+              <a href="subject.html#96">[ subject ]</a>
+              <a href="author.html#96">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

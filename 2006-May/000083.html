@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r86 - in trunk: . include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r86%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200605081018.k48AIW0O017484%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000082.html">
+   <LINK REL="Next"  HREF="000084.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r86 - in trunk: . include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r86%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200605081018.k48AIW0O017484%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r86 - in trunk: . include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  8 12:18:32 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000082.html">[solid-pbx-svn] r85 - in trunk: . channels/misdn
+</A></li>
+        <LI>Next message: <A HREF="000084.html">[solid-pbx-svn] r87 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#83">[ date ]</a>
+              <a href="thread.html#83">[ thread ]</a>
+              <a href="subject.html#83">[ subject ]</a>
+              <a href="author.html#83">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-08 12:18:30 +0200 (Mon, 08 May 2006)
+New Revision: 86
+
+Modified:
+   trunk/include/asterisk/pbx.h
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r25411
+
+------------------------------------------------------------------------
+r25411 | russell | 2006-05-08 12:08:20 +0200 (Mon, 08 May 2006) | 5 lines
+
+remove an XXX comment
+ - we can't use ast_true here because non-empty strings would no longer be
+   evaluated as true
+document the return values of pbx_checkcondition() in doxygen format
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/include/asterisk/pbx.h
+===================================================================
+--- trunk/include/asterisk/pbx.h	2006-05-08 08:18:30 UTC (rev 85)
++++ trunk/include/asterisk/pbx.h	2006-05-08 10:18:30 UTC (rev 86)
+@@ -692,7 +692,14 @@
+    particular application with given extension */
+ int ast_pbx_outgoing_app(const char *type, int format, void *data, int timeout, const char *app, const char *appdata, int *reason, int sync, const char *cid_num, const char *cid_name, struct ast_variable *vars, const char *account, struct ast_channel **locked_channel);
+ 
+-/* Evaluate a condition for non-falseness and return a boolean */
++/*!
++ * \brief Evaluate a condition
++ *
++ * \retval 0 if the condition is NULL or of zero length
++ * \retval int If the string is an integer, the integer representation of
++ *             the integer is returned
++ * \retval 1 Any other non-empty string
++ */
+ int pbx_checkcondition(const char *condition);
+ 
+ /* Functions for returning values from structures */
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-08 08:18:30 UTC (rev 85)
++++ trunk/pbx.c	2006-05-08 10:18:30 UTC (rev 86)
+@@ -5486,7 +5486,7 @@
+ 		return 0;
+ 	else if (*condition &gt;= '0' &amp;&amp; *condition &lt;= '9')	/* Numbers are evaluated for truth */
+ 		return atoi(condition);
+-	else	/* Strings are true -- XXX maybe use ast_true() ? */
++	else	/* Strings are true */
+ 		return 1;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000082.html">[solid-pbx-svn] r85 - in trunk: . channels/misdn
+</A></li>
+	<LI>Next message: <A HREF="000084.html">[solid-pbx-svn] r87 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#83">[ date ]</a>
+              <a href="thread.html#83">[ thread ]</a>
+              <a href="subject.html#83">[ subject ]</a>
+              <a href="author.html#83">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,239 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r315 - in trunk: include/asterisk res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r315%20-%20in%20trunk%3A%20include/asterisk%20res&In-Reply-To=%3C200606240233.k5O2XYj6009815%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000309.html">
+   <LINK REL="Next"  HREF="000311.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r315 - in trunk: include/asterisk res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r315%20-%20in%20trunk%3A%20include/asterisk%20res&In-Reply-To=%3C200606240233.k5O2XYj6009815%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r315 - in trunk: include/asterisk res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 24 04:33:34 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000309.html">[solid-pbx-svn] r314 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000311.html">[solid-pbx-svn] r316 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#310">[ date ]</a>
+              <a href="thread.html#310">[ thread ]</a>
+              <a href="subject.html#310">[ subject ]</a>
+              <a href="author.html#310">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-24 04:33:31 +0200 (Sat, 24 Jun 2006)
+New Revision: 315
+
+Modified:
+   trunk/include/asterisk/jabber.h
+   trunk/res/res_jabber.c
+Log:
+Update to Asterisk SVN trunk r33263
+
+------------------------------------------------------------------------
+r33263 | mogorman | 2006-06-09 18:08:33 +0200 (Fri, 09 Jun 2006) | 2 lines
+
+convert one of my linked lists to ast_linklist
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/include/asterisk/jabber.h
+===================================================================
+--- trunk/include/asterisk/jabber.h	2006-06-24 02:32:33 UTC (rev 314)
++++ trunk/include/asterisk/jabber.h	2006-06-24 02:33:31 UTC (rev 315)
+@@ -21,6 +21,7 @@
+ 
+ #include &lt;iksemel.h&gt;
+ #include &quot;asterisk/astobj.h&quot;
++#include &quot;asterisk/linkedlists.h&quot;
+ 
+ enum aji_state {
+ 	AJI_DISCONNECTED = 0,
+@@ -71,7 +72,7 @@
+ 	char *message;
+ 	char id[25];
+ 	time_t arrived;
+-	struct aji_message *next;
++	AST_LIST_ENTRY(aji_message) list;
+ };
+ 
+ struct aji_buddy {
+@@ -121,8 +122,7 @@
+ 	unsigned int flags;
+ 	enum aji_type component;
+ 	struct aji_buddy_container buddies;
+- 	ast_mutex_t message_lock; 
+-	struct aji_message *messages;
++	AST_LIST_HEAD(messages,aji_message) messages;
+ 	void *jingle;
+ 	pthread_t thread;
+ };
+
+Modified: trunk/res/res_jabber.c
+===================================================================
+--- trunk/res/res_jabber.c	2006-06-24 02:32:33 UTC (rev 314)
++++ trunk/res/res_jabber.c	2006-06-24 02:33:31 UTC (rev 315)
+@@ -158,13 +158,17 @@
+ 	struct aji_message *tmp;
+ 	ASTOBJ_CONTAINER_DESTROYALL(&amp;obj-&gt;buddies, aji_buddy_destroy);
+ 	ASTOBJ_CONTAINER_DESTROY(&amp;obj-&gt;buddies);
+-
+-	while ((tmp = obj-&gt;messages)) {
+-		obj-&gt;messages = obj-&gt;messages-&gt;next;
+-		if(tmp-&gt;from) free(tmp-&gt;from);
+-		if(tmp-&gt;message) free(tmp-&gt;message);
+-		free(tmp);
++	iks_filter_delete(obj-&gt;f);
++	iks_parser_delete(obj-&gt;p);
++	iks_stack_delete(obj-&gt;stack);
++	AST_LIST_LOCK(&amp;client-&gt;messages);
++	while(tmp = AST_LIST_REMOVE_HEAD(&amp;client-&gt;messages, list)) {
++		if (tmp-&gt;from)
++			free(tmp-&gt;from);
++		if (tmp-&gt;message)
++			free(tmp-&gt;message);
+ 	}
++	AST_LIST_HEAD_DESTROY(&amp;client-&gt;messages);
+ 	free(obj);
+ }
+ 
+@@ -1025,44 +1029,33 @@
+  */
+ static void aji_handle_message(struct aji_client *client, ikspak *pak)
+ {
+-	struct aji_message *insert, *tmp, *delete, *last;
++	struct aji_message *insert, *tmp;
+ 	int flag = 0;
+-	insert = ast_malloc(sizeof(struct aji_message));
+-	memset(insert, 0, sizeof(struct aji_message));
+-	insert-&gt;arrived = time(NULL);
+-	insert-&gt;next = NULL;
++	insert = ast_calloc(1,sizeof(struct aji_message));
++	time(&amp;insert-&gt;arrived);
+ 	insert-&gt;message = ast_strdup(iks_find_cdata(pak-&gt;x, &quot;body&quot;));
+ 	ast_copy_string(insert-&gt;id, pak-&gt;id, sizeof(insert-&gt;message));
+ 	insert-&gt;from = ast_strdup(pak-&gt;from-&gt;full);
+-	ast_mutex_lock(&amp;(client)-&gt;message_lock);
+-	insert-&gt;next = client-&gt;messages;
+-	client-&gt;messages = insert;
+-	insert = NULL;
+-	tmp = client-&gt;messages;
+-	last = tmp;
+-	while(tmp) {
+-		if(flag) { /*timestamp exceeded delete rest */
+-			delete = tmp;
+-			tmp = tmp-&gt;next;
+-			if(delete-&gt;message) free(delete-&gt;message);
+-			if(delete-&gt;from) free(delete-&gt;from);
+-			free(delete);
+-			delete = NULL;
+-		} else if(difftime(time(NULL), tmp-&gt;arrived) &gt;= client-&gt;message_timeout) {
++	AST_LIST_LOCK(&amp;client-&gt;messages);
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;client-&gt;messages, tmp, list) {
++		if(flag) {
++			AST_LIST_REMOVE_CURRENT(&amp;client-&gt;messages,list);
++			if (tmp-&gt;from)
++				free(tmp-&gt;from);
++			if (tmp-&gt;message)
++				free(tmp-&gt;message);
++		} else if (difftime(time(NULL), tmp-&gt;arrived) &gt;= client-&gt;message_timeout) {
+ 			flag = 1;
+-			last-&gt;next = NULL;
+-			delete = tmp;
+-			tmp = tmp-&gt;next;
+-			if(delete-&gt;message) free(delete-&gt;message);
+-			if(delete-&gt;from) free(delete-&gt;from);
+-			free(delete);
+-			delete = NULL;
+-		} else {
+-			last = tmp;
+-			tmp = tmp-&gt;next;
++			AST_LIST_REMOVE_CURRENT(&amp;client-&gt;messages,list);
++			if (tmp-&gt;from)
++				free(tmp-&gt;from);
++			if (tmp-&gt;message)
++				free(tmp-&gt;message);
+ 		}
+ 	}
+-	ast_mutex_unlock(&amp;(client)-&gt;message_lock);
++	AST_LIST_TRAVERSE_SAFE_END;
++	AST_LIST_INSERT_HEAD(&amp;client-&gt;messages,insert,list);
++	AST_LIST_UNLOCK(&amp;client-&gt;messages);
+ }
+ static void aji_handle_presence(struct aji_client *client, ikspak *pak)
+ {
+@@ -1939,20 +1932,16 @@
+ 			}
+ 			ast_verbose(&quot;	Priority: %d\n&quot;, resource-&gt;priority);
+ 			ast_verbose(&quot;	Status: %d\n&quot;, resource-&gt;status); 
+-			ast_verbose(&quot;	Message: %s\n&quot;, resource-&gt;description); 
++			ast_verbose(&quot;	Message: %s\n&quot;, S_OR(resource-&gt;description,&quot;&quot;)); 
+ 		}
+ 		ASTOBJ_UNLOCK(iterator);
+ 	});
+-	tmp = client-&gt;messages;
+-	ast_mutex_lock(&amp;(client)-&gt;message_lock);
+ 	ast_verbose(&quot;\nOooh a working message stack!\n&quot;);
+-	while(tmp) {
+-	ast_verbose(&quot;	Message from: %s with id %s @ %s	%s\n&quot;,tmp-&gt;from, tmp-&gt;id, ctime(&amp;tmp-&gt;arrived), tmp-&gt;message);
+-	tmp = tmp-&gt;next;
++	AST_LIST_LOCK(&amp;client-&gt;messages);
++	AST_LIST_TRAVERSE(&amp;client-&gt;messages, tmp, list) {
++		ast_verbose(&quot;	Message from: %s with id %s @ %s	%s\n&quot;,tmp-&gt;from, tmp-&gt;id, ctime(&amp;tmp-&gt;arrived), tmp-&gt;message);
+ 	}
+-	ast_mutex_unlock(&amp;(client)-&gt;message_lock);
+-
+-
++	AST_LIST_UNLOCK(&amp;client-&gt;messages);
+ 	ASTOBJ_UNREF(client, aji_client_destroy);
+ 
+ 	return RESULT_SUCCESS;
+@@ -1998,6 +1987,7 @@
+ 	client-&gt;keepalive = 1;
+ 	client-&gt;timeout = 20;
+ 	client-&gt;message_timeout = 100;
++	AST_LIST_HEAD_INIT(&amp;client-&gt;messages);
+ 	client-&gt;component = AJI_CLIENT;
+ 	ast_copy_string(client-&gt;statusmessage, &quot;Online and Available&quot;, sizeof(client-&gt;statusmessage));
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000309.html">[solid-pbx-svn] r314 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000311.html">[solid-pbx-svn] r316 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#310">[ date ]</a>
+              <a href="thread.html#310">[ thread ]</a>
+              <a href="subject.html#310">[ subject ]</a>
+              <a href="author.html#310">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r404 - in trunk: channels doc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r404%20-%20in%20trunk%3A%20channels%20doc&In-Reply-To=%3C200606280216.k5S2G7lf023989%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000398.html">
+   <LINK REL="Next"  HREF="000400.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r404 - in trunk: channels doc</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r404%20-%20in%20trunk%3A%20channels%20doc&In-Reply-To=%3C200606280216.k5S2G7lf023989%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r404 - in trunk: channels doc">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:16:07 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000398.html">[solid-pbx-svn] r403 - in trunk: channels configs
+</A></li>
+        <LI>Next message: <A HREF="000400.html">[solid-pbx-svn] r405 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#399">[ date ]</a>
+              <a href="thread.html#399">[ thread ]</a>
+              <a href="subject.html#399">[ subject ]</a>
+              <a href="author.html#399">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:15:09 +0200 (Wed, 28 Jun 2006)
+New Revision: 404
+
+Modified:
+   trunk/channels/chan_agent.c
+   trunk/doc/video.txt
+Log:
+Update to Asterisk SVN trunk r35373
+
+------------------------------------------------------------------------
+r35365 | oej | 2006-06-21 22:11:09 +0200 (Wed, 21 Jun 2006) | 7 lines
+
+Add video support to chan_agent. 
+
+More ideas for developing better video support in Asterisk?
+
+Join the asterisk-video mailing list to help out in the 
+Asterisk Video Task Force!
+
+------------------------------------------------------------------------
+r35366 | oej | 2006-06-21 22:14:25 +0200 (Wed, 21 Jun 2006) | 2 lines
+
+Add agent to video docs
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_agent.c
+===================================================================
+--- trunk/channels/chan_agent.c	2006-06-28 02:13:45 UTC (rev 403)
++++ trunk/channels/chan_agent.c	2006-06-28 02:15:09 UTC (rev 404)
+@@ -267,6 +267,7 @@
+ 	.answer = agent_answer,
+ 	.read = agent_read,
+ 	.write = agent_write,
++	.write_video = agent_write,
+ 	.send_html = agent_sendhtml,
+ 	.send_text = agent_sendtext,
+ 	.exception = agent_read,
+@@ -507,7 +508,8 @@
+  			}
+  			break;
+  		case AST_FRAME_VOICE:
+- 			/* don't pass voice until the call is acknowledged */
++ 		case AST_FRAME_VIDEO:
++ 			/* don't pass voice or video until the call is acknowledged */
+  			if (!p-&gt;acknowledged) {
+  				ast_frfree(f);
+  				f = &amp;ast_null_frame;
+@@ -558,16 +560,20 @@
+ 	int res = -1;
+ 	CHECK_FORMATS(ast, p);
+ 	ast_mutex_lock(&amp;p-&gt;lock);
+-	if (p-&gt;chan) {
++	if (!p-&gt;chan) 
++		res = 0;
++	else {
+ 		if ((f-&gt;frametype != AST_FRAME_VOICE) ||
++		    (f-&gt;frametype != AST_FRAME_VIDEO) ||
+ 		    (f-&gt;subclass == p-&gt;chan-&gt;writeformat)) {
+ 			res = ast_write(p-&gt;chan, f);
+ 		} else {
+-			ast_log(LOG_DEBUG, &quot;Dropping one incompatible voice frame on '%s' to '%s'\n&quot;, ast-&gt;name, p-&gt;chan-&gt;name);
++			ast_log(LOG_DEBUG, &quot;Dropping one incompatible %s frame on '%s' to '%s'\n&quot;, 
++				f-&gt;frametype == AST_FRAME_VOICE ? &quot;audio&quot; : &quot;video&quot;,
++				ast-&gt;name, p-&gt;chan-&gt;name);
+ 			res = 0;
+ 		}
+-	} else
+-		res = 0;
++	}
+ 	CLEANUP(ast, p);
+ 	ast_mutex_unlock(&amp;p-&gt;lock);
+ 	return res;
+
+Modified: trunk/doc/video.txt
+===================================================================
+--- trunk/doc/video.txt	2006-06-28 02:13:45 UTC (rev 403)
++++ trunk/doc/video.txt	2006-06-28 02:15:09 UTC (rev 404)
+@@ -26,8 +26,9 @@
+ Channel drivers
+ ---------------
+ SIP		The SIP channel driver (chan_sip.so) has support for video
+-IAX2		Supports video calls
++IAX2		Supports video calls (over trunks too)
+ Local		Forwards video calls as a proxy channel
++Agent		Forwards video calls as a proxy channel
+ 
+ Applications
+ ------------
+@@ -42,4 +43,4 @@
+ If you want to participate, join the asterisk-video mailing list on <A HREF="http://lists.digium.com">http://lists.digium.com</A>
+ 
+ ---
+-Updates to this file are welcome!
++Updates to this file are more than welcome!
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000398.html">[solid-pbx-svn] r403 - in trunk: channels configs
+</A></li>
+	<LI>Next message: <A HREF="000400.html">[solid-pbx-svn] r405 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#399">[ date ]</a>
+              <a href="thread.html#399">[ thread ]</a>
+              <a href="subject.html#399">[ subject ]</a>
+              <a href="author.html#399">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

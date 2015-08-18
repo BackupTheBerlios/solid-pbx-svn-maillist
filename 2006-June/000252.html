@@ -1,0 +1,227 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r257 - trunk/contrib/utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r257%20-%20trunk/contrib/utils&In-Reply-To=%3C200606181537.k5IFbYDd027006%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000251.html">
+   <LINK REL="Next"  HREF="000253.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r257 - trunk/contrib/utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r257%20-%20trunk/contrib/utils&In-Reply-To=%3C200606181537.k5IFbYDd027006%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r257 - trunk/contrib/utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 17:37:34 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000251.html">[solid-pbx-svn] r256 - trunk/configs
+</A></li>
+        <LI>Next message: <A HREF="000253.html">[solid-pbx-svn] r258 - in trunk: . include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#252">[ date ]</a>
+              <a href="thread.html#252">[ thread ]</a>
+              <a href="subject.html#252">[ subject ]</a>
+              <a href="author.html#252">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 17:37:34 +0200 (Sun, 18 Jun 2006)
+New Revision: 257
+
+Added:
+   trunk/contrib/utils/zones2indications.c
+Log:
+Add missing file
+
+Added: trunk/contrib/utils/zones2indications.c
+===================================================================
+--- trunk/contrib/utils/zones2indications.c	2006-06-18 15:25:24 UTC (rev 256)
++++ trunk/contrib/utils/zones2indications.c	2006-06-18 15:37:34 UTC (rev 257)
+@@ -0,0 +1,151 @@
++/*
++ * zones2indications: print libtonozone data as Asterisk indications.conf
++ * 
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU Lesser General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ * 
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Lesser General Public License for more details.
++ * 
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. 
++ *
++ * Author: Tzafrir Cohen &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">tzafrir.cohen at xorcom.com</A>&gt;
++ */
++
++#include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;tonezone.h&gt;
++#include &lt;unistd.h&gt;
++
++#define PROGRAM &quot;zones2indication&quot;
++
++void print_tone_zone_sound(struct tone_zone *zone_data, const char* name, 
++    int toneid) {
++  int i;
++  for (i=0; i&lt;ZT_TONE_MAX; i++) {
++    if (zone_data-&gt;tones[i].toneid == toneid){
++      printf(&quot;%s = %s\n&quot;, name, zone_data-&gt;tones[i].data);
++      break;
++    }
++  }
++}
++
++void print_indications(struct tone_zone *zone_data) {
++  int i;
++  
++  printf (
++    &quot;[%s]\n&quot;
++    &quot;; Source: libtonezone.\n&quot;
++    &quot;description = %s\n&quot;
++    &quot;\n&quot;,
++    zone_data-&gt;country, zone_data-&gt;description
++  );
++  
++  printf(  
++    &quot;ringcadence = &quot;
++  );
++  for(i=0; ; i++) {
++    if (zone_data-&gt;ringcadence[i] == 0)
++      break;
++    if (i != 0)
++      putchar(',');
++    printf(&quot;%d&quot;,zone_data-&gt;ringcadence[i]);
++  }
++  putchar('\n');
++  
++  print_tone_zone_sound(zone_data, &quot;dial&quot;,        ZT_TONE_DIALTONE);
++  print_tone_zone_sound(zone_data, &quot;busy&quot;,        ZT_TONE_BUSY);
++  print_tone_zone_sound(zone_data, &quot;ring&quot;,        ZT_TONE_RINGTONE);
++  print_tone_zone_sound(zone_data, &quot;congestion&quot;,  ZT_TONE_CONGESTION);
++  print_tone_zone_sound(zone_data, &quot;callwaiting&quot;, ZT_TONE_CALLWAIT);
++  print_tone_zone_sound(zone_data, &quot;dialrecall&quot;,  ZT_TONE_DIALRECALL);
++  print_tone_zone_sound(zone_data, &quot;record&quot;,      ZT_TONE_RECORDTONE);
++  print_tone_zone_sound(zone_data, &quot;info&quot;,        ZT_TONE_INFO);
++  print_tone_zone_sound(zone_data, &quot;stutter&quot;,     ZT_TONE_STUTTER);
++  printf(&quot;\n\n&quot;);
++}
++
++int print_zone_by_id(int zone_num) {
++  struct tone_zone *zone_data = tone_zone_find_by_num(zone_num);
++
++  if (zone_data == NULL)
++    return 1;
++
++  print_indications(zone_data);
++
++  return 0;
++}
++
++int print_zone_by_country(char* country) {
++  struct tone_zone *zone_data = tone_zone_find(country);
++
++  if (zone_data == NULL)
++    return 1;
++
++  print_indications(zone_data);
++
++  return 0;
++}
++
++int print_all() {
++  int i;
++  /* loop over all possible zones */
++  for (i=0; ; i++) {
++    if (print_zone_by_id(i))
++      break;
++  }
++  return 0;
++}
++
++void usage() {
++  fprintf(stderr,
++      PROGRAM &quot;: print libtonozone data as Asterisk indications.conf\n&quot;
++      &quot;\n&quot;
++      &quot;Usage:\n&quot;
++      &quot;  &quot; PROGRAM &quot; -a         Print all countries\n&quot;
++      &quot;  &quot; PROGRAM &quot; -c &lt;code&gt;  Select country by two-letter country code\n&quot;
++      &quot;  &quot; PROGRAM &quot; -n &lt;num&gt;   Select country by its internal libtonezone number\n&quot;
++      &quot;  &quot; PROGRAM &quot; -h         Print this text.\n&quot;
++  );
++}
++
++int main(int argc, char* argv[]){
++  int country_code = -1;
++  int opt_print_all = 0;
++  int opt;
++  char* endptr = NULL;
++  
++  while((opt = getopt(argc, argv, &quot;ac:hn:&quot;)) != -1) {
++    switch(opt) {
++      case 'a':
++        return print_all();
++      case 'c':
++        return print_zone_by_country(optarg);
++      case 'h':
++        usage();
++        return 0;
++      case 'n':
++        printf(&quot;number is %s.\n&quot;, optarg);
++        country_code = strtol(optarg, &amp;endptr, 10);
++        return print_zone_by_id(country_code);
++        /* FIXME: what if this is not a number?
++        if (endptr != NULL) {
++          fprintf(stderr, &quot;Error: Invalid country code %s, %d.\n&quot;,optarg, country_code);
++          usage();
++          exit(1);
++        }
++        */
++        break;
++    }
++  }
++  
++  /* If we got here, the user selected no option */
++  usage();
++  return 2;
++}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000251.html">[solid-pbx-svn] r256 - trunk/configs
+</A></li>
+	<LI>Next message: <A HREF="000253.html">[solid-pbx-svn] r258 - in trunk: . include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#252">[ date ]</a>
+              <a href="thread.html#252">[ thread ]</a>
+              <a href="subject.html#252">[ subject ]</a>
+              <a href="author.html#252">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

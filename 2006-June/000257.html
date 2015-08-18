@@ -1,0 +1,421 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r262 - in trunk: . channels include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r262%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200606181825.k5IIPYBQ022471%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000256.html">
+   <LINK REL="Next"  HREF="000258.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r262 - in trunk: . channels include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r262%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200606181825.k5IIPYBQ022471%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r262 - in trunk: . channels include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 20:25:34 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000256.html">[solid-pbx-svn] r261 - in trunk: . channels contrib/utils include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000258.html">[solid-pbx-svn] r263 - trunk/include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#257">[ date ]</a>
+              <a href="thread.html#257">[ thread ]</a>
+              <a href="subject.html#257">[ subject ]</a>
+              <a href="author.html#257">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 20:25:30 +0200 (Sun, 18 Jun 2006)
+New Revision: 262
+
+Modified:
+   trunk/channels/chan_iax2.c
+   trunk/dnsmgr.c
+   trunk/include/asterisk/dnsmgr.h
+Log:
+Update to Asterisk SVN trunk r32333
+
+------------------------------------------------------------------------
+r32327 | russell | 2006-06-05 18:17:31 +0200 (Mon, 05 Jun 2006) | 3 lines
+
+revert the changes to allow chan_iax2 to use dnsmgr for registrations.
+my concerns are listed in issue #6305
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-06-18 17:57:15 UTC (rev 261)
++++ trunk/channels/chan_iax2.c	2006-06-18 18:25:30 UTC (rev 262)
+@@ -416,7 +416,6 @@
+ 	int callno;				/*!&lt; Associated call number if applicable */
+ 	struct sockaddr_in us;			/*!&lt; Who the server thinks we are */
+ 	struct iax2_registry *next;
+-	struct ast_dnsmgr_entry *dnsmgr;	/*!&lt; DNS refresh manager */
+ };
+ 
+ static struct iax2_registry *registrations;
+@@ -1895,7 +1894,7 @@
+ 	} else if ((peer = find_peer(argv[3], 0))) {
+ 		if(ast_test_flag(peer, IAX_RTCACHEFRIENDS)) {
+ 			ast_set_flag(peer, IAX_RTAUTOCLEAR);
+-			expire_registry(peer);
++			expire_registry(peer-&gt;name);
+ 			ast_cli(fd, &quot;OK peer %s was removed from the cache.\n&quot;, argv[3]);
+ 		} else {
+ 			ast_cli(fd, &quot;SORRY peer %s is not eligible for this operation.\n&quot;, argv[3]);
+@@ -2533,7 +2532,7 @@
+ 		if (ast_test_flag(peer, IAX_RTAUTOCLEAR)) {
+ 			if (peer-&gt;expire &gt; -1)
+ 				ast_sched_del(sched, peer-&gt;expire);
+-			peer-&gt;expire = ast_sched_add(sched, (global_rtautoclear) * 1000, expire_registry, (void*)peer);
++			peer-&gt;expire = ast_sched_add(sched, (global_rtautoclear) * 1000, expire_registry, (void*)peer-&gt;name);
+ 		}
+ 		AST_LIST_LOCK(&amp;peers);
+ 		AST_LIST_INSERT_HEAD(&amp;peers, peer, entry);
+@@ -4305,8 +4304,8 @@
+ 
+ static int iax2_show_registry(int fd, int argc, char *argv[])
+ {
+-#define FORMAT2 &quot;%-20.20s  %-6.6s  %-10.10s  %-20.20s %8.8s  %s\n&quot;
+-#define FORMAT  &quot;%-20.20s  %-6.6s  %-10.10s  %-20.20s %8d  %s\n&quot;
++#define FORMAT2 &quot;%-20.20s  %-10.10s  %-20.20s %8.8s  %s\n&quot;
++#define FORMAT &quot;%-20.20s  %-10.10s  %-20.20s %8d  %s\n&quot;
+ 	struct iax2_registry *reg = NULL;
+ 
+ 	char host[80];
+@@ -4315,7 +4314,7 @@
+ 	if (argc != 3)
+ 		return RESULT_SHOWUSAGE;
+ 	AST_LIST_LOCK(&amp;peers);
+-	ast_cli(fd, FORMAT2, &quot;Host&quot;, &quot;dnsmgr&quot;, &quot;Username&quot;, &quot;Perceived&quot;, &quot;Refresh&quot;, &quot;State&quot;);
++	ast_cli(fd, FORMAT2, &quot;Host&quot;, &quot;Username&quot;, &quot;Perceived&quot;, &quot;Refresh&quot;, &quot;State&quot;);
+ 	for (reg = registrations;reg;reg = reg-&gt;next) {
+ 		snprintf(host, sizeof(host), &quot;%s:%d&quot;, ast_inet_ntoa(iabuf, sizeof(iabuf), reg-&gt;addr.sin_addr), ntohs(reg-&gt;addr.sin_port));
+ 		if (reg-&gt;us.sin_addr.s_addr) 
+@@ -4323,7 +4322,6 @@
+ 		else
+ 			ast_copy_string(perceived, &quot;&lt;Unregistered&gt;&quot;, sizeof(perceived));
+ 		ast_cli(fd, FORMAT, host, 
+-					(reg-&gt;dnsmgr) ? &quot;Y&quot; : &quot;N&quot;, 
+ 					reg-&gt;username, perceived, reg-&gt;refresh, regstate2str(reg-&gt;regstate));
+ 	}
+ 	AST_LIST_UNLOCK(&amp;peers);
+@@ -5449,6 +5447,7 @@
+ 	char *porta;
+ 	char *stringp=NULL;
+ 	
++	struct ast_hostent ahp; struct hostent *hp;
+ 	if (!value)
+ 		return -1;
+ 	ast_copy_string(copy, value, sizeof(copy));
+@@ -5470,18 +5469,20 @@
+ 		ast_log(LOG_WARNING, &quot;%s is not a valid port number at line %d\n&quot;, porta, lineno);
+ 		return -1;
+ 	}
+-	if (!(reg = ast_calloc(1, sizeof(*reg))))
++	hp = ast_gethostbyname(hostname, &amp;ahp);
++	if (!hp) {
++		ast_log(LOG_WARNING, &quot;Host '%s' not found at line %d\n&quot;, hostname, lineno);
+ 		return -1;
+-	if (ast_dnsmgr_lookup(hostname, &amp;reg-&gt;addr.sin_addr, &amp;reg-&gt;dnsmgr) &lt; 0) {
+-		free(reg);
+-		return -1;
+ 	}
++	if (!(reg = ast_calloc(1, sizeof(*reg))))
++		return -1;
+ 	ast_copy_string(reg-&gt;username, username, sizeof(reg-&gt;username));
+ 	if (secret)
+ 		ast_copy_string(reg-&gt;secret, secret, sizeof(reg-&gt;secret));
+ 	reg-&gt;expire = -1;
+ 	reg-&gt;refresh = IAX_DEFAULT_REG_EXPIRE;
+ 	reg-&gt;addr.sin_family = AF_INET;
++	memcpy(&amp;reg-&gt;addr.sin_addr, hp-&gt;h_addr, sizeof(&amp;reg-&gt;addr.sin_addr));
+ 	reg-&gt;addr.sin_port = porta ? htons(atoi(porta)) : htons(IAX_DEFAULT_PORTNO);
+ 	reg-&gt;next = registrations;
+ 	reg-&gt;callno = 0;
+@@ -5511,8 +5512,27 @@
+ 
+ static void __expire_registry(void *data)
+ {
+-	struct iax2_peer *p = data;
++	char *name = data;
++	struct iax2_peer *p = NULL;
+ 
++	/* Go through and grab this peer... and if it needs to be removed... then do it */
++	AST_LIST_LOCK(&amp;peers);
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;peers, p, entry) {
++		if (!strcasecmp(p-&gt;name, name)) {
++			/* If we are set to auto clear then remove ourselves */
++			if (ast_test_flag(p, IAX_RTAUTOCLEAR))
++				AST_LIST_REMOVE_CURRENT(&amp;peers, entry);
++			p-&gt;expire = -1;
++			break;
++		}
++	}
++	AST_LIST_TRAVERSE_SAFE_END
++	AST_LIST_UNLOCK(&amp;peers);
++
++	/* Peer is already gone for whatever reason */
++	if (!p)
++		return;
++
+ 	ast_log(LOG_DEBUG, &quot;Expiring registration for peer '%s'\n&quot;, p-&gt;name);
+ 	manager_event(EVENT_FLAG_SYSTEM, &quot;PeerStatus&quot;, &quot;Peer: IAX2/%s\r\nPeerStatus: Unregistered\r\nCause: Expired\r\n&quot;, p-&gt;name);
+ 	/* Reset the address */
+@@ -5528,18 +5548,16 @@
+ 
+ 	if (ast_test_flag(p, IAX_RTAUTOCLEAR)) {
+ 		/* We are already gone from the list, so we can just destroy ourselves */
+-		AST_LIST_LOCK(&amp;peers);
+-		AST_LIST_REMOVE(&amp;peers, p, entry);
+-		AST_LIST_UNLOCK(&amp;peers);
+ 		destroy_peer(p);
+ 	}
+ }
+ 
+ static int expire_registry(void *data)
+ {
+-	struct iax2_peer *p = data;
+-	p-&gt;expire = -1;
+-	__expire_registry(p);
++#ifdef SCHED_MULTITHREADED
++	if (schedule_action(__expire_registry, data))
++#endif		
++		__expire_registry(data);
+ 	return 0;
+ }
+ 
+@@ -5573,7 +5591,7 @@
+ 					if (p-&gt;expire &gt; -1)
+ 						ast_sched_del(sched, p-&gt;expire);
+ 					ast_device_state_changed(&quot;IAX2/%s&quot;, p-&gt;name); /* Activate notification */
+-					p-&gt;expire = ast_sched_add(sched, (p-&gt;expiry + 10) * 1000, expire_registry, (void *)p);
++					p-&gt;expire = ast_sched_add(sched, (p-&gt;expiry + 10) * 1000, expire_registry, (void *)p-&gt;name);
+ 					if (iax2_regfunk)
+ 						iax2_regfunk(p-&gt;name, 1);
+ 					register_peer_exten(p, 1);
+@@ -5651,7 +5669,7 @@
+ 		p-&gt;expiry = refresh;
+ 	}
+ 	if (p-&gt;expiry &amp;&amp; sin-&gt;sin_addr.s_addr)
+-		p-&gt;expire = ast_sched_add(sched, (p-&gt;expiry + 10) * 1000, expire_registry, (void *)p);
++		p-&gt;expire = ast_sched_add(sched, (p-&gt;expiry + 10) * 1000, expire_registry, (void *)p-&gt;name);
+ 	iax_ie_append_str(&amp;ied, IAX_IE_USERNAME, p-&gt;name);
+ 	iax_ie_append_int(&amp;ied, IAX_IE_DATETIME, iax2_datetime(p-&gt;zonetag));
+ 	if (sin-&gt;sin_addr.s_addr) {
+@@ -7723,31 +7741,6 @@
+ 	struct iax_ie_data ied;
+ 	if (option_debug &amp;&amp; iaxdebug)
+ 		ast_log(LOG_DEBUG, &quot;Sending registration request for '%s'\n&quot;, reg-&gt;username);
+-
+-	if (reg-&gt;dnsmgr &amp;&amp; 
+-	    ((reg-&gt;regstate == REG_STATE_TIMEOUT) || !reg-&gt;addr.sin_addr.s_addr)) {
+-		/* Maybe the IP has changed, force DNS refresh */
+-		ast_dnsmgr_refresh(reg-&gt;dnsmgr, 1);
+-	}
+-	
+-	/*
+-	 * if IP has Changed, free allocated call to create a new one with new IP
+-	 * call has the pointer to IP and must be updated to the new one
+-	 */
+-	if (reg-&gt;dnsmgr &amp;&amp; ast_dnsmgr_changed(reg-&gt;dnsmgr) &amp;&amp; (reg-&gt;callno &gt; 0)) {
+-		iax2_destroy(reg-&gt;callno);
+-		reg-&gt;callno = 0;
+-	}
+-	if (!reg-&gt;addr.sin_addr.s_addr) {
+-		if (option_debug &amp;&amp; iaxdebug)
+-			ast_log(LOG_DEBUG, &quot;Unable to send registration request for '%s' without IP address\n&quot;, reg-&gt;username);
+-		/* Setup the next registration attempt */
+-		if (reg-&gt;expire &gt; -1)
+-			ast_sched_del(sched, reg-&gt;expire);
+-		reg-&gt;expire  = ast_sched_add(sched, (5 * reg-&gt;refresh / 6) * 1000, iax2_do_register_s, reg);
+-		return -1;
+-	}
+-
+ 	if (!reg-&gt;callno) {
+ 		if (option_debug)
+ 			ast_log(LOG_DEBUG, &quot;Allocate call number\n&quot;);
+@@ -8640,8 +8633,6 @@
+ 			}
+ 			ast_mutex_unlock(&amp;iaxsl[regl-&gt;callno]);
+ 		}
+-		if (regl-&gt;dnsmgr)
+-			ast_dnsmgr_release(regl-&gt;dnsmgr);
+ 		free(regl);
+ 	}
+ 	registrations = NULL;
+
+Modified: trunk/dnsmgr.c
+===================================================================
+--- trunk/dnsmgr.c	2006-06-18 17:57:15 UTC (rev 261)
++++ trunk/dnsmgr.c	2006-06-18 18:25:30 UTC (rev 262)
+@@ -53,11 +53,9 @@
+ static pthread_t refresh_thread = AST_PTHREADT_NULL;
+ 
+ struct ast_dnsmgr_entry {
+-	struct in_addr *result; 	/* where we will store the resulting address */
+-	struct in_addr last; 		/* the last result, used to check if address has changed */
+-	int changed;
++	struct in_addr *result;
+ 	AST_LIST_ENTRY(ast_dnsmgr_entry) list;
+-	char name[1];			/* just 1 here, but we use calloc to allocate the correct size */
++	char name[1];
+ };
+ 
+ static AST_LIST_HEAD_STATIC(entry_list, ast_dnsmgr_entry);
+@@ -106,8 +104,6 @@
+ 	AST_LIST_LOCK(&amp;entry_list);
+ 	AST_LIST_REMOVE(&amp;entry_list, entry, list);
+ 	AST_LIST_UNLOCK(&amp;entry_list);
+-	if (option_verbose &gt; 4)
+-		ast_verbose(VERBOSE_PREFIX_4 &quot;removing dns manager for '%s'\n&quot;, entry-&gt;name);
+ 	free(entry);
+ }
+ 
+@@ -120,7 +116,7 @@
+ 		return 0;
+ 
+ 	if (option_verbose &gt; 3)
+-		ast_verbose(VERBOSE_PREFIX_3 &quot;doing dnsmgr_lookup for '%s'\n&quot;, name);
++		ast_verbose(VERBOSE_PREFIX_3 &quot;doing lookup for '%s'\n&quot;, name);
+ 
+ 	/* if it's actually an IP address and not a name,
+ 	   there's no need for a managed lookup */
+@@ -138,58 +134,12 @@
+ 		return 0;
+ 	} else {
+ 		if (option_verbose &gt; 2)
+-			ast_verbose(VERBOSE_PREFIX_2 &quot;adding dns manager for '%s'\n&quot;, name);
++			ast_verbose(VERBOSE_PREFIX_2 &quot;adding manager for '%s'\n&quot;, name);
+ 		*dnsmgr = ast_dnsmgr_get(name, result);
+ 		return !*dnsmgr;
+ 	}
+ }
+ 
+-/*
+- * Refresh a dnsmgr entry
+- *
+- * XXX maybe we must lock the entry to make safer
+- */
+-int ast_dnsmgr_refresh(struct ast_dnsmgr_entry *entry, int verbose)
+-{
+-	struct ast_hostent ahp;
+-	struct hostent *hp;
+-        char iabuf[INET_ADDRSTRLEN];
+-        char iabuf2[INET_ADDRSTRLEN];
+-        struct in_addr tmp;
+-        
+-	if (verbose &amp;&amp; (option_verbose &gt; 2))
+-		ast_verbose(VERBOSE_PREFIX_2 &quot;refreshing '%s'\n&quot;, entry-&gt;name);
+-
+-	if ((hp = ast_gethostbyname(entry-&gt;name, &amp;ahp))) {
+-		/* check to see if it has changed, do callback if requested (where de callback is defined ????) */
+-		memcpy(&amp;tmp, hp-&gt;h_addr, sizeof(tmp));
+-		if (tmp.s_addr != entry-&gt;last.s_addr) {
+-			ast_log(LOG_NOTICE, &quot;host '%s' changed from %s to %s\n&quot;, 
+-				entry-&gt;name,
+-				ast_inet_ntoa(iabuf, sizeof(iabuf), entry-&gt;last),
+-				ast_inet_ntoa(iabuf2, sizeof(iabuf2), tmp));
+-
+-			memcpy(entry-&gt;result, hp-&gt;h_addr, sizeof(entry-&gt;result));
+-			memcpy(&amp;entry-&gt;last, hp-&gt;h_addr, sizeof(entry-&gt;last));
+-			entry-&gt;changed = 1;
+-			return 1;
+-		} 
+-		
+-	}
+-	return 0;
+-}
+-
+-/*
+- * Check if dnsmgr entry has changed from since last call to this function
+- */
+-int ast_dnsmgr_changed(struct ast_dnsmgr_entry *entry) 
+-{
+-	int ret = entry-&gt;changed;
+-	entry-&gt;changed = 0;
+-	
+-	return ret;
+-}
+-
+ static void *do_refresh(void *data)
+ {
+ 	for (;;) {
+@@ -205,6 +155,8 @@
+ {
+ 	struct refresh_info *info = data;
+ 	struct ast_dnsmgr_entry *entry;
++	struct ast_hostent ahp;
++	struct hostent *hp;
+ 
+ 	/* if a refresh or reload is already in progress, exit now */
+ 	if (ast_mutex_trylock(&amp;refresh_lock)) {
+@@ -220,7 +172,13 @@
+ 		if (info-&gt;regex_present &amp;&amp; regexec(&amp;info-&gt;filter, entry-&gt;name, 0, NULL, 0))
+ 		    continue;
+ 
+-		ast_dnsmgr_refresh(entry, info-&gt;verbose);
++		if (info-&gt;verbose &amp;&amp; (option_verbose &gt; 2))
++			ast_verbose(VERBOSE_PREFIX_2 &quot;refreshing '%s'\n&quot;, entry-&gt;name);
++
++		if ((hp = ast_gethostbyname(entry-&gt;name, &amp;ahp))) {
++			/* check to see if it has changed, do callback if requested */
++			memcpy(entry-&gt;result, hp-&gt;h_addr, sizeof(entry-&gt;result));
++		}
+ 	}
+ 	AST_LIST_UNLOCK(info-&gt;entries);
+ 
+
+Modified: trunk/include/asterisk/dnsmgr.h
+===================================================================
+--- trunk/include/asterisk/dnsmgr.h	2006-06-18 17:57:15 UTC (rev 261)
++++ trunk/include/asterisk/dnsmgr.h	2006-06-18 18:25:30 UTC (rev 262)
+@@ -37,10 +37,6 @@
+ 
+ int ast_dnsmgr_lookup(const char *name, struct in_addr *result, struct ast_dnsmgr_entry **dnsmgr);
+ 
+-int ast_dnsmgr_refresh(struct ast_dnsmgr_entry *entry, int verbose);
+-
+-int ast_dnsmgr_changed(struct ast_dnsmgr_entry *entry);
+-
+ #if defined(__cplusplus) || defined(c_plusplus)
+ }
+ #endif /* c_plusplus */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000256.html">[solid-pbx-svn] r261 - in trunk: . channels contrib/utils include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000258.html">[solid-pbx-svn] r263 - trunk/include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#257">[ date ]</a>
+              <a href="thread.html#257">[ thread ]</a>
+              <a href="subject.html#257">[ subject ]</a>
+              <a href="author.html#257">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

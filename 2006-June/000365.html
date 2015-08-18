@@ -1,0 +1,340 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r370 - in trunk: . build_tools cdr channels codecs configs formats pbx res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r370%20-%20in%20trunk%3A%20.%20build_tools%20cdr%20channels%20codecs%20configs%20formats%20pbx%20res&In-Reply-To=%3C200606280135.k5S1ZVxH015659%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000364.html">
+   <LINK REL="Next"  HREF="000366.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r370 - in trunk: . build_tools cdr channels codecs configs formats pbx res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r370%20-%20in%20trunk%3A%20.%20build_tools%20cdr%20channels%20codecs%20configs%20formats%20pbx%20res&In-Reply-To=%3C200606280135.k5S1ZVxH015659%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r370 - in trunk: . build_tools cdr channels codecs configs formats pbx res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:35:31 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000364.html">[solid-pbx-svn] r369 - in trunk: apps build_tools doc
+</A></li>
+        <LI>Next message: <A HREF="000366.html">[solid-pbx-svn] r371 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#365">[ date ]</a>
+              <a href="thread.html#365">[ thread ]</a>
+              <a href="subject.html#365">[ subject ]</a>
+              <a href="author.html#365">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:35:12 +0200 (Wed, 28 Jun 2006)
+New Revision: 370
+
+Modified:
+   trunk/Makefile
+   trunk/build_tools/menuselect.c
+   trunk/cdr/Makefile
+   trunk/channels/Makefile
+   trunk/codecs/Makefile
+   trunk/configs/indications.conf.sample
+   trunk/formats/Makefile
+   trunk/pbx/Makefile
+   trunk/res/Makefile
+   trunk/res/res_smdi.c
+Log:
+Update to Asterisk SVN trunk r34503
+
+------------------------------------------------------------------------
+r34494 | file | 2006-06-16 18:23:13 +0200 (Fri, 16 Jun 2006) | 2 lines
+
+Add bulgarian indications (issue #7314 reported by KNK)
+
+------------------------------------------------------------------------
+r34495 | file | 2006-06-16 18:30:42 +0200 (Fri, 16 Jun 2006) | 2 lines
+
+Handle failure of ast_calloc when allocating interfaces in res_smdi (issue #7344 reported by casper)
+
+------------------------------------------------------------------------
+r34496 | file | 2006-06-16 18:45:52 +0200 (Fri, 16 Jun 2006) | 2 lines
+
+Fix adsi target in main Makefile and check a variable properly (issue #7369 reported by casper)
+
+------------------------------------------------------------------------
+r34497 | russell | 2006-06-16 18:54:00 +0200 (Fri, 16 Jun 2006) | 3 lines
+
+remove &quot;depend&quot; from the &quot;all&quot; targets in sub Makefiles.  The main Makefile
+already calls &quot;make depend&quot; for each of the subdirectories
+
+------------------------------------------------------------------------
+r34498 | russell | 2006-06-16 18:58:51 +0200 (Fri, 16 Jun 2006) | 2 lines
+
+remove prototypes for static functions and fix some potential memory leaks
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-28 01:34:33 UTC (rev 369)
++++ trunk/Makefile	2006-06-28 01:35:12 UTC (rev 370)
+@@ -145,13 +145,13 @@
+ OPTIMIZE+=-O6
+   else
+     # Stack backtraces, while useful for debugging, are incompatible with optimizations
+-    ifeq (${OSARCH},Linux)
++    ifeq ($(OSARCH),Linux)
+       CFLAGS+=-DSTACK_BACKTRACES
+     endif
+   endif
+ else
+   # Stack backtraces, while useful for debugging, are incompatible with optimizations
+-  ifeq (${OSARCH},Linux)
++  ifeq ($(OSARCH),Linux)
+     CFLAGS+=-DSTACK_BACKTRACES
+   endif
+ endif
+@@ -668,7 +668,7 @@
+ adsi:
+ 	mkdir -p $(DESTDIR)$(ASTETCDIR)
+ 	for x in configs/*.adsi; do \
+-		if [ ! -f $(DESTDIR)$(ASTETCDIRX)/$$x ]; then \
++		if [ ! -f $(DESTDIR)$(ASTETCDIR)/$$x ]; then \
+ 			$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTETCDIR)/`basename $$x` ; \
+ 		fi ; \
+ 	done
+
+Modified: trunk/build_tools/menuselect.c
+===================================================================
+--- trunk/build_tools/menuselect.c	2006-06-28 01:34:33 UTC (rev 369)
++++ trunk/build_tools/menuselect.c	2006-06-28 01:35:12 UTC (rev 370)
+@@ -73,18 +73,6 @@
+ /*! Force a clean of the source tree */
+ static int force_clean = 0;
+ 
+-static int add_category(struct category *cat);
+-static int add_member(struct member *mem, struct category *cat);
+-static int parse_makeopts_xml(const char *makeopts_xml);
+-static int process_deps(void);
+-static int build_member_list(void);
+-static void mark_as_present(const char *member, const char *category);
+-static void process_prev_failed_deps(char *buf);
+-static int parse_existing_config(const char *infile);
+-static int generate_makeopts_file(void);
+-static void free_member_list(void);
+-static void free_trees(void);
+-
+ /*! \brief return a pointer to the first non-whitespace character */
+ static inline char *skip_blanks(char *str)
+ {
+@@ -129,6 +117,19 @@
+ 	return 0;
+ }
+ 
++/*! \brief Free a member structure and all of its members */
++static void free_member(struct member *mem)
++{
++	struct depend *dep;
++	struct conflict *cnf;
++
++	while ((dep = AST_LIST_REMOVE_HEAD(&amp;mem-&gt;deps, list)))
++		free(dep);
++	while ((cnf = AST_LIST_REMOVE_HEAD(&amp;mem-&gt;conflicts, list)))
++		free(cnf);
++	free(mem);
++}
++
+ /*! \brief Parse an input makeopts file */
+ static int parse_makeopts_xml(const char *makeopts_xml)
+ {
+@@ -203,8 +204,10 @@
+ 			     cur3 &amp;&amp; cur3-&gt;child;
+ 			     cur3 = mxmlFindElement(cur3, cur2, &quot;depend&quot;, NULL, NULL, MXML_DESCEND))
+ 			{
+-				if (!(dep = calloc(1, sizeof(*dep))))
++				if (!(dep = calloc(1, sizeof(*dep)))) {
++					free_member(mem);
+ 					return -1;
++				}
+ 				if (!strlen_zero(cur3-&gt;child-&gt;value.opaque)) {
+ 					dep-&gt;name = cur3-&gt;child-&gt;value.opaque;
+ 					AST_LIST_INSERT_HEAD(&amp;mem-&gt;deps, dep, list);
+@@ -216,8 +219,10 @@
+ 			     cur3 &amp;&amp; cur3-&gt;child;
+ 			     cur3 = mxmlFindElement(cur3, cur2, &quot;conflict&quot;, NULL, NULL, MXML_DESCEND))
+ 			{
+-				if (!(cnf = calloc(1, sizeof(*cnf))))
++				if (!(cnf = calloc(1, sizeof(*cnf)))) {
++					free_member(mem);
+ 					return -1;
++				}
+ 				if (!strlen_zero(cur3-&gt;child-&gt;value.opaque)) {
+ 					cnf-&gt;name = cur3-&gt;child-&gt;value.opaque;
+ 					AST_LIST_INSERT_HEAD(&amp;mem-&gt;conflicts, cnf, list);
+@@ -226,7 +231,7 @@
+ 			}
+ 
+ 			if (add_member(mem, cat))
+-				free(mem);
++				free_member(mem);
+ 		}
+ 	}
+ 
+
+Modified: trunk/cdr/Makefile
+===================================================================
+--- trunk/cdr/Makefile	2006-06-28 01:34:33 UTC (rev 369)
++++ trunk/cdr/Makefile	2006-06-28 01:35:12 UTC (rev 370)
+@@ -39,7 +39,7 @@
+ 
+ MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
+ 
+-all: depend $(MODS)
++all: $(MODS)
+ 
+ install: all
+ 	for x in $(MODS); do $(INSTALL) -m 755 $$x $(DESTDIR)$(MODULES_DIR) ; done
+
+Modified: trunk/channels/Makefile
+===================================================================
+--- trunk/channels/Makefile	2006-06-28 01:34:33 UTC (rev 369)
++++ trunk/channels/Makefile	2006-06-28 01:35:12 UTC (rev 370)
+@@ -32,7 +32,7 @@
+ 
+ MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
+ 
+-all: depend $(MODS) 
++all: $(MODS) 
+ 
+ clean-depend:
+ 	rm -f .depend
+
+Modified: trunk/codecs/Makefile
+===================================================================
+--- trunk/codecs/Makefile	2006-06-28 01:34:33 UTC (rev 369)
++++ trunk/codecs/Makefile	2006-06-28 01:35:12 UTC (rev 370)
+@@ -25,7 +25,7 @@
+ 
+ MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
+ 
+-all: depend $(MODS)
++all: $(MODS)
+ 
+ clean-depend:
+ 	rm -f .depend
+
+Modified: trunk/configs/indications.conf.sample
+===================================================================
+--- trunk/configs/indications.conf.sample	2006-06-28 01:34:33 UTC (rev 369)
++++ trunk/configs/indications.conf.sample	2006-06-28 01:35:12 UTC (rev 370)
+@@ -114,6 +114,20 @@
+ ; Ringtone for calls to Telstra mobiles
+ ringmobile = 400+450/400,0/200,400+450/400,0/2000
+ 
++[bg]
++; Reference: <A HREF="http://www.itu.int/ITU-T/inr/forms/files/tones-0203.pdf">http://www.itu.int/ITU-T/inr/forms/files/tones-0203.pdf</A>
++description = Bulgaria
++ringdance = 1000,4000
++dial = 425
++busy = 425/500,0/500
++ring = 425/1000,0/4000
++congestion = 425/250,0/250
++callwaiting = 425/150,0/150,425/150,0/4000
++dialrecall = !425/100,!0/100,!425/100,!0/100,!425/100,!0/100,425
++record = 1400/425,0/15000
++info = 950/330,1400/330,1800/330,0/1000
++stutter = 425/1500,0/100
++
+ [br]
+ description = Brazil
+ ringcadence = 1000,4000
+
+Modified: trunk/formats/Makefile
+===================================================================
+--- trunk/formats/Makefile	2006-06-28 01:34:33 UTC (rev 369)
++++ trunk/formats/Makefile	2006-06-28 01:35:12 UTC (rev 370)
+@@ -19,7 +19,7 @@
+ 
+ MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
+ 
+-all: depend $(MODS)
++all: $(MODS)
+ 
+ clean-depend:
+ 	rm -f .depend
+
+Modified: trunk/pbx/Makefile
+===================================================================
+--- trunk/pbx/Makefile	2006-06-28 01:34:33 UTC (rev 369)
++++ trunk/pbx/Makefile	2006-06-28 01:35:12 UTC (rev 370)
+@@ -23,7 +23,7 @@
+ 
+ MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
+ 
+-all: depend $(MODS)
++all: $(MODS)
+ 
+ clean-depend:
+ 	rm -f .depend
+
+Modified: trunk/res/Makefile
+===================================================================
+--- trunk/res/Makefile	2006-06-28 01:34:33 UTC (rev 369)
++++ trunk/res/Makefile	2006-06-28 01:35:12 UTC (rev 370)
+@@ -38,7 +38,7 @@
+ 
+ MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
+ 
+-all: depend $(MODS)
++all: $(MODS)
+ 
+ install: all
+ 	rm -f $(DESTDIR)$(ASTHEADERDIR)/parking.h
+
+Modified: trunk/res/res_smdi.c
+===================================================================
+--- trunk/res/res_smdi.c	2006-06-28 01:34:33 UTC (rev 369)
++++ trunk/res/res_smdi.c	2006-06-28 01:35:12 UTC (rev 370)
+@@ -621,7 +621,8 @@
+ 				}
+ 			}
+ 							
+-			iface = ast_calloc(1, sizeof(*iface));
++			if (!(iface = ast_calloc(1, sizeof(*iface))))
++				continue;
+ 
+ 			ASTOBJ_INIT(iface);
+ 			ASTOBJ_CONTAINER_INIT(&amp;iface-&gt;md_q);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000364.html">[solid-pbx-svn] r369 - in trunk: apps build_tools doc
+</A></li>
+	<LI>Next message: <A HREF="000366.html">[solid-pbx-svn] r371 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#365">[ date ]</a>
+              <a href="thread.html#365">[ thread ]</a>
+              <a href="subject.html#365">[ subject ]</a>
+              <a href="author.html#365">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

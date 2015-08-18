@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r90 - in trunk: apps channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r90%20-%20in%20trunk%3A%20apps%20channels&In-Reply-To=%3C200605081418.k48EIisu015710%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000086.html">
+   <LINK REL="Next"  HREF="000088.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r90 - in trunk: apps channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r90%20-%20in%20trunk%3A%20apps%20channels&In-Reply-To=%3C200605081418.k48EIisu015710%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r90 - in trunk: apps channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  8 16:18:44 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000086.html">[solid-pbx-svn] r89 - in trunk: . apps include/asterisk pbx
+</A></li>
+        <LI>Next message: <A HREF="000088.html">[solid-pbx-svn] r91 - in trunk: . channels utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#87">[ date ]</a>
+              <a href="thread.html#87">[ thread ]</a>
+              <a href="subject.html#87">[ subject ]</a>
+              <a href="author.html#87">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-08 16:18:41 +0200 (Mon, 08 May 2006)
+New Revision: 90
+
+Modified:
+   trunk/apps/app_queue.c
+   trunk/channels/chan_agent.c
+Log:
+Update to Asterisk SVN trunk r25564
+
+------------------------------------------------------------------------
+r25521 | bweschke | 2006-05-08 15:16:06 +0200 (Mon, 08 May 2006) | 11 lines
+
+Merged revisions 25520 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r25520 | bweschke | 2006-05-08 09:15:30 -0400 (Mon, 08 May 2006) | 3 lines
+
+ Oops. :(
+
+
+.......
+
+------------------------------------------------------------------------
+r25523 | bweschke | 2006-05-08 15:38:14 +0200 (Mon, 08 May 2006) | 3 lines
+
+ Make QueueStatusComplete manager event thread safe by wrapping it inside the already existing Queue Lock clause. #7013 (bziherl reporting)
+
+
+------------------------------------------------------------------------
+r25524 | bweschke | 2006-05-08 15:39:14 +0200 (Mon, 08 May 2006) | 3 lines
+
+ Block r25522 from coming into /trunk. /trunk uses list macros now and 1.2 doesn't here.
+
+
+------------------------------------------------------------------------
+r25564 | bweschke | 2006-05-08 16:13:43 +0200 (Mon, 08 May 2006) | 11 lines
+
+Merged revisions 25563 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r25563 | bweschke | 2006-05-08 10:12:20 -0400 (Mon, 08 May 2006) | 3 lines
+
+ Don't show agents as available when they are in wrap-up time.  #6726 (ZX81)
+
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-05-08 13:18:26 UTC (rev 89)
++++ trunk/apps/app_queue.c	2006-05-08 14:18:41 UTC (rev 90)
+@@ -1215,7 +1215,7 @@
+  	qe-&gt;last_pos = now;
+ 	qe-&gt;last_pos_said = qe-&gt;pos;
+ 	/* Don't restart music on hold if we're about to exit the caller from the queue */
+-	if (!res)
++	if (res)
+ 		ast_moh_start(qe-&gt;chan, qe-&gt;moh);
+ 
+ 	return res;
+@@ -3828,14 +3828,15 @@
+ 		}
+ 		ast_mutex_unlock(&amp;q-&gt;lock);
+ 	}
+-	AST_LIST_UNLOCK(&amp;queues);
+ 
+ 	astman_append(s,
+ 		&quot;Event: QueueStatusComplete\r\n&quot;
+ 		&quot;%s&quot;
+ 		&quot;\r\n&quot;,idText);
+ 
++	AST_LIST_UNLOCK(&amp;queues);
+ 
++
+ 	return RESULT_SUCCESS;
+ }
+ 
+
+Modified: trunk/channels/chan_agent.c
+===================================================================
+--- trunk/channels/chan_agent.c	2006-05-08 13:18:26 UTC (rev 89)
++++ trunk/channels/chan_agent.c	2006-05-08 14:18:41 UTC (rev 90)
+@@ -1602,7 +1602,10 @@
+ 				}
+ 				online_agents++;
+ 			} else if (!ast_strlen_zero(p-&gt;loginchan)) {
+-				snprintf(location, sizeof(location) - 20, &quot;available at '%s'&quot;, p-&gt;loginchan);
++				if (ast_tvdiff_ms(ast_tvnow(), p-&gt;lastdisc) &gt; 0 || !(p-&gt;lastdisc.tv_sec)) 
++					snprintf(location, sizeof(location) - 20, &quot;available at '%s'&quot;, p-&gt;loginchan);
++				else 
++					snprintf(location, sizeof(location) - 20, &quot;wrapping up at '%s'&quot;, p-&gt;loginchan);
+ 				talkingto[0] = '\0';
+ 				online_agents++;
+ 				if (p-&gt;acknowledged)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000086.html">[solid-pbx-svn] r89 - in trunk: . apps include/asterisk pbx
+</A></li>
+	<LI>Next message: <A HREF="000088.html">[solid-pbx-svn] r91 - in trunk: . channels utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#87">[ date ]</a>
+              <a href="thread.html#87">[ thread ]</a>
+              <a href="subject.html#87">[ subject ]</a>
+              <a href="author.html#87">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

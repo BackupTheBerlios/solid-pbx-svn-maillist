@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r252 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r252%20-%20trunk/channels&In-Reply-To=%3C200606181125.k5IBPUOJ000711%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000246.html">
+   <LINK REL="Next"  HREF="000248.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r252 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r252%20-%20trunk/channels&In-Reply-To=%3C200606181125.k5IBPUOJ000711%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r252 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 13:25:30 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000246.html">[solid-pbx-svn] r251 - trunk/include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000248.html">[solid-pbx-svn] r253 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#247">[ date ]</a>
+              <a href="thread.html#247">[ thread ]</a>
+              <a href="subject.html#247">[ subject ]</a>
+              <a href="author.html#247">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 13:25:25 +0200 (Sun, 18 Jun 2006)
+New Revision: 252
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r32183
+
+------------------------------------------------------------------------
+r32183 | oej | 2006-06-05 08:23:22 +0200 (Mon, 05 Jun 2006) | 2 lines
+
+Only override callingpres set by rpid if user/peer preference is set. (Issue #7240)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-18 10:25:21 UTC (rev 251)
++++ trunk/channels/chan_sip.c	2006-06-18 11:25:25 UTC (rev 252)
+@@ -7739,7 +7739,8 @@
+ 			p-&gt;amaflags = user-&gt;amaflags;
+ 			p-&gt;callgroup = user-&gt;callgroup;
+ 			p-&gt;pickupgroup = user-&gt;pickupgroup;
+-			p-&gt;callingpres = user-&gt;callingpres;
++			if (user-&gt;callingpres)	/* User callingpres setting will override RPID header */
++				p-&gt;callingpres = user-&gt;callingpres;
+ 			p-&gt;capability = user-&gt;capability;
+ 			p-&gt;jointcapability = user-&gt;capability;
+ 			p-&gt;maxcallbitrate = user-&gt;maxcallbitrate;
+@@ -7811,7 +7812,8 @@
+ 			ast_string_field_set(p, peersecret, peer-&gt;secret);
+ 			ast_string_field_set(p, peermd5secret, peer-&gt;md5secret);
+ 			ast_string_field_set(p, subscribecontext, peer-&gt;subscribecontext);
+-			p-&gt;callingpres = peer-&gt;callingpres;
++			if (peer-&gt;callingpres)	/* Peer calling pres setting will override RPID */
++				p-&gt;callingpres = peer-&gt;callingpres;
+ 			if (peer-&gt;maxms &amp;&amp; peer-&gt;lastms)
+ 				p-&gt;timer_t1 = peer-&gt;lastms;
+ 			if (ast_test_flag(&amp;peer-&gt;flags[0], SIP_INSECURE_INVITE)) {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000246.html">[solid-pbx-svn] r251 - trunk/include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000248.html">[solid-pbx-svn] r253 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#247">[ date ]</a>
+              <a href="thread.html#247">[ thread ]</a>
+              <a href="subject.html#247">[ subject ]</a>
+              <a href="author.html#247">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

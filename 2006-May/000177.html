@@ -1,0 +1,4987 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r182 - in trunk: cdr channels configs contrib doc include/asterisk res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r182%20-%20in%20trunk%3A%20cdr%20channels%20configs%20contrib%20doc%20include/asterisk%20res&In-Reply-To=%3C200605262114.k4QLEhrp029207%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000176.html">
+   <LINK REL="Next"  HREF="000178.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r182 - in trunk: cdr channels configs contrib doc include/asterisk res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r182%20-%20in%20trunk%3A%20cdr%20channels%20configs%20contrib%20doc%20include/asterisk%20res&In-Reply-To=%3C200605262114.k4QLEhrp029207%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r182 - in trunk: cdr channels configs contrib doc include/asterisk res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May 26 23:14:43 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000176.html">[solid-pbx-svn] r181 - in trunk: . apps build_tools cdr channels channels/misdn codecs codecs/gsm configs doc funcs include include/asterisk pbx res utils
+</A></li>
+        <LI>Next message: <A HREF="000178.html">[solid-pbx-svn] r183 - in trunk: . apps channels funcs include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#177">[ date ]</a>
+              <a href="thread.html#177">[ thread ]</a>
+              <a href="subject.html#177">[ subject ]</a>
+              <a href="author.html#177">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-26 23:14:40 +0200 (Fri, 26 May 2006)
+New Revision: 182
+
+Added:
+   trunk/cdr/cdr_radius.c
+   trunk/channels/chan_jingle.c
+   trunk/configs/jabber.conf.sample
+   trunk/configs/jingle.conf.sample
+   trunk/contrib/dictionary.digium
+   trunk/doc/callfiles.txt
+   trunk/doc/jabber.txt
+   trunk/doc/jingle.txt
+   trunk/doc/radius.txt
+   trunk/doc/video.txt
+   trunk/include/asterisk/jabber.h
+   trunk/include/asterisk/jingle.h
+   trunk/res/res_jabber.c
+Log:
+Adding missing files
+
+Added: trunk/cdr/cdr_radius.c
+===================================================================
+--- trunk/cdr/cdr_radius.c	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/cdr/cdr_radius.c	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,318 @@
++/*
++ * Asterisk -- An open source telephony toolkit.
++ *
++ * Copyright (C) 1999 - 2005, Digium, Inc.
++ *
++ * Mark Spencer &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>&gt;
++ *
++ * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
++ * the Asterisk project. Please do not directly contact
++ * any of the maintainers of this project for assistance;
++ * the project provides a web site, mailing lists and IRC
++ * channels for your use.
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License Version 2. See the LICENSE file
++ * at the top of the source tree.
++ */
++
++/*! \file
++ *
++ * \brief RADIUS CDR Support
++ * \author Philippe Sultan
++ * 
++ * \arg See also \ref AstCDR
++ * \ingroup cdr_drivers
++ */
++
++/*** MODULEINFO
++	&lt;depend&gt;radiusclient&lt;/depend&gt;
++ ***/
++
++#include &lt;stdlib.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;string.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;time.h&gt;
++#include &lt;sys/types.h&gt;
++#include &lt;radiusclient-ng.h&gt;
++
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Rev$&quot;)
++
++#include &quot;asterisk/channel.h&quot;
++#include &quot;asterisk/cdr.h&quot;
++#include &quot;asterisk/module.h&quot;
++#include &quot;asterisk/logger.h&quot;
++#include &quot;asterisk/utils.h&quot;
++
++/*! ISO 8601 standard format */
++#define DATE_FORMAT &quot;%Y-%m-%d %T %z&quot;
++
++#define VENDOR_CODE           22736
++
++enum {
++	PW_AST_ACCT_CODE =    101,
++	PW_AST_SRC =          102,
++	PW_AST_DST =          103,
++	PW_AST_DST_CTX =      104,
++	PW_AST_CLID =         105,
++	PW_AST_CHAN =         106,
++	PW_AST_DST_CHAN =     107,
++	PW_AST_LAST_APP =     108,
++	PW_AST_LAST_DATA =    109,
++	PW_AST_START_TIME =   110,
++	PW_AST_ANSWER_TIME =  111,
++	PW_AST_END_TIME =     112,
++	PW_AST_DURATION =     113,
++	PW_AST_BILL_SEC =     114,
++	PW_AST_DISPOSITION =  115,
++	PW_AST_AMA_FLAGS =    116,
++	PW_AST_UNIQUE_ID =    117,
++	PW_AST_USER_FIELD =   118
++};
++
++enum {
++	/*! Log dates and times in UTC */
++	RADIUS_FLAG_USEGMTIME = (1 &lt;&lt; 0),
++	/*! Log Unique ID */
++	RADIUS_FLAG_LOGUNIQUEID = (1 &lt;&lt; 1),
++	/*! Log User Field */
++	RADIUS_FLAG_LOGUSERFIELD = (1 &lt;&lt; 2)
++};
++
++static char *desc = &quot;RADIUS CDR Backend&quot;;
++static char *name = &quot;radius&quot;;
++static char *cdr_config = &quot;cdr.conf&quot;;
++
++static char radiuscfg[AST_CONFIG_MAX_PATH] = &quot;/etc/radiusclient-ng/radiusclient.conf&quot;;
++
++static struct ast_flags global_flags = { RADIUS_FLAG_USEGMTIME | RADIUS_FLAG_LOGUNIQUEID | RADIUS_FLAG_LOGUSERFIELD };
++
++static rc_handle *rh = NULL;
++
++static int build_radius_record(VALUE_PAIR **send, struct ast_cdr *cdr)
++{
++	int recordtype = PW_STATUS_STOP;
++	struct tm tm;
++	char timestr[128];
++	char *tmp;
++
++	if (!rc_avpair_add(rh, send, PW_ACCT_STATUS_TYPE, &amp;recordtype, 0, 0)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	/* Account code */
++	if (!rc_avpair_add(rh, send, PW_AST_ACCT_CODE, &amp;cdr-&gt;accountcode, strlen(cdr-&gt;accountcode), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++ 	/* Source */
++	if (!rc_avpair_add(rh, send, PW_AST_SRC, &amp;cdr-&gt;src, strlen(cdr-&gt;src), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++ 	/* Destination */
++	if (!rc_avpair_add(rh, send, PW_AST_DST, &amp;cdr-&gt;dst, strlen(cdr-&gt;dst), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++ 	/* Destination context */
++	if (!rc_avpair_add(rh, send, PW_AST_DST_CTX, &amp;cdr-&gt;dcontext, strlen(cdr-&gt;dcontext), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	/* Caller ID */
++	if (!rc_avpair_add(rh, send, PW_AST_CLID, &amp;cdr-&gt;clid, strlen(cdr-&gt;clid), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	/* Channel */
++	if (!rc_avpair_add(rh, send, PW_AST_CHAN, &amp;cdr-&gt;channel, strlen(cdr-&gt;channel), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	/* Destination Channel */
++	if (!rc_avpair_add(rh, send, PW_AST_DST_CHAN, &amp;cdr-&gt;dstchannel, strlen(cdr-&gt;dstchannel), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	/* Last Application */
++	if (!rc_avpair_add(rh, send, PW_AST_LAST_APP, &amp;cdr-&gt;lastapp, strlen(cdr-&gt;lastapp), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	/* Last Data */
++	if (!rc_avpair_add(rh, send, PW_AST_LAST_DATA, &amp;cdr-&gt;lastdata, strlen(cdr-&gt;lastdata), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++
++	/* Start Time */
++	if (ast_test_flag(&amp;global_flags, RADIUS_FLAG_USEGMTIME))
++		gmtime_r(&amp;(cdr-&gt;start.tv_sec), &amp;tm);
++	else
++		localtime_r(&amp;(cdr-&gt;start.tv_sec), &amp;tm);
++	strftime(timestr, sizeof(timestr), DATE_FORMAT, &amp;tm);
++	if (!rc_avpair_add(rh, send, PW_AST_START_TIME, timestr, strlen(timestr), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	/* Answer Time */
++	if (ast_test_flag(&amp;global_flags, RADIUS_FLAG_USEGMTIME))
++		gmtime_r(&amp;(cdr-&gt;answer.tv_sec), &amp;tm);
++	else
++		localtime_r(&amp;(cdr-&gt;answer.tv_sec), &amp;tm);
++	strftime(timestr, sizeof(timestr), DATE_FORMAT, &amp;tm);
++	if (!rc_avpair_add(rh, send, PW_AST_ANSWER_TIME, timestr, strlen(timestr), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	/* End Time */
++	if (ast_test_flag(&amp;global_flags, RADIUS_FLAG_USEGMTIME))
++		gmtime_r(&amp;(cdr-&gt;end.tv_sec), &amp;tm);
++	else
++		localtime_r(&amp;(cdr-&gt;end.tv_sec), &amp;tm);
++	strftime(timestr, sizeof(timestr), DATE_FORMAT, &amp;tm);
++	if (!rc_avpair_add(rh, send, PW_AST_END_TIME, timestr, strlen(timestr), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++ 	/* Duration */ 
++	if (!rc_avpair_add(rh, send, PW_AST_DURATION, &amp;cdr-&gt;duration, 0, VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	/* Billable seconds */
++	if (!rc_avpair_add(rh, send, PW_AST_BILL_SEC, &amp;cdr-&gt;billsec, 0, VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	/* Disposition */
++	tmp = ast_cdr_disp2str(cdr-&gt;disposition);
++	if (!rc_avpair_add(rh, send, PW_AST_DISPOSITION, tmp, strlen(tmp), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	/* AMA Flags */
++	tmp = ast_cdr_flags2str(cdr-&gt;amaflags);
++	if (!rc_avpair_add(rh, send, PW_AST_AMA_FLAGS, tmp, strlen(tmp), VENDOR_CODE)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++
++	if (ast_test_flag(&amp;global_flags, RADIUS_FLAG_LOGUNIQUEID)) {
++		/* Unique ID */
++		if (!rc_avpair_add(rh, send, PW_AST_UNIQUE_ID, &amp;cdr-&gt;uniqueid, strlen(cdr-&gt;uniqueid), VENDOR_CODE)) {
++			ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++			return -1;
++		}
++	}
++
++	if (ast_test_flag(&amp;global_flags, RADIUS_FLAG_LOGUSERFIELD)) {
++		/* append the user field */
++		if (!rc_avpair_add(rh, send, PW_AST_USER_FIELD, &amp;cdr-&gt;userfield, strlen(cdr-&gt;userfield), VENDOR_CODE)) {
++			ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++			return -1;
++		}
++	}
++
++	/* Setting Acct-Session-Id &amp; User-Name attributes for proper generation
++	   of Acct-Unique-Session-Id on server side */ 
++	/* Channel */
++	if (!rc_avpair_add(rh, send, PW_USER_NAME, &amp;cdr-&gt;channel, strlen(cdr-&gt;channel), 0)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++	/* Unique ID */
++	if (!rc_avpair_add(rh, send, PW_ACCT_SESSION_ID, &amp;cdr-&gt;uniqueid, strlen(cdr-&gt;uniqueid), 0)) {
++		ast_log(LOG_WARNING, &quot;Failed to add VALUE PAIR. RADIUS CDR not recorded!\n&quot;);
++		return -1;
++	}
++	return 0;
++}
++
++static int radius_log(struct ast_cdr *cdr)
++{
++	int result = ERROR_RC;
++	VALUE_PAIR *send = NULL;
++
++	if (build_radius_record(&amp;send, cdr)) {
++		ast_log(LOG_WARNING, &quot;Unable to create RADIUS record. CDR not recorded!\n&quot;);
++		return result;
++	}
++	
++	result = rc_acct(rh, 0, send);
++	if (result != OK_RC)
++		ast_log(LOG_ERROR, &quot;Failed to record Radius CDR record!\n&quot;);
++
++	return result;
++}
++
++static const char *description(void)
++{
++	return desc;
++}
++
++static int unload_module(void *mod)
++{
++	ast_cdr_unregister(name);
++	return 0;
++}
++
++static int load_module(void *mod)
++{
++	struct ast_config *cfg;
++	char *tmp;
++
++	if ((cfg = ast_config_load(cdr_config))) {
++		ast_set2_flag(&amp;global_flags, ast_true(ast_variable_retrieve(cfg, &quot;radius&quot;, &quot;usegmtime&quot;)), RADIUS_FLAG_USEGMTIME);
++		ast_set2_flag(&amp;global_flags, ast_true(ast_variable_retrieve(cfg, &quot;radius&quot;, &quot;loguniqueid&quot;)), RADIUS_FLAG_LOGUNIQUEID);
++		ast_set2_flag(&amp;global_flags, ast_true(ast_variable_retrieve(cfg, &quot;radius&quot;, &quot;loguserfield&quot;)), RADIUS_FLAG_LOGUSERFIELD);
++		if ((tmp = ast_variable_retrieve(cfg, &quot;radius&quot;, &quot;radiuscfg&quot;)))
++			ast_copy_string(radiuscfg, tmp, sizeof(radiuscfg));
++		ast_config_destroy(cfg);
++	}
++	
++	/* start logging */
++	rc_openlog(&quot;asterisk&quot;);
++
++	/* read radiusclient-ng config file */
++	if (!(rh = rc_read_config(radiuscfg))) {
++		ast_log(LOG_NOTICE, &quot;Cannot load radiusclient-ng configuration file %s.\n&quot;, radiuscfg);
++		return -1;
++	}
++
++	/* read radiusclient-ng dictionaries */
++	if (rc_read_dictionary(rh, rc_conf_str(rh, &quot;dictionary&quot;))) {
++		ast_log(LOG_NOTICE, &quot;Cannot load radiusclient-ng dictionary file.\n&quot;);
++		return -1;
++	}
++	
++	return ast_cdr_register(name, desc, radius_log);
++}
++
++static const char *key(void)
++{
++	return ASTERISK_GPL_KEY;
++}
++
++STD_MOD(MOD_0, NULL, NULL, NULL);
+
+Added: trunk/channels/chan_jingle.c
+===================================================================
+--- trunk/channels/chan_jingle.c	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/channels/chan_jingle.c	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,1641 @@
++/*
++ * Asterisk -- An open source telephony toolkit.
++ *
++ * Copyright (C) 1999 - 2005, Digium, Inc.
++ *
++ * Matt O'Gorman &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">mogorman at digium.com</A>&gt;
++ *
++ * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
++ * the Asterisk project. Please do not directly contact
++ * any of the maintainers of this project for assistance;
++ * the project provides a web site, mailing lists and IRC
++ * channels for your use.
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License Version 2. See the LICENSE file
++ * at the top of the source tree.
++ */
++
++/*! \file
++ *
++ * \author Matt O'Gorman &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">mogorman at digium.com</A>&gt;
++ *
++ * \brief Jingle Channel Driver
++ * 
++ * \ingroup channel_drivers
++ */
++
++/*** MODULEINFO
++	&lt;depend&gt;iksemel&lt;/depend&gt;
++ ***/
++
++
++#include &lt;stdlib.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;string.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;sys/socket.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;fcntl.h&gt;
++#include &lt;netdb.h&gt;
++#include &lt;netinet/in.h&gt;
++#include &lt;arpa/inet.h&gt;
++#include &lt;sys/signal.h&gt;
++#include &lt;iksemel.h&gt;
++
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++#include &quot;asterisk/lock.h&quot;
++#include &quot;asterisk/channel.h&quot;
++#include &quot;asterisk/config.h&quot;
++#include &quot;asterisk/logger.h&quot;
++#include &quot;asterisk/module.h&quot;
++#include &quot;asterisk/pbx.h&quot;
++#include &quot;asterisk/options.h&quot;
++#include &quot;asterisk/lock.h&quot;
++#include &quot;asterisk/sched.h&quot;
++#include &quot;asterisk/io.h&quot;
++#include &quot;asterisk/rtp.h&quot;
++#include &quot;asterisk/acl.h&quot;
++#include &quot;asterisk/callerid.h&quot;
++#include &quot;asterisk/file.h&quot;
++#include &quot;asterisk/cli.h&quot;
++#include &quot;asterisk/app.h&quot;
++#include &quot;asterisk/musiconhold.h&quot;
++#include &quot;asterisk/manager.h&quot;
++#include &quot;asterisk/stringfields.h&quot;
++#include &quot;asterisk/utils.h&quot;
++#include &quot;asterisk/causes.h&quot;
++#include &quot;asterisk/astobj.h&quot;
++#include &quot;asterisk/jabber.h&quot;
++#include &quot;asterisk/jingle.h&quot;
++
++#define JINGLE_CONFIG &quot;jingle.conf&quot;
++
++enum jingle_protocol {
++	AJI_PROTOCOL_UDP = 1,
++	AJI_PROTOCOL_SSLTCP = 2,
++};
++
++enum jingle_connect_type {
++	AJI_CONNECT_STUN = 1,
++	AJI_CONNECT_LOCAL = 2,
++	AJI_CONNECT_RELAY = 3,
++};
++
++struct jingle_pvt {
++	ast_mutex_t lock;		/* Channel private lock */
++	time_t laststun;
++	struct jingle *parent;	/* Parent client */
++	char sid[100];
++	char from[100];
++	char ring[10];			/* Message ID of ring */
++	iksrule *ringrule;		/* Rule for matching RING request */
++	int initiator;			/* If we're the initiator */
++	int alreadygone;
++	int capability;
++	struct ast_codec_pref prefs;
++	struct jingle_candidate *theircandidates;
++	struct jingle_candidate *ourcandidates;
++	char cid_num[80];		/*!&lt; Caller ID num */
++	char cid_name[80];		/*!&lt; Caller ID name */
++	char exten[80];		/* Called extension */
++	struct ast_channel *owner;	/* Master Channel */
++	struct ast_rtp *rtp;	/*!&lt; RTP Session */
++	struct ast_rtp *vrtp;
++	int jointcapability;	/*!&lt; Supported capability at both ends (codecs ) */
++	int peercapability;
++	struct jingle_pvt *next;	/* Next entity */
++};
++
++struct jingle_candidate {
++	char name[100];
++	enum jingle_protocol protocol;
++	double preference;
++	char username[100];
++	char password[100];
++	enum jingle_connect_type type;
++	char network[6];
++	int generation;
++	char ip[16];
++	int port;
++	int receipt;
++	struct jingle_candidate *next;
++};
++
++struct jingle {
++	ASTOBJ_COMPONENTS(struct jingle);
++	struct aji_client *connection;
++	struct aji_buddy *buddy;
++	struct jingle_pvt *p;
++	struct ast_codec_pref prefs;
++	int amaflags;			/*!&lt; AMA Flags */
++	char user[100];
++	char context[100];
++	char accountcode[AST_MAX_ACCOUNT_CODE];	/* Account code */
++	int capability;
++	ast_group_t callgroup;	/*!&lt; Call group */
++	ast_group_t pickupgroup;	/*!&lt; Pickup group */
++	int callingpres;		/*!&lt; Calling presentation */
++	int allowguest;
++	char language[MAX_LANGUAGE];	/*!&lt;  Default language for prompts */
++	char musicclass[MAX_MUSICCLASS];	/*!&lt;  Music on Hold class */
++};
++
++struct jingle_container {
++        ASTOBJ_CONTAINER_COMPONENTS(struct jingle);
++};
++
++static const char desc[] = &quot;Jingle Channel&quot;;
++static const char type[] = &quot;Jingle&quot;;
++static const char tdesc[] = &quot;Jingle Channel Driver&quot;;
++
++static int usecnt = 0;
++AST_MUTEX_DEFINE_STATIC(usecnt_lock);
++
++
++static int global_capability = AST_FORMAT_ULAW | AST_FORMAT_ALAW | AST_FORMAT_GSM | AST_FORMAT_H263;
++
++/* Protect the interface list (of sip_pvt's) */
++AST_MUTEX_DEFINE_STATIC(jinglelock);
++
++AST_MUTEX_DEFINE_STATIC(rand_lock);	/*!&lt; Lock for thread-safe random generator */
++
++
++static struct ast_channel *jingle_request(const char *type, int format, void *data, int *cause);
++static int jingle_digit(struct ast_channel *ast, char digit);
++static int jingle_call(struct ast_channel *ast, char *dest, int timeout);
++static int jingle_hangup(struct ast_channel *ast);
++static int jingle_answer(struct ast_channel *ast);
++static int jingle_newcall(struct jingle *client, ikspak *pak);
++static struct ast_frame *jingle_read(struct ast_channel *ast);
++static int jingle_write(struct ast_channel *ast, struct ast_frame *f);
++static int jingle_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen);
++static int jingle_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
++static int jingle_sendhtml(struct ast_channel *ast, int subclass, const char *data, int datalen);
++static struct jingle_pvt *jingle_alloc(struct jingle *client, const char *from, const char *sid);
++
++/* PBX interface structure for channel registration */
++static const struct ast_channel_tech jingle_tech = {
++	.type = type,
++	.description = tdesc,
++	.capabilities = ((AST_FORMAT_MAX_AUDIO &lt;&lt; 1) - 1),
++	.requester = jingle_request,
++	.send_digit = jingle_digit,
++	.bridge = ast_rtp_bridge,
++	.call = jingle_call,
++	.hangup = jingle_hangup,
++	.answer = jingle_answer,
++	.read = jingle_read,
++	.write = jingle_write,
++	.exception = jingle_read,
++	.indicate = jingle_indicate,
++	.fixup = jingle_fixup,
++	.send_html = jingle_sendhtml,
++};
++
++static struct sockaddr_in bindaddr = { 0, };	/*!&lt; The address we bind to */
++
++static struct sched_context *sched;	/*!&lt; The scheduling context */
++static struct io_context *io;	/*!&lt; The IO context */
++static struct in_addr __ourip;
++/*----- RTP interface functions */
++static int jingle_set_rtp_peer(struct ast_channel *chan, struct ast_rtp *rtp,
++							   struct ast_rtp *vrtp, int codecs, int nat_active);
++static struct ast_rtp *jingle_get_rtp_peer(struct ast_channel *chan);
++static int jingle_get_codec(struct ast_channel *chan);
++
++static struct ast_rtp_protocol jingle_rtp = {
++	type: &quot;jingle&quot;,
++	get_rtp_info: jingle_get_rtp_peer,
++	set_rtp_peer: jingle_set_rtp_peer,
++	get_codec: jingle_get_codec,
++};
++
++char externip[16];
++
++struct jingle_container jingles;
++
++static void jingle_member_destroy(struct jingle *obj)
++{
++	free(obj);
++}
++
++static struct jingle *find_jingle(char *name, char *connection)
++{
++	struct jingle *jingle = NULL;
++
++	jingle = ASTOBJ_CONTAINER_FIND(&amp;jingles, name);
++	if (!jingle &amp;&amp; strchr(name, '@'))
++		jingle = ASTOBJ_CONTAINER_FIND_FULL(&amp;jingles, name, user,,, strcasecmp);
++
++	if (!jingle) {				/* guest call */
++		ASTOBJ_CONTAINER_TRAVERSE(&amp;jingles, 1, {
++			ASTOBJ_WRLOCK(iterator);
++			if (!strcasecmp(iterator-&gt;name, &quot;guest&quot;)) {
++				if (!strcasecmp(iterator-&gt;connection-&gt;jid-&gt;partial, connection)) {
++					jingle = iterator;
++					break;
++				} else if (!strcasecmp(iterator-&gt;connection-&gt;name, connection)) {
++					jingle = iterator;
++					break;
++				}
++			}
++			ASTOBJ_UNLOCK(iterator);
++		});
++
++	}
++	return jingle;
++}
++
++
++static void add_codec_to_answer(const struct jingle_pvt *p, int codec, iks *dcodecs)
++{
++	if (!strcasecmp(&quot;ulaw&quot;, ast_getformatname(codec))) {
++		iks *payload_eg711u, *payload_pcmu;
++		payload_pcmu = iks_new(&quot;payload-type&quot;);
++		iks_insert_attrib(payload_pcmu, &quot;id&quot;, &quot;0&quot;);
++		iks_insert_attrib(payload_pcmu, &quot;name&quot;, &quot;PCMU&quot;);
++		iks_insert_attrib(payload_pcmu, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session/phone">http://www.google.com/session/phone</A>&quot;);
++		payload_eg711u = iks_new(&quot;payload-type&quot;);
++		iks_insert_attrib(payload_eg711u, &quot;id&quot;, &quot;100&quot;);
++		iks_insert_attrib(payload_eg711u, &quot;name&quot;, &quot;EG711U&quot;);
++		iks_insert_attrib(payload_eg711u, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session/phone">http://www.google.com/session/phone</A>&quot;);
++		iks_insert_node(dcodecs, payload_pcmu);
++		iks_insert_node(dcodecs, payload_eg711u);
++	}
++	if (!strcasecmp(&quot;alaw&quot;, ast_getformatname(codec))) {
++		iks *payload_eg711a, *payload_pcma;
++		payload_pcma = iks_new(&quot;payload-type&quot;);
++		iks_insert_attrib(payload_pcma, &quot;id&quot;, &quot;8&quot;);
++		iks_insert_attrib(payload_pcma, &quot;name&quot;, &quot;PCMA&quot;);
++		iks_insert_attrib(payload_pcma, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session/phone">http://www.google.com/session/phone</A>&quot;);
++		payload_eg711a = iks_new(&quot;payload-type&quot;);
++		iks_insert_attrib(payload_eg711a, &quot;id&quot;, &quot;101&quot;);
++		iks_insert_attrib(payload_eg711a, &quot;name&quot;, &quot;EG711A&quot;);
++		iks_insert_attrib(payload_eg711a, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session/phone">http://www.google.com/session/phone</A>&quot;);
++		iks_insert_node(dcodecs, payload_pcma);
++		iks_insert_node(dcodecs, payload_eg711a);
++	}
++	if (!strcasecmp(&quot;ilbc&quot;, ast_getformatname(codec))) {
++		iks *payload_ilbc;
++		payload_ilbc = iks_new(&quot;payload-type&quot;);
++		iks_insert_attrib(payload_ilbc, &quot;id&quot;, &quot;102&quot;);
++		iks_insert_attrib(payload_ilbc, &quot;name&quot;, &quot;iLBC&quot;);
++		iks_insert_attrib(payload_ilbc, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session/phone">http://www.google.com/session/phone</A>&quot;);
++		iks_insert_node(dcodecs, payload_ilbc);
++	}
++	if (!strcasecmp(&quot;g723&quot;, ast_getformatname(codec))) {
++		iks *payload_g723;
++		payload_g723 = iks_new(&quot;payload-type&quot;);
++		iks_insert_attrib(payload_g723, &quot;id&quot;, &quot;4&quot;);
++		iks_insert_attrib(payload_g723, &quot;name&quot;, &quot;G723&quot;);
++		iks_insert_attrib(payload_g723, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session/phone">http://www.google.com/session/phone</A>&quot;);
++		iks_insert_node(dcodecs, payload_g723);
++	}
++	ast_rtp_lookup_code(p-&gt;rtp, 1, codec);
++}
++
++static int jingle_accept_call(struct jingle *client, struct jingle_pvt *p)
++{
++	struct jingle_pvt *tmp = client-&gt;p;
++	struct aji_client *c = client-&gt;connection;
++	iks *iq, *jingle, *dcodecs, *payload_red, *payload_audio, *payload_cn;
++	int x;
++	int pref_codec = 0;
++	int alreadysent = 0;
++
++	if (p-&gt;initiator)
++		return 1;
++
++	iq = iks_new(&quot;iq&quot;);
++	jingle = iks_new(GOOGLE_NODE);
++	dcodecs = iks_new(&quot;description&quot;);
++	if (iq &amp;&amp; jingle &amp;&amp; dcodecs) {
++		iks_insert_attrib(dcodecs, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session/phone">http://www.google.com/session/phone</A>&quot;);
++
++		for (x = 0; x &lt; 32; x++) {
++			if (!(pref_codec = ast_codec_pref_index(&amp;client-&gt;prefs, x)))
++				break;
++			if (!(client-&gt;capability &amp; pref_codec))
++				continue;
++			if (alreadysent &amp; pref_codec)
++				continue;
++			if (pref_codec &lt;= AST_FORMAT_MAX_AUDIO)
++				add_codec_to_answer(p, pref_codec, dcodecs);
++			else
++				add_codec_to_answer(p, pref_codec, dcodecs);
++			alreadysent |= pref_codec;
++		}
++		payload_red = iks_new(&quot;payload-type&quot;);
++		iks_insert_attrib(payload_red, &quot;id&quot;, &quot;117&quot;);
++		iks_insert_attrib(payload_red, &quot;name&quot;, &quot;red&quot;);
++		iks_insert_attrib(payload_red, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session/phone">http://www.google.com/session/phone</A>&quot;);
++		payload_audio = iks_new(&quot;payload-type&quot;);
++		iks_insert_attrib(payload_audio, &quot;id&quot;, &quot;106&quot;);
++		iks_insert_attrib(payload_audio, &quot;name&quot;, &quot;audio/telephone-event&quot;);
++		iks_insert_attrib(payload_audio, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session/phone">http://www.google.com/session/phone</A>&quot;);
++		payload_cn = iks_new(&quot;payload-type&quot;);
++		iks_insert_attrib(payload_cn, &quot;id&quot;, &quot;13&quot;);
++		iks_insert_attrib(payload_cn, &quot;name&quot;, &quot;CN&quot;);
++		iks_insert_attrib(payload_cn, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session/phone">http://www.google.com/session/phone</A>&quot;);
++
++
++		iks_insert_attrib(iq, &quot;type&quot;, &quot;set&quot;);
++		iks_insert_attrib(iq, &quot;to&quot;, (p-&gt;from) ? p-&gt;from : client-&gt;user);
++		iks_insert_attrib(iq, &quot;id&quot;, client-&gt;connection-&gt;mid);
++		ast_aji_increment_mid(client-&gt;connection-&gt;mid);
++
++		iks_insert_attrib(jingle, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session">http://www.google.com/session</A>&quot;);
++		iks_insert_attrib(jingle, &quot;type&quot;, JINGLE_ACCEPT);
++		iks_insert_attrib(jingle, &quot;initiator&quot;,
++						  p-&gt;initiator ? client-&gt;connection-&gt;jid-&gt;full : p-&gt;from);
++		iks_insert_attrib(jingle, GOOGLE_SID, tmp-&gt;sid);
++		iks_insert_node(iq, jingle);
++		iks_insert_node(jingle, dcodecs);
++		iks_insert_node(dcodecs, payload_red);
++		iks_insert_node(dcodecs, payload_audio);
++		iks_insert_node(dcodecs, payload_cn);
++
++		iks_send(c-&gt;p, iq);
++		iks_delete(payload_red);
++		iks_delete(payload_audio);
++		iks_delete(payload_cn);
++		iks_delete(dcodecs);
++		iks_delete(jingle);
++		iks_delete(iq);
++	}
++	return 1;
++}
++
++static int jingle_ringing_ack(void *data, ikspak *pak)
++{
++	struct jingle_pvt *p = data;
++	if (p-&gt;ringrule)
++		iks_filter_remove_rule(p-&gt;parent-&gt;connection-&gt;f, p-&gt;ringrule);
++	p-&gt;ringrule = NULL;
++	if (p-&gt;owner)
++		ast_queue_control(p-&gt;owner, AST_CONTROL_RINGING);
++	return IKS_FILTER_EAT;
++}
++
++static int jingle_answer(struct ast_channel *ast)
++{
++	struct jingle_pvt *p = ast-&gt;tech_pvt;
++	struct jingle *client = p-&gt;parent;
++	int res = 0;
++	ast_log(LOG_DEBUG, &quot;Answer!\n&quot;);
++	ast_mutex_lock(&amp;p-&gt;lock);
++	jingle_accept_call(client, p);
++	ast_mutex_unlock(&amp;p-&gt;lock);
++	return res;
++}
++
++static force_inline int thread_safe_rand(void)
++{
++	int val;
++
++	ast_mutex_lock(&amp;rand_lock);
++	val = rand();
++	ast_mutex_unlock(&amp;rand_lock);
++
++	return val;
++}
++
++static struct ast_rtp *jingle_get_rtp_peer(struct ast_channel *chan)
++{
++	struct jingle_pvt *p;
++	struct ast_rtp *rtp = NULL;
++	p = chan-&gt;tech_pvt;
++	if (!p)
++		return NULL;
++	ast_mutex_lock(&amp;p-&gt;lock);
++	if (p-&gt;rtp)
++		rtp = p-&gt;rtp;
++	ast_mutex_unlock(&amp;p-&gt;lock);
++	return rtp;
++}
++
++static int jingle_get_codec(struct ast_channel *chan)
++{
++	struct jingle_pvt *p = chan-&gt;tech_pvt;
++	return p-&gt;peercapability;
++}
++
++static int jingle_set_rtp_peer(struct ast_channel *chan, struct ast_rtp *rtp, struct ast_rtp *vrtp, int codecs, int nat_active)
++{
++	struct jingle_pvt *p;
++
++	p = chan-&gt;tech_pvt;
++	if (!p)
++		return -1;
++	ast_mutex_lock(&amp;p-&gt;lock);
++
++/*	if (rtp)
++		ast_rtp_get_peer(rtp, &amp;p-&gt;redirip);
++	else
++		memset(&amp;p-&gt;redirip, 0, sizeof(p-&gt;redirip));
++	p-&gt;redircodecs = codecs; */
++
++	/* Reset lastrtprx timer */
++	ast_mutex_unlock(&amp;p-&gt;lock);
++	return 0;
++}
++
++static int jingle_response(struct jingle *client, ikspak *pak, const char *reasonstr)
++{
++	iks *response, *error = NULL, *reason = NULL;
++	int res = -1;
++
++	response = iks_new(&quot;iq&quot;);
++	if (response) {
++		iks_insert_attrib(response, &quot;type&quot;, &quot;result&quot;);
++		iks_insert_attrib(response, &quot;from&quot;, client-&gt;connection-&gt;jid-&gt;full);
++		iks_insert_attrib(response, &quot;to&quot;, iks_find_attrib(pak-&gt;x, &quot;from&quot;));
++		iks_insert_attrib(response, &quot;id&quot;, iks_find_attrib(pak-&gt;x, &quot;id&quot;));
++		if (reasonstr) {
++			error = iks_new(&quot;error&quot;);
++			if (error) {
++				iks_insert_attrib(error, &quot;type&quot;, &quot;cancel&quot;);
++				reason = iks_new(reasonstr);
++				if (reason)
++					iks_insert_node(error, reason);
++				iks_insert_node(response, error);
++			}
++		}
++		iks_send(client-&gt;connection-&gt;p, response);
++		if (reason)
++			iks_delete(reason);
++		if (error)
++			iks_delete(error);
++		iks_delete(response);
++		res = 0;
++	}
++	return res;
++}
++
++static int jingle_is_answered(struct jingle *client, ikspak *pak)
++{
++	struct jingle_pvt *tmp;
++
++	ast_log(LOG_DEBUG, &quot;The client is %s\n&quot;, client-&gt;name);
++	tmp = client-&gt;p;
++	/* Make sure our new call doesn't exist yet */
++	while (tmp) {
++		if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, GOOGLE_SID, tmp-&gt;sid)) {
++			break;
++		}
++		tmp = tmp-&gt;next;
++	}
++
++	if (tmp) {
++		if (tmp-&gt;owner)
++			ast_queue_control(tmp-&gt;owner, AST_CONTROL_ANSWER);
++	} else
++		ast_log(LOG_NOTICE, &quot;Whoa, didn't find call!\n&quot;);
++	jingle_response(client, pak, NULL);
++	return 1;
++}
++
++static int jingle_hangup_farend(struct jingle *client, ikspak *pak)
++{
++	struct jingle_pvt *tmp;
++
++	ast_log(LOG_DEBUG, &quot;The client is %s\n&quot;, client-&gt;name);
++	tmp = client-&gt;p;
++	/* Make sure our new call doesn't exist yet */
++	while (tmp) {
++		if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, GOOGLE_SID, tmp-&gt;sid)) {
++			break;
++		}
++		tmp = tmp-&gt;next;
++	}
++
++	if (tmp) {
++		tmp-&gt;alreadygone = 1;
++		ast_queue_hangup(tmp-&gt;owner);
++	} else
++		ast_log(LOG_NOTICE, &quot;Whoa, didn't find call!\n&quot;);
++	jingle_response(client, pak, NULL);
++	return 1;
++}
++
++static int jingle_create_candidates(struct jingle *client, struct jingle_pvt *p, char *sid, char *from)
++{
++	struct jingle_candidate *tmp;
++	struct aji_client *c = client-&gt;connection;
++	struct jingle_candidate *ours1 = NULL, *ours2 = NULL;
++	struct sockaddr_in sin;
++	struct sockaddr_in dest;
++	struct in_addr us;
++
++	iks *iq, *jingle, *candidate;
++	char user[17], pass[17], preference[5], port[7];
++
++
++	iq = iks_new(&quot;iq&quot;);
++	jingle = iks_new(GOOGLE_NODE);
++	candidate = iks_new(&quot;candidate&quot;);
++	ours1 = (struct jingle_candidate *) ast_calloc(1, sizeof(struct jingle_candidate));
++	ours2 = (struct jingle_candidate *) ast_calloc(1, sizeof(struct jingle_candidate));
++	if (!iq || !jingle || !candidate || !ours1 || !ours2) {
++		ast_log(LOG_WARNING, &quot;out of memory!\n&quot;);
++		goto safeout;
++	}
++
++	iks_insert_node(iq, jingle);
++	iks_insert_node(jingle, candidate);
++
++	while (p) {
++		if (!strcasecmp(p-&gt;sid, sid)) {
++			break;
++		}
++		p = p-&gt;next;
++	}
++
++	if (!p) {
++		ast_log(LOG_NOTICE, &quot;No matching jingle session!\n&quot;);
++		goto safeout;
++	}
++
++	ast_rtp_get_us(p-&gt;rtp, &amp;sin);
++	ast_find_ourip(&amp;us, bindaddr);
++
++	/* Setup our jingle candidates */
++	ast_copy_string(ours1-&gt;name, &quot;rtp&quot;, sizeof(ours1-&gt;name));
++	ours1-&gt;port = ntohs(sin.sin_port);
++	ours1-&gt;preference = 1;
++	snprintf(user, sizeof(user), &quot;%08x%08x&quot;, thread_safe_rand(), thread_safe_rand());
++	snprintf(pass, sizeof(pass), &quot;%08x%08x&quot;, thread_safe_rand(), thread_safe_rand());
++	ast_copy_string(ours1-&gt;username, user, sizeof(ours1-&gt;username));
++	ast_copy_string(ours1-&gt;password, pass, sizeof(ours1-&gt;password));
++	ast_inet_ntoa(ours1-&gt;ip, sizeof(ours1-&gt;ip), us);
++	ours1-&gt;protocol = AJI_PROTOCOL_UDP;
++	ours1-&gt;type = AJI_CONNECT_LOCAL;
++	ours1-&gt;generation = 0;
++	p-&gt;ourcandidates = ours1;
++
++	if (!ast_strlen_zero(externip)) {
++		/* XXX We should really stun for this one not just go with externip XXX */
++		snprintf(user, sizeof(user), &quot;%08x%08x&quot;, thread_safe_rand(), thread_safe_rand());
++		snprintf(pass, sizeof(pass), &quot;%08x%08x&quot;, thread_safe_rand(), thread_safe_rand());
++		ast_copy_string(ours2-&gt;username, user, sizeof(ours2-&gt;username));
++		ast_copy_string(ours2-&gt;password, pass, sizeof(ours2-&gt;password));
++		ast_copy_string(ours2-&gt;ip, externip, sizeof(ours2-&gt;ip));
++		ast_copy_string(ours2-&gt;name, &quot;rtp&quot;, sizeof(ours1-&gt;name));
++		ours2-&gt;port = ntohs(sin.sin_port);
++		ours2-&gt;preference = 0.9;
++		ours2-&gt;protocol = AJI_PROTOCOL_UDP;
++		ours2-&gt;type = AJI_CONNECT_STUN;
++		ours2-&gt;generation = 0;
++		ours1-&gt;next = ours2;
++		ours2 = NULL;
++	}
++	ours1 = NULL;
++	dest.sin_addr = __ourip;
++	dest.sin_port = sin.sin_port;
++
++
++	tmp = p-&gt;ourcandidates;
++	while (tmp) {				/*send standard candidates */
++		snprintf(port, sizeof(port), &quot;%d&quot;, tmp-&gt;port);
++		snprintf(preference, sizeof(preference), &quot;%.2f&quot;, tmp-&gt;preference);
++		iks_insert_attrib(iq, &quot;from&quot;, c-&gt;jid-&gt;full);
++		iks_insert_attrib(iq, &quot;to&quot;, from);
++		iks_insert_attrib(iq, &quot;type&quot;, &quot;set&quot;);
++		iks_insert_attrib(iq, &quot;id&quot;, c-&gt;mid);
++		ast_aji_increment_mid(c-&gt;mid);
++		iks_insert_attrib(jingle, &quot;type&quot;, &quot;candidates&quot;);
++		iks_insert_attrib(jingle, &quot;id&quot;, sid);
++		iks_insert_attrib(jingle, &quot;initiator&quot;, (p-&gt;initiator) ? c-&gt;jid-&gt;full : from);
++		iks_insert_attrib(jingle, &quot;xmlns&quot;, GOOGLE_NS);
++		iks_insert_attrib(candidate, &quot;name&quot;, tmp-&gt;name);
++		iks_insert_attrib(candidate, &quot;address&quot;, tmp-&gt;ip);
++		iks_insert_attrib(candidate, &quot;port&quot;, port);
++		iks_insert_attrib(candidate, &quot;username&quot;, tmp-&gt;username);
++		iks_insert_attrib(candidate, &quot;password&quot;, tmp-&gt;password);
++		iks_insert_attrib(candidate, &quot;preference&quot;, preference);
++		if (tmp-&gt;protocol == AJI_PROTOCOL_UDP)
++			iks_insert_attrib(candidate, &quot;protocol&quot;, &quot;udp&quot;);
++		if (tmp-&gt;protocol == AJI_PROTOCOL_SSLTCP)
++			iks_insert_attrib(candidate, &quot;protocol&quot;, &quot;ssltcp&quot;);
++		if (tmp-&gt;type == AJI_CONNECT_STUN)
++			iks_insert_attrib(candidate, &quot;type&quot;, &quot;stun&quot;);
++		if (tmp-&gt;type == AJI_CONNECT_LOCAL)
++			iks_insert_attrib(candidate, &quot;type&quot;, &quot;local&quot;);
++		if (tmp-&gt;type == AJI_CONNECT_RELAY)
++			iks_insert_attrib(candidate, &quot;type&quot;, &quot;relay&quot;);
++		iks_insert_attrib(candidate, &quot;network&quot;, &quot;0&quot;);
++		iks_insert_attrib(candidate, &quot;generation&quot;, &quot;0&quot;);
++		iks_send(c-&gt;p, iq);
++		tmp = tmp-&gt;next;
++	}
++	p-&gt;laststun = 0;
++
++safeout:
++	if (ours1)
++		free(ours1);
++	if (ours2)
++		free(ours2);
++	if (iq)
++		iks_delete(iq);
++	if (jingle)
++		iks_delete(jingle);
++	if (candidate)
++		iks_delete(candidate);
++	return 1;
++}
++
++static struct jingle_pvt *jingle_alloc(struct jingle *client, const char *from, const char *sid)
++{
++	struct jingle_pvt *tmp = NULL;
++	struct aji_resource *resources = NULL;
++	struct aji_buddy *buddy;
++	char idroster[200];
++
++	ast_log(LOG_DEBUG, &quot;The client is %s for alloc\n&quot;, client-&gt;name);
++	if (!sid &amp;&amp; !strchr(from, '/')) {	/*I started call! */
++		if (!strcasecmp(client-&gt;name, &quot;guest&quot;)) {
++			buddy = ASTOBJ_CONTAINER_FIND(&amp;client-&gt;connection-&gt;buddies, from);
++			if (buddy)
++				resources = buddy-&gt;resources;
++		} else {
++			resources = client-&gt;buddy-&gt;resources;
++		}
++		while (resources) {
++			if (resources-&gt;cap-&gt;jingle) {
++				break;
++			}
++			resources = resources-&gt;next;
++		}
++		if (resources)
++			snprintf(idroster, sizeof(idroster), &quot;%s/%s&quot;, from, resources-&gt;resource);
++		else {
++			ast_log(LOG_ERROR, &quot;no jingle capable clients to talk to.\n&quot;);
++			return NULL;
++		}
++	}
++	if (!(tmp = ast_calloc(1, sizeof(*tmp)))) {
++		return NULL;
++	}
++	if (sid) {
++		ast_copy_string(tmp-&gt;sid, sid, sizeof(tmp-&gt;sid));
++		ast_copy_string(tmp-&gt;from, from, sizeof(tmp-&gt;from));
++	} else {
++		snprintf(tmp-&gt;sid, sizeof(tmp-&gt;sid), &quot;%08lx%08lx&quot;, ast_random(), ast_random());
++		ast_copy_string(tmp-&gt;from, idroster, sizeof(tmp-&gt;from));
++		tmp-&gt;initiator = 1;
++	}
++	tmp-&gt;rtp = ast_rtp_new_with_bindaddr(sched, io, 1, 0, bindaddr.sin_addr);
++	tmp-&gt;parent = client;
++	if (!tmp-&gt;rtp) {
++		ast_log(LOG_WARNING, &quot;Out of RTP sessions?\n&quot;);
++		free(tmp);
++		return NULL;
++	}
++	ast_copy_string(tmp-&gt;exten, &quot;s&quot;, sizeof(tmp-&gt;exten));
++	ast_mutex_init(&amp;tmp-&gt;lock);
++	ast_mutex_lock(&amp;jinglelock);
++	tmp-&gt;next = client-&gt;p;
++	client-&gt;p = tmp;
++	ast_mutex_unlock(&amp;jinglelock);
++	return tmp;
++}
++
++/*! \brief Start new jingle channel */
++static struct ast_channel *jingle_new(struct jingle *client, struct jingle_pvt *i, int state, const char *title)
++{
++	struct ast_channel *tmp;
++	int fmt;
++	int what;
++
++	tmp = ast_channel_alloc(1);
++	if (!tmp) {
++		ast_log(LOG_WARNING, &quot;Unable to allocate Jingle channel structure!\n&quot;);
++		return NULL;
++	}
++	tmp-&gt;tech = &amp;jingle_tech;
++
++	/* Select our native format based on codec preference until we receive
++	   something from another device to the contrary. */
++	if (i-&gt;jointcapability)
++		what = i-&gt;jointcapability;
++	else if (i-&gt;capability)
++		what = i-&gt;capability;
++	else
++		what = global_capability;
++	tmp-&gt;nativeformats =
++		ast_codec_choose(&amp;i-&gt;prefs, what,
++						 1) | (i-&gt;jointcapability &amp; AST_FORMAT_VIDEO_MASK);
++	fmt = ast_best_codec(tmp-&gt;nativeformats);
++
++	if (title)
++		ast_string_field_build(tmp, name, &quot;Jingle/%s-%04lx&quot;, title,
++							   ast_random() &amp; 0xffff);
++	else
++		ast_string_field_build(tmp, name, &quot;Jingle/%s-%04lx&quot;, i-&gt;from,
++							   ast_random() &amp; 0xffff);
++
++	if (i-&gt;rtp) {
++		tmp-&gt;fds[0] = ast_rtp_fd(i-&gt;rtp);
++		tmp-&gt;fds[1] = ast_rtcp_fd(i-&gt;rtp);
++	}
++	if (i-&gt;vrtp) {
++		tmp-&gt;fds[2] = ast_rtp_fd(i-&gt;vrtp);
++		tmp-&gt;fds[3] = ast_rtcp_fd(i-&gt;vrtp);
++	}
++	if (state == AST_STATE_RING)
++		tmp-&gt;rings = 1;
++	tmp-&gt;adsicpe = AST_ADSI_UNAVAILABLE;
++	tmp-&gt;writeformat = fmt;
++	tmp-&gt;rawwriteformat = fmt;
++	tmp-&gt;readformat = fmt;
++	tmp-&gt;rawreadformat = fmt;
++	tmp-&gt;tech_pvt = i;
++
++	tmp-&gt;callgroup = client-&gt;callgroup;
++	tmp-&gt;pickupgroup = client-&gt;pickupgroup;
++	tmp-&gt;cid.cid_pres = client-&gt;callingpres;
++	if (!ast_strlen_zero(client-&gt;accountcode))
++		ast_string_field_set(tmp, accountcode, client-&gt;accountcode);
++	if (client-&gt;amaflags)
++		tmp-&gt;amaflags = client-&gt;amaflags;
++	if (!ast_strlen_zero(client-&gt;language))
++		ast_string_field_set(tmp, language, client-&gt;language);
++	if (!ast_strlen_zero(client-&gt;musicclass))
++		ast_string_field_set(tmp, musicclass, client-&gt;musicclass);
++	i-&gt;owner = tmp;
++	ast_mutex_lock(&amp;usecnt_lock);
++	usecnt++;
++	ast_mutex_unlock(&amp;usecnt_lock);
++	ast_copy_string(tmp-&gt;context, client-&gt;context, sizeof(tmp-&gt;context));
++	ast_copy_string(tmp-&gt;exten, i-&gt;exten, sizeof(tmp-&gt;exten));
++	if (!ast_strlen_zero(i-&gt;cid_num))
++		tmp-&gt;cid.cid_num = ast_strdup(i-&gt;cid_num);
++	if (!ast_strlen_zero(i-&gt;cid_name))
++		tmp-&gt;cid.cid_name = ast_strdup(i-&gt;cid_name);
++	if (!ast_strlen_zero(i-&gt;exten) &amp;&amp; strcmp(i-&gt;exten, &quot;s&quot;))
++		tmp-&gt;cid.cid_dnid = ast_strdup(i-&gt;exten);
++	tmp-&gt;priority = 1;
++	ast_setstate(tmp, state);
++	if (state != AST_STATE_DOWN &amp;&amp; ast_pbx_start(tmp)) {
++		ast_log(LOG_WARNING, &quot;Unable to start PBX on %s\n&quot;, tmp-&gt;name);
++		tmp-&gt;hangupcause = AST_CAUSE_SWITCH_CONGESTION;
++		ast_hangup(tmp);
++		tmp = NULL;
++	}
++	return tmp;
++}
++
++static int jingle_action(struct jingle *client, struct jingle_pvt *p, const char *action)
++{
++	iks *request, *session = NULL;
++	int res = -1;
++
++	request = iks_new(&quot;iq&quot;);
++	if (request) {
++		iks_insert_attrib(request, &quot;type&quot;, &quot;set&quot;);
++		iks_insert_attrib(request, &quot;from&quot;, client-&gt;connection-&gt;jid-&gt;full);
++		iks_insert_attrib(request, &quot;to&quot;, p-&gt;from);
++		iks_insert_attrib(request, &quot;id&quot;, client-&gt;connection-&gt;mid);
++		ast_aji_increment_mid(client-&gt;connection-&gt;mid);
++		session = iks_new(&quot;session&quot;);
++		if (session) {
++			iks_insert_attrib(session, &quot;type&quot;, action);
++			iks_insert_attrib(session, &quot;id&quot;, p-&gt;sid);
++			iks_insert_attrib(session, &quot;initiator&quot;,
++							  p-&gt;initiator ? client-&gt;connection-&gt;jid-&gt;full : p-&gt;from);
++			iks_insert_attrib(session, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session">http://www.google.com/session</A>&quot;);
++			iks_insert_node(request, session);
++			iks_send(client-&gt;connection-&gt;p, request);
++			iks_delete(session);
++			res = 0;
++		}
++		iks_delete(request);
++	}
++	return res;
++}
++
++static void jingle_free_candidates(struct jingle_candidate *candidate)
++{
++	struct jingle_candidate *last;
++	while (candidate) {
++		last = candidate;
++		candidate = candidate-&gt;next;
++		free(last);
++	}
++}
++
++static void jingle_free_pvt(struct jingle *client, struct jingle_pvt *p)
++{
++	struct jingle_pvt *cur, *prev = NULL;
++	cur = client-&gt;p;
++	while (cur) {
++		if (cur == p) {
++			if (prev)
++				prev-&gt;next = p-&gt;next;
++			else
++				client-&gt;p = p-&gt;next;
++			break;
++		}
++		prev = cur;
++		cur = cur-&gt;next;
++	}
++	if (p-&gt;ringrule)
++		iks_filter_remove_rule(p-&gt;parent-&gt;connection-&gt;f, p-&gt;ringrule);
++	if (p-&gt;owner)
++		ast_log(LOG_WARNING, &quot;Uh oh, there's an owner, this is going to be messy.\n&quot;);
++	if (p-&gt;rtp)
++		ast_rtp_destroy(p-&gt;rtp);
++	if (p-&gt;vrtp)
++		ast_rtp_destroy(p-&gt;vrtp);
++	jingle_free_candidates(p-&gt;theircandidates);
++	free(p);
++}
++
++
++static int jingle_newcall(struct jingle *client, ikspak *pak)
++{
++	struct jingle_pvt *p, *tmp = client-&gt;p;
++	struct ast_channel *chan;
++	int res;
++	iks *codec;
++
++	/* Make sure our new call doesn't exist yet */
++	while (tmp) {
++		if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, GOOGLE_SID, tmp-&gt;sid)) {
++			ast_log(LOG_NOTICE, &quot;Ignoring duplicate call setup on SID %s\n&quot;, tmp-&gt;sid);
++			jingle_response(client, pak, &quot;out-of-order&quot;);
++			return -1;
++		}
++		tmp = tmp-&gt;next;
++	}
++
++	p = jingle_alloc(client, pak-&gt;from-&gt;partial, iks_find_attrib(pak-&gt;query, GOOGLE_SID));
++	if (!p) {
++		ast_log(LOG_WARNING, &quot;Unable to allocate jingle structure!\n&quot;);
++		return -1;
++	}
++	chan = jingle_new(client, p, AST_STATE_DOWN, pak-&gt;from-&gt;user);
++	if (chan) {
++		ast_mutex_lock(&amp;p-&gt;lock);
++		ast_copy_string(p-&gt;from, pak-&gt;from-&gt;full, sizeof(p-&gt;from));
++		if (iks_find_attrib(pak-&gt;query, GOOGLE_SID)) {
++			ast_copy_string(p-&gt;sid, iks_find_attrib(pak-&gt;query, GOOGLE_SID),
++							sizeof(p-&gt;sid));
++		}
++
++		codec = iks_child(iks_child(iks_child(pak-&gt;x)));
++		while (codec) {
++			ast_rtp_set_m_type(p-&gt;rtp, atoi(iks_find_attrib(codec, &quot;id&quot;)));
++			ast_rtp_set_rtpmap_type(p-&gt;rtp, atoi(iks_find_attrib(codec, &quot;id&quot;)), &quot;audio&quot;,
++									iks_find_attrib(codec, &quot;name&quot;));
++			codec = iks_next(codec);
++		}
++		
++		ast_mutex_unlock(&amp;p-&gt;lock);
++		ast_setstate(chan, AST_STATE_RING);
++		res = ast_pbx_start(chan);
++
++		switch (res) {
++		case AST_PBX_FAILED:
++			ast_log(LOG_WARNING, &quot;Failed to start PBX :(\n&quot;);
++			jingle_response(client, pak, &quot;service-unavailable&quot;);
++			break;
++		case AST_PBX_CALL_LIMIT:
++			ast_log(LOG_WARNING, &quot;Failed to start PBX (call limit reached) \n&quot;);
++			jingle_response(client, pak, &quot;service-unavailable&quot;);
++			break;
++		case AST_PBX_SUCCESS:
++			jingle_response(client, pak, NULL);
++			jingle_create_candidates(client, p,
++					iks_find_attrib(pak-&gt;query, GOOGLE_SID),
++					iks_find_attrib(pak-&gt;x, &quot;from&quot;));
++			/* nothing to do */
++			break;
++		}
++	} else {
++		jingle_free_pvt(client, p);
++	}
++	return 1;
++}
++
++static int jingle_update_stun(struct jingle *client, struct jingle_pvt *p)
++{
++	struct jingle_candidate *tmp;
++	struct hostent *hp;
++	struct ast_hostent ahp;
++	struct sockaddr_in sin;
++
++	if (time(NULL) == p-&gt;laststun)
++		return 0;
++
++	tmp = p-&gt;theircandidates;
++	p-&gt;laststun = time(NULL);
++	while (tmp) {
++		char username[256];
++		hp = ast_gethostbyname(tmp-&gt;ip, &amp;ahp);
++		sin.sin_family = AF_INET;
++		memcpy(&amp;sin.sin_addr, hp-&gt;h_addr, sizeof(sin.sin_addr));
++		sin.sin_port = htons(tmp-&gt;port);
++		snprintf(username, sizeof(username), &quot;%s%s&quot;, tmp-&gt;username,
++				 p-&gt;ourcandidates-&gt;username);
++
++		ast_rtp_stun_request(p-&gt;rtp, &amp;sin, username);
++		tmp = tmp-&gt;next;
++	}
++	return 1;
++}
++
++static int jingle_add_candidate(struct jingle *client, ikspak *pak)
++{
++	struct jingle_pvt *p = NULL, *tmp = NULL;
++	struct aji_client *c = client-&gt;connection;
++	struct jingle_candidate *newcandidate = NULL;
++	iks  *traversenodes = NULL, *receipt = NULL;
++	newcandidate =
++		(struct jingle_candidate *) ast_calloc(1, sizeof(struct jingle_candidate));
++	if (!newcandidate)
++		return 0;
++	memset(newcandidate, 0, sizeof(struct jingle_candidate));
++	tmp = client-&gt;p;
++	while (tmp) {
++		if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, GOOGLE_SID, tmp-&gt;sid)) {
++			p = tmp;
++			break;
++		}
++		tmp = tmp-&gt;next;
++	}
++
++	if (!p) {
++		return -1;
++	}
++
++	traversenodes = pak-&gt;query;
++	while(traversenodes) {
++		if(!strcasecmp(iks_name(traversenodes), &quot;session&quot;)) {
++			traversenodes = iks_child(traversenodes);
++			continue;
++		}
++		if(!strcasecmp(iks_name(traversenodes), &quot;candidate&quot;)) {
++			newcandidate =
++				(struct jingle_candidate *) ast_calloc(1, sizeof(struct jingle_candidate));
++			if (!newcandidate)
++				return 0;
++			memset(newcandidate, 0, sizeof(struct jingle_candidate));
++			ast_copy_string(newcandidate-&gt;name, iks_find_attrib(traversenodes, &quot;name&quot;),
++							sizeof(newcandidate-&gt;name));
++			ast_copy_string(newcandidate-&gt;ip, iks_find_attrib(traversenodes, &quot;address&quot;),
++							sizeof(newcandidate-&gt;ip));
++			newcandidate-&gt;port = atoi(iks_find_attrib(traversenodes, &quot;port&quot;));
++			ast_copy_string(newcandidate-&gt;username, iks_find_attrib(traversenodes, &quot;username&quot;),
++							sizeof(newcandidate-&gt;username));
++			ast_copy_string(newcandidate-&gt;password, iks_find_attrib(traversenodes, &quot;password&quot;),
++							sizeof(newcandidate-&gt;password));
++			newcandidate-&gt;preference = atof(iks_find_attrib(traversenodes, &quot;preference&quot;));
++			if (!strcasecmp(iks_find_attrib(traversenodes, &quot;protocol&quot;), &quot;udp&quot;))
++				newcandidate-&gt;protocol = AJI_PROTOCOL_UDP;
++			if (!strcasecmp(iks_find_attrib(traversenodes, &quot;protocol&quot;), &quot;ssltcp&quot;))
++				newcandidate-&gt;protocol = AJI_PROTOCOL_SSLTCP;
++		
++			if (!strcasecmp(iks_find_attrib(traversenodes, &quot;type&quot;), &quot;stun&quot;))
++				newcandidate-&gt;type = AJI_CONNECT_STUN;
++			if (!strcasecmp(iks_find_attrib(traversenodes, &quot;type&quot;), &quot;local&quot;))
++				newcandidate-&gt;type = AJI_CONNECT_LOCAL;
++			if (!strcasecmp(iks_find_attrib(traversenodes, &quot;type&quot;), &quot;relay&quot;))
++				newcandidate-&gt;type = AJI_CONNECT_RELAY;
++			ast_copy_string(newcandidate-&gt;network, iks_find_attrib(traversenodes, &quot;network&quot;),
++							sizeof(newcandidate-&gt;network));
++			newcandidate-&gt;generation = atoi(iks_find_attrib(traversenodes, &quot;generation&quot;));
++			newcandidate-&gt;next = NULL;
++		
++			newcandidate-&gt;next = p-&gt;theircandidates;
++			p-&gt;theircandidates = newcandidate;
++			p-&gt;laststun = 0;
++			jingle_update_stun(p-&gt;parent, p);
++			newcandidate = NULL;
++		}
++		traversenodes = iks_next(traversenodes);
++	}
++	
++	receipt = iks_new(&quot;iq&quot;);
++	iks_insert_attrib(receipt, &quot;type&quot;, &quot;result&quot;);
++	iks_insert_attrib(receipt, &quot;from&quot;, c-&gt;jid-&gt;full);
++	iks_insert_attrib(receipt, &quot;to&quot;, iks_find_attrib(pak-&gt;x, &quot;from&quot;));
++	iks_insert_attrib(receipt, &quot;id&quot;, iks_find_attrib(pak-&gt;x, &quot;id&quot;));
++	iks_send(c-&gt;p, receipt);
++	iks_delete(receipt);
++
++	return 1;
++}
++
++static struct ast_frame *jingle_rtp_read(struct ast_channel *ast, struct jingle_pvt *p)
++{
++	struct ast_frame *f;
++	if (!p-&gt;rtp) {
++		return &amp;ast_null_frame;
++	}
++	f = ast_rtp_read(p-&gt;rtp);
++	jingle_update_stun(p-&gt;parent, p);
++	if (p-&gt;owner) {
++		/* We already hold the channel lock */
++		if (f-&gt;frametype == AST_FRAME_VOICE) {
++			if (f-&gt;subclass != (p-&gt;owner-&gt;nativeformats &amp; AST_FORMAT_AUDIO_MASK)) {
++				if (option_debug)
++					ast_log(LOG_DEBUG, &quot;Oooh, format changed to %d\n&quot;, f-&gt;subclass);
++				p-&gt;owner-&gt;nativeformats =
++					(p-&gt;owner-&gt;nativeformats &amp; AST_FORMAT_VIDEO_MASK) | f-&gt;subclass;
++				ast_set_read_format(p-&gt;owner, p-&gt;owner-&gt;readformat);
++				ast_set_write_format(p-&gt;owner, p-&gt;owner-&gt;writeformat);
++			}
++/*			if ((ast_test_flag(p, SIP_DTMF) == SIP_DTMF_INBAND) &amp;&amp; p-&gt;vad) {
++				f = ast_dsp_process(p-&gt;owner, p-&gt;vad, f);
++				if (option_debug &amp;&amp; f &amp;&amp; (f-&gt;frametype == AST_FRAME_DTMF))
++					ast_log(LOG_DEBUG, &quot;* Detected inband DTMF '%c'\n&quot;, f-&gt;subclass);
++		        } */
++		}
++	}
++	return f;
++}
++
++static struct ast_frame *jingle_read(struct ast_channel *ast)
++{
++	struct ast_frame *fr;
++	struct jingle_pvt *p = ast-&gt;tech_pvt;
++
++	ast_mutex_lock(&amp;p-&gt;lock);
++	fr = jingle_rtp_read(ast, p);
++	ast_mutex_unlock(&amp;p-&gt;lock);
++	return fr;
++}
++
++/*! \brief Send frame to media channel (rtp) */
++static int jingle_write(struct ast_channel *ast, struct ast_frame *frame)
++{
++	struct jingle_pvt *p = ast-&gt;tech_pvt;
++	int res = 0;
++
++	switch (frame-&gt;frametype) {
++	case AST_FRAME_VOICE:
++		if (!(frame-&gt;subclass &amp; ast-&gt;nativeformats)) {
++			ast_log(LOG_WARNING,
++					&quot;Asked to transmit frame type %d, while native formats is %d (read/write = %d/%d)\n&quot;,
++					frame-&gt;subclass, ast-&gt;nativeformats, ast-&gt;readformat,
++					ast-&gt;writeformat);
++			return 0;
++		}
++		if (p) {
++			ast_mutex_lock(&amp;p-&gt;lock);
++			if (p-&gt;rtp) {
++				res = ast_rtp_write(p-&gt;rtp, frame);
++			}
++			ast_mutex_unlock(&amp;p-&gt;lock);
++		}
++		break;
++	case AST_FRAME_VIDEO:
++		if (p) {
++			ast_mutex_lock(&amp;p-&gt;lock);
++			if (p-&gt;vrtp) {
++				res = ast_rtp_write(p-&gt;vrtp, frame);
++			}
++			ast_mutex_unlock(&amp;p-&gt;lock);
++		}
++		break;
++	case AST_FRAME_IMAGE:
++		return 0;
++		break;
++	default:
++		ast_log(LOG_WARNING, &quot;Can't send %d type frames with Jingle write\n&quot;,
++				frame-&gt;frametype);
++		return 0;
++	}
++
++	return res;
++}
++
++static int jingle_fixup(struct ast_channel *oldchan, struct ast_channel *newchan)
++{
++	struct jingle_pvt *p = newchan-&gt;tech_pvt;
++	ast_mutex_lock(&amp;p-&gt;lock);
++
++	if ((p-&gt;owner != oldchan)) {
++		ast_mutex_unlock(&amp;p-&gt;lock);
++		return -1;
++	}
++	if (p-&gt;owner == oldchan)
++		p-&gt;owner = newchan;
++	ast_mutex_unlock(&amp;p-&gt;lock);
++	return 0;
++}
++
++static int jingle_indicate(struct ast_channel *ast, int condition, const void *data, size_t datalen)
++{
++	ast_log(LOG_NOTICE, &quot;XXX Implement jingle indicate XXX\n&quot;);
++
++	return -1;
++}
++
++static int jingle_digit(struct ast_channel *ast, char digit)
++{
++	ast_log(LOG_NOTICE, &quot;XXX Implement jingle digit XXX\n&quot;);
++
++	return -1;
++}
++
++static int jingle_sendhtml(struct ast_channel *ast, int subclass, const char *data, int datalen)
++{
++	ast_log(LOG_NOTICE, &quot;XXX Implement jingle sendhtml XXX\n&quot;);
++
++	return -1;
++}
++static int jingle_transmit_invite(struct jingle_pvt *p)
++{
++	struct jingle *jingle = NULL;
++	struct aji_client *client = NULL;
++	iks *iq, *desc, *session;
++	iks *payload_eg711u, *payload_pcmu;
++
++	jingle = p-&gt;parent;
++	client = jingle-&gt;connection;
++	iq = iks_new(&quot;iq&quot;);
++	desc = iks_new(&quot;description&quot;);
++	session = iks_new(&quot;session&quot;);
++	iks_insert_attrib(iq, &quot;type&quot;, &quot;set&quot;);
++	iks_insert_attrib(iq, &quot;to&quot;, p-&gt;from);
++	iks_insert_attrib(iq, &quot;from&quot;, client-&gt;jid-&gt;full);
++	iks_insert_attrib(iq, &quot;id&quot;, client-&gt;mid);
++	ast_aji_increment_mid(client-&gt;mid);
++	iks_insert_attrib(session, &quot;type&quot;, &quot;initiate&quot;);
++	iks_insert_attrib(session, &quot;id&quot;, p-&gt;sid);
++	iks_insert_attrib(session, &quot;initiator&quot;, client-&gt;jid-&gt;full);
++	iks_insert_attrib(session, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session">http://www.google.com/session</A>&quot;);
++	iks_insert_attrib(desc, &quot;xmlns&quot;, &quot;<A HREF="http://www.google.com/session/phone">http://www.google.com/session/phone</A>&quot;);
++	payload_pcmu = iks_new(&quot;payload-type&quot;);
++	iks_insert_attrib(payload_pcmu, &quot;id&quot;, &quot;0&quot;);
++	iks_insert_attrib(payload_pcmu, &quot;name&quot;, &quot;PCMU&quot;);
++	payload_eg711u = iks_new(&quot;payload-type&quot;);
++	iks_insert_attrib(payload_eg711u, &quot;id&quot;, &quot;100&quot;);
++	iks_insert_attrib(payload_eg711u, &quot;name&quot;, &quot;EG711U&quot;);
++	iks_insert_node(desc, payload_pcmu);
++	iks_insert_node(desc, payload_eg711u);
++	iks_insert_node(iq, session);
++	iks_insert_node(session, desc);
++	iks_send(client-&gt;p, iq);
++	iks_delete(iq);
++	iks_delete(desc);
++	iks_delete(session);
++	iks_delete(payload_eg711u);
++	iks_delete(payload_pcmu);
++	return 0;
++}
++/* Not in use right now.
++static int jingle_auto_congest(void *nothing)
++{
++	struct jingle_pvt *p = nothing;
++
++	ast_mutex_lock(&amp;p-&gt;lock);
++	if (p-&gt;owner) {
++		if (!ast_channel_trylock(p-&gt;owner)) {
++			ast_log(LOG_NOTICE, &quot;Auto-congesting %s\n&quot;, p-&gt;owner-&gt;name);
++			ast_queue_control(p-&gt;owner, AST_CONTROL_CONGESTION);
++			ast_channel_unlock(p-&gt;owner);
++		}
++	}
++	ast_mutex_unlock(&amp;p-&gt;lock);
++	return 0;
++}
++*/
++
++/*! \brief Initiate new call, part of PBX interface 
++ * 	dest is the dial string */
++static int jingle_call(struct ast_channel *ast, char *dest, int timeout)
++{
++	struct jingle_pvt *p = ast-&gt;tech_pvt;
++
++	if ((ast-&gt;_state != AST_STATE_DOWN) &amp;&amp; (ast-&gt;_state != AST_STATE_RESERVED)) {
++		ast_log(LOG_WARNING, &quot;jingle_call called on %s, neither down nor reserved\n&quot;, ast-&gt;name);
++		return -1;
++	}
++
++	ast_setstate(ast, AST_STATE_RING);
++	p-&gt;jointcapability = p-&gt;capability;
++	if (!p-&gt;ringrule) {
++		ast_copy_string(p-&gt;ring, p-&gt;parent-&gt;connection-&gt;mid, sizeof(p-&gt;ring));
++		p-&gt;ringrule = iks_filter_add_rule(p-&gt;parent-&gt;connection-&gt;f, jingle_ringing_ack, p,
++							IKS_RULE_ID, p-&gt;ring, IKS_RULE_DONE);
++	} else {
++		ast_log(LOG_WARNING, &quot;Whoa, already have a ring rule!\n&quot;);
++	}
++	jingle_transmit_invite(p);
++	jingle_create_candidates(p-&gt;parent, p, p-&gt;sid, p-&gt;from);
++
++	return 0;
++}
++
++/*! \brief Hangup a call through the jingle proxy channel */
++static int jingle_hangup(struct ast_channel *ast)
++{
++	struct jingle_pvt *p = ast-&gt;tech_pvt;
++	struct jingle *client;
++
++	ast_mutex_lock(&amp;p-&gt;lock);
++	client = p-&gt;parent;
++	p-&gt;owner = NULL;
++	ast-&gt;tech_pvt = NULL;
++	if (!p-&gt;alreadygone)
++		jingle_action(client, p, &quot;terminate&quot;);
++	ast_mutex_unlock(&amp;p-&gt;lock);
++
++	jingle_free_pvt(client, p);
++	ast_mutex_lock(&amp;usecnt_lock);
++	usecnt--;
++	ast_mutex_unlock(&amp;usecnt_lock);
++
++	return 0;
++}
++
++/*! \brief Part of PBX interface */
++static struct ast_channel *jingle_request(const char *type, int format, void *data, int *cause)
++{
++	struct jingle_pvt *p = NULL;
++	struct jingle *client = NULL;
++	char *sender = NULL, *to = NULL, *s = NULL;
++	struct ast_channel *chan = NULL;
++
++	if (data) {
++		s = ast_strdupa((char *) data);
++		if (s) {
++			sender = strsep(&amp;s, &quot;/&quot;);
++			if (sender &amp;&amp; (sender[0] != '\0'))
++				to = strsep(&amp;s, &quot;/&quot;);
++			if (!to) {
++				ast_log(LOG_ERROR, &quot;Bad arguments\n&quot;);
++				if (s)
++					free(s);
++				return NULL;
++			}
++		}
++	}
++	client = find_jingle(to, sender);
++	if (!client) {
++		ast_log(LOG_WARNING, &quot;Could not find Recipiant.\n&quot;);
++		if (s)
++			free(s);
++		return NULL;
++	}
++	p = jingle_alloc(client, to, NULL);
++	if (p) {
++		chan = jingle_new(client, p, AST_STATE_DOWN, to);
++	}
++	return chan;
++}
++
++#if 0
++/*! \brief CLI command &quot;jingle show channels&quot; */
++static int jingle_show(int fd, int argc, char **argv)
++{
++	struct jingle_pvt *p = NULL;
++	struct jingle *peer = NULL;
++	struct jingle_candidate *tmp;
++	struct jingle *client = NULL;
++	client = ast_aji_get_client(&quot;asterisk&quot;);
++	if (argc != 3)
++		return RESULT_SHOWUSAGE;
++	ast_mutex_lock(&amp;jinglelock);
++	if (client)
++		p = jingles-&gt;p;
++	while (p) {
++		ast_mutex_lock(&amp;p-&gt;lock);
++		ast_cli(fd, &quot;SID = %s\n&quot;, p-&gt;sid);
++		tmp = p-&gt;candidates;
++		while (tmp) {
++			ast_verbose(&quot;port %d\n&quot;, tmp-&gt;port);
++			tmp = tmp-&gt;next;
++		}
++		ast_mutex_unlock(&amp;p-&gt;lock);
++		p = p-&gt;next;
++	}
++	if (!jingles-&gt;p)
++		ast_cli(fd, &quot;No jingle channels in use\n&quot;);
++	ast_mutex_unlock(&amp;jinglelock);
++	return RESULT_SUCCESS;
++}
++#endif
++
++static int jingle_parser(void *data, ikspak *pak)
++{
++	struct jingle *client = ASTOBJ_REF((struct jingle *) data);
++
++	if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, &quot;type&quot;, JINGLE_INITIATE)) {
++		/* New call */
++		jingle_newcall(client, pak);
++	} else if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, &quot;type&quot;, GOOGLE_NEGOTIATE)) {
++		ast_log(LOG_DEBUG, &quot;About to add candidate!\n&quot;);
++		jingle_add_candidate(client, pak);
++		ast_log(LOG_DEBUG, &quot;Candidate Added!\n&quot;);
++	} else if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, &quot;type&quot;, GOOGLE_ACCEPT)) {
++		jingle_is_answered(client, pak);
++	} else if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, &quot;type&quot;, &quot;terminate&quot;)) {
++		jingle_hangup_farend(client, pak);
++	} else if (iks_find_with_attrib(pak-&gt;x, GOOGLE_NODE, &quot;type&quot;, &quot;reject&quot;)) {
++		jingle_hangup_farend(client, pak);
++	}
++	ASTOBJ_UNREF(client, jingle_member_destroy);
++	return IKS_FILTER_EAT;
++}
++/* Not using this anymore probably take out soon 
++static struct jingle_candidate *jingle_create_candidate(char *args)
++{
++	char *name, *type, *preference, *protocol;
++	struct jingle_candidate *res;
++	res = malloc(sizeof(struct jingle_candidate));
++	memset(res, 0, sizeof(struct jingle_candidate));
++	if (args)
++		name = args;
++	if ((args = strchr(args, ','))) {
++		*args = '\0';
++		args++;
++		preference = args;
++	}
++	if ((args = strchr(args, ','))) {
++		*args = '\0';
++		args++;
++		protocol = args;
++	}
++	if ((args = strchr(args, ','))) {
++		*args = '\0';
++		args++;
++		type = args;
++	}
++	if (name)
++		ast_copy_string(res-&gt;name, name, sizeof(res-&gt;name));
++	if (preference) {
++		res-&gt;preference = atof(preference);
++	}
++	if (protocol) {
++		if (!strcasecmp(&quot;udp&quot;, protocol))
++			res-&gt;protocol = AJI_PROTOCOL_UDP;
++		if (!strcasecmp(&quot;ssltcp&quot;, protocol))
++			res-&gt;protocol = AJI_PROTOCOL_SSLTCP;
++	}
++	if (type) {
++		if (!strcasecmp(&quot;stun&quot;, type))
++			res-&gt;type = AJI_CONNECT_STUN;
++		if (!strcasecmp(&quot;local&quot;, type))
++			res-&gt;type = AJI_CONNECT_LOCAL;
++		if (!strcasecmp(&quot;relay&quot;, type))
++			res-&gt;type = AJI_CONNECT_RELAY;
++	}
++
++	return res;
++}
++*/
++static int jingle_create_member(char *label, struct ast_variable *var, int allowguest,
++								struct ast_codec_pref prefs, char *context,
++								struct jingle *member)
++{
++	struct aji_client *client;
++	if (!member)
++		ast_log(LOG_WARNING, &quot;Out of memory.\n&quot;);
++
++	ast_copy_string(member-&gt;name, label, sizeof(member-&gt;name));
++	ast_copy_string(member-&gt;user, label, sizeof(member-&gt;user));
++	ast_copy_string(member-&gt;context, context, sizeof(member-&gt;context));
++	member-&gt;allowguest = allowguest;
++	member-&gt;prefs = prefs;
++	while (var) {
++#if 0
++		struct jingle_candidate *candidate = NULL;
++#endif
++		if (!strcasecmp(var-&gt;name, &quot;username&quot;))
++			ast_copy_string(member-&gt;user, var-&gt;value, sizeof(member-&gt;user));
++		else if (!strcasecmp(var-&gt;name, &quot;disallow&quot;))
++			ast_parse_allow_disallow(&amp;member-&gt;prefs, &amp;member-&gt;capability, var-&gt;value, 0);
++		else if (!strcasecmp(var-&gt;name, &quot;allow&quot;))
++			ast_parse_allow_disallow(&amp;member-&gt;prefs, &amp;member-&gt;capability, var-&gt;value, 1);
++		else if (!strcasecmp(var-&gt;name, &quot;context&quot;))
++			ast_copy_string(member-&gt;context, var-&gt;value, sizeof(member-&gt;context));
++#if 0
++		else if (!strcasecmp(var-&gt;name, &quot;candidate&quot;)) {
++			candidate = jingle_create_candidate(var-&gt;value);
++			if (candidate) {
++				candidate-&gt;next = member-&gt;ourcandidates;
++				member-&gt;ourcandidates = candidate;
++			}
++		}
++#endif
++		else if (!strcasecmp(var-&gt;name, &quot;connection&quot;)) {
++			if ((client = ast_aji_get_client(var-&gt;value))) {
++				member-&gt;connection = client;
++				iks_filter_add_rule(client-&gt;f, jingle_parser, member, IKS_RULE_TYPE,
++									IKS_PAK_IQ, IKS_RULE_FROM_PARTIAL, member-&gt;user,
++									IKS_RULE_NS, &quot;<A HREF="http://www.google.com/session">http://www.google.com/session</A>&quot;,
++									IKS_RULE_DONE);
++			} else {
++				ast_log(LOG_ERROR, &quot;connection referenced not found!\n&quot;);
++				return 0;
++			}
++		}
++		var = var-&gt;next;
++	}
++	if (member-&gt;connection &amp;&amp; member-&gt;user)
++		member-&gt;buddy = ASTOBJ_CONTAINER_FIND(&amp;member-&gt;connection-&gt;buddies, member-&gt;user);
++	else {
++		ast_log(LOG_ERROR, &quot;No Connection or Username!\n&quot;);
++	}
++	return 1;
++}
++
++static int jingle_load_config(void)
++{
++	char *cat = NULL;
++	struct ast_config *cfg = NULL;
++	char context[100];
++	int allowguest = 1;
++	struct ast_variable *var;
++	struct jingle *member;
++	struct ast_codec_pref prefs;
++	struct aji_client_container *clients;
++	struct jingle_candidate *global_candidates = NULL;
++
++	cfg = ast_config_load(JINGLE_CONFIG);
++	if (!cfg) {
++		ast_log(LOG_WARNING, &quot;No such configuration file %s\n&quot;, JINGLE_CONFIG);
++		return 0;
++	}
++
++	cat = ast_category_browse(cfg, NULL);
++	for (var = ast_variable_browse(cfg, &quot;general&quot;); var; var = var-&gt;next) {
++		if (!strcasecmp(var-&gt;name, &quot;allowguest&quot;))
++			allowguest =
++				(ast_true(ast_variable_retrieve(cfg, &quot;general&quot;, &quot;allowguest&quot;))) ? 1 : 0;
++		else if (!strcasecmp(var-&gt;name, &quot;disallow&quot;))
++			ast_parse_allow_disallow(&amp;prefs, &amp;global_capability, var-&gt;value, 0);
++		else if (!strcasecmp(var-&gt;name, &quot;allow&quot;))
++			ast_parse_allow_disallow(&amp;prefs, &amp;global_capability, var-&gt;value, 1);
++		else if (!strcasecmp(var-&gt;name, &quot;context&quot;))
++			ast_copy_string(context, var-&gt;value, sizeof(context));
++		else if (!strcasecmp(var-&gt;name, &quot;externip&quot;))
++			ast_copy_string(externip, var-&gt;value, sizeof(externip));
++#if 0
++		else if (!strcasecmp(var-&gt;name, &quot;candidate&quot;)) {
++			candidate = jingle_create_candidate(var-&gt;value);
++			if (candidate) {
++				candidate-&gt;next = global_candidates;
++				global_candidates = candidate;
++			}
++		}
++#endif
++	}
++	while (cat) {
++		if (strcasecmp(cat, &quot;general&quot;)) {
++			var = ast_variable_browse(cfg, cat);
++			member = (struct jingle *) malloc(sizeof(struct jingle));
++			memset(member, 0, sizeof(struct jingle));
++			ASTOBJ_INIT(member);
++			ASTOBJ_WRLOCK(member);
++			if (!strcasecmp(cat, &quot;guest&quot;)) {
++				ast_copy_string(member-&gt;name, &quot;guest&quot;, sizeof(member-&gt;name));
++				ast_copy_string(member-&gt;user, &quot;guest&quot;, sizeof(member-&gt;user));
++				ast_copy_string(member-&gt;context, context, sizeof(member-&gt;context));
++				member-&gt;allowguest = allowguest;
++				member-&gt;prefs = prefs;
++				while (var) {
++					if (!strcasecmp(var-&gt;name, &quot;disallow&quot;))
++						ast_parse_allow_disallow(&amp;member-&gt;prefs, &amp;member-&gt;capability,
++												 var-&gt;value, 0);
++					else if (!strcasecmp(var-&gt;name, &quot;allow&quot;))
++						ast_parse_allow_disallow(&amp;member-&gt;prefs, &amp;member-&gt;capability,
++												 var-&gt;value, 1);
++					else if (!strcasecmp(var-&gt;name, &quot;context&quot;))
++						ast_copy_string(member-&gt;context, var-&gt;value,
++										sizeof(member-&gt;context));
++#if 0
++					else if (!strcasecmp(var-&gt;name, &quot;candidate&quot;)) {
++						candidate = jingle_create_candidate(var-&gt;value);
++						if (candidate) {
++							candidate-&gt;next = member-&gt;ourcandidates;
++							member-&gt;ourcandidates = candidate;
++						}
++					}
++#endif
++					var = var-&gt;next;
++				}
++				ASTOBJ_UNLOCK(member);
++				clients = ast_aji_get_clients();
++				if (clients) {
++					ASTOBJ_CONTAINER_TRAVERSE(clients, 1, {
++						ASTOBJ_WRLOCK(iterator);
++						ASTOBJ_WRLOCK(member);
++						member-&gt;connection = iterator;
++						iks_filter_add_rule(iterator-&gt;f, jingle_parser, member, IKS_RULE_TYPE, IKS_PAK_IQ, IKS_RULE_NS,
++										&quot;<A HREF="http://www.google.com/session">http://www.google.com/session</A>&quot;, IKS_RULE_DONE);
++						ASTOBJ_UNLOCK(member);
++						ASTOBJ_CONTAINER_LINK(&amp;jingles, member);
++						ASTOBJ_UNLOCK(iterator);
++					});
++				} else {
++					ASTOBJ_UNLOCK(member);
++					ASTOBJ_UNREF(member, jingle_member_destroy);
++				}
++			} else {
++				if (jingle_create_member(cat, var, allowguest, prefs, context, member)) {
++					ASTOBJ_UNLOCK(member);
++					ASTOBJ_CONTAINER_LINK(&amp;jingles, member);
++					ASTOBJ_UNREF(member, jingle_member_destroy);
++				} else {
++					ASTOBJ_UNLOCK(member);
++					ASTOBJ_UNREF(member, jingle_member_destroy);
++				}
++			}
++		}
++		cat = ast_category_browse(cfg, cat);
++	}
++	jingle_free_candidates(global_candidates);
++	return 1;
++}
++
++/*! \brief Load module into PBX, register channel */
++static int load_module(void *mod)
++{
++	ASTOBJ_CONTAINER_INIT(&amp;jingles);
++	if (!jingle_load_config()) {
++		ast_log(LOG_ERROR, &quot;Unable to read config file %s\n&quot;, JINGLE_CONFIG);
++		return -1;
++	}
++
++	sched = sched_context_create();
++
++	if (!sched) {
++		ast_log(LOG_WARNING, &quot;Unable to create schedule context\n&quot;);
++	}
++
++	io = io_context_create();
++	if (!io) {
++		ast_log(LOG_WARNING, &quot;Unable to create I/O context\n&quot;);
++	}
++
++	if (ast_find_ourip(&amp;__ourip, bindaddr)) {
++		ast_log(LOG_WARNING, &quot;Unable to get own IP address, Jingle disabled\n&quot;);
++		return 0;
++	}
++
++	ast_rtp_proto_register(&amp;jingle_rtp);
++
++	/* Make sure we can register our channel type */
++	if (ast_channel_register(&amp;jingle_tech)) {
++		ast_log(LOG_ERROR, &quot;Unable to register channel class %s\n&quot;, type);
++		return -1;
++	}
++	return 0;
++}
++
++/*! \brief Reload module */
++static int reload(void *mod)
++{
++	return 0;
++}
++
++/*! \brief Unload the jingle channel from Asterisk */
++static int unload_module(void *mod)
++{
++	struct jingle_pvt *privates = NULL;
++	/* First, take us out of the channel loop */
++	ast_channel_unregister(&amp;jingle_tech);
++	ast_rtp_proto_unregister(&amp;jingle_rtp);
++	if (!ast_mutex_lock(&amp;jinglelock)) {
++		/* Hangup all interfaces if they have an owner */
++		ASTOBJ_CONTAINER_TRAVERSE(&amp;jingles, 1, {
++			ASTOBJ_WRLOCK(iterator);
++			privates = iterator-&gt;p;
++			while(privates) {
++			    if (privates-&gt;owner)
++			        ast_softhangup(privates-&gt;owner, AST_SOFTHANGUP_APPUNLOAD);
++			    privates = privates-&gt;next;
++			}
++			iterator-&gt;p = NULL;
++			ASTOBJ_UNLOCK(iterator);
++		});
++		ast_mutex_unlock(&amp;jinglelock);
++	} else {
++		ast_log(LOG_WARNING, &quot;Unable to lock the monitor\n&quot;);
++		return -1;
++	}
++	ASTOBJ_CONTAINER_DESTROYALL(&amp;jingles, jingle_member_destroy);
++	ASTOBJ_CONTAINER_DESTROY(&amp;jingles);
++	return 0;
++}
++
++static const char *key(void)
++{
++	return ASTERISK_GPL_KEY;
++}
++
++static const char *description(void)
++{
++	return desc;
++}
++
++STD_MOD(MOD_1, reload, NULL, NULL);
+
+Added: trunk/configs/jabber.conf.sample
+===================================================================
+--- trunk/configs/jabber.conf.sample	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/configs/jabber.conf.sample	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,15 @@
++[general]
++;debug=yes				;;Turn on debugging by default.
++;autoprune=yes				;;Auto remove users from buddy list.
++;autoregister=yes			;;Auto register users from buddy list. 
++
++;[asterisk]				;;label
++;type=client				;;Client or Component connection
++;serverhost=astjab.org			;;Route to server for example,
++					;;	talk.google.com
++;username=<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">asterisk at astjab.org</A>/asterisk	;;username with optional roster.
++;secret=blah				;;Password
++;port=5222				;;Port to use defaults to 5222
++;usetls=yes				;;use tls or not
++;usesasl=yes				;;use sasl or not
++;buddy=<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">mogorman at astjab.org</A>		;;manual addition of buddy to list.
+
+Added: trunk/configs/jingle.conf.sample
+===================================================================
+--- trunk/configs/jingle.conf.sample	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/configs/jingle.conf.sample	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,19 @@
++;[general]
++;context=default		;;Context to dump call into
++;allowguest=yes			;;Allow calls from people not in
++				;;list of peers
++;
++;[guest]			;;special account for options on guest account
++;disallow=all				
++;allow=ulaw
++;context=guest
++;
++;[ogorman]
++;username=<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">ogorman at gmail.com</A>	;;username of the peer your 
++				;;calling or accepting calls from
++;disallow=all
++;allow=ulaw
++;context=default		
++;connection=asterisk		;;client or component in jabber.conf
++				;;for the call to leave on.
++;
+
+Added: trunk/contrib/dictionary.digium
+===================================================================
+--- trunk/contrib/dictionary.digium	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/contrib/dictionary.digium	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,31 @@
++#
++#       Digium's Asterisk specific radius attributes
++#	<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">markster at digium.com</A>
++#
++#
++
++VENDOR	  Digium	22736
++
++BEGIN-VENDOR	Digium
++
++ATTRIBUTE	Asterisk-Acc-Code		101	string	Digium
++ATTRIBUTE	Asterisk-Src			102	string  Digium
++ATTRIBUTE	Asterisk-Dst			103	string  Digium
++ATTRIBUTE	Asterisk-Dst-Ctx		104	string  Digium
++ATTRIBUTE	Asterisk-Clid			105	string  Digium
++ATTRIBUTE	Asterisk-Chan			106	string  Digium
++ATTRIBUTE	Asterisk-Dst-Chan		107	string  Digium
++ATTRIBUTE	Asterisk-Last-App		108	string  Digium
++ATTRIBUTE	Asterisk-Last-Data		109	string  Digium
++ATTRIBUTE	Asterisk-Start-Time		110	string	Digium
++ATTRIBUTE	Asterisk-Answer-Time		111	string	Digium
++ATTRIBUTE	Asterisk-End-Time		112	string	Digium
++ATTRIBUTE	Asterisk-Duration		113	integer	Digium
++ATTRIBUTE	Asterisk-Bill-Sec		114	integer	Digium
++ATTRIBUTE	Asterisk-Disposition		115	string	Digium
++ATTRIBUTE	Asterisk-AMA-Flags		116	string	Digium
++ATTRIBUTE	Asterisk-Unique-ID		117	string  Digium
++ATTRIBUTE	Asterisk-User-Field		118	string  Digium
++
++END-VENDOR	Digium
++
+
+Added: trunk/doc/callfiles.txt
+===================================================================
+--- trunk/doc/callfiles.txt	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/doc/callfiles.txt	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,139 @@
++Asterisk call files
++===================
++
++Asterisk has the ability to initiate a call from outside of the normal
++methods such as the dialplan, manager interface, or spooling interface.
++
++Using the call file method, you must give Asterisk the following information:
++
++* How to perform the call, similar to the Dial() application
++* What to do when the call is answered
++
++With call files you submit this information simply by creating a file with 
++the required syntax and placing it in the outgoing spooling directory, located
++by default in /var/spool/asterisk/outgoing/ (configurable in asterisk.conf).
++
++The pbx_spool module aggressively examines the directory contents every second,
++creating a new call for every call file it finds. Do NOT write or create
++the call file directly in the outgoing directory, but always create the file
++in another directory of the same filesystem and then move the file to the
++/var/spool/asterisk/outgoing directory, or Asterisk may read just a partial 
++file.
++
++
++The call file syntax
++====================
++
++The call file consists of &lt;Key&gt;: &lt;value&gt; pairs; one per line.
++
++Comments are indicated by a '#' character that begins a line, or follows a space
++or tab character.  To be consistant with the configuration files in Asterisk,
++comments can also be indicated by a semicolon.  However, the multiline comments
++(;-- --;) used in Asterisk configuration files are not supported. Semicolons can
++be escaped by a backslash.
++
++
++The following keys-value pairs are used to specify how setup a call:
++
++Channel: &lt;channel&gt;      the channel to use for the new call, in the form
++                        technology/resource as in the Dial application. This
++                        value is required.
++
++Callerid: &lt;callerid&gt;    the caller id to use.
++
++WaitTime: &lt;number&gt;      how many seconds to wait for an answer before the call
++                        fails (ring cycle). Default 45 seconds.
++
++Maxretries: &lt;number&gt;    number of retries before failing, not including the
++                        initial attempt. Default = 0 e.g. don't retry if fails.
++
++RetryTime: &lt;number&gt;     how many seconds to wait before retry. The default is
++                        300 (5 minutes).
++
++Account: &lt;account&gt;      the account code for the call. This value will be
++                        assigned to CDR(accountcode)
++
++
++
++When the call answers there are two choices: 
++* Execute a single application, or
++* Execute the dialplan at the specified context/extension/priority.
++
++
++To execute an application:
++--------------------------
++
++Application: &lt;appname&gt;  the application to execute
++
++Data: &lt;args&gt;            the application arguments
++
++
++To start executing applications in the dialplan:
++------------------------------------------------
++
++Context: &lt;context&gt;      the context in the dialplan
++
++Extension: &lt;exten&gt;      the extension in the specified context
++
++Priority: &lt;priority&gt;    the priority of the specified extension 
++                        (numeric or label)
++
++
++
++Setvar: &lt;var=value&gt;     you may also assign values to variables that will be
++                        available to the channel, as if you had performed a
++			Set(var=value) in the dialplan. More than one Setvar:
++			maybe specified.
++
++
++The processing of the call file ends when the call is answered and terminated; when
++the call was not answered in the initial attempt and subsequent retries; or if
++the call file can't be successfully read and parsed.
++
++To specify what to do with the call file at the end of processing:
++
++Archive: &lt;yes|no&gt;       if &quot;no&quot; the call file is deleted. If set to &quot;yes&quot; the 
++                        call file is moved to the &quot;outgoing_done&quot; subdirectory 
++                        of the Asterisk spool directory. The default is to 
++			delete the call file.
++
++
++If the call file is archived, Asterisk will append to the call file:
++
++Status: &lt;exitstatus&gt;    can be &quot;Expired&quot;, &quot;Completed&quot; or &quot;Failed&quot;
++
++
++
++Other lines generated by Asterisk:
++
++Asterisk keep track of how many retries the call has already attempted, 
++appending to the call file the following key-pairs in the form:
++
++StartRetry: &lt;pid&gt; &lt;retrycount&gt; (&lt;time&gt;)
++EndRetry: &lt;pid&gt; &lt;retrycount&gt; (&lt;time&gt;)
++
++With the main process ID (pid) of the Asterisk process, the retry number, and
++the attempts start and end times in time_t format.
++
++
++
++Directory locations
++===================
++
++&lt;astspooldir&gt;/outgoing          the outgoing dir, where call files are put
++                                for processing
++
++&lt;astspooldir&gt;/outgoing_done     the archive dir
++
++
++&lt;astspooldir&gt; is specified in asterisk.conf, usually /var/spool/asterisk
++
++
++
++How to schedule a call
++======================
++
++Call files that have the time of the last modification in the future are ignored
++by Asterisk. This makes it possible to modify the time of a call file to the
++wanted time, move to the outgoing directory, and Asterisk will attempt to
++create the call at that time.
+
+Added: trunk/doc/jabber.txt
+===================================================================
+--- trunk/doc/jabber.txt	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/doc/jabber.txt	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,15 @@
++(res_jabber is very experimental!)
++
++Jabber(xmpp) is an xml based protocol primarily for presence and messaging.
++It is an open standard and there are several open server implementations,
++ejabberd, jabberd(2), wildfire, and many others, as well as several open source
++clients, Psi, gajim, gaim etc.  Jabber differs from other IM applications as it
++is immensly extendable.  This allows us to easily integrate Asterisk with 
++jabber.  The Asterisk Jabber Interface is provided by res_jabber.so.  res_jabber 
++allows for Asterisk to connect to any jabber server via the standard client
++protocol or also as a simple client.  Several simple functions are exposed to
++the dial plan, jabberstatus, jabbersend, and soon jabberrecv.  res_jabber is also used
++to provide the connection interface for chan_jingle.
++
++The maintainer of res_jabber is Matthew O'Gorman &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">mogorman at digum.com</A>&gt; or
++mog_work on irc or prefered <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">mogorman at astjab.org</A> over jabber.
+
+Added: trunk/doc/jingle.txt
+===================================================================
+--- trunk/doc/jingle.txt	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/doc/jingle.txt	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,8 @@
++(Jingle support in asterisk is experimental)
++Jingle is an xmpp based protocol for signalling the transfer of media.
++Currently asterisk supports the proprietary GoogleTalk protocol that is
++very similar to jingle, and hopes to support true jingle specs
++(JEP-166,167,176,177,180,181 etc) as more clients support the true standard.
++Jingle's configuration is very similar to sip.conf only as we are not the
++jabber server in this case you must provide a connection for the peer to
++travel out on.
+
+Added: trunk/doc/radius.txt
+===================================================================
+--- trunk/doc/radius.txt	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/doc/radius.txt	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,198 @@
++Call Detail Recording to RADIUS Server
++======================================
++
++
++Configuration of Asterisk to send CDRs to (Free)RADIUS servers.
++
++
++A. What is needed :
++	* FreeRADIUS server
++	* Radiusclient-ng library
++	* Asterisk PBX
++
++
++	+--------------------+
++        |    Asterisk PBX    |
++        |                    |
++        |********************|
++	|                    |        +---------------+
++        |    RADIUS client   |-------&gt;| RADIUS server |
++	|                    |&lt;-------| (FreeRADIUS)  |
++	+--------------------+        +---------------+
++
++
++
++
++B. Steps to follow in order to have RADIUS support:
++
++ 1.Radiusclient library  
++	1.a Installation
++		
++		Download the sources from:
++		
++		<A HREF="http://developer.berlios.de/projects/radiusclient-ng/">http://developer.berlios.de/projects/radiusclient-ng/</A>
++		
++		Untar the source tarball.
++			<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">root at localhost</A>:/usr/local/src# tar xvfz radiusclient-ng-0.5.2.tar.gz
++
++		Compile and install the library.
++			<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">root at localhost</A>:/usr/local/src# cd radiusclient-ng-0.5.2
++			<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">root at localhost</A>:/usr/local/src/radiusclient-ng-0.5.2# ./configure
++			<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">root at localhost</A>:/usr/local/src/radiusclient-ng-0.5.2# make
++			<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">root at localhost</A>:/usr/local/src/radiusclient-ng-0.5.2# make install
++
++ 	1.b	Configuration
++	
++		By default all the configuration files of the radiusclient library will
++		be in /usr/local/etc/radiusclient-ng directory.
++		
++		File &quot;radiusclient.conf&quot;
++			Open the file and find lines containing the following:
++
++				authserver      localhost
++	
++		This is the hostname or IP address of the RADIUS server used for 
++		authentication. You will have to change this unless the server is 
++		running on the same host as your Asterisk PBX.
++
++				acctserver      localhost
++
++		This is the hostname or IP address of the RADIUS server used for 
++		accounting. You will have to change this unless the server is running
++		on the same host as your Asterisk PBX.
++
++		File &quot;servers&quot; 
++		
++		RADIUS protocol uses simple access control mechanism based on shared
++		secrets that allows RADIUS servers to limit access from RADIUS clients.
++		
++		A RADIUS server is configured with a secret string and only RADIUS 
++		clients that have the same secret will be accepted.
++
++		You need to configure a shared secret for each server you have 
++		configured in radiusclient.conf file in the previous step. The shared 
++		secrets are stored in /usr/local/etc/radiusclient-ng/servers file.
++
++		Each line contains hostname of a RADIUS server and shared secret 
++		used in communication with that server. The two values are separated 
++		by white spaces. Configure shared secrets for every RADIUS server you 
++		are going to use.
++
++		File &quot;dictionary&quot;
++			
++		Asterisk uses some attributes that are not included in the 
++		dictionary of radiusclient library, therefore it is necesarry to add 
++		them. A file called dictionary.asterisk was created to list all new 
++		attributes used by Asterisk. Add into file
++		/usr/local/etc/radiusclient-ng/dictionary
++		the line:
++
++			$INCLUDE /path/to/dictionary.asterisk
++
++ 2.FreeRADIUS Server
++ 	2.a Installation
++			
++		Download sources tarball from:
++
++			<A HREF="http://freeradius.org/">http://freeradius.org/</A>
++			
++ 		Untar, configure, build, and install the server:
++
++				<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">root at localhost</A>:/usr/local/src# tar xvfz freeradius-1.1.1.tar.gz
++				<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">root at localhost</A>:/usr/local/src# cd freeradius-1.1.1
++				<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">root at localhost</A>&quot;/usr/local/src/freeradius-1.1.1# ./configure
++				<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">root at localhost</A>&quot;/usr/local/src/freeradius-1.1.1# make
++				<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">root at localhost</A>&quot;/usr/local/src/freeradius-1.1.1# make install
++
++		All the configuration files of FreeRADIUS server will be in 
++		/usr/local/etc/raddb directory. 
++		
++
++ 	2.b Configuration
++			
++		There are several file that have to be modified to configure the
++		RADIUS server. These are presented next.
++
++		File &quot;clients.conf&quot;
++			
++		File /usr/local/etc/raddb/clients.conf contains description of 
++		RADIUS clients that are allowed to use the server. For each of the 
++		clients you need to specify its hostname or IP address and also a 
++		shared secret. The shared secret must be the same string you configured
++		in radiusclient library.
++
++		Example:
++			client myhost {
++			    secret = mysecret
++			    shortname = foo
++			}
++		
++		This fragment allows access from RADIUS clients on &quot;myhost&quot; if they use 
++		&quot;mysecret&quot; as the shared secret.	 
++		The file already contains an entry for localhost (127.0.0.1), so if you
++		are running the RADIUS server on the same host as your Asterisk server,
++		then modify the existing entry instead, replacing the default password.
++
++		File &quot;dictionary&quot;
++			
++		File /usr/local/etc/raddb/dictionary contains the dictionary of 
++		FreeRADIUS server. You have to add the same dictionary file 
++		(dictionary.asterisk), which you added to the dictionary of radiusclient-ng
++		library. You can include it into the main file, adding the following line at the
++		end of file '/usr/local/etc/raddb/dictionary':
++			
++			$INCLUDE /path/to/dictionary.digium
++
++		That will include the same new attribute definitions that are used 
++		in radiusclient-ng library so the client and server will understand each 
++		other. 
++
++
++ 3. Asterisk Accounting Configuration
++
++	Compilation and installation:
++        The module will be compiled as long as the radiusclient-ng
++        library has been detected on your system.
++	
++	By default FreeRADIUS server will log all accounting requests into 
++	/usr/local/var/log/radius/radacct directory in form of plain text files. 
++	The server will create one file for each hostname in the directory. The 
++	following example shows how the log files look like. 
++
++	Asterisk now generates Call Detail Records. See /include/asterisk/cdr.h
++	for all the fields which are recorded. By default, records in comma 
++	separated values will be created in /var/log/asterisk/cdr-csv. 
++
++	The configuration file for cdr_radius.so module is :
++
++        /etc/asterisk/cdr.conf 
++	This is where you can set CDR related parameters as well as the path to
++	the radiusclient-ng library configuration file.
++
++
++ 4. Logged Values
++
++  &quot;Asterisk-Acc-Code&quot;,          The account name of detail records
++  &quot;Asterisk-Src&quot;,
++  &quot;Asterisk-Dst&quot;,
++  &quot;Asterisk-Dst-Ctx&quot;,           The destination context
++  &quot;Asterisk-Clid&quot;,
++  &quot;Asterisk-Chan&quot;,              The channel
++  &quot;Asterisk-Dst-Chan&quot;,	        (if applicable)
++  &quot;Asterisk-Last-App&quot;,	        Last application run on the channel 
++  &quot;Asterisk-Last-Data&quot;,         Argument to the last channel 
++  &quot;Asterisk-Start-Time&quot;,        
++  &quot;Asterisk-Answer-Time&quot;, 
++  &quot;Asterisk-End-Time&quot;, 
++  &quot;Asterisk-Duration&quot;,          Duration is the whole length that the entire 
++                                call lasted. ie. call rx'd to hangup 
++                                &quot;end time&quot; minus &quot;start time&quot; 
++  &quot;Asterisk-Bill-Sec&quot;, 	        The duration that a call was up after other 
++                                end answered which will be &lt;= to duration  
++                                &quot;end time&quot; minus &quot;answer time&quot; 
++  &quot;Asterisk-Disposition&quot;,    	ANSWERED, NO ANSWER, BUSY 
++  &quot;Asterisk-AMA-Flags&quot;,       	DOCUMENTATION, BILL, IGNORE etc, specified on 
++                                a per channel basis like accountcode. 
++  &quot;Asterisk-Unique-ID&quot;,         Unique call identifier 
++  &quot;Asterisk-User-Field&quot;	        User field set via SetCDRUserField 
++
+
+Added: trunk/doc/video.txt
+===================================================================
+--- trunk/doc/video.txt	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/doc/video.txt	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,45 @@
++Asterisk and Video telephony
++----------------------------
++
++Asterisk supports video telephony in the core infrastructure. Internally, it's one audio stream
++and one video stream in the same call. Some channel drivers and applications has video support,
++but not all.
++
++Codecs and formats
++------------------
++Asterisk supports the following video codecs and file formats. There's no video
++transcoding so you have to make sure that both ends support the same video format.
++
++		Codec	Format
++		-----	----------
++		H.263	read/write
++		H.264	read/write
++		H.261	-		Passthrough only
++
++Note that the file produced by Asterisk video format drivers is in no generic
++video format. Gstreamer has support for producing these files and converting from
++various video files to Asterisk video+audio files.
++
++Note that H.264 is not enabled by default. You need to add that in the channel
++configuration file.
++
++Channel drivers
++---------------
++SIP		The SIP channel driver (chan_sip.so) has support for video
++IAX2		Supports video calls
++Local		Forwards video calls as a proxy channel
++
++Applications
++------------
++This is not yet a complete list. These dialplan applications are known to handle video:
++
++voicemail	Video voicemail storage (does not attach video to e-mail)
++record		Records audio and video files (give audio format as argument)
++playback	Plays a video while being instructed to play audio
++echo		Echos audio and video back to the user
++
++There is a development group working on enhancing video support for Asterisk. 
++If you want to participate, join the asterisk-video mailing list on <A HREF="http://lists.digium.com">http://lists.digium.com</A>
++
++---
++Updates to this file are welcome!
+
+Added: trunk/include/asterisk/jabber.h
+===================================================================
+--- trunk/include/asterisk/jabber.h	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/include/asterisk/jabber.h	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,133 @@
++/*
++ * Asterisk -- An open source telephony toolkit.
++ *
++ * Copyright (C) 1999 - 2005, Digium, Inc.
++ *
++ * Matt O'Gorman &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">mogorman at digium.com</A>&gt;
++ *
++ * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
++ * the Asterisk project. Please do not directly contact
++ * any of the maintainers of this project for assistance;
++ * the project provides a web site, mailing lists and IRC
++ * channels for your use.
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License Version 2. See the LICENSE file
++ * at the top of the source tree.
++ */
++
++#ifndef _ASTERISK_JABBER_H
++#define _ASTERISK_JABBER_H
++
++#include &lt;iksemel.h&gt;
++#include &quot;asterisk/astobj.h&quot;
++
++enum aji_state {
++	AJI_DISCONNECTED=0,
++	AJI_CONNECTING,
++	AJI_ALMOST,
++	AJI_CONNECTED
++};
++
++enum {
++	AJI_AUTOPRUNE = (1 &lt;&lt; 0),
++	AJI_AUTOREGISTER = (1 &lt;&lt; 1)
++};
++
++enum aji_btype {
++	AJI_USER=0,
++	AJI_TRANS=1,
++	AJI_UTRANS=2
++};
++
++enum aji_type {
++	AJI_COMPONENT,
++	AJI_CLIENT,
++};
++
++struct aji_version {
++	char version[50];
++	int jingle;
++	struct aji_capabilities *parent;
++	struct aji_version *next;
++};
++
++struct aji_capabilities {
++	char node[200];
++	struct aji_version *versions;
++	struct aji_capabilities *next;
++};
++
++struct aji_resource {
++	int status;
++	char resource[80];
++	char description[1000];
++	struct aji_version *cap;
++	int priority;
++	struct aji_resource *next;
++};
++
++struct aji_buddy {
++	ASTOBJ_COMPONENTS(struct aji_buddy);
++	char user[160];
++	char host[160];
++	char pass[160]; /*For Transports*/
++	char server[160]; /*For Transports */
++	char channel[160];
++	struct aji_resource *resources;
++	enum aji_btype btype;
++	unsigned int flags;
++};
++
++struct aji_buddy_container {
++	ASTOBJ_CONTAINER_COMPONENTS(struct aji_buddy);
++};
++
++struct aji_transport_container {
++	ASTOBJ_CONTAINER_COMPONENTS(struct aji_transport);
++};
++
++struct aji_client {
++	ASTOBJ_COMPONENTS(struct aji_client);
++	char password[160];
++	char user[160];
++	char serverhost[160];
++	char context[100];
++	char sid[10]; /* Session ID */
++	char mid[6]; /* Message ID */
++	iksid *jid;
++	iksparser *p;
++	iksfilter *f;
++	ikstack *stack;
++	enum aji_state state;
++	int port;
++	int debug;
++	int usetls;
++	int forcessl;
++	int usesasl;
++	int keepalive;
++	int allowguest;
++	int timeout;
++	int authorized;
++	unsigned int flags;
++	enum aji_type component;
++	struct aji_buddy_container buddies;
++	void *jingle;
++	pthread_t thread;
++};
++
++struct aji_client_container{
++	ASTOBJ_CONTAINER_COMPONENTS(struct aji_client);
++};
++
++int ast_aji_send(struct aji_client *client, char *address, char *message);
++int ast_aji_disconnect(struct aji_client *client);
++int ast_aji_check_roster(void);
++void ast_aji_increment_mid(char *mid);
++int ast_aji_create_chat(struct aji_client *client,char *room, char *server, char *topic);
++int ast_aji_invite_chat(struct aji_client *client, char *user, char *room, char *message);
++int ast_aji_join_chat(struct aji_client *client,char *room);
++struct aji_client *ast_aji_get_client(char *name);
++struct aji_client_container *ast_aji_get_clients(void);
++
++#endif
+
+Added: trunk/include/asterisk/jingle.h
+===================================================================
+--- trunk/include/asterisk/jingle.h	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/include/asterisk/jingle.h	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,45 @@
++/*
++ * Asterisk -- An open source telephony toolkit.
++ *
++ * Copyright (C) 1999 - 2005, Digium, Inc.
++ *
++ * Matt O'Gorman &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">mogorman at digium.com</A>&gt;
++ *
++ * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
++ * the Asterisk project. Please do not directly contact
++ * any of the maintainers of this project for assistance;
++ * the project provides a web site, mailing lists and IRC
++ * channels for your use.
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License Version 2. See the LICENSE file
++ * at the top of the source tree.
++ */
++
++#ifndef _ASTERISK_JINGLE_H
++#define _ASTERISK_JINGLE_H
++
++#include &lt;iksemel.h&gt;
++#include &quot;asterisk/astobj.h&quot;
++
++
++/* Jingle Constants */
++
++#define JINGLE_NODE &quot;jingle&quot;
++#define GOOGLE_NODE &quot;session&quot;
++
++#define JINGLE_NS &quot;<A HREF="http://jabber.org/protocol/jingle">http://jabber.org/protocol/jingle</A>&quot;
++#define GOOGLE_NS &quot;<A HREF="http://www.google.com/session">http://www.google.com/session</A>&quot;
++
++#define JINGLE_SID &quot;sid&quot;
++#define GOOGLE_SID &quot;id&quot;
++
++#define JINGLE_INITIATE &quot;initiate&quot;
++
++#define JINGLE_ACCEPT &quot;accept&quot;
++#define GOOGLE_ACCEPT &quot;accept&quot;
++
++#define JINGLE_NEGOTIATE &quot;negotiate&quot;
++#define GOOGLE_NEGOTIATE &quot;candidates&quot;
++
++#endif
+
+Added: trunk/res/res_jabber.c
+===================================================================
+--- trunk/res/res_jabber.c	2006-05-26 21:12:24 UTC (rev 181)
++++ trunk/res/res_jabber.c	2006-05-26 21:14:40 UTC (rev 182)
+@@ -0,0 +1,2220 @@
++/*
++ * Asterisk -- An open source telephony toolkit.
++ *
++ * Copyright (C) 1999 - 2006, Digium, Inc.
++ *
++ * Matt O'Gorman &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">mogorman at digium.com</A>&gt;
++ *
++ * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
++ * the Asterisk project. Please do not directly contact
++ * any of the maintainers of this project for assistance;
++ * the project provides a web site, mailing lists and IRC
++ * channels for your use.
++ *
++ * This program is free software, distributed under the terms of
++ * the GNU General Public License Version 2. See the LICENSE file
++ * at the top of the source tree.
++ */
++
++/*! \file
++ * \brief A resource for interfacing asterisk directly as a client
++ * or a component to a jabber compliant server.
++ */
++
++/*** MODULEINFO
++	&lt;depend&gt;iksemel&lt;/depend&gt;
++ ***/
++
++#include &lt;stdlib.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;iksemel.h&gt;
++
++#include &quot;asterisk.h&quot;
++
++ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
++#include &quot;asterisk/channel.h&quot;
++#include &quot;asterisk/jabber.h&quot;
++#include &quot;asterisk/file.h&quot;
++#include &quot;asterisk/config.h&quot;
++#include &quot;asterisk/callerid.h&quot;
++#include &quot;asterisk/lock.h&quot;
++#include &quot;asterisk/logger.h&quot;
++#include &quot;asterisk/options.h&quot;
++#include &quot;asterisk/cli.h&quot;
++#include &quot;asterisk/app.h&quot;
++#include &quot;asterisk/pbx.h&quot;
++#include &quot;asterisk/md5.h&quot;
++#include &quot;asterisk/acl.h&quot;
++#include &quot;asterisk/utils.h&quot;
++#include &quot;asterisk/module.h&quot;
++#include &quot;asterisk/astobj.h&quot;
++#include &quot;asterisk/astdb.h&quot;
++
++#define JABBER_CONFIG &quot;jabber.conf&quot;
++
++static int aji_highest_bit(int number);
++static void aji_buddy_destroy(struct aji_buddy *obj);
++static void aji_client_destroy(struct aji_client *obj);
++static int aji_send_exec(struct ast_channel *chan, void *data);
++static int aji_status_exec(struct ast_channel *chan, void *data);
++static void aji_log_hook(void *data, const char *xmpp, size_t size, int is_incoming);
++static int aji_act_hook(void *data, int type, iks *node);
++static void aji_handle_iq(struct aji_client *client, iks *node);
++static void aji_handle_presence(struct aji_client *client, ikspak *pak);
++static void aji_handle_subscribe(struct aji_client *client, ikspak *pak);
++static void *aji_recv_loop(void *data);
++static int aji_component_initialize(struct aji_client *client);
++static int aji_client_initialize(struct aji_client *client);
++static int aji_client_connect(void *data, ikspak *pak);
++static void aji_set_presence(struct aji_client *client, char *user, int level, char *desc);
++static int aji_do_debug(int fd, int argc, char *argv[]);
++static int aji_do_reload(int fd, int argc, char *argv[]);
++static int aji_no_debug(int fd, int argc, char *argv[]);
++static int aji_test(int fd, int argc, char *argv[]);
++static int aji_show_clients(int fd, int argc, char *argv[]);
++static int aji_create_client(char *label, struct ast_variable *var, int debug);
++static int aji_create_buddy(char *label, struct aji_client *client);
++static int aji_create_transport(char *label, struct aji_client *client);
++static void aji_reload(void);
++static int aji_load_config(void);
++static void aji_pruneregister(struct aji_client *client);
++static int aji_register_transport(void *data, ikspak *pak);
++static int aji_register_transport2(void *data, ikspak *pak);
++static int aji_filter_roster(void *data, ikspak *pak);
++static int aji_get_roster(struct aji_client *client);
++static int aji_client_info_handler(void *data, ikspak *pak);
++static int aji_dinfo_handler(void *data, ikspak *pak);
++static int aji_ditems_handler(void *data, ikspak *pak);
++static int aji_register_query_handler(void *data, ikspak *pak);
++static int aji_register_approve_handler(void *data, ikspak *pak);
++static int aji_reconnect(struct aji_client *client);
++static iks *jabber_make_auth(iksid * id, const char *pass, const char *sid);
++
++static char debug_usage[] = 
++&quot;Usage: JABBER debug\n&quot; 
++&quot;       Enables dumping of JABBER packets for debugging purposes.\n&quot;;
++
++static char no_debug_usage[] = 
++&quot;Usage: JABBER no debug\n&quot; 
++&quot;       Disables dumping of JABBER packets for debugging purposes.\n&quot;;
++
++static char reload_usage[] = 
++&quot;Usage: JABBER reload\n&quot; 
++&quot;       Enables reloading of JABBER module.\n&quot;;
++
++static char test_usage[] = 
++&quot;Usage: JABBER test [client]\n&quot; 
++&quot;       Sends test massage for debugging purposes.  A specific client\n&quot;
++&quot;       as configured in jabber.conf can be optionally specified.\n&quot;;
++
++static struct ast_cli_entry aji_cli[] = {
++	{{ &quot;jabber&quot;, &quot;debug&quot;, NULL}, aji_do_debug, &quot;Enable JABBER debugging&quot;, debug_usage },
++	{{ &quot;jabber&quot;, &quot;reload&quot;, NULL}, aji_do_reload, &quot;Enable JABBER debugging&quot;, reload_usage },
++	{{ &quot;jabber&quot;, &quot;show&quot;, &quot;connected&quot;, NULL}, aji_show_clients, &quot;Show state of clients and components&quot;, debug_usage },
++	{{ &quot;jabber&quot;, &quot;no&quot;, &quot;debug&quot;, NULL}, aji_no_debug, &quot;Disable JABBER debug&quot;, no_debug_usage },
++	{{ &quot;jabber&quot;, &quot;test&quot;, NULL}, aji_test, &quot;Shows roster, but is genearlly used for mog's debugging.&quot;, test_usage },
++ };
++
++static const char *tdesc = &quot;AJI - Asterisk JABBER Interface&quot;;
++
++static char *app_ajisend = &quot;JABBERSend&quot;;
++
++static char *ajisend_synopsis = &quot;JABBERSend(JABBER,ScreenName,Message)&quot;;
++
++static char *ajisend_descrip =
++&quot;JABBERSend(JABBER,ScreenName,Message)\n&quot;
++&quot;  JABBER - Client or transport Asterisk uses to connect to JABBER\n&quot; 
++&quot;  ScreenName - User Name to message.\n&quot; 
++&quot;  Message - Message to be sent to the buddy\n&quot;;
++
++static char *app_ajistatus = &quot;JABBERStatus&quot;;
++
++static char *ajistatus_synopsis = &quot;JABBERStatus(JABBER,ScreenName,Variable)&quot;;
++
++static char *ajistatus_descrip =
++&quot;JABBERStatus(JABBER,ScreenName,Variable)\n&quot;
++&quot;  JABBER - Client or transport Asterisk uses to connect to JABBER\n&quot;
++&quot;  ScreenName - User Name to retrieve status from.\n&quot;
++&quot;  Variable - Variable to store presence in will be 1-6.\n&quot; 
++&quot;             In order, Online, Chatty, Away, XAway, DND, Offline\n&quot; 
++&quot;             If not in roster variable will = 7\n&quot;;
++
++struct aji_client_container clients;
++
++struct aji_capabilities *capabilities;
++
++/*! Global flags, initialized to default values */
++static struct ast_flags globalflags = { AJI_AUTOPRUNE | AJI_AUTOREGISTER };
++
++/*!
++ * \brief Deletes the aji_client data structure.
++ * \param obj is the structure we will delete.
++ * \return void.
++ */
++static void aji_client_destroy(struct aji_client *obj)
++{
++	ASTOBJ_CONTAINER_DESTROYALL(&amp;obj-&gt;buddies, aji_buddy_destroy);
++	ASTOBJ_CONTAINER_DESTROY(&amp;obj-&gt;buddies);
++	free(obj);
++}
++
++/*!
++ * \brief Deletes the aji_buddy data structure.
++ * \param obj is the structure we will delete.
++ * \return void.
++ */
++static void aji_buddy_destroy(struct aji_buddy *obj)
++{
++	struct aji_resource *tmp;
++
++	while ((tmp = obj-&gt;resources)) {
++		obj-&gt;resources = obj-&gt;resources-&gt;next;
++		free(tmp);
++	}
++
++	free(obj);
++}
++
++static struct aji_version *aji_find_version(char *node, char *version, ikspak *pak)
++{
++	struct aji_capabilities *list = NULL;
++	struct aji_version *res = NULL;
++
++	list = capabilities;
++
++	if(!node)
++		node = pak-&gt;from-&gt;full;
++	if(!version)
++		version = &quot;none supplied.&quot;;
++	while(list) {
++		if(!strcasecmp(list-&gt;node, node)) {
++			res = list-&gt;versions;
++			while(res) {
++				 if(!strcasecmp(res-&gt;version, version))
++					 return res;
++				 res = res-&gt;next;
++			}
++			if(!res) {
++				res = (struct aji_version *)malloc(sizeof(struct aji_version));
++				if(!res) {
++					ast_log(LOG_ERROR, &quot;Out of memory!\n&quot;);
++					return NULL;
++				}
++				res-&gt;jingle = 0;
++				res-&gt;parent = list;
++				ast_copy_string(res-&gt;version, version, sizeof(res-&gt;version));
++				res-&gt;next = list-&gt;versions;
++				list-&gt;versions = res;
++				return res;
++			}
++		}
++		list = list-&gt;next;
++	}
++	if(!list) {
++		list = (struct aji_capabilities *)malloc(sizeof(struct aji_capabilities));
++		if(!list) {
++			ast_log(LOG_ERROR, &quot;Out of memory!\n&quot;);
++			return NULL;
++		}
++		res = (struct aji_version *)malloc(sizeof(struct aji_version));
++		if(!res) {
++			ast_log(LOG_ERROR, &quot;Out of memory!\n&quot;);
++			return NULL;
++		}
++		ast_copy_string(list-&gt;node, node, sizeof(list-&gt;node));
++		ast_copy_string(res-&gt;version, version, sizeof(res-&gt;version));
++		res-&gt;jingle = 0;
++		res-&gt;parent = list;
++		res-&gt;next = list-&gt;versions;
++		list-&gt;versions = res;
++		list-&gt;next = capabilities;
++		capabilities = list;
++	}
++	return res;
++}
++
++static struct aji_resource *aji_find_resource(struct aji_buddy *buddy, char *rname)
++{
++	struct aji_resource *res = NULL;
++	if (!buddy)
++		return res;
++	res = buddy-&gt;resources;
++	while (res) {
++		if (!strcasecmp(res-&gt;resource, rname)) {
++			break;
++		}
++		res = res-&gt;next;
++	}
++	return res;
++}
++
++static int gtalk_yuck(iks *node)
++{
++	if (iks_find_with_attrib(node, &quot;c&quot;, &quot;node&quot;, &quot;<A HREF="http://www.google.com/xmpp/client/caps">http://www.google.com/xmpp/client/caps</A>&quot;))
++		return 1;
++	return 0;
++}
++
++/*!
++ * \brief Detects the highest bit in a number.
++ * \param Number you want to have evaluated.
++ * \return the highest power of 2 that can go into the number.
++ */
++static int aji_highest_bit(int number)
++{
++	int x = sizeof(number) * 8 - 1;
++	if (!number)
++		return 0;
++	for (; x &gt; 0; x--) {
++		if (number &amp; (1 &lt;&lt; x))
++			break;
++	}
++	return (1 &lt;&lt; x);
++}
++
++static iks *jabber_make_auth(iksid * id, const char *pass, const char *sid)
++{
++	iks *x, *y;
++	x = iks_new(&quot;iq&quot;);
++	iks_insert_attrib(x, &quot;type&quot;, &quot;set&quot;);
++	y = iks_insert(x, &quot;query&quot;);
++	iks_insert_attrib(y, &quot;xmlns&quot;, IKS_NS_AUTH);
++	iks_insert_cdata(iks_insert(y, &quot;username&quot;), id-&gt;user, 0);
++	iks_insert_cdata(iks_insert(y, &quot;resource&quot;), id-&gt;resource, 0);
++	if (sid) {
++		char buf[41];
++		char sidpass[100];
++		snprintf(sidpass, sizeof(sidpass), &quot;%s%s&quot;, sid, pass);
++		ast_sha1_hash(buf, sidpass);
++		iks_insert_cdata(iks_insert(y, &quot;digest&quot;), buf, 0);
++	} else {
++		iks_insert_cdata(iks_insert(y, &quot;password&quot;), pass, 0);
++	}
++	return x;
++}
++
++/*!
++ * \brief Dial plan function status(). puts the status of watched user 
++   into a channel variable.
++ * \param channel, and username,watched user, status var
++ * \return 0.
++ */
++static int aji_status_exec(struct ast_channel *chan, void *data)
++{
++	struct aji_client *client = NULL;
++	struct aji_resource *r = NULL;
++	char *s = NULL, *sender = NULL, *screenname = NULL, *resource = NULL, *variable = NULL;
++	int stat = 7, found = 0;
++	char status[2];
++	if (data) {
++		s = ast_strdupa((char *) data);
++		if (s) {
++			sender = strsep(&amp;s, &quot;|&quot;);
++			if (sender &amp;&amp; (sender[0] != '\0')) {
++				screenname = strsep(&amp;s, &quot;|&quot;);
++				if (screenname &amp;&amp; (screenname[0] != '\0')) {
++					variable = s;
++				} else {
++					ast_log(LOG_ERROR, &quot;Bad arguments\n&quot;);
++					return -1;
++				}
++			}
++		}
++	} else {
++		ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
++		return -1;
++	}
++
++	resource = strsep(&amp;screenname, &quot;/&quot;);
++
++	client = ast_aji_get_client(sender);
++	if (!client) {
++		ast_log(LOG_WARNING, &quot;Could not find Connection.\n&quot;);
++		return -1;
++	}
++
++	ASTOBJ_CONTAINER_TRAVERSE(&amp;client-&gt;buddies, 1, {
++		ASTOBJ_RDLOCK(iterator); 
++		if (!strcasecmp(iterator-&gt;user, screenname)) {
++			found = 1; 
++			r = iterator-&gt;resources; 
++			if (!r) {	/* client hasnt signed on */
++				break;
++			} else {
++				if (resource) {
++					while (r) {
++						if (!strcasecmp(r-&gt;resource, resource)) {
++							stat = r-&gt;status; 
++							break;
++						}
++						r = r-&gt;next;
++					}
++					ast_log(LOG_WARNING, &quot;Resource not found %s\n&quot;, resource);
++				} else {
++					stat = r-&gt;status; 
++					break;
++				}
++			}
++		}
++	ASTOBJ_UNLOCK(iterator);
++	});
++
++	if (!found) {				/* just a label */
++		ast_log(LOG_WARNING, &quot;Could not find Buddy in list.\n&quot;);
++		return -1;
++	}
++	sprintf(status, &quot;%d&quot;, stat);
++	pbx_builtin_setvar_helper(chan, variable, status);
++	return 0;
++}
++
++/*!
++ * \brief Dial plan function to send a message.
++ * \param channel, and data, data is sender, reciever, message.
++ * \return 0.
++ */
++static int aji_send_exec(struct ast_channel *chan, void *data)
++{
++	struct aji_client *client = NULL;
++
++	char *s = NULL, *sender = NULL, *recipiant = NULL, *message = NULL;
++	if (data) {
++		s = ast_strdupa((char *) data);
++		if (s) {
++			sender = strsep(&amp;s, &quot;|&quot;);
++			if (sender &amp;&amp; (sender[0] != '\0')) {
++				recipiant = strsep(&amp;s, &quot;|&quot;);
++				if (recipiant &amp;&amp; (recipiant[0] != '\0')) {
++					message = s;
++				} else {
++					ast_log(LOG_ERROR, &quot;Bad arguments \n&quot;);
++					return -1;
++				}
++			}
++		}
++		client = ast_aji_get_client(sender);
++		if (!client) {
++			ast_log(LOG_WARNING, &quot;Could not find Sender.\n&quot;);
++			return -1;
++		}
++	} else {
++		ast_log(LOG_ERROR, &quot;Out of memory\n&quot;);
++		return -1;
++	}
++	if (strchr(recipiant, '@') &amp;&amp; message)
++		ast_aji_send(client, recipiant, message);
++	return 0;
++}
++
++/*!
++ * \brief the debug loop.
++ * \param aji_client structure, xml data as string, size of string, direction of packet, 1 for inbound 0 for outbound.
++ */
++static void aji_log_hook(void *data, const char *xmpp, size_t size, int is_incoming)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	if (client-&gt;debug == 1) {
++		if (is_incoming)
++			ast_verbose(&quot;\nJABBER: %s INCOMING: %s\n&quot;, client-&gt;name, xmpp);
++		else
++			ast_verbose(&quot;\nJABBER: %s OUTGOING: %s\n&quot;, client-&gt;name, xmpp);
++
++	}
++	ASTOBJ_UNREF(client, aji_client_destroy);
++}
++
++/*!
++ * \brief The action hook parses the inbound packets, constantly running.
++ * \param aji client structure, type of packet, the actual packet.
++ * \return IKS_OK or IKS_HOOK .
++ */
++static int aji_act_hook(void *data, int type, iks *node)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	ikspak *pak = NULL;
++	iks *auth = NULL;
++
++	pak = iks_packet(node);
++
++	if (client-&gt;component == AJI_CLIENT) {
++		switch (type) {
++		case IKS_NODE_START:
++			if (client-&gt;usetls &amp;&amp; !iks_is_secure(client-&gt;p)) {
++				if (iks_has_tls())
++					iks_start_tls(client-&gt;p);
++				else
++					ast_log(LOG_ERROR, &quot;gnuTLS not installed.\n&quot;);
++				break;
++			}
++			if (!client-&gt;usesasl) {
++				iks_filter_add_rule(client-&gt;f, aji_client_connect, client, IKS_RULE_TYPE, IKS_PAK_IQ, IKS_RULE_SUBTYPE, IKS_TYPE_RESULT, IKS_RULE_ID, client-&gt;mid, IKS_RULE_DONE);
++				auth = jabber_make_auth(client-&gt;jid, client-&gt;password, iks_find_attrib(node, &quot;id&quot;));
++				if (auth) {
++					iks_insert_attrib(auth, &quot;id&quot;, client-&gt;mid);
++					iks_insert_attrib(auth, &quot;to&quot;, client-&gt;jid-&gt;server);
++					ast_aji_increment_mid(client-&gt;mid);
++					iks_send(client-&gt;p, auth);
++					iks_delete(auth);
++				} else
++					ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++			}
++			break;
++
++		case IKS_NODE_NORMAL:
++			{
++				int features = 0;
++				if (!strcmp(&quot;stream:features&quot;, iks_name(node))) {
++					features = iks_stream_features(node);
++					if (client-&gt;usesasl) {
++						if (client-&gt;usetls &amp;&amp; !iks_is_secure(client-&gt;p))
++							break;
++						if (client-&gt;authorized) {
++							if (features &amp; IKS_STREAM_BIND) {
++								iks_filter_add_rule (client-&gt;f, aji_client_connect, client, IKS_RULE_TYPE, IKS_PAK_IQ, IKS_RULE_SUBTYPE, IKS_TYPE_RESULT, IKS_RULE_DONE);
++								auth = iks_make_resource_bind(client-&gt;jid);
++								if (auth) {
++									iks_insert_attrib(auth, &quot;id&quot;, client-&gt;mid);
++									ast_aji_increment_mid(client-&gt;mid);
++									iks_send(client-&gt;p, auth);
++									iks_delete(auth);
++								} else {
++									ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++									break;
++								}
++							}
++							if (features &amp; IKS_STREAM_SESSION) {
++								iks_filter_add_rule (client-&gt;f, aji_client_connect, client, IKS_RULE_TYPE, IKS_PAK_IQ, IKS_RULE_SUBTYPE, IKS_TYPE_RESULT, IKS_RULE_ID, &quot;auth&quot;, IKS_RULE_DONE);
++								auth = iks_make_session();
++								if (auth) {
++									iks_insert_attrib(auth, &quot;id&quot;, &quot;auth&quot;);
++									ast_aji_increment_mid(client-&gt;mid);
++									iks_send(client-&gt;p, auth);
++									iks_delete(auth);
++								} else {
++									ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++								}
++							}
++						} else {
++							features = aji_highest_bit(features);
++							if (features == IKS_STREAM_SASL_MD5)
++								iks_start_sasl(client-&gt;p, IKS_SASL_DIGEST_MD5, client-&gt;jid-&gt;user, client-&gt;password);
++							else {
++								if (features == IKS_STREAM_SASL_PLAIN) {
++									iks *x = NULL;
++									x = iks_new(&quot;auth&quot;);
++									if (x) {
++										iks_insert_attrib(x, &quot;xmlns&quot;, IKS_NS_XMPP_SASL);
++										int len = strlen(client-&gt;jid-&gt;user) + strlen(client-&gt;password) + 3;
++										/* XXX Check return values XXX */
++										char *s = ast_malloc(80 + len);
++										char *base64 = ast_malloc(80 + len * 2);
++										iks_insert_attrib(x, &quot;mechanism&quot;, &quot;PLAIN&quot;);
++										sprintf(s, &quot;%c%s%c%s&quot;, 0, client-&gt;jid-&gt;user, 0, client-&gt;password);
++										ast_base64encode(base64, s, len, len * 2);
++										iks_insert_cdata(x, base64, 0);
++										iks_send(client-&gt;p, x);
++										iks_delete(x);
++										if (base64)
++											free(base64);
++										if (s)
++											free(s);
++									} else {
++										ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++									}
++								}
++							}
++						}
++					}
++				} else if (!strcmp(&quot;failure&quot;, iks_name(node))) {
++					ast_log(LOG_ERROR, &quot;JABBER: encryption failure. possible bad password.\n&quot;);
++				} else if (!strcmp(&quot;success&quot;, iks_name(node))) {
++					client-&gt;authorized = 1;
++					iks_send_header(client-&gt;p, client-&gt;jid-&gt;server);
++				}
++				break;
++			}
++		case IKS_NODE_ERROR:{
++				ast_log(LOG_ERROR, &quot;JABBER: Node Error\n&quot;);
++				ASTOBJ_UNREF(client, aji_client_destroy);
++				return IKS_HOOK;
++				break;
++			}
++		case IKS_NODE_STOP:{
++				ast_log(LOG_WARNING, &quot;JABBER: Disconnected\n&quot;);
++				ASTOBJ_UNREF(client, aji_client_destroy);
++				return IKS_HOOK;
++				break;
++			}
++		}
++	} else if (client-&gt;state != AJI_CONNECTED &amp;&amp; client-&gt;component == AJI_COMPONENT) {
++		switch (type) {
++		case IKS_NODE_START:{
++				char secret[160], shasum[320], *handshake;
++				switch (client-&gt;state) {
++				case AJI_DISCONNECTED:
++					sprintf(secret, &quot;%s%s&quot;, pak-&gt;id, client-&gt;password);
++					ast_sha1_hash(shasum, secret);
++					handshake = NULL;
++					asprintf(&amp;handshake, &quot;&lt;handshake&gt;%s&lt;/handshake&gt;&quot;, shasum);
++					if (handshake) {
++						iks_send_raw(client-&gt;p, handshake);
++						free(handshake);
++						handshake = NULL;
++					}
++					client-&gt;state = AJI_CONNECTED;
++					break;
++				case AJI_ALMOST:
++					client-&gt;state = AJI_CONNECTED;
++					break;
++				case AJI_CONNECTING:
++				case AJI_CONNECTED:
++					break;
++				};
++				break;
++			}
++
++		case IKS_NODE_NORMAL:{
++				break;
++			}
++
++		case IKS_NODE_ERROR:{
++				ast_log(LOG_ERROR, &quot;JABBER: Node Error\n&quot;);
++				ASTOBJ_UNREF(client, aji_client_destroy);
++				return IKS_HOOK;
++				break;
++			}
++		case IKS_NODE_STOP:{
++				ast_log(LOG_WARNING, &quot;JABBER: Disconnected\n&quot;);
++				ASTOBJ_UNREF(client, aji_client_destroy);
++				return IKS_HOOK;
++				break;
++			}
++		}
++	}
++
++	switch (pak-&gt;type) {
++	case IKS_PAK_NONE:
++		if (option_verbose &gt; 30)
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: I Don't know what to do with you NONE\n&quot;);
++		break;
++	case IKS_PAK_MESSAGE:
++		if (option_verbose &gt; 30)
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: I Don't know what to do with you MESSAGE\n&quot;);
++		break;
++	case IKS_PAK_PRESENCE:
++		aji_handle_presence(client, pak);
++		if (option_verbose &gt; 30)
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: I Do know how to handle presence!!\n&quot;);
++		break;
++	case IKS_PAK_S10N:
++		aji_handle_subscribe(client, pak);
++		if (option_verbose &gt; 30)
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: I Dont know S10N subscribe!!\n&quot;);
++		break;
++	case IKS_PAK_IQ:
++		if (option_verbose &gt; 30)
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: I Dont have an IQ!!!\n&quot;);
++		aji_handle_iq(client, node);
++		break;
++	default:
++		if (option_verbose &gt; 30)
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: I Dont know %i\n&quot;, pak-&gt;type);
++		break;
++	}
++
++	iks_filter_packet(client-&gt;f, pak);
++
++	if (node)
++		iks_delete(node);
++
++	ASTOBJ_UNREF(client, aji_client_destroy);
++	return IKS_OK;
++}
++
++static int aji_register_approve_handler(void *data, ikspak *pak)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	iks *iq = NULL, *query = NULL, *item = NULL;
++
++	iq = iks_new(&quot;iq&quot;);
++	query = iks_new(&quot;query&quot;);
++	item = iks_new(&quot;item&quot;);
++
++	if (client &amp;&amp; iq &amp;&amp; query &amp;&amp; item) {
++		if (!iks_find(pak-&gt;query, &quot;remove&quot;)) {
++			iks_insert_attrib(iq, &quot;from&quot;, client-&gt;jid-&gt;full);
++			iks_insert_attrib(iq, &quot;to&quot;, pak-&gt;from-&gt;full);
++			iks_insert_attrib(iq, &quot;id&quot;, pak-&gt;id);
++			iks_insert_attrib(iq, &quot;type&quot;, &quot;result&quot;);
++			iks_insert_attrib(query, &quot;xmlns&quot;, &quot;jabber:iq:register&quot;);
++
++			iks_insert_node(iq, query);
++			iks_send(client-&gt;p, iq);
++			iks_insert_attrib(iq, &quot;from&quot;, pak-&gt;from-&gt;full);
++			iks_insert_attrib(iq, &quot;to&quot;, pak-&gt;from-&gt;full);
++			iks_insert_attrib(iq, &quot;id&quot;, client-&gt;mid);
++			ast_aji_increment_mid(client-&gt;mid);
++			iks_insert_attrib(iq, &quot;type&quot;, &quot;set&quot;);
++			iks_insert_attrib(query, &quot;xmlns&quot;, &quot;jabber:iq:roster&quot;);
++			iks_insert_attrib(item, &quot;subscription&quot;, &quot;none&quot;);
++			iks_insert_attrib(item, &quot;jid&quot;, client-&gt;jid-&gt;full);
++			iks_insert_node(query, item);
++			iks_send(client-&gt;p, iq);
++		}
++	} else {
++		ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++	}
++	if (iq)
++		iks_delete(iq);
++	if (query)
++		iks_delete(query);
++	if (item)
++		iks_delete(item);
++	ASTOBJ_UNREF(client, aji_client_destroy);
++	return IKS_FILTER_EAT;
++}
++
++static int aji_register_query_handler(void *data, ikspak *pak)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	char *node = NULL;
++
++	client = (struct aji_client *) data;
++
++	if (!(node = iks_find_attrib(pak-&gt;query, &quot;node&quot;))) {
++		iks *iq = NULL, *query = NULL, *instructions = NULL;
++		char *explain = &quot;Welcome to Asterisk the Open Source PBX.\n&quot;;
++		iq = iks_new(&quot;iq&quot;);
++		query = iks_new(&quot;query&quot;);
++		instructions = iks_new(&quot;instructions&quot;);
++		if (iq &amp;&amp; query &amp;&amp; instructions &amp;&amp; client) {
++			iks_insert_attrib(iq, &quot;from&quot;, client-&gt;user);
++			iks_insert_attrib(iq, &quot;to&quot;, pak-&gt;from-&gt;full);
++			iks_insert_attrib(iq, &quot;id&quot;, pak-&gt;id);
++			iks_insert_attrib(iq, &quot;type&quot;, &quot;result&quot;);
++			iks_insert_attrib(query, &quot;xmlns&quot;, &quot;jabber:iq:register&quot;);
++			iks_insert_cdata(instructions, explain, 0);
++			iks_insert_node(iq, query);
++			iks_insert_node(query, instructions);
++			iks_send(client-&gt;p, iq);
++		} else {
++			ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++		}
++		if (iq)
++			iks_delete(iq);
++		if (query)
++			iks_delete(query);
++		if (instructions)
++			iks_delete(instructions);
++	}
++	ASTOBJ_UNREF(client, aji_client_destroy);
++	return IKS_FILTER_EAT;
++}
++
++static int aji_ditems_handler(void *data, ikspak *pak)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	char *node = NULL;
++
++	if (!(node = iks_find_attrib(pak-&gt;query, &quot;node&quot;))) {
++		iks *iq = NULL, *query = NULL, *item = NULL;
++		iq = iks_new(&quot;iq&quot;);
++		query = iks_new(&quot;query&quot;);
++		item = iks_new(&quot;item&quot;);
++
++		if (iq &amp;&amp; query &amp;&amp; item) {
++			iks_insert_attrib(iq, &quot;from&quot;, client-&gt;user);
++			iks_insert_attrib(iq, &quot;to&quot;, pak-&gt;from-&gt;full);
++			iks_insert_attrib(iq, &quot;id&quot;, pak-&gt;id);
++			iks_insert_attrib(iq, &quot;type&quot;, &quot;result&quot;);
++			iks_insert_attrib(query, &quot;xmlns&quot;, &quot;<A HREF="http://jabber.org/protocol/disco#items">http://jabber.org/protocol/disco#items</A>&quot;);
++			iks_insert_attrib(item, &quot;node&quot;, &quot;<A HREF="http://jabber.org/protocol/commands">http://jabber.org/protocol/commands</A>&quot;);
++			iks_insert_attrib(item, &quot;name&quot;, &quot;Million Dollar Asterisk Commands&quot;);
++			iks_insert_attrib(item, &quot;jid&quot;, client-&gt;user);
++
++			iks_insert_node(iq, query);
++			iks_insert_node(query, item);
++			iks_send(client-&gt;p, iq);
++		} else {
++			ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++		}
++		if (iq)
++			iks_delete(iq);
++		if (query)
++			iks_delete(query);
++		if (item)
++			iks_delete(item);
++
++	} else if (!strcasecmp(node, &quot;<A HREF="http://jabber.org/protocol/commands">http://jabber.org/protocol/commands</A>&quot;)) {
++		iks *iq, *query, *confirm;
++		iq = iks_new(&quot;iq&quot;);
++		query = iks_new(&quot;query&quot;);
++		confirm = iks_new(&quot;item&quot;);
++		if (iq &amp;&amp; query &amp;&amp; confirm &amp;&amp; client) {
++			iks_insert_attrib(iq, &quot;from&quot;, client-&gt;user);
++			iks_insert_attrib(iq, &quot;to&quot;, pak-&gt;from-&gt;full);
++			iks_insert_attrib(iq, &quot;id&quot;, pak-&gt;id);
++			iks_insert_attrib(iq, &quot;type&quot;, &quot;result&quot;);
++			iks_insert_attrib(query, &quot;xmlns&quot;, &quot;<A HREF="http://jabber.org/protocol/disco#items">http://jabber.org/protocol/disco#items</A>&quot;);
++			iks_insert_attrib(query, &quot;node&quot;, &quot;<A HREF="http://jabber.org/protocol/commands">http://jabber.org/protocol/commands</A>&quot;);
++			iks_insert_attrib(confirm, &quot;node&quot;, &quot;confirmaccount&quot;);
++			iks_insert_attrib(confirm, &quot;name&quot;, &quot;Confirm AIM account&quot;);
++			iks_insert_attrib(confirm, &quot;jid&quot;, &quot;blog.astjab.org&quot;);
++
++			iks_insert_node(iq, query);
++			iks_insert_node(query, confirm);
++			iks_send(client-&gt;p, iq);
++		} else {
++			ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++		}
++		if (iq)
++			iks_delete(iq);
++		if (query)
++			iks_delete(query);
++		if (confirm)
++			iks_delete(confirm);
++
++	} else if (!strcasecmp(node, &quot;confirmaccount&quot;)) {
++		iks *iq = NULL, *query = NULL, *feature = NULL;
++
++		iq = iks_new(&quot;iq&quot;);
++		query = iks_new(&quot;query&quot;);
++		feature = iks_new(&quot;feature&quot;);
++
++		if (iq &amp;&amp; query &amp;&amp; feature &amp;&amp; client) {
++			iks_insert_attrib(iq, &quot;from&quot;, client-&gt;user);
++			iks_insert_attrib(iq, &quot;to&quot;, pak-&gt;from-&gt;full);
++			iks_insert_attrib(iq, &quot;id&quot;, pak-&gt;id);
++			iks_insert_attrib(iq, &quot;type&quot;, &quot;result&quot;);
++			iks_insert_attrib(query, &quot;xmlns&quot;, &quot;<A HREF="http://jabber.org/protocol/disco#items">http://jabber.org/protocol/disco#items</A>&quot;);
++			iks_insert_attrib(feature, &quot;var&quot;, &quot;<A HREF="http://jabber.org/protocol/commands">http://jabber.org/protocol/commands</A>&quot;);
++			iks_insert_node(iq, query);
++			iks_insert_node(query, feature);
++			iks_send(client-&gt;p, iq);
++		} else {
++			ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++		}
++		if (iq)
++			iks_delete(iq);
++		if (query)
++			iks_delete(query);
++		if (feature)
++			iks_delete(feature);
++	}
++
++	ASTOBJ_UNREF(client, aji_client_destroy);
++	return IKS_FILTER_EAT;
++
++}
++
++static int aji_client_info_handler(void *data, ikspak *pak)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	struct aji_buddy *buddy = NULL;
++	struct aji_resource *resource = NULL;
++	buddy = ASTOBJ_CONTAINER_FIND(&amp;client-&gt;buddies, pak-&gt;from-&gt;partial);
++
++	resource = aji_find_resource(buddy, pak-&gt;from-&gt;resource);
++
++	if (pak-&gt;subtype == IKS_TYPE_RESULT) {
++		if (iks_find_with_attrib(pak-&gt;query, &quot;feature&quot;, &quot;var&quot;, &quot;<A HREF="http://www.google.com/xmpp/protocol/voice/v1">http://www.google.com/xmpp/protocol/voice/v1</A>&quot;)) {
++			resource-&gt;cap-&gt;jingle = 1;
++		} else
++			resource-&gt;cap-&gt;jingle = 0;
++	} else if (pak-&gt;subtype == IKS_TYPE_GET) {
++		iks *iq, *disco, *ident, *google, *query;
++		iq = iks_new(&quot;iq&quot;);
++		query = iks_new(&quot;query&quot;);
++		ident = iks_new(&quot;identity&quot;);
++		disco = iks_new(&quot;feature&quot;);
++		google = iks_new(&quot;feature&quot;);
++		if (iq &amp;&amp; ident &amp;&amp; disco &amp;&amp; google) {
++			iks_insert_attrib(iq, &quot;from&quot;, client-&gt;jid-&gt;full);
++			iks_insert_attrib(iq, &quot;to&quot;, pak-&gt;from-&gt;full);
++			iks_insert_attrib(iq, &quot;type&quot;, &quot;result&quot;);
++			iks_insert_attrib(iq, &quot;id&quot;, pak-&gt;id);
++			iks_insert_attrib(query, &quot;xmlns&quot;, &quot;xmlns='<A HREF="http://jabber.org/protocol/disco#info">http://jabber.org/protocol/disco#info</A>&quot;);
++			iks_insert_attrib(ident, &quot;category&quot;, &quot;client&quot;);
++			iks_insert_attrib(ident, &quot;type&quot;, &quot;pc&quot;);
++			iks_insert_attrib(ident, &quot;name&quot;, &quot;asterisk&quot;);
++			iks_insert_attrib(disco, &quot;var&quot;, &quot;<A HREF="http://jabber.org/protocol/disco#info">http://jabber.org/protocol/disco#info</A>&quot;);
++			iks_insert_attrib(google, &quot;var&quot;, &quot;<A HREF="http://www.google.com/xmpp/protocol/voice/v1">http://www.google.com/xmpp/protocol/voice/v1</A>&quot;);
++			iks_insert_node(iq, query);
++			iks_insert_node(query, ident);
++			iks_insert_node(query, disco);
++			iks_insert_node(query, google);
++			iks_send(client-&gt;p, iq);
++		} else
++			ast_log(LOG_ERROR, &quot;Out of Memory.\n&quot;);
++		if (iq)
++			iks_delete(iq);
++		if (query)
++			iks_delete(query);
++		if (ident)
++			iks_delete(ident);
++		if (google)
++			iks_delete(google);
++		if (disco)
++			iks_delete(disco);
++	} else if (pak-&gt;subtype == IKS_TYPE_ERROR) {
++		ast_log(LOG_NOTICE, &quot;User %s does not support discovery.\n&quot;, pak-&gt;from-&gt;full);
++	}
++	ASTOBJ_UNREF(client, aji_client_destroy);
++	return IKS_FILTER_EAT;
++}
++
++static int aji_dinfo_handler(void *data, ikspak *pak)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	char *node = NULL;
++
++	if (!(node = iks_find_attrib(pak-&gt;query, &quot;node&quot;))) {
++		iks *iq = NULL, *query = NULL, *identity = NULL, *disco = NULL, *reg = NULL, *commands = NULL, *gateway = NULL, *version = NULL, *vcard = NULL, *search = NULL;
++
++		iq = iks_new(&quot;iq&quot;);
++		query = iks_new(&quot;query&quot;);
++		identity = iks_new(&quot;identity&quot;);
++		disco = iks_new(&quot;feature&quot;);
++		reg = iks_new(&quot;feature&quot;);
++		commands = iks_new(&quot;feature&quot;);
++		gateway = iks_new(&quot;feature&quot;);
++		version = iks_new(&quot;feature&quot;);
++		vcard = iks_new(&quot;feature&quot;);
++		search = iks_new(&quot;feature&quot;);
++
++		if (iq &amp;&amp; query &amp;&amp; identity &amp;&amp; disco &amp;&amp; reg &amp;&amp; commands &amp;&amp; gateway &amp;&amp; version &amp;&amp; vcard &amp;&amp; search &amp;&amp; client) {
++			iks_insert_attrib(iq, &quot;from&quot;, client-&gt;user);
++			iks_insert_attrib(iq, &quot;to&quot;, pak-&gt;from-&gt;full);
++			iks_insert_attrib(iq, &quot;id&quot;, pak-&gt;id);
++			iks_insert_attrib(iq, &quot;type&quot;, &quot;result&quot;);
++			iks_insert_attrib(query, &quot;xmlns&quot;, &quot;<A HREF="http://jabber.org/protocol/disco#info">http://jabber.org/protocol/disco#info</A>&quot;);
++			iks_insert_attrib(identity, &quot;category&quot;, &quot;gateway&quot;);
++			iks_insert_attrib(identity, &quot;type&quot;, &quot;pstn&quot;);
++			iks_insert_attrib(identity, &quot;name&quot;, &quot;Asterisk The Open Source PBX&quot;);
++			iks_insert_attrib(disco, &quot;var&quot;, &quot;<A HREF="http://jabber.org/protocol/disco">http://jabber.org/protocol/disco</A>&quot;);
++			iks_insert_attrib(reg, &quot;var&quot;, &quot;jabber:iq:register&quot;);
++			iks_insert_attrib(commands, &quot;var&quot;, &quot;<A HREF="http://jabber.org/protocol/commands">http://jabber.org/protocol/commands</A>&quot;);
++			iks_insert_attrib(gateway, &quot;var&quot;, &quot;jabber:iq:gateway&quot;);
++			iks_insert_attrib(version, &quot;var&quot;, &quot;jabber:iq:version&quot;);
++			iks_insert_attrib(vcard, &quot;var&quot;, &quot;vcard-temp&quot;);
++			iks_insert_attrib(search, &quot;var&quot;, &quot;jabber:iq:search&quot;);
++
++			iks_insert_node(iq, query);
++			iks_insert_node(query, identity);
++			iks_insert_node(query, disco);
++			iks_insert_node(query, reg);
++			iks_insert_node(query, commands);
++			iks_insert_node(query, gateway);
++			iks_insert_node(query, version);
++			iks_insert_node(query, vcard);
++			iks_insert_node(query, search);
++			iks_send(client-&gt;p, iq);
++		} else {
++			ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++		}
++
++		if (iq)
++			iks_delete(iq);
++		if (query)
++			iks_delete(query);
++		if (identity)
++			iks_delete(identity);
++		if (disco)
++			iks_delete(disco);
++		if (reg)
++			iks_delete(reg);
++		if (commands)
++			iks_delete(commands);
++		if (gateway)
++			iks_delete(gateway);
++		if (version)
++			iks_delete(version);
++		if (vcard)
++			iks_delete(vcard);
++		if (search)
++			iks_delete(search);
++
++	} else if (!strcasecmp(node, &quot;<A HREF="http://jabber.org/protocol/commands">http://jabber.org/protocol/commands</A>&quot;)) {
++		iks *iq = NULL, *query = NULL, *confirm = NULL;
++		iq = iks_new(&quot;iq&quot;);
++		query = iks_new(&quot;query&quot;);
++		confirm = iks_new(&quot;item&quot;);
++
++		if (iq &amp;&amp; query &amp;&amp; confirm &amp;&amp; client) {
++			iks_insert_attrib(iq, &quot;from&quot;, client-&gt;user);
++			iks_insert_attrib(iq, &quot;to&quot;, pak-&gt;from-&gt;full);
++			iks_insert_attrib(iq, &quot;id&quot;, pak-&gt;id);
++			iks_insert_attrib(iq, &quot;type&quot;, &quot;result&quot;);
++			iks_insert_attrib(query, &quot;xmlns&quot;, &quot;<A HREF="http://jabber.org/protocol/disco#items">http://jabber.org/protocol/disco#items</A>&quot;);
++			iks_insert_attrib(query, &quot;node&quot;, &quot;<A HREF="http://jabber.org/protocol/commands">http://jabber.org/protocol/commands</A>&quot;);
++			iks_insert_attrib(confirm, &quot;node&quot;, &quot;confirmaccount&quot;);
++			iks_insert_attrib(confirm, &quot;name&quot;, &quot;Confirm AIM account&quot;);
++			iks_insert_attrib(confirm, &quot;jid&quot;, client-&gt;user);
++			iks_insert_node(iq, query);
++			iks_insert_node(query, confirm);
++			iks_send(client-&gt;p, iq);
++		} else {
++			ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++		}
++		if (iq)
++			iks_delete(iq);
++		if (query)
++			iks_delete(query);
++		if (confirm)
++			iks_delete(confirm);
++
++	} else if (!strcasecmp(node, &quot;confirmaccount&quot;)) {
++		iks *iq = NULL, *query = NULL, *feature = NULL;
++
++		iq = iks_new(&quot;iq&quot;);
++		query = iks_new(&quot;query&quot;);
++		feature = iks_new(&quot;feature&quot;);
++		if (iq &amp;&amp; query &amp;&amp; feature &amp;&amp; client) {
++			iks_insert_attrib(iq, &quot;from&quot;, client-&gt;user);
++			iks_insert_attrib(iq, &quot;to&quot;, pak-&gt;from-&gt;full);
++			iks_insert_attrib(iq, &quot;id&quot;, pak-&gt;id);
++			iks_insert_attrib(iq, &quot;type&quot;, &quot;result&quot;);
++			iks_insert_attrib(query, &quot;xmlns&quot;, &quot;<A HREF="http://jabber.org/protocol/disco#info">http://jabber.org/protocol/disco#info</A>&quot;);
++			iks_insert_attrib(feature, &quot;var&quot;, &quot;<A HREF="http://jabber.org/protocol/commands">http://jabber.org/protocol/commands</A>&quot;);
++			iks_insert_node(iq, query);
++			iks_insert_node(query, feature);
++			iks_send(client-&gt;p, iq);
++		} else {
++			ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++		}
++		if (iq)
++			iks_delete(iq);
++		if (query)
++			iks_delete(query);
++		if (feature)
++			iks_delete(feature);
++	}
++
++	ASTOBJ_UNREF(client, aji_client_destroy);
++	return IKS_FILTER_EAT;
++}
++
++/*!
++ * \brief Handles &lt;iq&gt; tags.
++ * \param client structure and the iq node.
++ * \return void.
++ */
++static void aji_handle_iq(struct aji_client *client, iks *node)
++{
++	if (option_verbose &gt; 77)
++		ast_verbose(&quot;MWAHHAHAHA NOTHING TO SEE HERE!\n&quot;);
++}
++
++/*!
++ * \brief Handles presence packets.
++ * \param client structure and the node.
++ * \return void.
++ */
++static void aji_handle_presence(struct aji_client *client, ikspak *pak)
++{
++	int status, priority;
++	struct aji_buddy *buddy = NULL;
++	struct aji_resource *tmp = NULL, *last = NULL, *found = NULL;
++	char *ver, *node;
++
++	buddy = ASTOBJ_CONTAINER_FIND(&amp;client-&gt;buddies, pak-&gt;from-&gt;partial);
++	if (!buddy) {
++		ast_log(LOG_WARNING, &quot;Got presence packet from %s, somone not in our roster!!!!\n&quot;, pak-&gt;from-&gt;partial);
++		return;
++	}
++	status = (pak-&gt;show) ? pak-&gt;show : 6;
++	priority = atoi((iks_find_cdata(pak-&gt;x, &quot;priority&quot;)) ? iks_find_cdata(pak-&gt;x, &quot;priority&quot;) : &quot;0&quot;);
++	tmp = buddy-&gt;resources;
++
++	while (tmp) {
++		if (!strcasecmp(tmp-&gt;resource, pak-&gt;from-&gt;resource)) {
++			tmp-&gt;status = status;
++			found = tmp;
++			if (status == 6) {	/* Sign off Destroy resource */
++				if (last &amp;&amp; found-&gt;next) {
++					last-&gt;next = found-&gt;next;
++				} else if (!last) {
++					if (found-&gt;next)
++						buddy-&gt;resources = found-&gt;next;
++					else
++						buddy-&gt;resources = NULL;
++				} else if (!found-&gt;next) {
++					if (last)
++						last-&gt;next = NULL;
++					else
++						buddy-&gt;resources = NULL;
++				}
++				free(found);
++				found = NULL;
++				break;
++			}
++			if (tmp-&gt;priority != priority) {
++				found-&gt;priority = priority;
++				if (!last &amp;&amp; !found-&gt;next)
++					break;
++				if (last)
++					last-&gt;next = found-&gt;next;
++				else
++					buddy-&gt;resources = found-&gt;next;
++				last = NULL;
++				tmp = buddy-&gt;resources;
++				if (!buddy-&gt;resources)
++					buddy-&gt;resources = found;
++				while (tmp) {
++					if (found-&gt;priority &gt; tmp-&gt;priority) {
++						if (last)
++							last-&gt;next = found;
++						found-&gt;next = tmp;
++						if (!last)
++							buddy-&gt;resources = found;
++						break;
++					}
++					if (!tmp-&gt;next) {
++						tmp-&gt;next = found;
++						break;
++					}
++					last = tmp;
++					tmp = tmp-&gt;next;
++				}
++			}
++			break;
++		}
++		last = tmp;
++		tmp = tmp-&gt;next;
++	}
++
++	if (!found &amp;&amp; status != 6) {
++		found = (struct aji_resource *) malloc(sizeof(struct aji_resource));
++		if (!found) {
++			ast_log(LOG_ERROR, &quot;Out of memory!\n&quot;);
++			return;
++		}
++		ast_copy_string(found-&gt;resource, pak-&gt;from-&gt;resource, sizeof(found-&gt;resource));
++		found-&gt;status = status;
++		found-&gt;priority = priority;
++		found-&gt;next = NULL;
++		last = NULL;
++		tmp = buddy-&gt;resources;
++		while (tmp) {
++			if (found-&gt;priority &gt; tmp-&gt;priority) {
++				if (last)
++					last-&gt;next = found;
++				found-&gt;next = tmp;
++				if (!last)
++					buddy-&gt;resources = found;
++				break;
++			}
++			if (!tmp-&gt;next) {
++				tmp-&gt;next = found;
++				break;
++			}
++			last = tmp;
++			tmp = tmp-&gt;next;
++		}
++		if (!tmp)
++			buddy-&gt;resources = found;
++	}
++
++	node = iks_find_attrib(iks_find(pak-&gt;x, &quot;c&quot;), &quot;node&quot;);
++	ver = iks_find_attrib(iks_find(pak-&gt;x, &quot;c&quot;), &quot;ver&quot;);
++
++	if(status !=6 &amp;&amp; !found-&gt;cap) {
++		found-&gt;cap = aji_find_version(node, ver, pak);
++		if(gtalk_yuck(pak-&gt;x)) /* gtalk should do discover */
++			found-&gt;cap-&gt;jingle = 1;
++		if(found-&gt;cap-&gt;jingle)
++			ast_log(LOG_DEBUG,&quot;Special case for google till they support discover.\n&quot;);
++		else {
++			iks *iq, *query;
++			iq = iks_new(&quot;iq&quot;);
++			query = iks_new(&quot;query&quot;);
++			if(query &amp;&amp; iq)  {
++				iks_insert_attrib(iq, &quot;type&quot;, &quot;get&quot;);
++				iks_insert_attrib(iq, &quot;to&quot;, pak-&gt;from-&gt;full);
++				iks_insert_attrib(iq, &quot;id&quot;, client-&gt;mid);
++				ast_aji_increment_mid(client-&gt;mid);
++				iks_insert_attrib(query, &quot;xmlns&quot;, &quot;<A HREF="http://jabber.org/protocol/disco#info">http://jabber.org/protocol/disco#info</A>&quot;);
++				iks_insert_node(iq, query);
++				iks_send(client-&gt;p, iq);
++				
++			} else
++				ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++			if(query)
++				iks_delete(query);
++			if(iq)
++				iks_delete(iq);
++		}
++	}
++	if (option_verbose &gt; 30) {
++		switch (pak-&gt;subtype) {
++		case IKS_TYPE_AVAILABLE:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: I am available ^_* %i\n&quot;, pak-&gt;subtype);
++			break;
++		case IKS_TYPE_UNAVAILABLE:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: I am unavailable ^_* %i\n&quot;, pak-&gt;subtype);
++			break;
++		default:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: Ohh sexy and the wrong type%i\n&quot;, pak-&gt;subtype);
++		}
++		switch (pak-&gt;show) {
++		case IKS_SHOW_UNAVAILABLE:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: type: %i subtype %i\n&quot;, pak-&gt;subtype, pak-&gt;show);
++			break;
++		case IKS_SHOW_AVAILABLE:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: type is available\n&quot;);
++			break;
++		case IKS_SHOW_CHAT:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: type: %i subtype %i\n&quot;, pak-&gt;subtype, pak-&gt;show);
++			break;
++		case IKS_SHOW_AWAY:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: type is away\n&quot;);
++			break;
++		case IKS_SHOW_XA:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: type: %i subtype %i\n&quot;, pak-&gt;subtype, pak-&gt;show);
++			break;
++		case IKS_SHOW_DND:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: type: %i subtype %i\n&quot;, pak-&gt;subtype, pak-&gt;show);
++			break;
++		default:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: Kinky! how did that happen %i\n&quot;, pak-&gt;show);
++		}
++	}
++}
++
++/*!
++ * \brief handles subscription requests.
++ * \param aji_client struct and xml packet.
++ * \return void.
++ */
++static void aji_handle_subscribe(struct aji_client *client, ikspak *pak)
++{
++	if(pak-&gt;subtype == IKS_TYPE_SUBSCRIBE)
++		iks_send(client-&gt;p, iks_make_s10n(IKS_TYPE_SUBSCRIBED, iks_find_attrib(pak-&gt;x, &quot;from&quot;), &quot;Asterisk has approved subscription&quot;));
++	if (option_verbose &gt; 30) {
++		switch (pak-&gt;subtype) {
++		case IKS_TYPE_SUBSCRIBE:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: This is a subcription of type %i\n&quot;, pak-&gt;subtype);
++			break;
++		case IKS_TYPE_SUBSCRIBED:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: This is a subcription of type %i\n&quot;, pak-&gt;subtype);
++			break;
++		case IKS_TYPE_UNSUBSCRIBE:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: This is a subcription of type %i\n&quot;, pak-&gt;subtype);
++			break;
++		case IKS_TYPE_UNSUBSCRIBED:
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: This is a subcription of type %i\n&quot;, pak-&gt;subtype);
++			break;
++		default:				/*IKS_TYPE_ERROR: */
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: This is a subcription of type %i\n&quot;, pak-&gt;subtype);
++			break;
++		}
++	}
++}
++
++/*!
++ * \brief sends messages.
++ * \param aji_client struct , reciever, message.
++ * \return 1.
++ */
++int ast_aji_send(struct aji_client *client, char *address, char *message)
++{
++	int res = 0;
++	iks *message_packet = NULL;
++	if (client-&gt;state == AJI_CONNECTED) {
++		message_packet = iks_make_msg(IKS_TYPE_CHAT, address, message);
++		if (message_packet) {
++			iks_insert_attrib(message_packet, &quot;from&quot;, client-&gt;jid-&gt;full);
++			res = iks_send(client-&gt;p, message_packet);
++		} else {
++			ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++		}
++		if (message_packet)
++			iks_delete(message_packet);
++	} else
++		ast_log(LOG_WARNING, &quot;JABBER: Not connected can't send\n&quot;);
++	return 1;
++}
++
++/*!
++ * \brief create a chatroom.
++ * \param aji_client struct , room, server, topic for the room.
++ * \return 0.
++ */
++int ast_aji_create_chat(struct aji_client *client, char *room, char *server, char *topic)
++{
++	int res = 0;
++	iks *iq = NULL;
++	iq = iks_new(&quot;iq&quot;);
++	if (iq &amp;&amp; client) {
++		iks_insert_attrib(iq, &quot;type&quot;, &quot;get&quot;);
++		iks_insert_attrib(iq, &quot;to&quot;, server);
++		iks_insert_attrib(iq, &quot;id&quot;, client-&gt;mid);
++		ast_aji_increment_mid(client-&gt;mid);
++		iks_send(client-&gt;p, iq);
++	} else {
++		ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++	}
++	return res;
++}
++
++/*!
++ * \brief join a chatroom.
++ * \param aji_client struct , room.
++ * \return res.
++ */
++int ast_aji_join_chat(struct aji_client *client, char *room)
++{
++	int res = 0;
++	iks *presence = NULL, *priority = NULL;
++	presence = iks_new(&quot;presence&quot;);
++	priority = iks_new(&quot;priority&quot;);
++	if (presence &amp;&amp; priority &amp;&amp; client) {
++		iks_insert_cdata(priority, &quot;0&quot;, 1);
++		iks_insert_attrib(presence, &quot;to&quot;, room);
++		iks_insert_node(presence, priority);
++		res = iks_send(client-&gt;p, presence);
++		iks_insert_cdata(priority, &quot;5&quot;, 1);
++		iks_insert_attrib(presence, &quot;to&quot;, room);
++		res = iks_send(client-&gt;p, presence);
++	} else {
++		ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++	}
++	if (presence)
++		iks_delete(presence);
++	if (priority)
++		iks_delete(priority);
++	return res;
++}
++
++/*!
++ * \brief invite to a chatroom.
++ * \param aji_client struct ,user, room, message.
++ * \return res.
++ */
++int ast_aji_invite_chat(struct aji_client *client, char *user, char *room, char *message)
++{
++	int res = 0;
++	iks *invite = NULL, *body = NULL, *namespace = NULL;
++	invite = iks_new(&quot;message&quot;);
++	body = iks_new(&quot;body&quot;);
++	namespace = iks_new(&quot;x&quot;);
++	if (client &amp;&amp; invite &amp;&amp; body &amp;&amp; namespace) {
++		iks_insert_attrib(invite, &quot;to&quot;, user);
++		iks_insert_attrib(invite, &quot;id&quot;, client-&gt;mid);
++		ast_aji_increment_mid(client-&gt;mid);
++		iks_insert_cdata(body, message, strlen(message));
++		iks_insert_attrib(namespace, &quot;xmlns&quot;, &quot;jabber:x:conference&quot;);
++		iks_insert_attrib(namespace, &quot;jid&quot;, room);
++		iks_insert_node(invite, body);
++		iks_insert_node(invite, namespace);
++		res = iks_send(client-&gt;p, invite);
++	} else {
++		ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++	}
++	if (body)
++		iks_delete(body);
++	if (namespace)
++		iks_delete(namespace);
++	if (invite)
++		iks_delete(invite);
++	return res;
++}
++
++
++/*!
++ * \brief receive message loop.
++ * \param aji_client struct.
++ * \return void.
++ */
++static void *aji_recv_loop(void *data)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	int res = IKS_HOOK;
++	do {
++		if (res != IKS_OK) {
++			while(res != IKS_OK) {
++				if(option_verbose &gt; 3) ast_verbose(&quot;JABBER: reconnecting.\n&quot;);
++				res = aji_reconnect(client);
++				sleep(4);
++			}
++		}
++		res = iks_recv(client-&gt;p, 1);
++		client-&gt;timeout--;
++		if (res == IKS_HOOK) {
++			ast_log(LOG_WARNING, &quot;JABBER: Got hook event.\n&quot;);
++		} else if (res == IKS_NET_TLSFAIL) {
++			ast_log(LOG_WARNING, &quot;JABBER:  Failure in tls.\n&quot;);
++		} else if (client-&gt;timeout == 0 &amp;&amp; client-&gt;state != AJI_CONNECTED) {
++			res = -1;
++			ast_log(LOG_WARNING, &quot;JABBER:  Network Timeout\n&quot;);
++		} else if (res == IKS_NET_RWERR) {
++			ast_log(LOG_WARNING, &quot;JABBER: socket read error\n&quot;);
++		}
++	} while (client);
++	ASTOBJ_UNREF(client, aji_client_destroy);
++	return 0;
++}
++
++/*!
++ * \brief increments the mid field for messages and other events.
++ * \param message id.
++ * \return void.
++ */
++void ast_aji_increment_mid(char *mid)
++{
++	int i = 0;
++	for (i = strlen(mid) - 1; i &gt;= 0; i--) {
++		if (mid[i] != 'z') {
++			mid[i] = mid[i] + 1;
++			i = 0;
++		} else
++			mid[i] = 'a';
++	}
++}
++
++
++/*!
++ * \brief attempts to register to a transport.
++ * \param aji_client struct, and xml packet.
++ * \return IKS_FILTER_EAT.
++ */
++static int aji_register_transport(void *data, ikspak *pak)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	int res = 0;
++	struct aji_buddy *buddy = NULL;
++	iks *send = NULL;
++	send = iks_make_iq(IKS_TYPE_GET, &quot;jabber:iq:register&quot;);
++	if (client &amp;&amp; send) {
++		ASTOBJ_CONTAINER_TRAVERSE(&amp;client-&gt;buddies, 1, {
++			ASTOBJ_RDLOCK(iterator); 
++			if (iterator-&gt;btype == AJI_TRANS) {
++				  buddy = iterator;
++			}
++			ASTOBJ_UNLOCK(iterator);
++		});
++		iks_filter_remove_hook(client-&gt;f, aji_register_transport);
++		iks_filter_add_rule(client-&gt;f, aji_register_transport2, client, IKS_RULE_TYPE, IKS_PAK_IQ, IKS_RULE_SUBTYPE, IKS_TYPE_RESULT, IKS_RULE_NS, IKS_NS_REGISTER, IKS_RULE_DONE);
++		iks_insert_attrib(send, &quot;to&quot;, buddy-&gt;host);
++		iks_insert_attrib(send, &quot;id&quot;, client-&gt;mid);
++		ast_aji_increment_mid(client-&gt;mid);
++		iks_insert_attrib(send, &quot;from&quot;, client-&gt;user);
++		res = iks_send(client-&gt;p, send);
++	} else {
++		ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++	}
++	if (send)
++		iks_delete(send);
++	ASTOBJ_UNREF(client, aji_client_destroy);
++	return IKS_FILTER_EAT;
++
++}
++
++/*!
++ * \brief attempts to register to a transport step 2.
++ * \param aji_client struct, and xml packet.
++ * \return IKS_FILTER_EAT.
++ */
++static int aji_register_transport2(void *data, ikspak *pak)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	int res = 0;
++	struct aji_buddy *buddy = NULL;
++	iks *regquery = NULL, *reguser = NULL, *regpass = NULL, *regiq = NULL;
++	regiq = iks_new(&quot;iq&quot;);
++	regquery = iks_new(&quot;query&quot;);
++	reguser = iks_new(&quot;username&quot;);
++	regpass = iks_new(&quot;password&quot;);
++
++	if (client &amp;&amp; regquery &amp;&amp; reguser &amp;&amp; regpass &amp;&amp; regiq) {
++		ASTOBJ_CONTAINER_TRAVERSE(&amp;client-&gt;buddies, 1, {
++			ASTOBJ_RDLOCK(iterator);
++			if (iterator-&gt;btype == AJI_TRANS)
++				buddy = iterator; ASTOBJ_UNLOCK(iterator);
++		});
++		iks_filter_remove_hook(client-&gt;f, aji_register_transport2);
++		iks_insert_attrib(regiq, &quot;to&quot;, buddy-&gt;host);
++		iks_insert_attrib(regiq, &quot;type&quot;, &quot;set&quot;);
++		iks_insert_attrib(regiq, &quot;id&quot;, client-&gt;mid);
++		ast_aji_increment_mid(client-&gt;mid);
++		iks_insert_attrib(regiq, &quot;from&quot;, client-&gt;user);
++		iks_insert_attrib(regquery, &quot;xmlns&quot;, &quot;jabber:iq:register&quot;);
++		iks_insert_cdata(reguser, buddy-&gt;user, strlen(buddy-&gt;user));
++		iks_insert_cdata(regpass, buddy-&gt;pass, strlen(buddy-&gt;pass));
++		iks_insert_node(regiq, regquery);
++		iks_insert_node(regquery, reguser);
++		iks_insert_node(regquery, regpass);
++		res = iks_send(client-&gt;p, regiq);
++	} else {
++		ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++	}
++	if (regiq)
++		iks_delete(regiq);
++	if (regquery)
++		iks_delete(regquery);
++	if (reguser)
++		iks_delete(reguser);
++	if (regpass)
++		iks_delete(regpass);
++	ASTOBJ_UNREF(client, aji_client_destroy);
++	return IKS_FILTER_EAT;
++}
++
++/*!
++ * \brief goes through roster and prunes users not needed in list, or adds them accordingly.
++ * \param aji_client struct.
++ * \return void.
++ */
++static void aji_pruneregister(struct aji_client *client)
++{
++	int res = 0;
++	iks *removeiq = NULL, *removequery = NULL, *removeitem = NULL, *send = NULL;
++	removeiq = iks_new(&quot;iq&quot;);
++	removequery = iks_new(&quot;query&quot;);
++	removeitem = iks_new(&quot;item&quot;);
++	send = iks_make_iq(IKS_TYPE_GET, &quot;<A HREF="http://jabber.org/protocol/disco#items">http://jabber.org/protocol/disco#items</A>&quot;);
++
++	if (client &amp;&amp; removeiq &amp;&amp; removequery &amp;&amp; removeitem &amp;&amp; send) {
++		ASTOBJ_CONTAINER_TRAVERSE(&amp;client-&gt;buddies, 1, {
++			ASTOBJ_RDLOCK(iterator);
++			/* For an aji_buddy, both AUTOPRUNE and AUTOREGISTER will never
++			 * be called at the same time */
++			if (ast_test_flag(iterator, AJI_AUTOPRUNE)) {
++				res = iks_send(client-&gt;p, iks_make_s10n(IKS_TYPE_UNSUBSCRIBE, iterator-&gt;name,
++						&quot;GoodBye your status is no longer needed by Asterisk the Open Source PBX&quot;
++						&quot; so I am no longer subscribing to your presence.\n&quot;));
++				res = iks_send(client-&gt;p, iks_make_s10n(IKS_TYPE_UNSUBSCRIBED, iterator-&gt;name,
++						&quot;GoodBye you are no longer in the asterisk config file so I am removing&quot;
++						&quot; your access to my presence.\n&quot;));
++				iks_insert_attrib(removeiq, &quot;from&quot;, client-&gt;jid-&gt;full); 
++				iks_insert_attrib(removeiq, &quot;type&quot;, &quot;set&quot;); 
++				iks_insert_attrib(removequery, &quot;xmlns&quot;, &quot;jabber:iq:roster&quot;);
++				iks_insert_attrib(removeitem, &quot;jid&quot;, iterator-&gt;name);
++				iks_insert_attrib(removeitem, &quot;subscription&quot;, &quot;remove&quot;);
++				iks_insert_node(removeiq, removequery);
++				iks_insert_node(removequery, removeitem);
++				res = iks_send(client-&gt;p, removeiq);
++			} else if (ast_test_flag(iterator, AJI_AUTOREGISTER)) {
++				if (iterator-&gt;btype == AJI_USER) {	/*if it is not a transport */
++					res = iks_send(client-&gt;p, iks_make_s10n(IKS_TYPE_SUBSCRIBE, iterator-&gt;name, 
++							&quot;Greetings I am the Asterisk Open Source PBX and I want to subscribe to your presence\n&quot;));
++				} else {
++					iks_filter_add_rule(client-&gt;f, aji_register_transport, client,
++								  IKS_RULE_TYPE, IKS_PAK_IQ, IKS_RULE_SUBTYPE, IKS_TYPE_RESULT, IKS_RULE_NS,
++								  &quot;<A HREF="http://jabber.org/protocol/disco#items">http://jabber.org/protocol/disco#items</A>&quot;, IKS_RULE_DONE);
++					iks_insert_attrib(send, &quot;to&quot;, iterator-&gt;host);
++					iks_insert_attrib(send, &quot;from&quot;, client-&gt;jid-&gt;full);
++					res = iks_send(client-&gt;p, send);
++				}
++				ast_clear_flag(iterator, AJI_AUTOREGISTER);
++			}
++			ASTOBJ_UNLOCK(iterator);
++		});
++	} else {
++		ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++	}
++	if (removeiq)
++		iks_delete(removeiq);
++	if (removequery)
++		iks_delete(removequery);
++	if (removeitem)
++		iks_delete(removeitem);
++	if (send)
++		iks_delete(send);
++	ASTOBJ_CONTAINER_PRUNE_MARKED(&amp;client-&gt;buddies, aji_buddy_destroy);
++}
++
++/*!
++ * \brief filters the roster packet we get back from server.
++ * \param aji_client struct, and xml packet.
++ * \return IKS_FILTER_EAT.
++ */
++static int aji_filter_roster(void *data, ikspak *pak)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	int flag = 0;
++	iks *x = NULL;
++	struct aji_buddy *buddy;
++
++	ASTOBJ_CONTAINER_TRAVERSE(&amp;client-&gt;buddies, 1, {
++		ASTOBJ_RDLOCK(iterator);
++		x = iks_child(pak-&gt;query);
++		flag = 0;
++		while (x) {
++			if (!iks_strcmp(iks_name(x), &quot;item&quot;)) {
++				if (!ast_strlen_zero(iterator-&gt;pass)) {
++					if (!strcasecmp(iterator-&gt;host, iks_find_attrib(x, &quot;jid&quot;))) {
++						  ast_clear_flag(iterator, AJI_AUTOPRUNE | AJI_AUTOREGISTER); 
++						  flag = 1;
++					}
++				} else {
++					if (!strcasecmp(iterator-&gt;name, iks_find_attrib(x, &quot;jid&quot;))) {
++						  flag = 1;
++						  ast_clear_flag(iterator, AJI_AUTOPRUNE | AJI_AUTOREGISTER);
++					}
++				}
++			}
++			x = iks_next(x);
++		}
++		if (!flag)
++			ast_copy_flags(iterator, client, AJI_AUTOREGISTER);
++		if (x)
++			iks_delete(x);
++		ASTOBJ_UNLOCK(iterator);
++	});
++
++	x = iks_child(pak-&gt;query);
++	while (x) {
++		flag = 0;
++		if (iks_strcmp(iks_name(x), &quot;item&quot;) == 0) {
++			ASTOBJ_CONTAINER_TRAVERSE(&amp;client-&gt;buddies, 1, {
++				ASTOBJ_RDLOCK(iterator);
++				if (!ast_strlen_zero(iterator-&gt;pass)) {
++					if (!strcasecmp(iterator-&gt;host, iks_find_attrib(x, &quot;jid&quot;)))
++					flag = 1;
++				} else {
++					if (!strcasecmp(iterator-&gt;name, iks_find_attrib(x, &quot;jid&quot;)))
++						flag = 1;
++				}
++				ASTOBJ_UNLOCK(iterator);
++			});
++
++			if (!flag) {
++				if (ast_test_flag(client, AJI_AUTOPRUNE)) {
++					buddy = (struct aji_buddy *) malloc(sizeof(struct aji_buddy));
++					if (!buddy)
++						ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++					memset(buddy, 0, sizeof(struct aji_buddy));
++					ASTOBJ_INIT(buddy);
++					ASTOBJ_WRLOCK(buddy);
++					ast_copy_string(buddy-&gt;name, iks_find_attrib(x, &quot;jid&quot;), sizeof(buddy-&gt;name));
++					ast_copy_string(buddy-&gt;user, iks_find_attrib(x, &quot;jid&quot;), sizeof(buddy-&gt;user));
++					ast_clear_flag(buddy, AST_FLAGS_ALL);
++					ast_set_flag(buddy, AJI_AUTOPRUNE);
++					buddy-&gt;objflags |= ASTOBJ_FLAG_MARKED;
++					ASTOBJ_UNLOCK(buddy);
++					if (buddy) {
++						ASTOBJ_CONTAINER_LINK(&amp;client-&gt;buddies, buddy);
++						ASTOBJ_UNREF(buddy, aji_buddy_destroy);
++					}
++				}
++			}
++		}
++		x = iks_next(x);
++	}
++	if (x)
++		iks_delete(x);
++	aji_pruneregister(client);
++
++	ASTOBJ_UNREF(client, aji_client_destroy);
++	return IKS_FILTER_EAT;
++}
++
++static int aji_reconnect(struct aji_client *client)
++{
++	int res = 0;
++
++	if (client-&gt;state)
++		client-&gt;state = AJI_DISCONNECTED;
++	client-&gt;timeout=20;
++	if (client-&gt;p)
++		iks_parser_reset(client-&gt;p);
++	if (client-&gt;authorized)
++		client-&gt;authorized = 0;
++
++	switch (client-&gt;component) {
++	case AJI_COMPONENT:
++		res = aji_component_initialize(client);
++		break;
++	case AJI_CLIENT:
++		res = aji_client_initialize(client);
++		break;
++	}
++	return res;
++}
++
++static int aji_get_roster(struct aji_client *client)
++{
++	iks *roster = NULL;
++	roster = iks_make_iq(IKS_TYPE_GET, IKS_NS_ROSTER);
++	if(roster) {
++		iks_insert_attrib(roster, &quot;id&quot;, &quot;roster&quot;);
++		aji_set_presence(client, client-&gt;jid-&gt;full, 1, &quot;im available&quot;);
++		iks_send(client-&gt;p, roster);
++	}
++	if (roster)
++		iks_delete(roster);
++	return 1;
++}
++
++/*!
++ * \brief connects as a client to jabber server.
++ * \param aji_client struct, and xml packet.
++ * \return res.
++ */
++static int aji_client_connect(void *data, ikspak *pak)
++{
++	struct aji_client *client = ASTOBJ_REF((struct aji_client *) data);
++	int res = 0;
++	if (client) {
++		if (client-&gt;state == AJI_DISCONNECTED) {
++			iks_filter_add_rule(client-&gt;f, aji_filter_roster, client, IKS_RULE_TYPE, IKS_PAK_IQ, IKS_RULE_SUBTYPE, IKS_TYPE_RESULT, IKS_RULE_ID, &quot;roster&quot;, IKS_RULE_DONE);
++			client-&gt;state = AJI_CONNECTED;
++			client-&gt;jid = (iks_find_cdata(pak-&gt;query, &quot;jid&quot;)) ? iks_id_new(client-&gt;stack, iks_find_cdata(pak-&gt;query, &quot;jid&quot;)) : client-&gt;jid;
++			iks_filter_remove_hook(client-&gt;f, aji_client_connect);
++			if(client-&gt;component == AJI_CLIENT)
++				aji_get_roster(client);
++		}
++	} else {
++		ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++	}
++
++	ASTOBJ_UNREF(client, aji_client_destroy);
++	return res;
++}
++
++/*!
++ * \brief prepares client for connect.
++ * \param aji_client struct.
++ * \return 1.
++ */
++static int aji_client_initialize(struct aji_client *client)
++{
++	int connected = 0;
++
++	connected = iks_connect_via(client-&gt;p, client-&gt;serverhost, client-&gt;port, client-&gt;jid-&gt;server);
++
++	if (connected == IKS_NET_NOCONN) {
++		ast_log(LOG_ERROR, &quot;JABBER ERROR: No Connection\n&quot;);
++		return IKS_HOOK;
++	} else 	if (connected == IKS_NET_NODNS) {
++		ast_log(LOG_ERROR, &quot;JABBER ERROR: No DNS\n&quot;);
++		return IKS_HOOK;
++	} else
++		iks_recv(client-&gt;p, 30);
++	return IKS_OK;
++}
++
++/*!
++ * \brief prepares component for connect.
++ * \param aji_client struct.
++ * \return 1.
++ */
++static int aji_component_initialize(struct aji_client *client)
++{
++	int connected = 1;
++	connected = iks_connect_via(client-&gt;p, client-&gt;jid-&gt;server, client-&gt;port, client-&gt;user);
++	if (connected == IKS_NET_NOCONN)
++		ast_log(LOG_ERROR, &quot;JABBER ERROR: No Connection&quot;);
++	if (connected == IKS_NET_NODNS)
++		ast_log(LOG_ERROR, &quot;JABBER ERROR: No DNS&quot;);
++	if (!connected)
++		iks_recv(client-&gt;p, 30);
++	return 1;
++}
++
++/*!
++ * \brief disconnect from jabber server.
++ * \param aji_client struct.
++ * \return 1.
++ */
++int ast_aji_disconnect(struct aji_client *client)
++{
++	if (client) {
++		if (option_verbose &gt; 3)
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: Disconnecting\n&quot;);
++		iks_disconnect(client-&gt;p);
++		iks_parser_delete(client-&gt;p);
++		ASTOBJ_UNREF(client, aji_client_destroy);
++	}
++
++	return 1;
++}
++
++/*!
++ * \brief set presence of client.
++ * \param aji_client struct, user to send it to, level, description.
++ * \return void.
++ */
++static void aji_set_presence(struct aji_client *client, char *user, int level, char *desc)
++{
++	int res = 0;
++	iks *presence = NULL, *priority, *cnode = NULL;
++	presence = iks_make_pres(level, desc);
++	cnode = iks_new(&quot;c&quot;);
++	priority = iks_new(&quot;priority&quot;);
++	iks_insert_cdata(priority, &quot;0&quot;, 1);
++	if (presence &amp;&amp; cnode &amp;&amp; client) {
++		iks_insert_attrib(cnode, &quot;node&quot;, &quot;<A HREF="http://www.asterisk.org/xmpp/client/caps">http://www.asterisk.org/xmpp/client/caps</A>&quot;);
++		iks_insert_attrib(cnode, &quot;ver&quot;, &quot;asterisk-xmpp&quot;);
++		iks_insert_attrib(cnode, &quot;ext&quot;, &quot;voice-v1&quot;);
++		iks_insert_attrib(cnode, &quot;xmlns&quot;, &quot;<A HREF="http://jabber.org/protocol/caps">http://jabber.org/protocol/caps</A>&quot;);
++		iks_insert_node(presence, cnode);
++		res = iks_send(client-&gt;p, presence);
++	} else {
++		ast_log(LOG_ERROR, &quot;Out of memory.\n&quot;);
++	}
++	if (cnode)
++		iks_delete(cnode);
++	if (presence)
++		iks_delete(presence);
++}
++
++/*!
++ * \brief turnon console debugging.
++ * \param fd, number of args, args.
++ * \return RESULT_SUCCESS.
++ */
++static int aji_do_debug(int fd, int argc, char *argv[])
++{
++	ASTOBJ_CONTAINER_TRAVERSE(&amp;clients, 1, {
++		ASTOBJ_RDLOCK(iterator); 
++		iterator-&gt;debug = 1;
++		ASTOBJ_UNLOCK(iterator);
++	});
++	if (option_verbose &gt; 3)
++		ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: Debugging Enabled.\n&quot;);
++	return RESULT_SUCCESS;
++}
++
++/*!
++ * \brief reload jabber module.
++ * \param fd, number of args, args.
++ * \return RESULT_SUCCESS.
++ */
++static int aji_do_reload(int fd, int argc, char *argv[])
++{
++	aji_reload();
++	if (option_verbose &gt; 3)
++		ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: Reloaded.\n&quot;);
++	return RESULT_SUCCESS;
++}
++
++/*!
++ * \brief turnoff console debugging.
++ * \param fd, number of args, args.
++ * \return RESULT_SUCCESS.
++ */
++static int aji_no_debug(int fd, int argc, char *argv[])
++{
++	ASTOBJ_CONTAINER_TRAVERSE(&amp;clients, 1, {
++		ASTOBJ_RDLOCK(iterator);
++		iterator-&gt;debug = 0;
++		ASTOBJ_UNLOCK(iterator);
++	});
++	if (option_verbose &gt; 2)
++		ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: Debugging Disabled\n&quot;);
++	return RESULT_SUCCESS;
++}
++
++/*!
++ * \brief show client status.
++ * \param fd, number of args, args.
++ * \return RESULT_SUCCESS.
++ */
++static int aji_show_clients(int fd, int argc, char *argv[])
++{
++	char *status = &quot;&quot;;
++	ASTOBJ_CONTAINER_TRAVERSE(&amp;clients, 1, {
++		ASTOBJ_RDLOCK(iterator);
++		switch (iterator-&gt;state) {
++		case AJI_DISCONNECTED:
++			status = &quot;Disconnected&quot;;
++			break;
++		case AJI_CONNECTING:
++		case AJI_ALMOST:
++			status = &quot;Connecting&quot;;
++			break;
++		case AJI_CONNECTED:
++			status = &quot;Connected&quot;;
++			break;
++		default:
++			status = &quot;Unknown&quot;;
++		}
++		ast_verbose(&quot;JABBER: User: %s is %s\n&quot;, iterator-&gt;user, status);
++		ASTOBJ_UNLOCK(iterator);
++	});
++	return RESULT_SUCCESS;
++}
++
++/*!
++ * \brief send test message for debuging.
++ * \param fd, number of args, args.
++ * \return RESULT_SUCCESS.
++ */
++static int aji_test(int fd, int argc, char *argv[])
++{
++	struct aji_client *client;
++	struct aji_resource *resource;
++	const char *name = &quot;asterisk&quot;;
++
++	if (argc &gt; 3)
++		return RESULT_SHOWUSAGE;
++	else if (argc == 3)
++		name = argv[2];
++
++	if (!(client = ASTOBJ_CONTAINER_FIND(&amp;clients, name))) {
++		ast_cli(fd, &quot;Unable to find client '%s'!\n&quot;, name);
++		return RESULT_FAILURE;
++	}
++
++	ast_aji_send(client, &quot;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">mogorman at astjab.org</A>&quot;, &quot;blahblah&quot;);
++	ASTOBJ_CONTAINER_TRAVERSE(&amp;client-&gt;buddies, 1, {
++		ASTOBJ_RDLOCK(iterator);
++		ast_verbose(&quot;User: %s\n&quot;, iterator-&gt;name);
++		for (resource = iterator-&gt;resources; resource; resource = resource-&gt;next) {
++			ast_verbose(&quot;Resource: %s\n&quot;, resource-&gt;resource);
++			if(resource-&gt;cap) {
++				ast_verbose(&quot;   client: %s\n&quot;, resource-&gt;cap-&gt;parent-&gt;node);
++				ast_verbose(&quot;   version: %s\n&quot;, resource-&gt;cap-&gt;version);
++				ast_verbose(&quot;   Jingle Capable: %d\n&quot;, resource-&gt;cap-&gt;jingle);
++			}
++			ast_verbose(&quot;	Priority: %d\n&quot;, resource-&gt;priority);
++			ast_verbose(&quot;	Status: %d\n&quot;, resource-&gt;status); 
++			ast_verbose(&quot;	Message: %s\n&quot;, resource-&gt;description); 
++		}
++		ASTOBJ_UNLOCK(iterator);
++	});
++
++	ASTOBJ_UNREF(client, aji_client_destroy);
++
++	return RESULT_SUCCESS;
++}
++
++/*!
++ * \brief creates aji_client structure.
++ * \param label, ast_variable, debug, pruneregister, component/client, aji_client to dump into. 
++ * \return 0.
++ */
++static int aji_create_client(char *label, struct ast_variable *var, int debug)
++{
++	char *resource;
++	struct aji_client *client = NULL;
++	int flag = 0;
++	client = ASTOBJ_CONTAINER_FIND(&amp;clients,label);
++	if(!client) {
++		flag = 1;
++		client = (struct aji_client *) malloc(sizeof(struct aji_client));
++		if(client) {
++			memset(client, 0, sizeof(struct aji_client));
++			ASTOBJ_INIT(client);
++			ASTOBJ_WRLOCK(client);
++			ASTOBJ_CONTAINER_INIT(&amp;client-&gt;buddies);
++		} else {
++			ast_log(LOG_ERROR, &quot;Out of memory!\n&quot;);
++			return 0;
++		}
++	} else {
++		ASTOBJ_WRLOCK(client);
++		ASTOBJ_UNMARK(client);
++	}
++	ASTOBJ_CONTAINER_MARKALL(&amp;client-&gt;buddies);
++	ast_copy_string(client-&gt;name, label, sizeof(client-&gt;name));
++	ast_copy_string(client-&gt;mid, &quot;aaaaa&quot;, sizeof(client-&gt;mid));
++
++	client-&gt;debug = debug;
++	ast_copy_flags(client, &amp;globalflags, AST_FLAGS_ALL);
++	client-&gt;port = 5222;
++	client-&gt;usetls = 1;
++	client-&gt;forcessl = 0;
++	client-&gt;keepalive = 1;
++	client-&gt;timeout = 20;
++	client-&gt;component = AJI_CLIENT;
++	if (flag) client-&gt;authorized = 0;
++	client-&gt;usesasl = 0;
++	if (flag) client-&gt;state = AJI_DISCONNECTED;
++	while (var) {
++		if (!strcasecmp(var-&gt;name, &quot;username&quot;))
++			ast_copy_string(client-&gt;user, var-&gt;value, sizeof(client-&gt;user));
++		else if (!strcasecmp(var-&gt;name, &quot;serverhost&quot;))
++			ast_copy_string(client-&gt;serverhost, var-&gt;value, sizeof(client-&gt;serverhost));
++		else if (!strcasecmp(var-&gt;name, &quot;secret&quot;))
++			ast_copy_string(client-&gt;password, var-&gt;value, sizeof(client-&gt;password));
++		else if (!strcasecmp(var-&gt;name, &quot;port&quot;))
++			client-&gt;port = atoi(var-&gt;value);
++		else if (!strcasecmp(var-&gt;name, &quot;debug&quot;))
++			client-&gt;debug = (ast_false(var-&gt;value)) ? 0 : 1;
++		else if (!strcasecmp(var-&gt;name, &quot;type&quot;)){
++			if (!strcasecmp(var-&gt;value, &quot;component&quot;))
++				client-&gt;component = AJI_COMPONENT;
++		} else if (!strcasecmp(var-&gt;name, &quot;usetls&quot;)) {
++			client-&gt;usetls = (ast_false(var-&gt;value)) ? 0 : 1;
++		} else if (!strcasecmp(var-&gt;name, &quot;usesasl&quot;)) {
++			client-&gt;usesasl = (ast_false(var-&gt;value)) ? 0 : 1;
++		} else if (!strcasecmp(var-&gt;name, &quot;forceoldssl&quot;))
++			client-&gt;forcessl = (ast_false(var-&gt;value)) ? 0 : 1;
++		else if (!strcasecmp(var-&gt;name, &quot;keepalive&quot;))
++			client-&gt;keepalive = (ast_false(var-&gt;value)) ? 0 : 1;
++		else if (!strcasecmp(var-&gt;name, &quot;autoprune&quot;))
++			ast_set2_flag(client, ast_true(var-&gt;value), AJI_AUTOPRUNE);
++		else if (!strcasecmp(var-&gt;name, &quot;autoregister&quot;))
++			ast_set2_flag(client, ast_true(var-&gt;value), AJI_AUTOREGISTER);
++		else if (!strcasecmp(var-&gt;name, &quot;buddy&quot;))
++				aji_create_buddy(var-&gt;value, client);
++		else if (!strcasecmp(var-&gt;name, &quot;transport&quot;))
++				aji_create_transport(var-&gt;value, client);
++		var = var-&gt;next;
++	}
++	if(flag) {
++		client-&gt;p = iks_stream_new(((client-&gt;component == AJI_CLIENT) ? &quot;jabber:client&quot; : &quot;jabber:component:accept&quot;), client, aji_act_hook);
++		if (!client-&gt;p) {
++			ast_log(LOG_WARNING, &quot;Failed to create stream for client '%s'!\n&quot;, client-&gt;name);
++			return 0;
++		}
++		client-&gt;stack = iks_stack_new(8192, 8192);
++		if (!client-&gt;stack) {
++			ast_log(LOG_WARNING, &quot;Failed to allocate stack for client '%s'\n&quot;, client-&gt;name);
++			return 0;
++		}
++		client-&gt;f = iks_filter_new();
++		if (!client-&gt;f) {
++			ast_log(LOG_WARNING, &quot;Failed to create filter for client '%s'\n&quot;, client-&gt;name);
++			return 0;
++		}
++		if (!strchr(client-&gt;user, '/') &amp;&amp; client-&gt;component == AJI_CLIENT) {
++			resource = NULL;
++			asprintf(&amp;resource, &quot;%s/asterisk&quot;, client-&gt;user);
++			if (resource) {
++				client-&gt;jid = iks_id_new(client-&gt;stack, resource);
++				free(resource);
++			}
++		} else
++			client-&gt;jid = iks_id_new(client-&gt;stack, client-&gt;user);
++		if (client-&gt;component == AJI_COMPONENT) {
++			iks_filter_add_rule(client-&gt;f, aji_dinfo_handler, client, IKS_RULE_NS, &quot;<A HREF="http://jabber.org/protocol/disco#info">http://jabber.org/protocol/disco#info</A>&quot;, IKS_RULE_DONE);
++			iks_filter_add_rule(client-&gt;f, aji_ditems_handler, client, IKS_RULE_NS, &quot;<A HREF="http://jabber.org/protocol/disco#items">http://jabber.org/protocol/disco#items</A>&quot;, IKS_RULE_DONE);
++			iks_filter_add_rule(client-&gt;f, aji_register_query_handler, client, IKS_RULE_SUBTYPE, IKS_TYPE_GET, IKS_RULE_NS, &quot;jabber:iq:register&quot;, IKS_RULE_DONE);
++			iks_filter_add_rule(client-&gt;f, aji_register_approve_handler, client, IKS_RULE_SUBTYPE, IKS_TYPE_SET, IKS_RULE_NS, &quot;jabber:iq:register&quot;, IKS_RULE_DONE);
++		} else {
++			iks_filter_add_rule(client-&gt;f, aji_client_info_handler, client, IKS_RULE_NS, &quot;<A HREF="http://jabber.org/protocol/disco#info">http://jabber.org/protocol/disco#info</A>&quot;, IKS_RULE_DONE);
++		}
++		if (!strchr(client-&gt;user, '/') &amp;&amp; client-&gt;component == AJI_CLIENT) {
++			resource = NULL;
++			asprintf(&amp;resource, &quot;%s/asterisk&quot;, client-&gt;user);
++			if (resource) {
++				client-&gt;jid = iks_id_new(client-&gt;stack, resource);
++				free(resource);
++			}
++		} else
++			client-&gt;jid = iks_id_new(client-&gt;stack, client-&gt;user);
++		iks_set_log_hook(client-&gt;p, aji_log_hook);
++		ASTOBJ_UNLOCK(client);
++		ASTOBJ_CONTAINER_LINK(&amp;clients,client);
++	} else {
++		ASTOBJ_UNLOCK(client);
++		ASTOBJ_UNREF(client, aji_client_destroy);
++	}
++	return 1;
++}
++
++/*!
++ * \brief creates transport.
++ * \param label, buddy to dump it into. 
++ * \return 0.
++ */
++static int aji_create_transport(char *label, struct aji_client *client)
++{
++	char *server = NULL, *buddyname = NULL, *user = NULL, *pass = NULL;
++	struct aji_buddy *buddy = NULL;
++
++	buddy = ASTOBJ_CONTAINER_FIND(&amp;client-&gt;buddies,label);
++	if (!buddy) {
++		buddy = malloc(sizeof(struct aji_buddy));
++		if(!buddy) {
++			ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++			return 0;
++		} else {
++			memset(buddy, 0, sizeof(struct aji_buddy));
++			ASTOBJ_INIT(buddy);
++			
++		}
++	}
++	ASTOBJ_WRLOCK(buddy);
++	server = label;
++	if ((buddyname = strchr(label, ','))) {
++		*buddyname = '\0';
++		buddyname++;
++		if (buddyname &amp;&amp; buddyname[0] != '\0') {
++			if ((user = strchr(buddyname, ','))) {
++				*user = '\0';
++				user++;
++				if (user &amp;&amp; user[0] != '\0') {
++					if ((pass = strchr(user, ','))) {
++						*pass = '\0';
++						pass++;
++						ast_copy_string(buddy-&gt;pass, pass, sizeof(buddy-&gt;pass));
++						ast_copy_string(buddy-&gt;user, user, sizeof(buddy-&gt;user));
++						ast_copy_string(buddy-&gt;name, buddyname, sizeof(buddy-&gt;name));
++						ast_copy_string(buddy-&gt;server, server, sizeof(buddy-&gt;server));
++						return 1;
++					}
++				}
++			}
++		}
++	}
++	ASTOBJ_UNLOCK(buddy);
++	ASTOBJ_CONTAINER_LINK(&amp;client-&gt;buddies, buddy);
++	return 0;
++}
++
++/*!
++ * \brief creates buddy.
++ * \param label, buddy to dump it into. 
++ * \return 0.
++ */
++static int aji_create_buddy(char *label, struct aji_client *client)
++{
++	struct aji_buddy *buddy = NULL;
++	int flag = 0;
++	buddy = ASTOBJ_CONTAINER_FIND(&amp;client-&gt;buddies,label);
++	if (!buddy) {
++		flag = 1;
++		buddy = malloc(sizeof(struct aji_buddy));
++		if(!buddy) {
++			ast_log(LOG_WARNING, &quot;Out of memory\n&quot;);
++			return 0;
++		} else {
++			memset(buddy, 0, sizeof(struct aji_buddy));
++			ASTOBJ_INIT(buddy);
++			
++		}
++	}
++	ASTOBJ_WRLOCK(buddy);
++	ast_copy_string(buddy-&gt;name, label, sizeof(buddy-&gt;name));
++	ASTOBJ_UNLOCK(buddy);
++	if(flag)
++		ASTOBJ_CONTAINER_LINK(&amp;client-&gt;buddies, buddy);
++	else
++		ASTOBJ_UNREF(buddy, aji_buddy_destroy);
++	return 1;
++}
++
++/*!
++ * \brief load config file.
++ * \param void. 
++ * \return 1.
++ */
++static int aji_load_config(void)
++{
++	char *cat = NULL;
++	int debug = 1;
++	struct ast_config *cfg = NULL;
++	struct ast_variable *var = NULL;
++
++	cfg = ast_config_load(JABBER_CONFIG);
++	if (!cfg) {
++		ast_log(LOG_WARNING, &quot;No such configuration file %s\n&quot;, JABBER_CONFIG);
++		return 0;
++	}
++
++	cat = ast_category_browse(cfg, NULL);
++	for (var = ast_variable_browse(cfg, &quot;general&quot;); var; var = var-&gt;next) {
++		if (!strcasecmp(var-&gt;name, &quot;debug&quot;))
++			debug = (ast_false(ast_variable_retrieve(cfg, &quot;general&quot;, &quot;debug&quot;))) ? 0 : 1;
++		else if (!strcasecmp(var-&gt;name, &quot;autoprune&quot;))
++			ast_set2_flag(&amp;globalflags, ast_true(var-&gt;value), AJI_AUTOPRUNE);
++		else if (!strcasecmp(var-&gt;name, &quot;autoregister&quot;))
++			ast_set2_flag(&amp;globalflags, ast_true(var-&gt;value), AJI_AUTOREGISTER);
++	}
++
++	while (cat) {
++		if (strcasecmp(cat, &quot;general&quot;)) {
++				var = ast_variable_browse(cfg, cat);
++				aji_create_client(cat, var, debug);
++		}
++		cat = ast_category_browse(cfg, cat);
++	}
++	return 1;
++}
++
++/*!
++ * \brief grab a aji_client structure by label name.
++ * \param void. 
++ * \return 1.
++ */
++
++struct aji_client *ast_aji_get_client(char *name)
++{
++	struct aji_client *client = NULL;
++	client = ASTOBJ_CONTAINER_FIND(&amp;clients, name);
++	if (!client &amp;&amp; !strchr(name, '@'))
++		client = ASTOBJ_CONTAINER_FIND_FULL(&amp;clients, name, user,,, strcasecmp);
++	return client;
++}
++
++struct aji_client_container *ast_aji_get_clients(void)
++{
++	return &clients;
++}
++
++static void aji_reload()
++{
++	int res = -1;
++	ASTOBJ_CONTAINER_MARKALL(&amp;clients);
++	if (!aji_load_config())
++		ast_log(LOG_ERROR, &quot;JABBER: Failed to load config.\n&quot;);
++	else {
++		ASTOBJ_CONTAINER_PRUNE_MARKED(&amp;clients, aji_client_destroy);
++		ASTOBJ_CONTAINER_TRAVERSE(&amp;clients, 1, {
++			ASTOBJ_RDLOCK(iterator);
++			if(iterator-&gt;state == AJI_DISCONNECTED) {
++				if (!iterator-&gt;thread)
++					ast_pthread_create(&amp;iterator-&gt;thread, NULL, aji_recv_loop, iterator);
++			} else if (iterator-&gt;state == AJI_CONNECTED) {
++				aji_get_roster(iterator);
++			}
++			ASTOBJ_UNLOCK(iterator);
++		});
++	}
++}
++
++static int unload_module(void *mod)
++{
++	ASTOBJ_CONTAINER_TRAVERSE(&amp;clients, 1, {
++		ASTOBJ_RDLOCK(iterator);
++		if (option_verbose &gt; 2)
++			ast_verbose(VERBOSE_PREFIX_3 &quot;JABBER: %s\n&quot;, iterator-&gt;name);
++		iterator-&gt;state = AJI_DISCONNECTED;
++		ast_aji_disconnect(iterator);
++		pthread_join(iterator-&gt;thread, NULL);
++		ASTOBJ_UNLOCK(iterator);
++	});
++
++	ASTOBJ_CONTAINER_DESTROYALL(&amp;clients, aji_client_destroy);
++	ASTOBJ_CONTAINER_DESTROY(&amp;clients);
++
++	STANDARD_HANGUP_LOCALUSERS;
++	ast_cli_unregister_multiple(aji_cli, sizeof(aji_cli) / sizeof(aji_cli[0]));
++	ast_unregister_application(app_ajisend);
++	ast_log(LOG_NOTICE, &quot;res_jabber unloaded.\n&quot;);
++	return 0;
++}
++
++static int load_module(void *mod)
++{
++	ASTOBJ_CONTAINER_INIT(&amp;clients);
++	aji_reload();
++	ast_register_application(app_ajisend, aji_send_exec, ajisend_synopsis, ajisend_descrip);
++	ast_register_application(app_ajistatus, aji_status_exec, ajistatus_synopsis, ajistatus_descrip);
++	ast_cli_register_multiple(aji_cli, sizeof(aji_cli) / sizeof(aji_cli[0]));
++	ast_log(LOG_NOTICE, &quot;res_jabber.so loaded.\n&quot;);
++	return 0;
++}
++
++static int reload(void *mod)
++{
++	aji_reload();
++	return 0;
++}
++
++static const char *description(void)
++{
++	return tdesc;
++}
++
++static const char *key(void)
++{
++	return ASTERISK_GPL_KEY;
++}
++
++STD_MOD(MOD_0, reload, NULL, NULL);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000176.html">[solid-pbx-svn] r181 - in trunk: . apps build_tools cdr channels channels/misdn codecs codecs/gsm configs doc funcs include include/asterisk pbx res utils
+</A></li>
+	<LI>Next message: <A HREF="000178.html">[solid-pbx-svn] r183 - in trunk: . apps channels funcs include/asterisk res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#177">[ date ]</a>
+              <a href="thread.html#177">[ thread ]</a>
+              <a href="subject.html#177">[ subject ]</a>
+              <a href="author.html#177">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

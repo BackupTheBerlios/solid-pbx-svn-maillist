@@ -1,0 +1,291 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r162 - in trunk: . channels include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r162%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200605162237.k4GMbJOr017283%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000156.html">
+   <LINK REL="Next"  HREF="000158.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r162 - in trunk: . channels include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r162%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200605162237.k4GMbJOr017283%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r162 - in trunk: . channels include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 17 00:37:19 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000156.html">[solid-pbx-svn] r161 - trunk/funcs
+</A></li>
+        <LI>Next message: <A HREF="000158.html">[solid-pbx-svn] r163 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#157">[ date ]</a>
+              <a href="thread.html#157">[ thread ]</a>
+              <a href="subject.html#157">[ subject ]</a>
+              <a href="author.html#157">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-17 00:36:53 +0200 (Wed, 17 May 2006)
+New Revision: 162
+
+Modified:
+   trunk/channels/chan_sip.c
+   trunk/channels/chan_zap.c
+   trunk/include/asterisk/frame.h
+   trunk/include/asterisk/rtp.h
+   trunk/rtp.c
+Log:
+Update to Asterisk SVN trunk r27559
+
+------------------------------------------------------------------------
+r27523 | mattf | 2006-05-16 23:43:20 +0200 (Tue, 16 May 2006) | 1 line
+
+Add option for enabling and disabling echo cancellation
+------------------------------------------------------------------------
+r27524 | kpfleming | 2006-05-16 23:45:15 +0200 (Tue, 16 May 2006) | 2 lines
+
+clean up some compiler warnings (no reason to use signed integers for buffer lengths, ever)
+
+------------------------------------------------------------------------
+r27559 | kpfleming | 2006-05-17 00:11:02 +0200 (Wed, 17 May 2006) | 3 lines
+
+mark RTP sessions that are not carrying DTMF
+allow native bridging of RTP sessions that are not carrying DTMF even when the bridge needs to listen to DTMF (when SIP INFO is used for DTMF, for example)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-16 21:29:12 UTC (rev 161)
++++ trunk/channels/chan_sip.c	2006-05-16 22:36:53 UTC (rev 162)
+@@ -2195,6 +2195,7 @@
+ 		ast_rtp_destroy(r-&gt;vrtp);
+ 		r-&gt;vrtp = NULL;
+ 	}
++	ast_rtp_setdtmf(r-&gt;rtp, ast_test_flag(&amp;r-&gt;flags[0], SIP_DTMF) != SIP_DTMF_INFO);
+ 	r-&gt;prefs = peer-&gt;prefs;
+ 	natflags = ast_test_flag(&amp;r-&gt;flags[0], SIP_NAT) &amp; SIP_NAT_ROUTE;
+ 	if (r-&gt;rtp) {
+@@ -3524,9 +3525,12 @@
+ 			free(p);
+ 			return NULL;
+ 		}
++		ast_rtp_setdtmf(p-&gt;rtp, ast_test_flag(&amp;p-&gt;flags[0], SIP_DTMF) != SIP_DTMF_INFO);
+ 		ast_rtp_settos(p-&gt;rtp, global_tos_audio);
+-		if (p-&gt;vrtp)
++		if (p-&gt;vrtp) {
+ 			ast_rtp_settos(p-&gt;vrtp, global_tos_video);
++			ast_rtp_setdtmf(p-&gt;vrtp, 0);
++		}
+ 		p-&gt;rtptimeout = global_rtptimeout;
+ 		p-&gt;rtpholdtimeout = global_rtpholdtimeout;
+ 		p-&gt;rtpkeepalive = global_rtpkeepalive;
+@@ -11170,6 +11174,7 @@
+ 		get_rdnis(p, NULL);			/* Get redirect information */
+ 		extract_uri(p, req);			/* Get the Contact URI */
+ 		build_contact(p);			/* Build our contact header */
++		ast_rtp_setdtmf(p-&gt;rtp, ast_test_flag(&amp;p-&gt;flags[0], SIP_DTMF) != SIP_DTMF_INFO);
+ 
+ 		if (gotdest) {
+ 			if (gotdest == 1 &amp;&amp; ast_test_flag(&amp;p-&gt;flags[1], SIP_PAGE2_ALLOWOVERLAP)) {
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-05-16 21:29:12 UTC (rev 161)
++++ trunk/channels/chan_zap.c	2006-05-16 22:36:53 UTC (rev 162)
+@@ -2900,6 +2900,16 @@
+ 		ast_log(LOG_DEBUG, &quot;Set Operator Services mode, value: %d on %s/%s\n&quot;,
+ 			oprmode-&gt;mode, chan-&gt;name,oprmode-&gt;peer-&gt;name);;
+ 		break;
++	case AST_OPTION_ECHOCAN:
++		cp = (char *) data;
++		if (*cp) {
++			ast_log(LOG_DEBUG, &quot;Enabling echo cancelation on %s\n&quot;, chan-&gt;name);
++			zt_enable_ec(p);
++		} else {
++			ast_log(LOG_DEBUG, &quot;Disabling echo cancelation on %s\n&quot;, chan-&gt;name);
++			zt_disable_ec(p);
++		}
++		break;
+ 	}
+ 	errno = 0;
+ 
+
+Modified: trunk/include/asterisk/frame.h
+===================================================================
+--- trunk/include/asterisk/frame.h	2006-05-16 21:29:12 UTC (rev 161)
++++ trunk/include/asterisk/frame.h	2006-05-16 22:36:53 UTC (rev 162)
+@@ -303,6 +303,9 @@
+ /* set channel into &quot;Operator Services&quot; mode */
+ #define	AST_OPTION_OPRMODE		7
+ 
++/*! Explicitly enable or disable echo cancelation for the given channel */
++#define	AST_OPTION_ECHOCAN		8
++
+ struct oprmode {
+ 	struct ast_channel *peer;
+ 	int mode;
+
+Modified: trunk/include/asterisk/rtp.h
+===================================================================
+--- trunk/include/asterisk/rtp.h	2006-05-16 21:29:12 UTC (rev 161)
++++ trunk/include/asterisk/rtp.h	2006-05-16 22:36:53 UTC (rev 162)
+@@ -151,6 +151,9 @@
+ 
+ void ast_rtp_setnat(struct ast_rtp *rtp, int nat);
+ 
++/*! \brief Indicate whether this RTP session is carrying DTMF or not */
++void ast_rtp_setdtmf(struct ast_rtp *rtp, int dtmf);
++
+ int ast_rtp_bridge(struct ast_channel *c0, struct ast_channel *c1, int flags, struct ast_frame **fo, struct ast_channel **rc, int timeoutms);
+ 
+ int ast_rtp_proto_register(struct ast_rtp_protocol *proto);
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-05-16 21:29:12 UTC (rev 161)
++++ trunk/rtp.c	2006-05-16 22:36:53 UTC (rev 162)
+@@ -86,6 +86,7 @@
+ #define FLAG_NAT_ACTIVE			(3 &lt;&lt; 1)
+ #define FLAG_NAT_INACTIVE		(0 &lt;&lt; 1)
+ #define FLAG_NAT_INACTIVE_NOWARN	(1 &lt;&lt; 1)
++#define FLAG_HAS_DTMF			(1 &lt;&lt; 3)
+ 
+ /*! \brief RTP session description */
+ struct ast_rtp {
+@@ -328,7 +329,7 @@
+ 	stun_send(rtp-&gt;s, suggestion, req);
+ }
+ 
+-static int stun_handle_packet(int s, struct sockaddr_in *src, unsigned char *data, int len)
++static int stun_handle_packet(int s, struct sockaddr_in *src, unsigned char *data, size_t len)
+ {
+ 	struct stun_header *resp, *hdr = (struct stun_header *)data;
+ 	struct stun_attr *attr;
+@@ -339,14 +340,14 @@
+ 	
+ 	if (len &lt; sizeof(struct stun_header)) {
+ 		if (option_debug)
+-			ast_log(LOG_DEBUG, &quot;Runt STUN packet (only %d, wanting at least %d)\n&quot;, len, sizeof(struct stun_header));
++			ast_log(LOG_DEBUG, &quot;Runt STUN packet (only %zd, wanting at least %zd)\n&quot;, len, sizeof(struct stun_header));
+ 		return -1;
+ 	}
+ 	if (stundebug)
+ 		ast_verbose(&quot;STUN Packet, msg %s (%04x), length: %d\n&quot;, stun_msg2str(ntohs(hdr-&gt;msgtype)), ntohs(hdr-&gt;msgtype), ntohs(hdr-&gt;msglen));
+ 	if (ntohs(hdr-&gt;msglen) &gt; len - sizeof(struct stun_header)) {
+ 		if (option_debug)
+-			ast_log(LOG_DEBUG, &quot;Scrambled STUN packet length (got %d, expecting %d)\n&quot;, ntohs(hdr-&gt;msglen), len - sizeof(struct stun_header));
++			ast_log(LOG_DEBUG, &quot;Scrambled STUN packet length (got %d, expecting %zd)\n&quot;, ntohs(hdr-&gt;msglen), len - sizeof(struct stun_header));
+ 	} else
+ 		len = ntohs(hdr-&gt;msglen);
+ 	data += sizeof(struct stun_header);
+@@ -354,13 +355,13 @@
+ 	while(len) {
+ 		if (len &lt; sizeof(struct stun_attr)) {
+ 			if (option_debug)
+-				ast_log(LOG_DEBUG, &quot;Runt Attribute (got %d, expecting %d)\n&quot;, len, sizeof(struct stun_attr));
++				ast_log(LOG_DEBUG, &quot;Runt Attribute (got %zd, expecting %zd)\n&quot;, len, sizeof(struct stun_attr));
+ 			break;
+ 		}
+ 		attr = (struct stun_attr *)data;
+ 		if (ntohs(attr-&gt;len) &gt; len) {
+ 			if (option_debug)
+-				ast_log(LOG_DEBUG, &quot;Inconsistant Attribute (length %d exceeds remaining msg len %d)\n&quot;, ntohs(attr-&gt;len), len);
++				ast_log(LOG_DEBUG, &quot;Inconsistant Attribute (length %d exceeds remaining msg len %zd)\n&quot;, ntohs(attr-&gt;len), len);
+ 			break;
+ 		}
+ 		if (stun_process_attr(&amp;st, attr)) {
+@@ -434,6 +435,11 @@
+ 	rtp-&gt;nat = nat;
+ }
+ 
++void ast_rtp_setdtmf(struct ast_rtp *rtp, int dtmf)
++{
++	ast_set2_flag(rtp, dtmf ? 1 : 0, FLAG_HAS_DTMF);
++}
++
+ static struct ast_frame *send_dtmf(struct ast_rtp *rtp)
+ {
+ 	char iabuf[INET_ADDRSTRLEN];
+@@ -1344,6 +1350,7 @@
+ 	rtp-&gt;s = rtp_socket();
+ 	rtp-&gt;ssrc = ast_random();
+ 	rtp-&gt;seqno = ast_random() &amp; 0xffff;
++	ast_set_flag(rtp, FLAG_HAS_DTMF);
+ 	if (rtp-&gt;s &lt; 0) {
+ 		free(rtp);
+ 		ast_log(LOG_ERROR, &quot;Unable to allocate socket: %s\n&quot;, strerror(errno));
+@@ -1921,10 +1928,6 @@
+ 	memset(&amp;vac0, 0, sizeof(vac0));
+ 	memset(&amp;vac1, 0, sizeof(vac1));
+ 
+-	/* if need DTMF, cant native bridge */
+-	if (flags &amp; (AST_BRIDGE_DTMF_CHANNEL_0 | AST_BRIDGE_DTMF_CHANNEL_1))
+-		return AST_BRIDGE_FAILED_NOWARN;
+-
+ 	/* Lock channels */
+ 	ast_channel_lock(c0);
+ 	while(ast_channel_trylock(c1)) {
+@@ -1966,6 +1969,25 @@
+ 		ast_channel_unlock(c1);
+ 		return AST_BRIDGE_FAILED_NOWARN;
+ 	}
++
++	if (ast_test_flag(p0, FLAG_HAS_DTMF) &amp;&amp; (flags &amp; AST_BRIDGE_DTMF_CHANNEL_0)) {
++		/* can't bridge, we are carrying DTMF for this channel and the bridge
++		   needs it
++		*/
++		ast_channel_unlock(c0);
++		ast_channel_unlock(c1);
++		return AST_BRIDGE_FAILED_NOWARN;
++	}
++
++	if (ast_test_flag(p1, FLAG_HAS_DTMF) &amp;&amp; (flags &amp; AST_BRIDGE_DTMF_CHANNEL_1)) {
++		/* can't bridge, we are carrying DTMF for this channel and the bridge
++		   needs it
++		*/
++		ast_channel_unlock(c0);
++		ast_channel_unlock(c1);
++		return AST_BRIDGE_FAILED_NOWARN;
++	}
++
+ 	/* Get codecs from both sides */
+ 	codec0 = pr0-&gt;get_codec ? pr0-&gt;get_codec(c0) : 0;
+ 	codec1 = pr1-&gt;get_codec ? pr1-&gt;get_codec(c1) : 0;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000156.html">[solid-pbx-svn] r161 - trunk/funcs
+</A></li>
+	<LI>Next message: <A HREF="000158.html">[solid-pbx-svn] r163 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#157">[ date ]</a>
+              <a href="thread.html#157">[ thread ]</a>
+              <a href="subject.html#157">[ subject ]</a>
+              <a href="author.html#157">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

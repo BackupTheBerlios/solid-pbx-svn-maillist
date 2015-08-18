@@ -1,0 +1,238 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r50 - in trunk: apps channels funcs res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r50%20-%20in%20trunk%3A%20apps%20channels%20funcs%20res&In-Reply-To=%3C200605032223.k43MNBsK008609%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000046.html">
+   <LINK REL="Next"  HREF="000048.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r50 - in trunk: apps channels funcs res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r50%20-%20in%20trunk%3A%20apps%20channels%20funcs%20res&In-Reply-To=%3C200605032223.k43MNBsK008609%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r50 - in trunk: apps channels funcs res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May  4 00:23:11 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000046.html">[solid-pbx-svn] r49 - in trunk: apps doc
+</A></li>
+        <LI>Next message: <A HREF="000048.html">[solid-pbx-svn] r51 - in trunk: . apps doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#47">[ date ]</a>
+              <a href="thread.html#47">[ thread ]</a>
+              <a href="subject.html#47">[ subject ]</a>
+              <a href="author.html#47">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-04 00:23:00 +0200 (Thu, 04 May 2006)
+New Revision: 50
+
+Modified:
+   trunk/apps/app_dial.c
+   trunk/channels/chan_zap.c
+   trunk/funcs/func_channel.c
+   trunk/res/res_features.c
+Log:
+Update to Asterisk SVN trunk r24635
+
+------------------------------------------------------------------------
+r24604 | bweschke | 2006-05-03 23:11:23 +0200 (Wed, 03 May 2006) | 11 lines
+
+Merged revisions 24567 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r24567 | bweschke | 2006-05-03 15:58:10 -0500 (Wed, 03 May 2006) | 3 lines
+
+ Correct application documentation to make users aware that certain options cannot be used in conjunction with others. #6666 (chotaire) 
+
+
+.......
+
+------------------------------------------------------------------------
+r24605 | bweschke | 2006-05-03 23:39:24 +0200 (Wed, 03 May 2006) | 3 lines
+
+ Correct call parking behavior when there is no courtesytone specified. #6306 (murf)
+
+
+------------------------------------------------------------------------
+r24621 | bweschke | 2006-05-04 00:02:50 +0200 (Thu, 04 May 2006) | 3 lines
+
+ Provide the ability to adjust txgain/rxgain on a channel level via the CHANNEL() function
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_dial.c
+===================================================================
+--- trunk/apps/app_dial.c	2006-05-03 21:18:10 UTC (rev 49)
++++ trunk/apps/app_dial.c	2006-05-03 22:23:00 UTC (rev 50)
+@@ -113,7 +113,8 @@
+ &quot;    G(context^exten^pri) - If the call is answered, transfer the calling party to\n&quot;
+ &quot;           the specified priority and the called party to the specified priority+1.\n&quot;
+ &quot;           Optionally, an extension, or extension and context may be specified. \n&quot;
+-&quot;           Otherwise, the current extension is used.\n&quot;
++&quot;           Otherwise, the current extension is used. You cannot use any additional\n&quot;
++&quot;           action post answer options in conjunction with this option.\n&quot; 
+ &quot;    h    - Allow the called party to hang up by sending the '*' DTMF digit.\n&quot;
+ &quot;    H    - Allow the calling party to hang up by hitting the '*' DTMF digit.\n&quot;
+ &quot;    j    - Jump to priority n+101 if all of the requested channels were busy.\n&quot;
+@@ -146,6 +147,8 @@
+ &quot;           * GOTO:&lt;context&gt;^&lt;exten&gt;^&lt;priority&gt; - Transfer the call to the\n&quot;
+ &quot;                          specified priority. Optionally, an extension, or\n&quot;
+ &quot;                          extension and priority can be specified.\n&quot;
++&quot;           You cannot use any additional action post answer options in conjunction\n&quot;
++&quot;           with this option.\n&quot;
+ &quot;    n    - This option is a modifier for the screen/privacy mode. It specifies\n&quot;
+ &quot;           that no introductions are to be saved in the priv-callerintros\n&quot;
+ &quot;           directory.\n&quot;
+
+Modified: trunk/channels/chan_zap.c
+===================================================================
+--- trunk/channels/chan_zap.c	2006-05-03 21:18:10 UTC (rev 49)
++++ trunk/channels/chan_zap.c	2006-05-03 22:23:00 UTC (rev 50)
+@@ -698,6 +698,7 @@
+ static int zt_indicate(struct ast_channel *chan, int condition);
+ static int zt_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ static int zt_setoption(struct ast_channel *chan, int option, void *data, int datalen);
++static int zt_func_read(struct ast_channel *chan, char *function, char *data, char *buf, size_t len); 
+ 
+ static const struct ast_channel_tech zap_tech = {
+ 	.type = &quot;Zap&quot;,
+@@ -716,6 +717,7 @@
+ 	.indicate = zt_indicate,
+ 	.fixup = zt_fixup,
+ 	.setoption = zt_setoption,
++	.func_channel_read = zt_func_read,
+ };
+ 
+ #ifdef HAVE_LIBPRI
+@@ -2904,6 +2906,25 @@
+ 	return 0;
+ }
+ 
++static int zt_func_read(struct ast_channel *chan, char *function, char *data, char *buf, size_t len)
++{
++	struct zt_pvt *p = chan-&gt;tech_pvt;
++	
++	if (!strcasecmp(data, &quot;rxgain&quot;)) {
++		ast_mutex_lock(&amp;p-&gt;lock);
++		snprintf(buf, len, &quot;%f&quot;, p-&gt;rxgain);
++		ast_mutex_unlock(&amp;p-&gt;lock);	
++	} else if (!strcasecmp(data, &quot;txgain&quot;)) {
++		ast_mutex_lock(&amp;p-&gt;lock);
++		snprintf(buf, len, &quot;%f&quot;, p-&gt;txgain);
++		ast_mutex_unlock(&amp;p-&gt;lock);	
++	} else {
++		ast_copy_string(buf, &quot;&quot;, len);
++	}
++	return 0;
++}
++
++
+ static void zt_unlink(struct zt_pvt *slave, struct zt_pvt *master, int needlock)
+ {
+ 	/* Unlink a specific slave or all slaves/masters from a given master */
+
+Modified: trunk/funcs/func_channel.c
+===================================================================
+--- trunk/funcs/func_channel.c	2006-05-03 21:18:10 UTC (rev 49)
++++ trunk/funcs/func_channel.c	2006-05-03 22:23:00 UTC (rev 50)
+@@ -23,6 +23,7 @@
+  */
+ 
+ #include &lt;stdlib.h&gt;
++#include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;sys/types.h&gt;
+ 
+@@ -93,6 +94,7 @@
+ 			      char *data, const char *value)
+ {
+ 	int ret = 0;
++	signed char gainset;
+ 
+ 	if (!strcasecmp(data, &quot;language&quot;))
+ 		locked_string_field_set(chan, language, value);
+@@ -100,7 +102,13 @@
+ 		locked_string_field_set(chan, musicclass, value);
+ 	else if (!strcasecmp(data, &quot;callgroup&quot;))
+ 		chan-&gt;callgroup = ast_get_group(data);
+-	else if (!chan-&gt;tech-&gt;func_channel_write
++	else if (!strcasecmp(data, &quot;txgain&quot;)) {
++		sscanf(value, &quot;%hhd&quot;, &amp;gainset);
++		ast_channel_setoption(chan, AST_OPTION_TXGAIN, &amp;gainset, sizeof(gainset), 0);
++	} else if (!strcasecmp(data, &quot;rxgain&quot;)) {
++		sscanf(value, &quot;%hhd&quot;, &amp;gainset);
++		ast_channel_setoption(chan, AST_OPTION_RXGAIN, &amp;gainset, sizeof(gainset), 0);	
++	} else if (!chan-&gt;tech-&gt;func_channel_write
+ 		 || chan-&gt;tech-&gt;func_channel_write(chan, function, data, value)) {
+ 		ast_log(LOG_WARNING, &quot;Unknown or unavailable item requested: '%s'\n&quot;,
+ 				data);
+@@ -123,8 +131,10 @@
+ 		&quot;R/O	channeltype		technology used for channel\n&quot;
+ 		&quot;R/W	language 		language for sounds played\n&quot;
+ 		&quot;R/W	musicclass 		class (from musiconhold.conf) for hold music\n&quot;
++		&quot;R/W	rxgain			set rxgain level on channel drivers that support it\n&quot;
+ 		&quot;R/O	state			state for channel\n&quot;
+ 		&quot;R/O	tonezone 		zone for indications played\n&quot;
++		&quot;R/W	txgain			set txgain level on channel drivers that support it\n&quot;
+ 		&quot;R/O	videonativeformat 	format used natively for video\n&quot;
+ 		&quot;\n&quot;
+ 		&quot;Additional items may be available from the channel driver providing\n&quot;
+
+Modified: trunk/res/res_features.c
+===================================================================
+--- trunk/res/res_features.c	2006-05-03 21:18:10 UTC (rev 49)
++++ trunk/res/res_features.c	2006-05-03 22:23:00 UTC (rev 50)
+@@ -1662,8 +1662,11 @@
+ 				ast_hangup(peer);
+ 				return -1;
+ 			}
++		} else {
++			ast_moh_stop(peer);
++			ast_indicate(peer, AST_CONTROL_UNHOLD); 
+ 		}
+- 
++
+ 		res = ast_channel_make_compatible(chan, peer);
+ 		if (res &lt; 0) {
+ 			ast_log(LOG_WARNING, &quot;Could not make channels %s and %s compatible for bridge\n&quot;, chan-&gt;name, peer-&gt;name);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000046.html">[solid-pbx-svn] r49 - in trunk: apps doc
+</A></li>
+	<LI>Next message: <A HREF="000048.html">[solid-pbx-svn] r51 - in trunk: . apps doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#47">[ date ]</a>
+              <a href="thread.html#47">[ thread ]</a>
+              <a href="subject.html#47">[ subject ]</a>
+              <a href="author.html#47">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

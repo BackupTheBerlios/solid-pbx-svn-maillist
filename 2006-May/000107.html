@@ -1,0 +1,428 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r111 - in trunk: . channels include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r111%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200605091528.k49FSt6D008184%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000106.html">
+   <LINK REL="Next"  HREF="000108.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r111 - in trunk: . channels include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r111%20-%20in%20trunk%3A%20.%20channels%20include/asterisk&In-Reply-To=%3C200605091528.k49FSt6D008184%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r111 - in trunk: . channels include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  9 17:28:55 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000106.html">[solid-pbx-svn] r110 - in trunk: . apps
+</A></li>
+        <LI>Next message: <A HREF="000108.html">[solid-pbx-svn] r112 - in trunk: . include/asterisk pbx res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#107">[ date ]</a>
+              <a href="thread.html#107">[ thread ]</a>
+              <a href="subject.html#107">[ subject ]</a>
+              <a href="author.html#107">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-09 17:28:49 +0200 (Tue, 09 May 2006)
+New Revision: 111
+
+Modified:
+   trunk/Makefile
+   trunk/channel.c
+   trunk/channels/chan_iax2.c
+   trunk/include/asterisk/channel.h
+   trunk/include/asterisk/frame.h
+   trunk/include/asterisk/pbx.h
+Log:
+Update to Asterisk SVN trunk r26131
+
+------------------------------------------------------------------------
+r26092 | kpfleming | 2006-05-09 16:25:31 +0200 (Tue, 09 May 2006) | 2 lines
+
+minor cleanups and removal of duplicate prototypes
+
+------------------------------------------------------------------------
+r26093 | kpfleming | 2006-05-09 16:25:57 +0200 (Tue, 09 May 2006) | 3 lines
+
+use an enum for control frame types
+support sending control frames with payload
+
+------------------------------------------------------------------------
+r26094 | kpfleming | 2006-05-09 16:43:00 +0200 (Tue, 09 May 2006) | 2 lines
+
+remove rule for running bootstrap, it's only safe to run it manually now
+
+------------------------------------------------------------------------
+r26103 | markster | 2006-05-09 17:01:10 +0200 (Tue, 09 May 2006) | 2 lines
+
+Make sure that we don't accept an answer on an inbound call and don't permit asterisk to answer an outbound call
+
+------------------------------------------------------------------------
+r26131 | oej | 2006-05-09 17:17:12 +0200 (Tue, 09 May 2006) | 2 lines
+
+Formatting fix
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-09 14:28:52 UTC (rev 110)
++++ trunk/Makefile	2006-05-09 15:28:49 UTC (rev 111)
+@@ -434,9 +434,6 @@
+ 
+ all: config.status menuselect.makeopts cleantest depend asterisk subdirs
+ 
+-configure:
+-	<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">- at .</A>/bootstrap.sh
+-
+ config.status: configure
+ 	@CFLAGS=&quot;&quot; ./configure
+ 	@echo &quot;****&quot;
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-05-09 14:28:52 UTC (rev 110)
++++ trunk/channel.c	2006-05-09 15:28:49 UTC (rev 111)
+@@ -738,13 +738,28 @@
+ }
+ 
+ /*! \brief Queue a control frame */
+-int ast_queue_control(struct ast_channel *chan, int control)
++int ast_queue_control(struct ast_channel *chan, enum ast_control_frame_type control)
+ {
+ 	struct ast_frame f = { AST_FRAME_CONTROL, };
++
+ 	f.subclass = control;
++
+ 	return ast_queue_frame(chan, &amp;f);
+ }
+ 
++/*! \brief Queue a control frame with payload */
++int ast_queue_control_data(struct ast_channel *chan, enum ast_control_frame_type control,
++			   const void *data, size_t datalen)
++{
++	struct ast_frame f = { AST_FRAME_CONTROL, };
++
++	f.subclass = control;
++	f.data = (void *) data;
++	f.datalen = datalen;
++
++	return ast_queue_frame(chan, &amp;f);
++}
++
+ /*! \brief Set defer DTMF flag on channel */
+ int ast_channel_defer_dtmf(struct ast_channel *chan)
+ {
+@@ -1470,6 +1485,9 @@
+ {
+ 	int res = 0;
+ 	ast_channel_lock(chan);
++	/* You can't answer an outbound call */
++	if (ast_test_flag(chan, AST_FLAG_OUTGOING))
++		return 0;
+ 	/* Stop if we're a zombie or need a soft hangup */
+ 	if (ast_test_flag(chan, AST_FLAG_ZOMBIE) || ast_check_hangup(chan)) {
+ 		ast_channel_unlock(chan);
+@@ -1938,13 +1956,17 @@
+ 		switch (f-&gt;frametype) {
+ 		case AST_FRAME_CONTROL:
+ 			if (f-&gt;subclass == AST_CONTROL_ANSWER) {
+-				if (prestate == AST_STATE_UP) {
++				if (!ast_test_flag(chan, AST_FLAG_OUTGOING)) {
++					ast_log(LOG_DEBUG, &quot;Ignoring answer on an inbound call!\n&quot;);
++					f = &amp;ast_null_frame;
++				} else if (prestate == AST_STATE_UP) {
+ 					ast_log(LOG_DEBUG, &quot;Dropping duplicate answer!\n&quot;);
+ 					f = &amp;ast_null_frame;
++				} else {
++					/* Answer the CDR */
++					ast_setstate(chan, AST_STATE_UP);
++					ast_cdr_answer(chan-&gt;cdr);
+ 				}
+-				/* Answer the CDR */
+-				ast_setstate(chan, AST_STATE_UP);
+-				ast_cdr_answer(chan-&gt;cdr);
+ 			}
+ 			break;
+ 		case AST_FRAME_DTMF:
+@@ -2623,9 +2645,11 @@
+ 	int res = -1;
+ 	/* Stop if we're a zombie or need a soft hangup */
+ 	ast_channel_lock(chan);
+-	if (!ast_test_flag(chan, AST_FLAG_ZOMBIE) &amp;&amp; !ast_check_hangup(chan))
++	if (!ast_test_flag(chan, AST_FLAG_ZOMBIE) &amp;&amp; !ast_check_hangup(chan)) {
+ 		if (chan-&gt;tech-&gt;call)
+ 			res = chan-&gt;tech-&gt;call(chan, addr, timeout);
++		ast_set_flag(chan, AST_FLAG_OUTGOING);
++	}
+ 	ast_channel_unlock(chan);
+ 	return res;
+ }
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-05-09 14:28:52 UTC (rev 110)
++++ trunk/channels/chan_iax2.c	2006-05-09 15:28:49 UTC (rev 111)
+@@ -775,39 +775,37 @@
+ static ast_mutex_t iaxsl[IAX_MAX_CALLS];
+ static struct timeval lastused[IAX_MAX_CALLS];
+ 
+-
++static enum ast_bridge_result iax2_bridge(struct ast_channel *c0, struct ast_channel *c1, int flags, struct ast_frame **fo, struct ast_channel **rc, int timeoutms);
++static int expire_registry(void *data);
++static int iax2_answer(struct ast_channel *c);
++static int iax2_call(struct ast_channel *c, char *dest, int timeout);
++static int iax2_devicestate(void *data);
++static int iax2_digit(struct ast_channel *c, char digit);
++static int iax2_do_register(struct iax2_registry *reg);
++static int iax2_fixup(struct ast_channel *oldchannel, struct ast_channel *newchan);
++static int iax2_hangup(struct ast_channel *c);
++static int iax2_indicate(struct ast_channel *c, int condition);
++static int iax2_poke_peer(struct iax2_peer *peer, int heldcall);
++static int iax2_provision(struct sockaddr_in *end, int sockfd, char *dest, const char *template, int force);
++static int iax2_send(struct chan_iax2_pvt *pvt, struct ast_frame *f, unsigned int ts, int seqno, int now, int transfer, int final);
++static int iax2_sendhtml(struct ast_channel *c, int subclass, const char *data, int datalen);
++static int iax2_sendimage(struct ast_channel *c, struct ast_frame *img);
++static int iax2_sendtext(struct ast_channel *c, const char *text);
++static int iax2_setoption(struct ast_channel *c, int option, void *data, int datalen);
++static int iax2_transfer(struct ast_channel *c, const char *dest);
++static int iax2_write(struct ast_channel *c, struct ast_frame *f);
+ static int send_command(struct chan_iax2_pvt *, char, int, unsigned int, const unsigned char *, int, int);
+-static int send_command_locked(unsigned short callno, char, int, unsigned int, const unsigned char *, int, int);
+-static int send_command_immediate(struct chan_iax2_pvt *, char, int, unsigned int, const unsigned char *, int, int);
+ static int send_command_final(struct chan_iax2_pvt *, char, int, unsigned int, const unsigned char *, int, int);
++static int send_command_immediate(struct chan_iax2_pvt *, char, int, unsigned int, const unsigned char *, int, int);
++static int send_command_locked(unsigned short callno, char, int, unsigned int, const unsigned char *, int, int);
+ static int send_command_transfer(struct chan_iax2_pvt *, char, int, unsigned int, const unsigned char *, int);
++static struct ast_channel *iax2_request(const char *type, int format, void *data, int *cause);
++static struct ast_frame *iax2_read(struct ast_channel *c);
+ static struct iax2_peer *build_peer(const char *name, struct ast_variable *v, int temponly);
+ static struct iax2_user *build_user(const char *name, struct ast_variable *v, int temponly);
+ static void destroy_user(struct iax2_user *user);
+-static int expire_registry(void *data);
+-static int iax2_write(struct ast_channel *c, struct ast_frame *f);
+-static int iax2_do_register(struct iax2_registry *reg);
+ static void prune_peers(void);
+-static int iax2_poke_peer(struct iax2_peer *peer, int heldcall);
+-static int iax2_provision(struct sockaddr_in *end, int sockfd, char *dest, const char *template, int force);
+ 
+-static struct ast_channel *iax2_request(const char *type, int format, void *data, int *cause);
+-static int iax2_devicestate(void *data);
+-static int iax2_digit(struct ast_channel *c, char digit);
+-static int iax2_sendtext(struct ast_channel *c, const char *text);
+-static int iax2_sendimage(struct ast_channel *c, struct ast_frame *img);
+-static int iax2_sendhtml(struct ast_channel *c, int subclass, const char *data, int datalen);
+-static int iax2_call(struct ast_channel *c, char *dest, int timeout);
+-static int iax2_hangup(struct ast_channel *c);
+-static int iax2_answer(struct ast_channel *c);
+-static struct ast_frame *iax2_read(struct ast_channel *c);
+-static int iax2_write(struct ast_channel *c, struct ast_frame *f);
+-static int iax2_indicate(struct ast_channel *c, int condition);
+-static int iax2_setoption(struct ast_channel *c, int option, void *data, int datalen);
+-static enum ast_bridge_result iax2_bridge(struct ast_channel *c0, struct ast_channel *c1, int flags, struct ast_frame **fo, struct ast_channel **rc, int timeoutms);
+-static int iax2_transfer(struct ast_channel *c, const char *dest);
+-static int iax2_fixup(struct ast_channel *oldchannel, struct ast_channel *newchan);
+-
+ static const struct ast_channel_tech iax2_tech = {
+ 	.type = &quot;IAX2&quot;,
+ 	.description = tdesc,
+@@ -1563,8 +1561,6 @@
+ 	ast_mutex_unlock(&amp;waresl.lock);
+ }
+ 
+-static int iax2_send(struct chan_iax2_pvt *pvt, struct ast_frame *f, unsigned int ts, int seqno, int now, int transfer, int final);
+-
+ static int __do_deliver(void *data)
+ {
+ 	/* Just deliver the packet by using queueing.  This is called by
+@@ -3518,9 +3514,6 @@
+ 	return send_command_locked(callno, AST_FRAME_IAX, IAX_COMMAND_TRANSFER, 0, ied.buf, ied.pos, -1);
+ }
+ 	
+-
+-static int iax2_write(struct ast_channel *c, struct ast_frame *f);
+-
+ static int iax2_getpeertrunk(struct sockaddr_in sin)
+ {
+ 	struct iax2_peer *peer = NULL;
+@@ -4263,8 +4256,6 @@
+ 	return res;
+ }
+ 
+-
+-
+ static int iax2_show_users(int fd, int argc, char *argv[])
+ {
+ 	regex_t regexbuf;
+
+Modified: trunk/include/asterisk/channel.h
+===================================================================
+--- trunk/include/asterisk/channel.h	2006-05-09 14:28:52 UTC (rev 110)
++++ trunk/include/asterisk/channel.h	2006-05-09 15:28:49 UTC (rev 111)
+@@ -466,6 +466,7 @@
+ 						   so when -&gt;priority is set, it will get incremented before
+ 						   finding the next priority to run
+ 						*/
++#define AST_FLAG_OUTGOING (1 &lt;&lt; 10) /*! Is this call outgoing */
+ /* @} */
+ 
+ #define AST_FEATURE_PLAY_WARNING	(1 &lt;&lt; 0)
+@@ -605,10 +606,29 @@
+ /*! \brief Queue a hangup frame */
+ int ast_queue_hangup(struct ast_channel *chan);
+ 
+-/*! \brief Queue a control frame */
+-int ast_queue_control(struct ast_channel *chan, int control);
++/*!
++  \brief Queue a control frame with payload
++  \param chan channel to queue frame onto
++  \param control type of control frame
++  \return zero on success, non-zero on failure
++*/
++int ast_queue_control(struct ast_channel *chan, enum ast_control_frame_type control);
+ 
++/*!
++  \brief Queue a control frame with payload
++  \param chan channel to queue frame onto
++  \param control type of control frame
++  \param data pointer to payload data to be included in frame
++  \param datalen number of bytes of payload data
++  \return zero on success, non-zero on failure
+ 
++  The supplied payload data is copied into the frame, so the caller's copy
++  is not modified nor freed, and the resulting frame will retain a copy of
++  the data even if the caller frees their local copy.
++*/
++int ast_queue_control_data(struct ast_channel *chan, enum ast_control_frame_type control,
++			   const void *data, size_t datalen);
++
+ /*! \brief Change channel name */
+ void ast_change_name(struct ast_channel *chan, char *newname);
+ 
+
+Modified: trunk/include/asterisk/frame.h
+===================================================================
+--- trunk/include/asterisk/frame.h	2006-05-09 14:28:52 UTC (rev 110)
++++ trunk/include/asterisk/frame.h	2006-05-09 15:28:49 UTC (rev 111)
+@@ -240,43 +240,26 @@
+ #define AST_FORMAT_MAX_VIDEO	(1 &lt;&lt; 24)
+ #define AST_FORMAT_VIDEO_MASK   (((1 &lt;&lt; 25)-1) &amp; ~(AST_FORMAT_AUDIO_MASK))
+ 
+-/* Control frame types */
+-/*! Other end has hungup */
+-#define AST_CONTROL_HANGUP		1
+-/*! Local ring */
+-#define AST_CONTROL_RING		2
+-/*! Remote end is ringing */
+-#define AST_CONTROL_RINGING 		3
+-/*! Remote end has answered */
+-#define AST_CONTROL_ANSWER		4
+-/*! Remote end is busy */
+-#define AST_CONTROL_BUSY		5
+-/*! Make it go off hook */
+-#define AST_CONTROL_TAKEOFFHOOK		6
+-/*! Line is off hook */
+-#define AST_CONTROL_OFFHOOK		7
+-/*! Congestion (circuits busy) */
+-#define AST_CONTROL_CONGESTION		8
+-/*! Flash hook */
+-#define AST_CONTROL_FLASH		9
+-/*! Wink */
+-#define AST_CONTROL_WINK		10
+-/*! Set a low-level option */
+-#define AST_CONTROL_OPTION		11
+-/*! Key Radio */
+-#define	AST_CONTROL_RADIO_KEY		12
+-/*! Un-Key Radio */
+-#define	AST_CONTROL_RADIO_UNKEY		13
+-/*! Indicate PROGRESS */
+-#define AST_CONTROL_PROGRESS            14
+-/*! Indicate CALL PROCEEDING */
+-#define AST_CONTROL_PROCEEDING		15
+-/*! Indicate call is placed on hold */
+-#define AST_CONTROL_HOLD			16
+-/*! Indicate call is left from hold */
+-#define AST_CONTROL_UNHOLD			17
+-/*! Indicate video frame update */
+-#define AST_CONTROL_VIDUPDATE		18
++enum ast_control_frame_type {
++	AST_CONTROL_HANGUP = 1,		/*! Other end has hungup */
++	AST_CONTROL_RING = 2,		/*! Local ring */
++	AST_CONTROL_RINGING = 3,	/*! Remote end is ringing */
++	AST_CONTROL_ANSWER = 4,		/*! Remote end has answered */
++	AST_CONTROL_BUSY = 5,		/*! Remote end is busy */
++	AST_CONTROL_TAKEOFFHOOK = 6,	/*! Make it go off hook */
++	AST_CONTROL_OFFHOOK = 7,	/*! Line is off hook */
++	AST_CONTROL_CONGESTION = 8,	/*! Congestion (circuits busy) */
++	AST_CONTROL_FLASH = 9,		/*! Flash hook */
++	AST_CONTROL_WINK = 10,		/*! Wink */
++	AST_CONTROL_OPTION = 11,	/*! Set a low-level option */
++	AST_CONTROL_RADIO_KEY = 12,	/*! Key Radio */
++	AST_CONTROL_RADIO_UNKEY = 13,	/*! Un-Key Radio */
++	AST_CONTROL_PROGRESS = 14,	/*! Indicate PROGRESS */
++	AST_CONTROL_PROCEEDING = 15,	/*! Indicate CALL PROCEEDING */
++	AST_CONTROL_HOLD = 16,		/*! Indicate call is placed on hold */
++	AST_CONTROL_UNHOLD = 17,	/*! Indicate call is left from hold */
++	AST_CONTROL_VIDUPDATE = 18,	/*! Indicate video frame update */
++};
+ 
+ #define AST_SMOOTHER_FLAG_G729		(1 &lt;&lt; 0)
+ 
+
+Modified: trunk/include/asterisk/pbx.h
+===================================================================
+--- trunk/include/asterisk/pbx.h	2006-05-09 14:28:52 UTC (rev 110)
++++ trunk/include/asterisk/pbx.h	2006-05-09 15:28:49 UTC (rev 111)
+@@ -31,11 +31,11 @@
+ extern &quot;C&quot; {
+ #endif
+ 
++#define AST_MAX_APP	32	/*!&lt; Max length of an application */
++
+ #define AST_PBX_KEEP    0
+ #define AST_PBX_REPLACE 1
+ 
+-#define AST_MAX_APP	32	/*!&lt; Max length of an application */
+-
+ /*! \brief Special return values from applications to the PBX { */
+ #define AST_PBX_KEEPALIVE	10	/*!&lt; Destroy the thread, but don't hang up the channel */
+ #define AST_PBX_NO_HANGUP_PEER	11
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000106.html">[solid-pbx-svn] r110 - in trunk: . apps
+</A></li>
+	<LI>Next message: <A HREF="000108.html">[solid-pbx-svn] r112 - in trunk: . include/asterisk pbx res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#107">[ date ]</a>
+              <a href="thread.html#107">[ thread ]</a>
+              <a href="subject.html#107">[ subject ]</a>
+              <a href="author.html#107">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

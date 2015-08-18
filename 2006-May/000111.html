@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r118 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r118%20-%20trunk/apps&In-Reply-To=%3C200605100329.k4A3TNxN025840%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000114.html">
+   <LINK REL="Next"  HREF="000115.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r118 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r118%20-%20trunk/apps&In-Reply-To=%3C200605100329.k4A3TNxN025840%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r118 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 10 05:29:23 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000114.html">[solid-pbx-svn] r117 - in trunk: . agi apps build_tools cdr channels channels/h323 channels/misdn codecs codecs/gsm codecs/gsm/inc codecs/gsm/src codecs/ilbc codecs/lpc10 configs contrib contrib/firmware/iax contrib/init.d contrib/scripts contrib/thirdparty contrib/utils cygwin db1-ast db1-ast/btree db1-ast/db db1-ast/hash db1-ast/include db1-ast/mpool db1-ast/recno doc editline editline/TEST editline/np editline/readline formats funcs images include include/asterisk include/solaris-compat include/solaris-compat/sys keys mxml pbx pbx/ael pbx/ael/ael-test pbx/ael/ael-test/ael-test1 pbx/ael/ael-test/ael-test2 pbx/ael/ael-test/ael-test3 pbx/ael/ael-test/ael-test4 pbx/ael/ael-test/ael-test5 pbx/ael/ael-test/ael-test6 pbx/ael/ael-test/ael-test7 redhat res res/snmp sounds sounds/dictate sounds/digits sounds/letters sounds/phonetic static-http stdtime utils
+</A></li>
+        <LI>Next message: <A HREF="000115.html">[solid-pbx-svn] r119 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#111">[ date ]</a>
+              <a href="thread.html#111">[ thread ]</a>
+              <a href="subject.html#111">[ subject ]</a>
+              <a href="author.html#111">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-10 05:28:45 +0200 (Wed, 10 May 2006)
+New Revision: 118
+
+Modified:
+   trunk/apps/app_meetme.c
+Log:
+Update to Asterisk SVN trunk r26280
+
+------------------------------------------------------------------------
+r26250 | bweschke | 2006-05-10 04:57:20 +0200 (Wed, 10 May 2006) | 3 lines
+
+ Implement new support for &quot;meetme list &lt;confno&gt; concise&quot;
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_meetme.c
+===================================================================
+--- trunk/apps/app_meetme.c	2006-05-09 19:15:00 UTC (rev 117)
++++ trunk/apps/app_meetme.c	2006-05-10 03:28:45 UTC (rev 118)
+@@ -647,9 +647,11 @@
+ 			strncat(cmdline, argv[3], sizeof(cmdline) - strlen(cmdline) - 1);
+ 		}	
+ 	} else if(strcmp(argv[1], &quot;list&quot;) == 0) {
++		int concise = ( 4 == argc &amp;&amp; ( !strcasecmp(argv[3], &quot;concise&quot;) ) );
+ 		/* List all the users in a conference */
+ 		if (AST_LIST_EMPTY(&amp;confs)) {
+-			ast_cli(fd, &quot;No active conferences.\n&quot;);
++			if ( !concise )
++				ast_cli(fd, &quot;No active conferences.\n&quot;);
+ 			return RESULT_SUCCESS;	
+ 		}
+ 		/* Find the right conference */
+@@ -658,7 +660,8 @@
+ 				break;
+ 		}
+ 		if (!cnf) {
+-			ast_cli(fd, &quot;No such conference: %s.\n&quot;,argv[2]);
++			if ( !concise )
++				ast_cli(fd, &quot;No such conference: %s.\n&quot;,argv[2]);
+ 			return RESULT_SUCCESS;
+ 		}
+ 		/* Show all the users */
+@@ -667,19 +670,30 @@
+ 			hr = (now - user-&gt;jointime) / 3600;
+ 			min = ((now - user-&gt;jointime) % 3600) / 60;
+ 			sec = (now - user-&gt;jointime) % 60;
+-
+-
+-			ast_cli(fd, &quot;User #: %-2.2d %12.12s %-20.20s Channel: %s %s %s %s %s %02d:%02d:%02d\n&quot;,
+-				user-&gt;user_no,
+-				S_OR(user-&gt;chan-&gt;cid.cid_num, &quot;&lt;unknown&gt;&quot;),
+-				S_OR(user-&gt;chan-&gt;cid.cid_name, &quot;&lt;no name&gt;&quot;),
+-				user-&gt;chan-&gt;name,
+-				user-&gt;userflags &amp; CONFFLAG_ADMIN ? &quot;(Admin)&quot; : &quot;&quot;,
+-				user-&gt;userflags &amp; CONFFLAG_MONITOR ? &quot;(Listen only)&quot; : &quot;&quot;,
+-				user-&gt;adminflags &amp; ADMINFLAG_MUTED ? &quot;(Admn Muted)&quot; : &quot;&quot;,
+-				istalking(user-&gt;talking), hr, min, sec);
++			if ( !concise )
++				ast_cli(fd, &quot;User #: %-2.2d %12.12s %-20.20s Channel: %s %s %s %s %s %02d:%02d:%02d\n&quot;,
++					user-&gt;user_no,
++					S_OR(user-&gt;chan-&gt;cid.cid_num, &quot;&lt;unknown&gt;&quot;),
++					S_OR(user-&gt;chan-&gt;cid.cid_name, &quot;&lt;no name&gt;&quot;),
++					user-&gt;chan-&gt;name,
++					user-&gt;userflags &amp; CONFFLAG_ADMIN ? &quot;(Admin)&quot; : &quot;&quot;,
++					user-&gt;userflags &amp; CONFFLAG_MONITOR ? &quot;(Listen only)&quot; : &quot;&quot;,
++					user-&gt;adminflags &amp; ADMINFLAG_MUTED ? &quot;(Admn Muted)&quot; : &quot;&quot;,
++					istalking(user-&gt;talking), hr, min, sec);
++			else 
++				ast_cli(fd, &quot;%d!%s!%s!%s!%s!%s!%s!%d!%02d:%02d:%02d\n&quot;,
++					user-&gt;user_no,
++					S_OR(user-&gt;chan-&gt;cid.cid_num, &quot;&quot;),
++					S_OR(user-&gt;chan-&gt;cid.cid_name, &quot;&quot;),
++					user-&gt;chan-&gt;name,
++					user-&gt;userflags  &amp; CONFFLAG_ADMIN   ? &quot;1&quot; : &quot;&quot;,
++					user-&gt;userflags  &amp; CONFFLAG_MONITOR ? &quot;1&quot; : &quot;&quot;,
++					user-&gt;adminflags &amp; ADMINFLAG_MUTED  ? &quot;1&quot; : &quot;&quot;,
++					user-&gt;talking, hr, min, sec);
++			
+ 		}
+-		ast_cli(fd,&quot;%d users in that conference.\n&quot;,cnf-&gt;users);
++		if ( !concise )
++			ast_cli(fd,&quot;%d users in that conference.\n&quot;,cnf-&gt;users);
+ 
+ 		return RESULT_SUCCESS;
+ 	} else 
+@@ -745,14 +759,15 @@
+ 			}
+ 			AST_LIST_UNLOCK(&amp;confs);
+ 			return usr ? strdup(usrno) : NULL;
+-		}
++		} else if ( strstr(line, &quot;list&quot;) &amp;&amp; ( 0 == state ) )
++			return strdup(&quot;concise&quot;);
+ 	}
+ 
+ 	return NULL;
+ }
+ 	
+ static char conf_usage[] =
+-&quot;Usage: meetme  (un)lock|(un)mute|kick|list &lt;confno&gt; &lt;usernumber&gt;\n&quot;
++&quot;Usage: meetme  (un)lock|(un)mute|kick|list [concise] &lt;confno&gt; &lt;usernumber&gt;\n&quot;
+ &quot;       Executes a command for the conference or on a conferee\n&quot;;
+ 
+ static struct ast_cli_entry cli_conf = {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000114.html">[solid-pbx-svn] r117 - in trunk: . agi apps build_tools cdr channels channels/h323 channels/misdn codecs codecs/gsm codecs/gsm/inc codecs/gsm/src codecs/ilbc codecs/lpc10 configs contrib contrib/firmware/iax contrib/init.d contrib/scripts contrib/thirdparty contrib/utils cygwin db1-ast db1-ast/btree db1-ast/db db1-ast/hash db1-ast/include db1-ast/mpool db1-ast/recno doc editline editline/TEST editline/np editline/readline formats funcs images include include/asterisk include/solaris-compat include/solaris-compat/sys keys mxml pbx pbx/ael pbx/ael/ael-test pbx/ael/ael-test/ael-test1 pbx/ael/ael-test/ael-test2 pbx/ael/ael-test/ael-test3 pbx/ael/ael-test/ael-test4 pbx/ael/ael-test/ael-test5 pbx/ael/ael-test/ael-test6 pbx/ael/ael-test/ael-test7 redhat res res/snmp sounds sounds/dictate sounds/digits sounds/letters sounds/phonetic static-http stdtime utils
+</A></li>
+	<LI>Next message: <A HREF="000115.html">[solid-pbx-svn] r119 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#111">[ date ]</a>
+              <a href="thread.html#111">[ thread ]</a>
+              <a href="subject.html#111">[ subject ]</a>
+              <a href="author.html#111">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

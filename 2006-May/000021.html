@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r24 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r24%20-%20trunk&In-Reply-To=%3C200605011018.k41AIOZ6018796%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000020.html">
+   <LINK REL="Next"  HREF="000022.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r24 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r24%20-%20trunk&In-Reply-To=%3C200605011018.k41AIOZ6018796%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r24 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  1 12:18:24 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000020.html">[solid-pbx-svn] r23 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000022.html">[solid-pbx-svn] r25 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#21">[ date ]</a>
+              <a href="thread.html#21">[ thread ]</a>
+              <a href="subject.html#21">[ subject ]</a>
+              <a href="author.html#21">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-01 12:18:20 +0200 (Mon, 01 May 2006)
+New Revision: 24
+
+Modified:
+   trunk/configure.ac
+Log:
+Update to Asterisk SVN trunk r23896
+
+------------------------------------------------------------------------
+r23875 | kpfleming | 2006-05-01 11:38:32 +0200 (Mon, 01 May 2006) | 2 lines
+
+do check for ixjuser.h in a way that can actually succeed :-)
+
+------------------------------------------------------------------------
+r23896 | kpfleming | 2006-05-01 12:03:44 +0200 (Mon, 01 May 2006) | 3 lines
+
+do the check for VoiceTronix support using C++
+set the library/header include parameters properly for the search
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-05-01 04:17:57 UTC (rev 23)
++++ trunk/configure.ac	2006-05-01 10:18:20 UTC (rev 24)
+@@ -308,16 +308,19 @@
+ AC_SUBST([pq_LIB])
+ AC_SUBST([PBX_LIBpq])
+ 
+-PBX_H323=0
+-AC_CHECK_HEADER([h323.h], [PBX_H323=1], [])
++AC_CHECK_HEADER([h323.h], [PBX_H323=1], [PBX_H323=0])
+ AC_SUBST(PBX_H323)
+ 
+-PBX_IXJUSER=0
+-AC_CHECK_HEADER([linux/ixjuser.h], [
+-   AC_CHECK_HEADER([linux/telephony.h], [
+-      AC_CHECK_HEADER([linux/version.h], [PBX_IXJUSER=1])])])
++AC_CHECK_HEADER([linux/ixjuser.h], [PBX_IXJUSER=1], [PBX_IXJUSER=0], [
++				   #include &lt;linux/version.h&gt;
++				   #if LINUX_VERSION_CODE &gt;= KERNEL_VERSION(2,6,0)
++				   #include &lt;linux/compiler.h&gt;
++				   #endif
++				   ])
+ AC_SUBST(PBX_IXJUSER)
+ 
++AC_LANG_PUSH(C++)
++
+ AC_ARG_WITH([vpb], AC_HELP_STRING([--with-vpb=PATH],[use vpb files in PATH]),[
+ case ${withval} in
+      n|no)
+@@ -334,12 +337,17 @@
+ ])
+ if test &quot;${USE_VPB}&quot; != &quot;no&quot;; then
+    echo -n &quot;checking for vpb_open in -lvpb...&quot;
+-   saved_ldflags=&quot;${LDFLAGS}&quot;
+-   LDFLAGS=&quot;${LDFLAGS} -L${VPB_DIR} -lvpb&quot;
++   saved_libs=&quot;${LIBS}&quot;
++   saved_cppflags=&quot;${CPPFLAGS}&quot;
++   if test &quot;x${VPB_DIR}&quot; != &quot;x&quot; ; then
++      LIBS=&quot;${LIBS} -L${VPB_DIR}/lib&quot;
++      CPPFLAGS=&quot;${CPPFLAGS} -I${VPB_DIR}/include&quot;
++   fi
++   LIBS=&quot;${LIBS} -lvpb -lpthread&quot;
+    AC_LINK_IFELSE(
+ 	[
+ 	AC_LANG_PROGRAM(
+-	[#include &quot;${VPB_DIR}vpbapi.h&quot;],
++	[#include &lt;vpbapi.h&gt;],
+ 	[int q = vpb_open(0,0);])
+ 	],
+ 	[	AC_MSG_RESULT(yes) 
+@@ -349,15 +357,15 @@
+ 		ac_cv_lib_vpb_vpb_open=&quot;no&quot; 
+ 	]
+ 	)
+-	LDFLAGS=&quot;${saved_ldflags}&quot;
+-
+-	PBX_LIBvpb=0
+-	if test &quot;${ac_cv_lib_vpb_vpb_open}&quot; = &quot;yes&quot;; then
++   LIBS=&quot;${saved_libs}&quot;
++   CPPFLAGS=&quot;${saved_cppflags}&quot;
++   PBX_LIBvpb=0
++   if test &quot;${ac_cv_lib_vpb_vpb_open}&quot; = &quot;yes&quot;; then
+ 	VPB_LIB=&quot;-lvpb&quot;
+ 	if test &quot;${VPB_DIR}&quot; != &quot;&quot;; then
+-	VPB_LIB=&quot;-L${VPB_DIR}/lib ${VPB_LIB}&quot;
+-	VPB_INCLUDE=&quot;-I${VPB_DIR}/include&quot;
+-	AC_SUBST([VPB_INCLUDE])
++	   VPB_LIB=&quot;-L${VPB_DIR}/lib ${VPB_LIB}&quot;
++	   VPB_INCLUDE=&quot;-I${VPB_DIR}/include&quot;
++	   AC_SUBST([VPB_INCLUDE])
+ 	fi
+ 	AC_SUBST([VPB_LIB])
+ 	PBX_LIBvpb=1
+@@ -373,9 +381,6 @@
+ fi
+ AC_SUBST([PBX_LIBvpb])
+ 
+-
+-AC_LANG_PUSH(C++)
+-
+ AC_ARG_WITH([qt], AC_HELP_STRING([--with-qt=PATH],[use Qt files in PATH]),[
+ case ${withval} in
+      n|no)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000020.html">[solid-pbx-svn] r23 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000022.html">[solid-pbx-svn] r25 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#21">[ date ]</a>
+              <a href="thread.html#21">[ thread ]</a>
+              <a href="subject.html#21">[ subject ]</a>
+              <a href="author.html#21">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

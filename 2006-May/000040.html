@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r43 - in trunk: . channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r43%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200605031318.k43DIfou020689%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000039.html">
+   <LINK REL="Next"  HREF="000041.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r43 - in trunk: . channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r43%20-%20in%20trunk%3A%20.%20channels&In-Reply-To=%3C200605031318.k43DIfou020689%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r43 - in trunk: . channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May  3 15:18:41 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000039.html">[solid-pbx-svn] r42 - in trunk: . apps
+</A></li>
+        <LI>Next message: <A HREF="000041.html">[solid-pbx-svn] r44 - in trunk: channels pbx/ael
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#40">[ date ]</a>
+              <a href="thread.html#40">[ thread ]</a>
+              <a href="subject.html#40">[ subject ]</a>
+              <a href="author.html#40">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-03 15:18:20 +0200 (Wed, 03 May 2006)
+New Revision: 43
+
+Modified:
+   trunk/channels/chan_sip.c
+   trunk/loader.c
+Log:
+Update to Asterisk SVN trunk r24420
+
+------------------------------------------------------------------------
+r24379 | kpfleming | 2006-05-03 14:29:39 +0200 (Wed, 03 May 2006) | 2 lines
+
+test commit to ensure the server is happy again
+
+------------------------------------------------------------------------
+r24380 | bweschke | 2006-05-03 14:31:26 +0200 (Wed, 03 May 2006) | 3 lines
+
+ Remove the svnmerge-integrated property accidentally merged in from the func_realtime branch merge last night.
+
+
+------------------------------------------------------------------------
+r24382 | oej | 2006-05-03 14:46:29 +0200 (Wed, 03 May 2006) | 2 lines
+
+Issue #7074 - Problem with long contact lines
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-02 23:18:40 UTC (rev 42)
++++ trunk/channels/chan_sip.c	2006-05-03 13:18:20 UTC (rev 43)
+@@ -6170,8 +6170,8 @@
+ /*! \brief Parse contact header and save registration */
+ static enum parse_register_result parse_register_contact(struct sip_pvt *pvt, struct sip_peer *p, struct sip_request *req)
+ {
+-	char contact[80]; 
+-	char data[256];
++	char contact[BUFSIZ]; 
++	char data[BUFSIZ];
+ 	char iabuf[INET_ADDRSTRLEN];
+ 	const char *expires = get_header(req, &quot;Expires&quot;);
+ 	int expiry = atoi(expires);
+
+Modified: trunk/loader.c
+===================================================================
+--- trunk/loader.c	2006-05-02 23:18:40 UTC (rev 42)
++++ trunk/loader.c	2006-05-03 13:18:20 UTC (rev 43)
+@@ -728,7 +728,7 @@
+ 		cur-&gt;cb = m;	/* use the mod_data from the module itself */
+ 		errors = check_exported(cur);
+ 	} else {
+-		ast_log(LOG_WARNING, &quot;misstng mod_data for %s\n&quot;,
++		ast_log(LOG_WARNING, &quot;missing mod_data for %s\n&quot;,
+ 			resource_name);
+ 		errors++;
+ 	}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000039.html">[solid-pbx-svn] r42 - in trunk: . apps
+</A></li>
+	<LI>Next message: <A HREF="000041.html">[solid-pbx-svn] r44 - in trunk: channels pbx/ael
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#40">[ date ]</a>
+              <a href="thread.html#40">[ thread ]</a>
+              <a href="subject.html#40">[ subject ]</a>
+              <a href="author.html#40">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,298 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r112 - in trunk: . include/asterisk pbx res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r112%20-%20in%20trunk%3A%20.%20include/asterisk%20pbx%20res&In-Reply-To=%3C200605091628.k49GSrb2018701%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000107.html">
+   <LINK REL="Next"  HREF="000109.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r112 - in trunk: . include/asterisk pbx res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r112%20-%20in%20trunk%3A%20.%20include/asterisk%20pbx%20res&In-Reply-To=%3C200605091628.k49GSrb2018701%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r112 - in trunk: . include/asterisk pbx res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  9 18:28:53 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000107.html">[solid-pbx-svn] r111 - in trunk: . channels include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000109.html">[solid-pbx-svn] r113 - in trunk: . agi apps build_tools cdr channels channels/h323 channels/misdn codecs codecs/gsm codecs/gsm/inc codecs/gsm/src codecs/ilbc codecs/lpc10 configs contrib contrib/firmware/iax contrib/init.d contrib/scripts contrib/thirdparty contrib/utils cygwin db1-ast db1-ast/btree db1-ast/db db1-ast/hash db1-ast/include db1-ast/mpool db1-ast/recno doc editline editline/TEST editline/np editline/readline formats funcs images include include/asterisk include/solaris-compat include/solaris-compat/sys keys mxml pbx pbx/ael pbx/ael/ael-test pbx/ael/ael-test/ael-test1 pbx/ael/ael-test/ael-test2 pbx/ael/ael-test/ael-test3 pbx/ael/ael-test/ael-test4 pbx/ael/ael-test/ael-test5 pbx/ael/ael-test/ael-test6 pbx/ael/ael-test/ael-test7 redhat res res/snmp sounds sounds/dictate sounds/digits sounds/letters sounds/phonetic static-http stdtime utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#108">[ date ]</a>
+              <a href="thread.html#108">[ thread ]</a>
+              <a href="subject.html#108">[ subject ]</a>
+              <a href="author.html#108">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-09 18:28:48 +0200 (Tue, 09 May 2006)
+New Revision: 112
+
+Modified:
+   trunk/include/asterisk/astosp.h
+   trunk/include/asterisk/channel.h
+   trunk/include/asterisk/frame.h
+   trunk/include/asterisk/module.h
+   trunk/include/asterisk/translate.h
+   trunk/netsock.c
+   trunk/pbx.c
+   trunk/pbx/pbx_config.c
+   trunk/res/res_smdi.c
+Log:
+Update to Asterisk SVN trunk r26170
+
+------------------------------------------------------------------------
+r26166 | rizzo | 2006-05-09 18:19:24 +0200 (Tue, 09 May 2006) | 5 lines
+
+clear memory before passing to ASTOBJ_INIT
+Mayne it is unnecessary, but otherwise there code believes
+the mutex is already initialized.
+
+
+------------------------------------------------------------------------
+r26170 | kpfleming | 2006-05-09 18:24:07 +0200 (Tue, 09 May 2006) | 2 lines
+
+various doxygen fixes
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/include/asterisk/astosp.h
+===================================================================
+--- trunk/include/asterisk/astosp.h	2006-05-09 15:28:49 UTC (rev 111)
++++ trunk/include/asterisk/astosp.h	2006-05-09 16:28:48 UTC (rev 112)
+@@ -112,7 +112,8 @@
+  * \param handle OSP in/out_bound transaction handle
+  * \param reason Last destination failure reason
+  * \param start Call start time
+- * \param duration Call duration
++ * \param connect Call connect time
++ * \param end Call end time
+  * \return 1 Success, 0 Failed, -1 Error
+  */
+ int ast_osp_finish(
+
+Modified: trunk/include/asterisk/channel.h
+===================================================================
+--- trunk/include/asterisk/channel.h	2006-05-09 15:28:49 UTC (rev 111)
++++ trunk/include/asterisk/channel.h	2006-05-09 16:28:48 UTC (rev 112)
+@@ -625,6 +625,13 @@
+   The supplied payload data is copied into the frame, so the caller's copy
+   is not modified nor freed, and the resulting frame will retain a copy of
+   the data even if the caller frees their local copy.
++
++  \note This method should be treated as a 'network transport'; in other
++  words, your frames may be transferred across an IAX2 channel to another
++  system, which may be a different endianness than yours. Because of this,
++  you should ensure that either your frames will never be expected to work
++  across systems, or that you always put your payload data into 'network byte
++  order' before calling this function.
+ */
+ int ast_queue_control_data(struct ast_channel *chan, enum ast_control_frame_type control,
+ 			   const void *data, size_t datalen);
+
+Modified: trunk/include/asterisk/frame.h
+===================================================================
+--- trunk/include/asterisk/frame.h	2006-05-09 15:28:49 UTC (rev 111)
++++ trunk/include/asterisk/frame.h	2006-05-09 16:28:48 UTC (rev 112)
+@@ -241,24 +241,24 @@
+ #define AST_FORMAT_VIDEO_MASK   (((1 &lt;&lt; 25)-1) &amp; ~(AST_FORMAT_AUDIO_MASK))
+ 
+ enum ast_control_frame_type {
+-	AST_CONTROL_HANGUP = 1,		/*! Other end has hungup */
+-	AST_CONTROL_RING = 2,		/*! Local ring */
+-	AST_CONTROL_RINGING = 3,	/*! Remote end is ringing */
+-	AST_CONTROL_ANSWER = 4,		/*! Remote end has answered */
+-	AST_CONTROL_BUSY = 5,		/*! Remote end is busy */
+-	AST_CONTROL_TAKEOFFHOOK = 6,	/*! Make it go off hook */
+-	AST_CONTROL_OFFHOOK = 7,	/*! Line is off hook */
+-	AST_CONTROL_CONGESTION = 8,	/*! Congestion (circuits busy) */
+-	AST_CONTROL_FLASH = 9,		/*! Flash hook */
+-	AST_CONTROL_WINK = 10,		/*! Wink */
+-	AST_CONTROL_OPTION = 11,	/*! Set a low-level option */
+-	AST_CONTROL_RADIO_KEY = 12,	/*! Key Radio */
+-	AST_CONTROL_RADIO_UNKEY = 13,	/*! Un-Key Radio */
+-	AST_CONTROL_PROGRESS = 14,	/*! Indicate PROGRESS */
+-	AST_CONTROL_PROCEEDING = 15,	/*! Indicate CALL PROCEEDING */
+-	AST_CONTROL_HOLD = 16,		/*! Indicate call is placed on hold */
+-	AST_CONTROL_UNHOLD = 17,	/*! Indicate call is left from hold */
+-	AST_CONTROL_VIDUPDATE = 18,	/*! Indicate video frame update */
++	AST_CONTROL_HANGUP = 1,		/*!&lt; Other end has hungup */
++	AST_CONTROL_RING = 2,		/*!&lt; Local ring */
++	AST_CONTROL_RINGING = 3,	/*!&lt; Remote end is ringing */
++	AST_CONTROL_ANSWER = 4,		/*!&lt; Remote end has answered */
++	AST_CONTROL_BUSY = 5,		/*!&lt; Remote end is busy */
++	AST_CONTROL_TAKEOFFHOOK = 6,	/*!&lt; Make it go off hook */
++	AST_CONTROL_OFFHOOK = 7,	/*!&lt; Line is off hook */
++	AST_CONTROL_CONGESTION = 8,	/*!&lt; Congestion (circuits busy) */
++	AST_CONTROL_FLASH = 9,		/*!&lt; Flash hook */
++	AST_CONTROL_WINK = 10,		/*!&lt; Wink */
++	AST_CONTROL_OPTION = 11,	/*!&lt; Set a low-level option */
++	AST_CONTROL_RADIO_KEY = 12,	/*!&lt; Key Radio */
++	AST_CONTROL_RADIO_UNKEY = 13,	/*!&lt; Un-Key Radio */
++	AST_CONTROL_PROGRESS = 14,	/*!&lt; Indicate PROGRESS */
++	AST_CONTROL_PROCEEDING = 15,	/*!&lt; Indicate CALL PROCEEDING */
++	AST_CONTROL_HOLD = 16,		/*!&lt; Indicate call is placed on hold */
++	AST_CONTROL_UNHOLD = 17,	/*!&lt; Indicate call is left from hold */
++	AST_CONTROL_VIDUPDATE = 18,	/*!&lt; Indicate video frame update */
+ };
+ 
+ #define AST_SMOOTHER_FLAG_G729		(1 &lt;&lt; 0)
+
+Modified: trunk/include/asterisk/module.h
+===================================================================
+--- trunk/include/asterisk/module.h	2006-05-09 15:28:49 UTC (rev 111)
++++ trunk/include/asterisk/module.h	2006-05-09 16:28:48 UTC (rev 112)
+@@ -77,8 +77,7 @@
+ /*! 
+  * \brief Unloads a module.
+  * \param resource_name The name of the module to unload.
+- * \param force The force flag.  This should be set using one of the AST_FORCE*
+- *        flags.
++ * \param unload_mode The force flag. This should be set using one of the AST_FORCE flags.
+  *
+  * This function unloads a module.  It will only unload modules that are not in
+  * use (usecount not zero), unless #AST_FORCE_FIRM or #AST_FORCE_HARD is 
+@@ -177,9 +176,8 @@
+  * whose functions are exported through fields of a &quot;struct module_symbol&quot;;
+  *
+  * Modules exporting extra symbols (data or functions), should list
+- * them into an array of struct symbol_entry: \r
++ * them into an array of struct symbol_entry:
+  *     struct symbol_entry exported_symbols[]
+- * \r
+  * of symbols, with a NULL name on the last entry
+  *
+  * Functions should be added with MOD_FUNC(name),
+
+Modified: trunk/include/asterisk/translate.h
+===================================================================
+--- trunk/include/asterisk/translate.h	2006-05-09 15:28:49 UTC (rev 111)
++++ trunk/include/asterisk/translate.h	2006-05-09 16:28:48 UTC (rev 112)
+@@ -146,6 +146,7 @@
+ /*!
+  * \brief Register a translator
+  * \param t populated ast_translator structure
++ * \param module handle to the module that owns this translator
+  * This registers a codec translator with asterisk
+  * \return 0 on success, -1 on failure
+  */
+
+Modified: trunk/netsock.c
+===================================================================
+--- trunk/netsock.c	2006-05-09 15:28:49 UTC (rev 111)
++++ trunk/netsock.c	2006-05-09 16:28:48 UTC (rev 112)
+@@ -149,7 +149,7 @@
+ 	if (setsockopt(netsocket, IPPROTO_IP, IP_TOS, &amp;tos, sizeof(tos))) 
+ 		ast_log(LOG_WARNING, &quot;Unable to set TOS to %d\n&quot;, tos);
+ 
+-	ns = malloc(sizeof(struct ast_netsock));
++	ns = ast_calloc(1, sizeof(struct ast_netsock));
+ 	if (ns) {
+ 		/* Establish I/O callback for socket read */
+ 		ioref = ast_io_add(ioc, netsocket, callback, AST_IO_IN, ns);
+
+Modified: trunk/pbx/pbx_config.c
+===================================================================
+--- trunk/pbx/pbx_config.c	2006-05-09 15:28:49 UTC (rev 111)
++++ trunk/pbx/pbx_config.c	2006-05-09 16:28:48 UTC (rev 112)
+@@ -191,7 +191,7 @@
+ 	return (len == 0 || !strncmp(s, word, len));
+ }
+ 
+-/*! \brief split <A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">extension at context</A> in two parts, return -1 on error.
++/*! \brief split extension\@context in two parts, return -1 on error.
+  * The return string is malloc'ed and pointed by *ext
+  */
+ static int split_ec(const char *src, char **ext, char ** const ctx)
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-09 15:28:49 UTC (rev 111)
++++ trunk/pbx.c	2006-05-09 16:28:48 UTC (rev 112)
+@@ -173,7 +173,7 @@
+ struct ast_app {
+ 	int (*execute)(struct ast_channel *chan, void *data);
+ 	const char *synopsis;			/*!&lt; Synopsis text for 'show applications' */
+-	const char *description;		/*!&lt; Description (help text) for 'show application &lt;name&gt;' */
++	const char *description;		/*!&lt; Description (help text) for 'show application &lt;name&gt;' */
+ 	AST_LIST_ENTRY(ast_app) list;		/*!&lt; Next app in list */
+ 	struct module *module;			/*!&lt; Module this app belongs to */
+ 	char name[0];				/*!&lt; Name of the application */
+@@ -1230,7 +1230,7 @@
+ }
+ 
+ /*! \brief return a pointer to the arguments of the function,
+- * and terminates the function name with '\0'
++ * and terminates the function name with '\\0'
+  */
+ static char *func_args(char *function)
+ {
+
+Modified: trunk/res/res_smdi.c
+===================================================================
+--- trunk/res/res_smdi.c	2006-05-09 15:28:49 UTC (rev 111)
++++ trunk/res/res_smdi.c	2006-05-09 16:28:48 UTC (rev 112)
+@@ -150,7 +150,7 @@
+ /*!
+  * \brief Put an SMDI message back in the front of the queue.
+  * \param iface a pointer to the interface to use.
+- * \param msg a pointer to the message to use.
++ * \param md_msg a pointer to the message to use.
+  *
+  * This function puts a message back in the front of the specified queue.  It
+  * should be used if a message was popped but is not going to be processed for
+@@ -164,7 +164,7 @@
+ /*!
+  * \brief Put an SMDI message back in the front of the queue.
+  * \param iface a pointer to the interface to use.
+- * \param msg a pointer to the message to use.
++ * \param mwi_msg a pointer to the message to use.
+  *
+  * This function puts a message back in the front of the specified queue.  It
+  * should be used if a message was popped but is not going to be processed for
+@@ -326,7 +326,7 @@
+ 
+ /*! \brief Read an SMDI message.
+  *
+- * \param iface the SMDI interface to read from.
++ * \param iface_p the SMDI interface to read from.
+  *
+  * This function loops and reads from and SMDI interface.  It must be stopped
+  * using pthread_cancel().
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000107.html">[solid-pbx-svn] r111 - in trunk: . channels include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000109.html">[solid-pbx-svn] r113 - in trunk: . agi apps build_tools cdr channels channels/h323 channels/misdn codecs codecs/gsm codecs/gsm/inc codecs/gsm/src codecs/ilbc codecs/lpc10 configs contrib contrib/firmware/iax contrib/init.d contrib/scripts contrib/thirdparty contrib/utils cygwin db1-ast db1-ast/btree db1-ast/db db1-ast/hash db1-ast/include db1-ast/mpool db1-ast/recno doc editline editline/TEST editline/np editline/readline formats funcs images include include/asterisk include/solaris-compat include/solaris-compat/sys keys mxml pbx pbx/ael pbx/ael/ael-test pbx/ael/ael-test/ael-test1 pbx/ael/ael-test/ael-test2 pbx/ael/ael-test/ael-test3 pbx/ael/ael-test/ael-test4 pbx/ael/ael-test/ael-test5 pbx/ael/ael-test/ael-test6 pbx/ael/ael-test/ael-test7 redhat res res/snmp sounds sounds/dictate sounds/digits sounds/letters sounds/phonetic static-http stdtime utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#108">[ date ]</a>
+              <a href="thread.html#108">[ thread ]</a>
+              <a href="subject.html#108">[ subject ]</a>
+              <a href="author.html#108">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

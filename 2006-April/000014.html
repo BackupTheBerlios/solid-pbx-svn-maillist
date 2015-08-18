@@ -1,0 +1,208 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r17 - in trunk: . build_tools channels res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-April/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r17%20-%20in%20trunk%3A%20.%20build_tools%20channels%20res&In-Reply-To=%3C200604301758.k3UHwTfd018691%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000013.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r17 - in trunk: . build_tools channels res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r17%20-%20in%20trunk%3A%20.%20build_tools%20channels%20res&In-Reply-To=%3C200604301758.k3UHwTfd018691%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r17 - in trunk: . build_tools channels res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Apr 30 19:58:29 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000013.html">[solid-pbx-svn] r16 - trunk/channels
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#14">[ date ]</a>
+              <a href="thread.html#14">[ thread ]</a>
+              <a href="subject.html#14">[ subject ]</a>
+              <a href="author.html#14">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-04-30 19:58:23 +0200 (Sun, 30 Apr 2006)
+New Revision: 17
+
+Modified:
+   trunk/build_tools/menuselect-deps.in
+   trunk/channels/Makefile
+   trunk/channels/chan_oss.c
+   trunk/configure.ac
+   trunk/makeopts.in
+   trunk/res/Makefile
+Log:
+Update to Asterisk SVN trunk r23737
+
+------------------------------------------------------------------------
+r23735 | kpfleming | 2006-04-30 19:25:01 +0200 (Sun, 30 Apr 2006) | 2 lines
+
+remove remaining MFC/R2 stuff
+
+------------------------------------------------------------------------
+r23736 | kpfleming | 2006-04-30 19:49:50 +0200 (Sun, 30 Apr 2006) | 2 lines
+
+use proper method of detecting OSS support on Linux and FreeBSD
+
+------------------------------------------------------------------------
+r23737 | kpfleming | 2006-04-30 19:53:37 +0200 (Sun, 30 Apr 2006) | 2 lines
+
+remove macro defined that is no longer needed
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/build_tools/menuselect-deps.in
+===================================================================
+--- trunk/build_tools/menuselect-deps.in	2006-04-30 17:20:05 UTC (rev 16)
++++ trunk/build_tools/menuselect-deps.in	2006-04-30 17:58:23 UTC (rev 17)
+@@ -4,7 +4,6 @@
+ GTK=@PBX_GTK@
+ H323=@PBX_H323@
+ KDE=@PBX_KDE@
+-LIBMFCR2=@PBX_LIBmfcr2@
+ LIBNEWT=@PBX_LIBnewt@
+ LIBOSPTK=@PBX_LIBosptk@
+ LIBPOPT=@PBX_LIBpopt@
+
+Modified: trunk/channels/Makefile
+===================================================================
+--- trunk/channels/Makefile	2006-04-30 17:20:05 UTC (rev 16)
++++ trunk/channels/Makefile	2006-04-30 17:58:23 UTC (rev 17)
+@@ -103,15 +103,10 @@
+ 	./gentone ringtone 440 480
+ 
+ chan_oss.o: chan_oss.c busy.h ringtone.h
++	$(CC) -c -o $@ $(CFLAGS) $(OSSAUDIO_INCLUDE) $&lt;
+ 
+-ifeq ($(OSARCH),OpenBSD)
+ chan_oss.so: chan_oss.o
+-	$(CC) $(SOLINK) -o $@ chan_oss.o -lossaudio
+-endif
+-ifeq ($(OSARCH),NetBSD)
+-chan_oss.so: chan_oss.o
+-	$(CC) $(SOLINK) -o $@ chan_oss.o -lossaudio
+-endif
++	$(CC) $(SOLINK) -o $@ chan_oss.o $(OSSAUDIO_LIB)
+ 
+ chan_iax2.so: chan_iax2.o iax2-parser.o iax2-provision.o
+ 	$(CC) $(SOLINK) -o $@ $&lt; iax2-parser.o iax2-provision.o
+
+Modified: trunk/channels/chan_oss.c
+===================================================================
+--- trunk/channels/chan_oss.c	2006-04-30 17:20:05 UTC (rev 16)
++++ trunk/channels/chan_oss.c	2006-04-30 17:58:23 UTC (rev 17)
+@@ -33,7 +33,7 @@
+  */
+ 
+ /*** MODULEINFO
+-	&lt;depend&gt;osssound&lt;/depend&gt;
++	&lt;depend&gt;ossaudio&lt;/depend&gt;
+  ***/
+ 
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-04-30 17:20:05 UTC (rev 16)
++++ trunk/configure.ac	2006-04-30 17:58:23 UTC (rev 17)
+@@ -174,14 +174,25 @@
+ AST_EXT_LIB([vorbis], [vorbis_info_init], [vorbis/codec.h], [VORBIS], [Vorbis], [-lm -lvorbisenc])
+ AST_EXT_LIB([z], [compress], [zlib.h], [ZLIB], [zlib])
+ 
++PBX_LIBossaudio=0
+ if test &quot;x${PBX_OSTYPE}&quot; = &quot;xLinux&quot; ; then
+-   AST_EXT_LIB([ossaudio], [oss_ioctl_mixer], [linux/soundcard.h], [OSS], [Open Sound System])
++   AC_CHECK_HEADER([linux/soundcard.h],
++                   [PBX_LIBossaudio=1
++		    AC_DEFINE_UNQUOTED([HAVE_OSS], 1, [Define to indicate the Open Sound System library])
++		  ])
+ elif test &quot;x${PBX_OSTYPE}&quot; = &quot;xFreeBSD&quot; ; then
+-   AST_EXT_LIB([ossaudio], [oss_ioctl_mixer], [sys/soundcard.h], [OSS], [Open Sound System])
+-else
++   AC_CHECK_HEADER([sys/soundcard.h],
++                   [PBX_LIBossaudio=1
++		    AC_DEFINE_UNQUOTED([HAVE_OSS], 1, [Define to indicate the Open Sound System library])
++		  ])
++elif test &quot;x${PBX_OSTYPE}&quot; = &quot;xOpenBSD&quot; ; then
+    AST_EXT_LIB([ossaudio], [oss_ioctl_mixer], [soundcard.h], [OSS], [Open Sound System])
++elif test &quot;x${PBX_OSTYPE}&quot; = &quot;xNetBSD&quot; ; then
++   AST_EXT_LIB([ossaudio], [oss_ioctl_mixer], [soundcard.h], [OSS], [Open Sound System])
+ fi
+ 
++AC_SUBST([PBX_LIBossaudio])
++
+ if test &quot;x${PBX_OSTYPE}&quot; = &quot;xLinux&quot; ; then
+    AST_EXT_LIB([tonezone], [tone_zone_find], [linux/zaptel.h], [ZAPTEL], [Zaptel])
+ else
+
+Modified: trunk/makeopts.in
+===================================================================
+--- trunk/makeopts.in	2006-04-30 17:20:05 UTC (rev 16)
++++ trunk/makeopts.in	2006-04-30 17:58:23 UTC (rev 17)
+@@ -51,9 +51,6 @@
+ PRI_LIB=@pri_LIB@
+ PRI_INCLUDE=@pri_INCLUDE@
+ 
+-MFCR2_LIB=@mfcr2_LIB@
+-MFCR2_INCLUDE=@mfcr2_INCLUDE@
+-
+ OSPTK_LIB=@osptk_LIB@
+ OSPTK_INCLUDE=@osptk_INCLUDE@
+ 
+
+Modified: trunk/res/Makefile
+===================================================================
+--- trunk/res/Makefile	2006-04-30 17:20:05 UTC (rev 16)
++++ trunk/res/Makefile	2006-04-30 17:58:23 UTC (rev 17)
+@@ -34,12 +34,6 @@
+   SNMP_LDLIBS+=$(shell net-snmp-config --agent-libs)
+ endif
+ 
+-
+-#
+-# Work around buggy RedHat 9.0
+-#
+-CFLAGS+=-DOPENSSL_NO_KRB5
+-
+ all: depend $(MODS)
+ 
+ install: all
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000013.html">[solid-pbx-svn] r16 - trunk/channels
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#14">[ date ]</a>
+              <a href="thread.html#14">[ thread ]</a>
+              <a href="subject.html#14">[ subject ]</a>
+              <a href="author.html#14">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

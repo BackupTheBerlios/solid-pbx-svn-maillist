@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r142 - trunk/funcs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r142%20-%20trunk/funcs&In-Reply-To=%3C200605112329.k4BNTiOj026210%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000135.html">
+   <LINK REL="Next"  HREF="000138.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r142 - trunk/funcs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r142%20-%20trunk/funcs&In-Reply-To=%3C200605112329.k4BNTiOj026210%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r142 - trunk/funcs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May 12 01:29:44 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000135.html">[solid-pbx-svn] r141 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000138.html">[solid-pbx-svn] r143 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#133">[ date ]</a>
+              <a href="thread.html#133">[ thread ]</a>
+              <a href="subject.html#133">[ subject ]</a>
+              <a href="author.html#133">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-12 01:28:40 +0200 (Fri, 12 May 2006)
+New Revision: 142
+
+Modified:
+   trunk/funcs/func_logic.c
+Log:
+Update to Asterisk SVN trunk r27052
+
+------------------------------------------------------------------------
+r27052 | tilghman | 2006-05-12 01:16:27 +0200 (Fri, 12 May 2006) | 10 lines
+
+Merged revisions 27051 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r27051 | tilghman | 2006-05-11 18:02:57 -0500 (Thu, 11 May 2006) | 2 lines
+
+Bug 7086 - pbx_checkcondition substitution, so that arbitrary strings are true (for regex)
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/funcs/func_logic.c
+===================================================================
+--- trunk/funcs/func_logic.c	2006-05-11 21:28:50 UTC (rev 141)
++++ trunk/funcs/func_logic.c	2006-05-11 23:28:40 UTC (rev 142)
+@@ -110,7 +110,7 @@
+ 	if (iffalse)
+ 		iffalse = ast_strip_quoted(iffalse, &quot;\&quot;&quot;, &quot;\&quot;&quot;);
+ 
+-	ast_copy_string(buf, ast_true(expr) ? iftrue : iffalse, len);
++	ast_copy_string(buf, pbx_checkcondition(expr) ? iftrue : iffalse, len);
+ 
+ 	return 0;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000135.html">[solid-pbx-svn] r141 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000138.html">[solid-pbx-svn] r143 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#133">[ date ]</a>
+              <a href="thread.html#133">[ thread ]</a>
+              <a href="subject.html#133">[ subject ]</a>
+              <a href="author.html#133">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

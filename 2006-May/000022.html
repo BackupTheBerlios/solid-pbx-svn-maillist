@@ -1,0 +1,286 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r25 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r25%20-%20trunk&In-Reply-To=%3C200605011118.k41BIYQO011234%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000021.html">
+   <LINK REL="Next"  HREF="000023.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r25 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r25%20-%20trunk&In-Reply-To=%3C200605011118.k41BIYQO011234%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r25 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  1 13:18:34 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000021.html">[solid-pbx-svn] r24 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000023.html">[solid-pbx-svn] r26 - in trunk: . apps include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#22">[ date ]</a>
+              <a href="thread.html#22">[ thread ]</a>
+              <a href="subject.html#22">[ subject ]</a>
+              <a href="author.html#22">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-01 13:18:20 +0200 (Mon, 01 May 2006)
+New Revision: 25
+
+Modified:
+   trunk/acinclude.m4
+   trunk/configure.ac
+Log:
+Update to Asterisk SVN trunk r23927
+
+------------------------------------------------------------------------
+r23897 | kpfleming | 2006-05-01 12:34:20 +0200 (Mon, 01 May 2006) | 3 lines
+
+don't put bogus paths like -L/lib into link commands
+do the QT check properly
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/acinclude.m4
+===================================================================
+--- trunk/acinclude.m4	2006-05-01 10:18:20 UTC (rev 24)
++++ trunk/acinclude.m4	2006-05-01 11:18:20 UTC (rev 25)
+@@ -19,14 +19,18 @@
+ 
+ PBX_LIB$1=0
+ 
+-if test &quot;${USE_$1}&quot; != &quot;no&quot;; then	
+-   AC_CHECK_LIB([$1], [$2], [:], [], -L${$1_DIR}/lib $6)
++if test &quot;${USE_$1}&quot; != &quot;no&quot;; then
++   libdir=&quot;&quot;
++   if test &quot;x${$1_DIR}&quot; != &quot;x&quot;; then
++      libdir=&quot;-L${$1_DIR}/lib&quot;
++   fi
++   AC_CHECK_LIB([$1], [$2], [:], [], ${libdir} $6)
+ 
+    if test &quot;${ac_cv_lib_$1_$2}&quot; = &quot;yes&quot;; then
+       $1_LIB=&quot;-l$1 $6&quot;
+       $4_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${$1_DIR}&quot; != &quot;x&quot;; then
+-         $1_LIB=&quot;-L${$1_DIR}/lib ${$1_LIB}&quot;
++         $1_LIB=&quot;${libdir} ${$1_LIB}&quot;
+ 	 $1_INCLUDE=&quot;-I${$1_DIR}/include&quot;
+ 	 if test &quot;x$3&quot; != &quot;x&quot; ; then
+ 	    AC_CHECK_HEADER([${$1_DIR}/include/$3], [$4_HEADER_FOUND=1], [$4_HEADER_FOUND=0] )
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-05-01 10:18:20 UTC (rev 24)
++++ trunk/configure.ac	2006-05-01 11:18:20 UTC (rev 25)
+@@ -175,27 +175,26 @@
+ AST_EXT_LIB([z], [compress], [zlib.h], [ZLIB], [zlib])
+ 
+ PBX_LIBossaudio=0
+-if test &quot;x${PBX_OSTYPE}&quot; = &quot;xLinux&quot; ; then
+-   AC_CHECK_HEADER([linux/soundcard.h],
+-                   [PBX_LIBossaudio=1
+-		    AC_DEFINE_UNQUOTED([HAVE_OSS], 1, [Define to indicate the Open Sound System library])
+-		  ])
+-elif test &quot;x${PBX_OSTYPE}&quot; = &quot;xFreeBSD&quot; ; then
++AC_CHECK_HEADER([linux/soundcard.h],
++	        [
++		PBX_LIBossaudio=1
++                AC_DEFINE_UNQUOTED([HAVE_OSS], 1, [Define to indicate the Open Sound System library])
++		])
++if test &quot;$PBX_LIBossaudio&quot; = &quot;0&quot;; then
+    AC_CHECK_HEADER([sys/soundcard.h],
+-                   [PBX_LIBossaudio=1
+-		    AC_DEFINE_UNQUOTED([HAVE_OSS], 1, [Define to indicate the Open Sound System library])
+-		  ])
+-elif test &quot;x${PBX_OSTYPE}&quot; = &quot;xOpenBSD&quot; ; then
++                   [
++		   PBX_LIBossaudio=1
++		   AC_DEFINE_UNQUOTED([HAVE_OSS], 1, [Define to indicate the Open Sound System library])
++		   ])
++fi
++if test &quot;$PBX_LIBossaudio&quot; = &quot;0&quot;; then
+    AST_EXT_LIB([ossaudio], [oss_ioctl_mixer], [soundcard.h], [OSS], [Open Sound System])
+-elif test &quot;x${PBX_OSTYPE}&quot; = &quot;xNetBSD&quot; ; then
+-   AST_EXT_LIB([ossaudio], [oss_ioctl_mixer], [soundcard.h], [OSS], [Open Sound System])
+ fi
+ 
+ AC_SUBST([PBX_LIBossaudio])
+ 
+-if test &quot;x${PBX_OSTYPE}&quot; = &quot;xLinux&quot; ; then
+-   AST_EXT_LIB([tonezone], [tone_zone_find], [linux/zaptel.h], [ZAPTEL], [Zaptel])
+-else
++AST_EXT_LIB([tonezone], [tone_zone_find], [linux/zaptel.h], [ZAPTEL], [Zaptel])
++if test &quot;$PBX_LIBtonezone&quot; = &quot;0&quot;; then
+    AST_EXT_LIB([tonezone], [tone_zone_find], [zaptel.h], [ZAPTEL], [Zaptel], [-lm])
+ fi
+ 
+@@ -222,12 +221,16 @@
+ 
+ if test &quot;${USE_GSM}&quot; != &quot;no&quot;; then
+    if test &quot;${GSM_SYSTEM}&quot; = &quot;yes&quot;; then
++      libdir=&quot;&quot;
++      if test &quot;x${GSM_DIR}&quot; != &quot;x&quot;; then
++         libdir=&quot;-L${GSM_DIR}/lib&quot;
++      fi
+       AC_CHECK_LIB([gsm], [gsm_create], AC_DEFINE_UNQUOTED([HAVE_GSM], 1,
+-      [Define to indicate the GSM library]), [], -L${GSM_DIR}/lib)
++      [Define to indicate the GSM library]), [], ${libdir})
+       if test &quot;${ac_cv_lib_gsm_gsm_create}&quot; = &quot;yes&quot;; then
+ 	 gsm_LIB=&quot;-lgsm&quot;
+ 	 if test &quot;x${GSM_DIR}&quot; != &quot;x&quot;; then
+-	    gsm_LIB=&quot;-L${GSM_DIR}/lib ${gsm_LIB}&quot;
++	    gsm_LIB=&quot;${libdir} ${gsm_LIB}&quot;
+ 	    gsm_INCLUDE=&quot;-I${GSM_DIR}/include&quot;
+ 	 fi
+ 	 PBX_LIBgsm=1
+@@ -339,7 +342,7 @@
+    echo -n &quot;checking for vpb_open in -lvpb...&quot;
+    saved_libs=&quot;${LIBS}&quot;
+    saved_cppflags=&quot;${CPPFLAGS}&quot;
+-   if test &quot;x${VPB_DIR}&quot; != &quot;x&quot; ; then
++   if test &quot;x${VPB_DIR}&quot; != &quot;x&quot;; then
+       LIBS=&quot;${LIBS} -L${VPB_DIR}/lib&quot;
+       CPPFLAGS=&quot;${CPPFLAGS} -I${VPB_DIR}/include&quot;
+    fi
+@@ -399,50 +402,63 @@
+ PBX_QT=0
+ if test &quot;${USE_QT}&quot; != &quot;no&quot;; then
+    echo -n &quot;checking for QDate in -lqt...&quot;
+-   saved_ldflags=&quot;${LDFLAGS}&quot;
+-   LDFLAGS=&quot;${LDFLAGS} -L${QT_DIR}/lib -lqt&quot;
++   saved_libs=&quot;${LIBS}&quot;
++   saved_cppflags=&quot;${CPPFLAGS}&quot;
++   if test &quot;x${QT_DIR}&quot; != &quot;x&quot;; then
++      LIBS=&quot;${LIBS} -L${QT_DIR}/lib&quot;
++      CPPFLAGS=&quot;${CPPFLAGS} -I${QT_DIR}/include&quot;
++   fi
++   LIBS=&quot;${LIBS} -lqt&quot;
+    qtlib=&quot;qt&quot;
+-	AC_LINK_IFELSE(
++   AC_LINK_IFELSE(
+ 	[
+ 		AC_LANG_PROGRAM(
+-		[#include &quot;${QT_DIR}include/qdatetime.h&quot;],
++		[#include &lt;qt3/qdatetime.h&gt;],
+ 		[QDate date();])
+ 	],
+ 	[ac_cv_lib_qt_qt_date=&quot;yes&quot;],
+ 	[ac_cv_lib_qt_qt_date=&quot;no&quot;])
+-		
+-	if test &quot;${ac_cv_lib_qt_qt_date}&quot; = &quot;no&quot;; then
+-		qtlib=&quot;qt-mt&quot;	
+-   	LDFLAGS=&quot;${saved_ldflags} -L${QT_DIR}/lib -lqt-mt&quot;
+-		AC_LINK_IFELSE(
++   LIBS=&quot;${saved_libs}&quot;
++   CPPFLAGS=&quot;${saved_cppflags}&quot;
++	
++   if test &quot;${ac_cv_lib_qt_qt_date}&quot; = &quot;no&quot;; then
++      saved_libs=&quot;${LIBS}&quot;
++      saved_cppflags=&quot;${CPPFLAGS}&quot;
++      if test &quot;x${QT_DIR}&quot; != &quot;x&quot;; then
++      	 LIBS=&quot;${LIBS} -L${QT_DIR}/lib&quot;
++	 CPPFLAGS=&quot;${CPPFLAGS} -I${QT_DIR}/include&quot;
++      fi
++      LIBS=&quot;${LIBS} -lqt-mt&quot;
++      qtlib=&quot;qt-mt&quot;	
++      AC_LINK_IFELSE(
+ 		[
+ 			AC_LANG_PROGRAM(
+-			[#include &quot;${QT_DIR}include/qdatetime.h&quot;],
++			[#include &lt;qt3/qdatetime.h&gt;],
+ 			[QDate date();])
+ 		],
+ 		[ac_cv_lib_qt_qt_date=&quot;yes&quot;],
+ 		[ac_cv_lib_qt_qt_date=&quot;no&quot;])
+-	fi	
++      LIBS=&quot;${saved_libs}&quot;
++      CPPFLAGS=&quot;${saved_cppflags}&quot;
++   fi	
++
++   if test &quot;${ac_cv_lib_qt_qt_date}&quot; = &quot;yes&quot;; then
++      AC_MSG_RESULT(yes) 
++   else
++      AC_MSG_RESULT(no) 
++   fi
+ 	
+-	LDFLAGS=&quot;${saved_ldflags}&quot;
+-	
+-	if test &quot;${ac_cv_lib_qt_qt_date}&quot; = &quot;yes&quot;; then
+-		AC_MSG_RESULT(yes) 
+-	else
+-		AC_MSG_RESULT(no) 
+-	fi
+-	
+-	if test &quot;${ac_cv_lib_qt_qt_date}&quot; = &quot;yes&quot;; then
+-		QT_LIB=&quot;-l${qtlib}&quot;
+-		if test &quot;${QT_DIR}&quot; != &quot;&quot;; then
+-			QT_LIB=&quot;-L${QT_DIR}/lib ${QT_LIB}&quot;
+-			QT_INCLUDE=&quot;-I${QT_DIR}/include&quot;
+-			AC_SUBST([QT_INCLUDE])
+-		fi
+-		AC_SUBST([QT_LIB])
+-		PBX_QT=1
+-		AC_DEFINE([HAVE_LIBQT], 1, [Define if your system has the Qt library])
+-		AC_PATH_TOOL(QTMOC, moc, No)
++   if test &quot;${ac_cv_lib_qt_qt_date}&quot; = &quot;yes&quot;; then
++      QT_LIB=&quot;-l${qtlib}&quot;
++      if test &quot;${QT_DIR}&quot; != &quot;&quot;; then
++      	 QT_LIB=&quot;-L${QT_DIR}/lib ${QT_LIB}&quot;
++	 QT_INCLUDE=&quot;-I${QT_DIR}/include&quot;
++	 AC_SUBST([QT_INCLUDE])
++      fi
++      AC_SUBST([QT_LIB])
++      PBX_QT=1
++      AC_DEFINE([HAVE_LIBQT], 1, [Define if your system has the Qt library])
++      AC_PATH_TOOL(QTMOC, moc, No)
+    elif test ! -z &quot;${QT_MANDATORY}&quot;; 
+    then
+       echo &quot;***&quot;
+@@ -454,9 +470,6 @@
+ fi
+ AC_SUBST([PBX_QT])
+ 
+-
+-
+-
+ AC_ARG_WITH([kde], AC_HELP_STRING([--with-kde=PATH],[use KDE files in PATH]),[
+ case ${withval} in
+      n|no)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000021.html">[solid-pbx-svn] r24 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000023.html">[solid-pbx-svn] r26 - in trunk: . apps include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#22">[ date ]</a>
+              <a href="thread.html#22">[ thread ]</a>
+              <a href="subject.html#22">[ subject ]</a>
+              <a href="author.html#22">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

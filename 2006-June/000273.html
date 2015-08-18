@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r278 - trunk/configs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r278%20-%20trunk/configs&In-Reply-To=%3C200606182154.k5ILsT2Z016407%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000272.html">
+   <LINK REL="Next"  HREF="000274.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r278 - trunk/configs</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r278%20-%20trunk/configs&In-Reply-To=%3C200606182154.k5ILsT2Z016407%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r278 - trunk/configs">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 23:54:29 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000272.html">[solid-pbx-svn] r277 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000274.html">[solid-pbx-svn] r279 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#273">[ date ]</a>
+              <a href="thread.html#273">[ thread ]</a>
+              <a href="subject.html#273">[ subject ]</a>
+              <a href="author.html#273">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 23:54:29 +0200 (Sun, 18 Jun 2006)
+New Revision: 278
+
+Added:
+   trunk/configs/followme.conf.sample
+Log:
+Add missing file
+
+Added: trunk/configs/followme.conf.sample
+===================================================================
+--- trunk/configs/followme.conf.sample	2006-06-18 21:52:07 UTC (rev 277)
++++ trunk/configs/followme.conf.sample	2006-06-18 21:54:29 UTC (rev 278)
+@@ -0,0 +1,86 @@
++; Find-Me / Follow-Me Configuration File
++[general]
++;
++featuredigittimeout=&gt;5000
++; The number of ms to wait for a digit input for the callee on whether to take the call or
++; not before we consider them &quot;done&quot; entering digits.
++;
++takecall=&gt;1
++; The global default keypress for the callee to take taking the current call. This can be
++; a single digit or multiple digits. Default is &quot;1&quot;.
++;
++declinecall=&gt;2
++; The global default keypress for the callee to decline taking the current call. This can
++; be a single digit or multiple digits. Default is &quot;2&quot;.
++;
++call-from-prompt=&gt;followme/call-from
++; The global default for the 'Incoming call from' message.
++;
++followme-norecording-prompt=&gt;followme/no-recording
++; The global default for the 'You have an incoming call' message when the caller elects
++; not to leave their name or the option isn't set for them to do so.
++;
++followme-options-prompt=&gt;followme/followme-options
++; The global default for the 'Press 1 to accept this call or press 2 to decline it' message.
++;
++followme-pls-hold-prompt=&gt;followme/pls-hold-while-try
++; The global default for 'Please hold while we try and connect your call' message.
++;
++followme-status-prompt=&gt;followme/followme-status
++; The global default for 'The party you're calling isn't at their desk' message.
++;
++followme-sorry-prompt=&gt;followme/followme-sorry  
++; The global default for 'I'm sorry, but we were unable to locate your party' message.
++;
++;
++[default]
++musicclass=&gt;default
++; The moh class that should be used for the caller while they are waiting to be connected.
++context=&gt;default
++; The context to dial the numbers from
++number=&gt;01233456,25
++; The a follow-me number to call. The format is:
++; number=&gt; &lt;number to call[&amp;2nd #[&amp;3rd #]]&gt; [, &lt;timeout value in seconds&gt; [, &lt;order in follow-me&gt;] ]
++; You can specify as many of these numbers as you like. They will be dialed in the 
++; order that you specify them in the config file OR as specified with the order field
++; on the number prompt. As you can see from the example, forked dialing of multiple 
++; numbers in the same step is supported with this application if you'd like to dial
++; multiple numbers in the same followme step.
++; It's also important to note that the timeout value is not the same
++; as the timeout value you would use in app_dial. This timeout value is the amount of
++; time allowed between the time the dialing step starts and the callee makes a choice
++; on whether to take the call or not. That being the case, you may want to account for
++; this time, and make this timeout longer than a timeout you might specify in app_dial.
++takecall=&gt;1
++; The keypress for the callee to take taking the current call. This can be
++; a single digit or multiple digits. Default is the global default.
++;
++declinecall=&gt;2
++; The keypress for the callee to decline taking the current call. This can
++; be a single digit or multiple digits. Default is the global default.
++;
++call-from-prompt=&gt;followme/call-from
++; The 'Incoming call from' message prompt. Default is the global default.
++;
++followme-norecording-prompt=&gt;followme/no-recording
++; The 'You have an incoming call' message prompt when the caller elects
++; not to leave their name or the option isn't set for them to do so. Default
++; is the global default.
++;
++followme-options-prompt=&gt;followme/followme-options
++; The 'Press 1 to accept this call or press 2 to decline it' message prompt.
++; Default is the global default.
++;
++followme-pls-hold-prompt=&gt;followme/pls-hold-while-try
++; The 'Please hold while we try and connect your call' message prompt.
++; Default is the global default.
++;
++followme-status-prompt=&gt;followme/followme-status
++; The 'The party you're calling isn't at their desk' message prompt.
++; Default is the global default.
++;
++followme-sorry-prompt=&gt;followme/followme-sorry  
++; The 'I'm sorry, but we were unable to locate your party' message prompt. Default
++; is the global default.
++
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000272.html">[solid-pbx-svn] r277 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000274.html">[solid-pbx-svn] r279 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#273">[ date ]</a>
+              <a href="thread.html#273">[ thread ]</a>
+              <a href="subject.html#273">[ subject ]</a>
+              <a href="author.html#273">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

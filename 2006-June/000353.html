@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r358 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r358%20-%20trunk/apps&In-Reply-To=%3C200606280126.k5S1Qpxs013406%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000352.html">
+   <LINK REL="Next"  HREF="000354.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r358 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r358%20-%20trunk/apps&In-Reply-To=%3C200606280126.k5S1Qpxs013406%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r358 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:26:51 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000352.html">[solid-pbx-svn] r357 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000354.html">[solid-pbx-svn] r359 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#353">[ date ]</a>
+              <a href="thread.html#353">[ thread ]</a>
+              <a href="subject.html#353">[ subject ]</a>
+              <a href="author.html#353">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:26:50 +0200 (Wed, 28 Jun 2006)
+New Revision: 358
+
+Modified:
+   trunk/apps/app_queue.c
+Log:
+Update to Asterisk SVN trunk r34203
+
+------------------------------------------------------------------------
+r34194 | kpfleming | 2006-06-15 01:24:26 +0200 (Thu, 15 Jun 2006) | 2 lines
+
+use the proper named constants for checking device state, and don't treat UNKNOWN as not available in autofill mode
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-06-28 01:26:20 UTC (rev 357)
++++ trunk/apps/app_queue.c	2006-06-28 01:26:50 UTC (rev 358)
+@@ -2041,11 +2041,13 @@
+ 				ast_log(LOG_DEBUG, &quot;Even though there are %d available members, the strategy is ringall so only the head call is allowed in\n&quot;, avl);
+ 			avl = 1;
+ 		} else {
+-			cur = qe-&gt;parent-&gt;members;
+-			while (cur) {
+-				if (cur-&gt;status == 1) 
++			for (cur = qe-&gt;parent-&gt;members; cur; cur = cur-&gt;next) {
++				switch (cur-&gt;status) {
++				case AST_DEVICE_NOT_INUSE:
++				case AST_DEVICE_UNKNOWN:
+ 					avl++;
+-				cur = cur-&gt;next;
++					break;
++				}
+ 			}
+ 		}
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000352.html">[solid-pbx-svn] r357 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000354.html">[solid-pbx-svn] r359 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#353">[ date ]</a>
+              <a href="thread.html#353">[ thread ]</a>
+              <a href="subject.html#353">[ subject ]</a>
+              <a href="author.html#353">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

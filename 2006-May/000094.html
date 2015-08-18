@@ -1,0 +1,397 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r100 - in trunk: . apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r100%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605082319.k48NJt90031845%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000098.html">
+   <LINK REL="Next"  HREF="000099.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r100 - in trunk: . apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r100%20-%20in%20trunk%3A%20.%20apps&In-Reply-To=%3C200605082319.k48NJt90031845%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r100 - in trunk: . apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  9 01:19:55 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000098.html">[solid-pbx-svn] r99 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000099.html">[solid-pbx-svn] r101 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#94">[ date ]</a>
+              <a href="thread.html#94">[ thread ]</a>
+              <a href="subject.html#94">[ subject ]</a>
+              <a href="author.html#94">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-09 01:19:49 +0200 (Tue, 09 May 2006)
+New Revision: 100
+
+Modified:
+   trunk/apps/app_voicemail.c
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r25778
+
+------------------------------------------------------------------------
+r25747 | rizzo | 2006-05-09 00:15:31 +0200 (Tue, 09 May 2006) | 3 lines
+
+remove some common code in parsing function calls
+
+
+------------------------------------------------------------------------
+r25748 | rizzo | 2006-05-09 00:47:03 +0200 (Tue, 09 May 2006) | 3 lines
+
+more code restructuring
+
+
+------------------------------------------------------------------------
+r25749 | rizzo | 2006-05-09 00:53:57 +0200 (Tue, 09 May 2006) | 3 lines
+
+another function restructured
+
+
+------------------------------------------------------------------------
+r25772 | tilghman | 2006-05-09 01:04:19 +0200 (Tue, 09 May 2006) | 2 lines
+
+Warn user if the custom format is not one of the options
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-08 22:24:53 UTC (rev 99)
++++ trunk/apps/app_voicemail.c	2006-05-08 23:19:49 UTC (rev 100)
+@@ -3359,7 +3359,11 @@
+ 	snprintf(ext_context, sizeof(ext_context), &quot;%s@%s&quot;, vmu-&gt;mailbox, vmu-&gt;context);
+ 
+ 	if (!ast_strlen_zero(vmu-&gt;attachfmt)) {
+-		fmt = vmu-&gt;attachfmt;
++		if (strstr(fmt, vmu-&gt;attachfmt)) {
++			fmt = vmu-&gt;attachfmt;
++		} else {
++			ast_log(LOG_WARNING, &quot;Attachment format '%s' is not one of the recorded formats '%s'.  Falling back to default format for '%s@%s'.\n&quot;, vmu-&gt;attachfmt, fmt, vmu-&gt;mailbox, vmu-&gt;context);
++		}
+ 	}
+ 
+ 	/* Attach only the first format */
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-08 22:24:53 UTC (rev 99)
++++ trunk/pbx.c	2006-05-08 23:19:49 UTC (rev 100)
+@@ -1197,58 +1197,51 @@
+ 	return 0;
+ }
+ 
+-int ast_func_read(struct ast_channel *chan, char *function, char *workspace, size_t len)
++/*! \brief return a pointer to the arguments of the function,
++ * and terminates the function name with '\0'
++ */
++static char *func_args(char *function)
+ {
+-	char *args = NULL, *p;
+-	struct ast_custom_function *acfptr;
++	char *args = strchr(function, '(');
+ 
+-	if ((args = strchr(function, '('))) {
++	if (!args)
++		ast_log(LOG_WARNING, &quot;Function doesn't contain parentheses.  Assuming null argument.\n&quot;);
++	else {
++		char *p;
+ 		*args++ = '\0';
+-		if ((p = strrchr(args, ')')))
++		if ((p = strrchr(args, ')')) )
+ 			*p = '\0';
+ 		else
+ 			ast_log(LOG_WARNING, &quot;Can't find trailing parenthesis?\n&quot;);
+-	} else {
+-		ast_log(LOG_WARNING, &quot;Function doesn't contain parentheses.  Assuming null argument.\n&quot;);
+ 	}
++	return args;
++}
+ 
+-	if ((acfptr = ast_custom_function_find(function))) {
+-		/* run the custom function */
+-		if (acfptr-&gt;read)
+-			return acfptr-&gt;read(chan, function, args, workspace, len);
+-		else
+-			ast_log(LOG_ERROR, &quot;Function %s cannot be read\n&quot;, function);
+-	} else {
+-		ast_log(LOG_ERROR, &quot;Function %s not registered\n&quot;, function);
+-	}
++int ast_func_read(struct ast_channel *chan, char *function, char *workspace, size_t len)
++{
++	char *args = func_args(function);
++	struct ast_custom_function *acfptr = ast_custom_function_find(function);
+ 
++	if (acfptr == NULL)
++		ast_log(LOG_ERROR, &quot;Function %s not registered\n&quot;, function);
++	else if (!acfptr-&gt;read)
++		ast_log(LOG_ERROR, &quot;Function %s cannot be read\n&quot;, function);
++	else
++		return acfptr-&gt;read(chan, function, args, workspace, len);
+ 	return -1;
+ }
+ 
+ int ast_func_write(struct ast_channel *chan, char *function, const char *value)
+ {
+-	char *args = NULL, *p;
+-	struct ast_custom_function *acfptr;
++	char *args = func_args(function);
++	struct ast_custom_function *acfptr = ast_custom_function_find(function);
+ 
+-	if ((args = strchr(function, '('))) {
+-		*args++ = '\0';
+-		if ((p = strrchr(args, ')')))
+-			*p = '\0';
+-		else
+-			ast_log(LOG_WARNING, &quot;Can't find trailing parenthesis?\n&quot;);
+-	} else {
+-		ast_log(LOG_WARNING, &quot;Function doesn't contain parentheses.  Assuming null argument.\n&quot;);
+-	}
+-
+-	if ((acfptr = ast_custom_function_find(function))) {
+-		/* run the custom function */
+-		if (acfptr-&gt;write)
+-			return acfptr-&gt;write(chan, function, args, value);
+-		else
+-			ast_log(LOG_ERROR, &quot;Function %s is read-only, it cannot be written to\n&quot;, function);
+-	} else {
++	if (acfptr == NULL)
+ 		ast_log(LOG_ERROR, &quot;Function %s not registered\n&quot;, function);
+-	}
++	else if (!acfptr-&gt;write)
++		ast_log(LOG_ERROR, &quot;Function %s cannot be written to\n&quot;, function);
++	else
++		return acfptr-&gt;write(chan, function, args, value);
+ 
+ 	return -1;
+ }
+@@ -1705,35 +1698,35 @@
+ 	AST_LIST_TRAVERSE(&amp;hints, hint, list) {
+ 		struct ast_state_cb *cblist;
+ 		char buf[AST_MAX_EXTENSION];
+-		char *parse;
++		char *parse = buf;
+ 		char *cur;
+ 		int state;
+ 
+ 		ast_copy_string(buf, ast_get_extension_app(hint-&gt;exten), sizeof(buf));
+-		parse = buf;
+-		for (cur = strsep(&amp;parse, &quot;&amp;&quot;); cur; cur = strsep(&amp;parse, &quot;&amp;&quot;)) {
+-			if (strcasecmp(cur, device))
+-				continue;
++		while ( (cur = strsep(&amp;parse, &quot;&amp;&quot;)) ) {
++			if (!strcasecmp(cur, device))
++				break;
++		}
++		if (!cur)
++			continue;
+ 
+-			/* Get device state for this hint */
+-			state = ast_extension_state2(hint-&gt;exten);
++		/* Get device state for this hint */
++		state = ast_extension_state2(hint-&gt;exten);
+ 			
+-			if ((state == -1) || (state == hint-&gt;laststate))
+-				continue;
++		if ((state == -1) || (state == hint-&gt;laststate))
++			continue;
+ 
+-			/* Device state changed since last check - notify the watchers */
++		/* Device state changed since last check - notify the watchers */
+ 			
+-			/* For general callbacks */
+-			for (cblist = statecbs; cblist; cblist = cblist-&gt;next)
+-				cblist-&gt;callback(hint-&gt;exten-&gt;parent-&gt;name, hint-&gt;exten-&gt;exten, state, cblist-&gt;data);
++		/* For general callbacks */
++		for (cblist = statecbs; cblist; cblist = cblist-&gt;next)
++			cblist-&gt;callback(hint-&gt;exten-&gt;parent-&gt;name, hint-&gt;exten-&gt;exten, state, cblist-&gt;data);
++		
++		/* For extension callbacks */
++		for (cblist = hint-&gt;callbacks; cblist; cblist = cblist-&gt;next)
++			cblist-&gt;callback(hint-&gt;exten-&gt;parent-&gt;name, hint-&gt;exten-&gt;exten, state, cblist-&gt;data);
+ 			
+-			/* For extension callbacks */
+-			for (cblist = hint-&gt;callbacks; cblist; cblist = cblist-&gt;next)
+-				cblist-&gt;callback(hint-&gt;exten-&gt;parent-&gt;name, hint-&gt;exten-&gt;exten, state, cblist-&gt;data);
+-			
+-			hint-&gt;laststate = state;
+-			break;
+-		}
++		hint-&gt;laststate = state;
+ 	}
+ 
+ 	AST_LIST_UNLOCK(&amp;hints);
+@@ -1817,8 +1810,8 @@
+ /*! \brief  ast_extension_state_del: Remove a watcher from the callback list */
+ int ast_extension_state_del(int id, ast_state_cb_type callback)
+ {
+-	struct ast_hint *hint;
+-	struct ast_state_cb *cblist, *cbprev;
++	struct ast_state_cb **p_cur = NULL;	/* address of pointer to us */
++	int ret = -1;
+ 
+ 	if (!id &amp;&amp; !callback)
+ 		return -1;
+@@ -1826,49 +1819,30 @@
+ 	AST_LIST_LOCK(&amp;hints);
+ 
+ 	/* id is zero is a callback without extension */
+-	if (!id) {
+-		cbprev = NULL;
+-		for (cblist = statecbs; cblist; cblist = cblist-&gt;next) {
+-	 		if (cblist-&gt;callback == callback) {
+-				if (!cbprev)
+-		    			statecbs = cblist-&gt;next;
+-				else
+-		    			cbprev-&gt;next = cblist-&gt;next;
+-
+-				free(cblist);
+-
+-	        		AST_LIST_UNLOCK(&amp;hints);
+-				return 0;
+-	    		}
+-	    		cbprev = cblist;
++	if (!id) {	/* id == 0 is a callback without extension */
++		for (p_cur = &statecbs; *p_cur; p_cur = &amp;(*p_cur)-&gt;next) {
++	 		if ((*p_cur)-&gt;callback == callback)
++				break;
+ 		}
+-
+-		AST_LIST_UNLOCK(&amp;hints);
+-		return -1;
+-	}
+-
+-	/* id greater than zero is a callback with extension */
+-	/* Find the callback based on ID */
+-	AST_LIST_TRAVERSE(&amp;hints, hint, list) {
+-		cbprev = NULL;
+-		for (cblist = hint-&gt;callbacks; cblist; cblist = cblist-&gt;next) {
+-	    		if (cblist-&gt;id==id) {
+-				if (!cbprev)
+-		    			hint-&gt;callbacks = cblist-&gt;next;		
+-				else
+-		    			cbprev-&gt;next = cblist-&gt;next;
+-		
+-				free(cblist);
+-		
+-				AST_LIST_UNLOCK(&amp;hints);
+-				return 0;		
+-	    		}		
+-	    		cbprev = cblist;				
++	} else { /* callback with extension, find the callback based on ID */
++		struct ast_hint *hint;
++		AST_LIST_TRAVERSE(&amp;hints, hint, list) {
++			for (p_cur = &amp;hint-&gt;callbacks; *p_cur; p_cur = &amp;(*p_cur)-&gt;next) {
++	    			if ((*p_cur)-&gt;id == id)
++					break;
++			}
++			if (*p_cur)	/* found in the inner loop */
++				break;
+ 		}
+ 	}
+-
++	if (p_cur &amp;&amp; *p_cur) {
++		struct ast_state_cb *cur = *p_cur;
++		*p_cur = cur-&gt;next;
++		free(cur);
++		ret = 0;
++	}
+ 	AST_LIST_UNLOCK(&amp;hints);
+-	return -1;
++	return ret;
+ }
+ 
+ /*! \brief  ast_add_hint: Add hint to hint list, check initial extension state */
+@@ -2029,8 +2003,11 @@
+ 	int autoloopflag;
+ 
+ 	/* A little initial setup here */
+-	if (c-&gt;pbx)
++	if (c-&gt;pbx) {
+ 		ast_log(LOG_WARNING, &quot;%s already has PBX structure??\n&quot;, c-&gt;name);
++		/* XXX and now what ? */
++		free(c-&gt;pbx);
++	}
+ 	if (!(c-&gt;pbx = ast_calloc(1, sizeof(*c-&gt;pbx))))
+ 		return -1;
+ 	if (c-&gt;amaflags) {
+@@ -2048,7 +2025,7 @@
+ 	c-&gt;pbx-&gt;rtimeout = 10;
+ 	c-&gt;pbx-&gt;dtimeout = 5;
+ 
+-	autoloopflag = ast_test_flag(c, AST_FLAG_IN_AUTOLOOP);
++	autoloopflag = ast_test_flag(c, AST_FLAG_IN_AUTOLOOP);	/* save value to restore at the end */
+ 	ast_set_flag(c, AST_FLAG_IN_AUTOLOOP);
+ 
+ 	/* Start by trying whatever the channel is set to */
+@@ -3959,16 +3936,15 @@
+ 
+ int ast_ignore_pattern(const char *context, const char *pattern)
+ {
+-	struct ast_context *con;
+-	struct ast_ignorepat *pat;
+-
+-	con = ast_context_find(context);
++	struct ast_context *con = ast_context_find(context);
+ 	if (con) {
++		struct ast_ignorepat *pat;
+ 		for (pat = con-&gt;ignorepats; pat; pat = pat-&gt;next) {
+ 			if (ast_extension_match(pat-&gt;pattern, pattern))
+ 				return 1;
+ 		}
+ 	} 
++
+ 	return 0;
+ }
+ 
+@@ -4018,8 +3994,7 @@
+ 
+ 	ast_channel_lock(chan);
+ 
+-	if (chan-&gt;pbx) {
+-		/* This channel is currently in the PBX */
++	if (chan-&gt;pbx) { /* This channel is currently in the PBX */
+ 		ast_explicit_goto(chan, context, exten, priority);
+ 		ast_softhangup_nolock(chan, AST_SOFTHANGUP_ASYNCGOTO);
+ 	} else {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000098.html">[solid-pbx-svn] r99 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000099.html">[solid-pbx-svn] r101 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#94">[ date ]</a>
+              <a href="thread.html#94">[ thread ]</a>
+              <a href="subject.html#94">[ subject ]</a>
+              <a href="author.html#94">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

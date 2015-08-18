@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r312 - trunk/channels/misdn
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r312%20-%20trunk/channels/misdn&In-Reply-To=%3C200606240228.k5O2Sndp005651%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000306.html">
+   <LINK REL="Next"  HREF="000308.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r312 - trunk/channels/misdn</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r312%20-%20trunk/channels/misdn&In-Reply-To=%3C200606240228.k5O2Sndp005651%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r312 - trunk/channels/misdn">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 24 04:28:49 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000306.html">[solid-pbx-svn] r311 - in trunk: . apps include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000308.html">[solid-pbx-svn] r313 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#307">[ date ]</a>
+              <a href="thread.html#307">[ thread ]</a>
+              <a href="subject.html#307">[ subject ]</a>
+              <a href="author.html#307">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-24 04:28:47 +0200 (Sat, 24 Jun 2006)
+New Revision: 312
+
+Modified:
+   trunk/channels/misdn/isdn_lib.c
+Log:
+Update to Asterisk SVN trunk r33203
+
+------------------------------------------------------------------------
+r33195 | crichter | 2006-06-09 12:31:30 +0200 (Fri, 09 Jun 2006) | 1 line
+
+when we don't want the call we need to release_complete it.. ignoring it breaks the ETSI rules .. 
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/misdn/isdn_lib.c
+===================================================================
+--- trunk/channels/misdn/isdn_lib.c	2006-06-24 02:27:40 UTC (rev 311)
++++ trunk/channels/misdn/isdn_lib.c	2006-06-24 02:28:47 UTC (rev 312)
+@@ -2389,6 +2389,9 @@
+ 					break;
+ 				case RESPONSE_IGNORE_SETUP:
+ 					/* I think we should send CC_RELEASE_CR, but am not sure*/
++
++					bc-&gt;out_cause=16;
++					misdn_lib_send_event(bc,EVENT_RELEASE_COMPLETE);
+ 					empty_chan_in_stack(stack, bc-&gt;channel);
+ 					empty_bc(bc);
+ 					bc_state_change(bc,BCHAN_CLEANED);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000306.html">[solid-pbx-svn] r311 - in trunk: . apps include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000308.html">[solid-pbx-svn] r313 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#307">[ date ]</a>
+              <a href="thread.html#307">[ thread ]</a>
+              <a href="subject.html#307">[ subject ]</a>
+              <a href="author.html#307">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

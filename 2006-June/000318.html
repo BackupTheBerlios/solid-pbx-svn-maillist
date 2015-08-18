@@ -1,0 +1,223 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r323 - in trunk: pbx pbx/ael utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r323%20-%20in%20trunk%3A%20pbx%20pbx/ael%20utils&In-Reply-To=%3C200606272345.k5RNjpsi027629%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000317.html">
+   <LINK REL="Next"  HREF="000319.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r323 - in trunk: pbx pbx/ael utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r323%20-%20in%20trunk%3A%20pbx%20pbx/ael%20utils&In-Reply-To=%3C200606272345.k5RNjpsi027629%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r323 - in trunk: pbx pbx/ael utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 01:45:51 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000317.html">[solid-pbx-svn] r322 - in trunk: apps codecs/lpc10
+</A></li>
+        <LI>Next message: <A HREF="000319.html">[solid-pbx-svn] r324 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#318">[ date ]</a>
+              <a href="thread.html#318">[ thread ]</a>
+              <a href="subject.html#318">[ subject ]</a>
+              <a href="author.html#318">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 01:45:44 +0200 (Wed, 28 Jun 2006)
+New Revision: 323
+
+Modified:
+   trunk/pbx/ael/ael.flex
+   trunk/pbx/ael/ael_lex.c
+   trunk/pbx/pbx_gtkconsole.c
+   trunk/utils/Makefile
+   trunk/utils/ael_main.c
+Log:
+Update to Asterisk SVN trunk r33423
+
+------------------------------------------------------------------------
+r33421 | russell | 2006-06-10 06:34:48 +0200 (Sat, 10 Jun 2006) | 2 lines
+
+convert a few more uses of AST_CONFIG_MAX_PATH to use PATH_MAX
+
+------------------------------------------------------------------------
+r33422 | russell | 2006-06-10 06:38:04 +0200 (Sat, 10 Jun 2006) | 2 lines
+
+don't redefine PATH_MAX
+
+------------------------------------------------------------------------
+r33423 | russell | 2006-06-10 06:41:34 +0200 (Sat, 10 Jun 2006) | 2 lines
+
+don't use ast_copy_string when building for an external tool
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/pbx/ael/ael.flex
+===================================================================
+--- trunk/pbx/ael/ael.flex	2006-06-27 23:32:41 UTC (rev 322)
++++ trunk/pbx/ael/ael.flex	2006-06-27 23:45:44 UTC (rev 323)
+@@ -404,7 +404,11 @@
+ 			if (*(p1+1) != '/')
+ 				snprintf(fnamebuf, sizeof(fnamebuf), &quot;%s/%s&quot;, ast_config_AST_CONFIG_DIR, p1 + 1);
+ 			else
++#ifdef STANDALONE
++				strncpy(fnamebuf, p1 + 1, sizeof(fnamebuf) - 1);
++#else
+ 				ast_copy_string(fnamebuf, p1 + 1, sizeof(fnamebuf));
++#endif
+ 			in1 = fopen( fnamebuf, &quot;r&quot; );
+ 			if ( ! in1 ) {
+ 				ast_log(LOG_ERROR,&quot;File=%s, line=%d, column=%d: Couldn't find the include file: %s; ignoring the Include directive!\n&quot;, my_file, my_lineno, my_col, fnamebuf);
+
+Modified: trunk/pbx/ael/ael_lex.c
+===================================================================
+--- trunk/pbx/ael/ael_lex.c	2006-06-27 23:32:41 UTC (rev 322)
++++ trunk/pbx/ael/ael_lex.c	2006-06-27 23:45:44 UTC (rev 323)
+@@ -1553,7 +1553,11 @@
+ 			if (*(p1+1) != '/')
+ 				snprintf(fnamebuf, sizeof(fnamebuf), &quot;%s/%s&quot;, ast_config_AST_CONFIG_DIR, p1 + 1);
+ 			else
++#ifdef STANDALONE
++				strncpy(fnamebuf, p1 + 1, sizeof(fnamebuf) - 1);
++#else
+ 				ast_copy_string(fnamebuf, p1 + 1, sizeof(fnamebuf));
++#endif
+ 			in1 = fopen( fnamebuf, &quot;r&quot; );
+ 			if ( ! in1 ) {
+ 				ast_log(LOG_ERROR,&quot;File=%s, line=%d, column=%d: Couldn't find the include file: %s; ignoring the Include directive!\n&quot;, my_file, my_lineno, my_col, fnamebuf);
+@@ -1586,7 +1590,7 @@
+ case YY_STATE_EOF(paren):
+ case YY_STATE_EOF(semic):
+ case YY_STATE_EOF(argg):
+-#line 436 &quot;ael.flex&quot;
++#line 440 &quot;ael.flex&quot;
+ {
+ 		if ( --include_stack_index &lt; 0 ) {
+ 			yyterminate();
+@@ -1602,10 +1606,10 @@
+ 	YY_BREAK
+ case 55:
+ YY_RULE_SETUP
+-#line 449 &quot;ael.flex&quot;
++#line 453 &quot;ael.flex&quot;
+ ECHO;
+ 	YY_BREAK
+-#line 1608 &quot;ael_lex.c&quot;
++#line 1612 &quot;ael_lex.c&quot;
+ 
+ 	case YY_END_OF_BUFFER:
+ 		{
+@@ -1836,7 +1840,7 @@
+ 
+ 		/* Read in more data. */
+ 		YY_INPUT( (&amp;YY_CURRENT_BUFFER_LVALUE-&gt;yy_ch_buf[number_to_move]),
+-			yyg-&gt;yy_n_chars, num_to_read );
++			yyg-&gt;yy_n_chars, (size_t) num_to_read );
+ 
+ 		YY_CURRENT_BUFFER_LVALUE-&gt;yy_n_chars = yyg-&gt;yy_n_chars;
+ 		}
+@@ -2735,7 +2739,7 @@
+ 
+ #define YYTABLES_NAME &quot;yytables&quot;
+ 
+-#line 449 &quot;ael.flex&quot;
++#line 453 &quot;ael.flex&quot;
+ 
+ 
+ 
+
+Modified: trunk/pbx/pbx_gtkconsole.c
+===================================================================
+--- trunk/pbx/pbx_gtkconsole.c	2006-06-27 23:32:41 UTC (rev 322)
++++ trunk/pbx/pbx_gtkconsole.c	2006-06-27 23:45:44 UTC (rev 323)
+@@ -244,7 +244,7 @@
+ 
+ static void file_ok_sel(GtkWidget *w, GtkFileSelection *fs)
+ {
+-	char tmp[AST_CONFIG_MAX_PATH];
++	char tmp[PATH_MAX];
+ 	char *module = gtk_file_selection_get_filename(fs);
+ 	char buf[256];
+ 	snprintf(tmp, sizeof(tmp), &quot;%s/&quot;, ast_config_AST_MODULE_DIR);
+@@ -264,7 +264,7 @@
+ 
+ static void add_module(void)
+ {
+-	char tmp[AST_CONFIG_MAX_PATH];
++	char tmp[PATH_MAX];
+ 	GtkWidget *filew;
+ 	snprintf(tmp, sizeof(tmp), &quot;%s/*.so&quot;, ast_config_AST_MODULE_DIR);
+ 	filew = gtk_file_selection_new(&quot;Load Module&quot;);
+
+Modified: trunk/utils/Makefile
+===================================================================
+--- trunk/utils/Makefile	2006-06-27 23:32:41 UTC (rev 322)
++++ trunk/utils/Makefile	2006-06-27 23:45:44 UTC (rev 323)
+@@ -74,7 +74,7 @@
+ 	$(CC) $(CFLAGS) -o $@ $^
+ 
+ aelflex.o: ../pbx/ael/ael_lex.c ../include/asterisk/ael_structs.h ../pbx/ael/ael.tab.h
+-	$(CC) $(CFLAGS) -I../pbx/ -c -o $@ $&lt;
++	$(CC) $(CFLAGS) -I../pbx/ -DSTANDALONE -c -o $@ $&lt;
+ 
+ aelbison.o: ../pbx/ael/ael.tab.c ../pbx/ael/ael.tab.h ../include/asterisk/ael_structs.h
+ 	$(CC) $(CFLAGS) -I../pbx/ -c -o $@ $&lt;
+
+Modified: trunk/utils/ael_main.c
+===================================================================
+--- trunk/utils/ael_main.c	2006-06-27 23:32:41 UTC (rev 322)
++++ trunk/utils/ael_main.c	2006-06-27 23:45:44 UTC (rev 323)
+@@ -18,12 +18,10 @@
+ #include &quot;asterisk/module.h&quot;
+ #include &quot;asterisk/ael_structs.h&quot;
+ 
+-#define AST_CONFIG_MAX_PATH 255
+-
+ int conts=0, extens=0, priors=0;
+ char last_exten[18000];
+-char ast_config_AST_CONFIG_DIR[AST_CONFIG_MAX_PATH];
+-char ast_config_AST_VAR_DIR[AST_CONFIG_MAX_PATH];
++char ast_config_AST_CONFIG_DIR[PATH_MAX];
++char ast_config_AST_VAR_DIR[PATH_MAX];
+ 
+ void ast_add_profile(void);
+ void ast_cli_register_multiple(void);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000317.html">[solid-pbx-svn] r322 - in trunk: apps codecs/lpc10
+</A></li>
+	<LI>Next message: <A HREF="000319.html">[solid-pbx-svn] r324 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#318">[ date ]</a>
+              <a href="thread.html#318">[ thread ]</a>
+              <a href="subject.html#318">[ subject ]</a>
+              <a href="author.html#318">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

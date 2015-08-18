@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r170 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r170%20-%20trunk/channels&In-Reply-To=%3C200605172236.k4HMab6x006282%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000164.html">
+   <LINK REL="Next"  HREF="000166.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r170 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r170%20-%20trunk/channels&In-Reply-To=%3C200605172236.k4HMab6x006282%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r170 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu May 18 00:36:37 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000164.html">[solid-pbx-svn] r169 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000166.html">[solid-pbx-svn] r171 - in trunk: . apps channels channels/misdn configs funcs include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#165">[ date ]</a>
+              <a href="thread.html#165">[ thread ]</a>
+              <a href="subject.html#165">[ subject ]</a>
+              <a href="author.html#165">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-18 00:36:30 +0200 (Thu, 18 May 2006)
+New Revision: 170
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r27972
+
+------------------------------------------------------------------------
+r27972 | file | 2006-05-18 00:02:15 +0200 (Thu, 18 May 2006) | 2 lines
+
+Only set the RTP DTMF information of an RTP structure does indeed exist.
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-17 20:29:09 UTC (rev 169)
++++ trunk/channels/chan_sip.c	2006-05-17 22:36:30 UTC (rev 170)
+@@ -2195,18 +2195,19 @@
+ 		ast_rtp_destroy(r-&gt;vrtp);
+ 		r-&gt;vrtp = NULL;
+ 	}
+-	ast_rtp_setdtmf(r-&gt;rtp, ast_test_flag(&amp;r-&gt;flags[0], SIP_DTMF) != SIP_DTMF_INFO);
+ 	r-&gt;prefs = peer-&gt;prefs;
+ 	natflags = ast_test_flag(&amp;r-&gt;flags[0], SIP_NAT) &amp; SIP_NAT_ROUTE;
+ 	if (r-&gt;rtp) {
+ 		if (option_debug)
+ 			ast_log(LOG_DEBUG, &quot;Setting NAT on RTP to %d\n&quot;, natflags);
+ 		ast_rtp_setnat(r-&gt;rtp, natflags);
++		ast_rtp_setdtmf(r-&gt;rtp, ast_test_flag(&amp;r-&gt;flags[0], SIP_DTMF) != SIP_DTMF_INFO);
+ 	}
+ 	if (r-&gt;vrtp) {
+ 		if (option_debug)
+ 			ast_log(LOG_DEBUG, &quot;Setting NAT on VRTP to %d\n&quot;, natflags);
+ 		ast_rtp_setnat(r-&gt;vrtp, natflags);
++		ast_rtp_setdtmf(r-&gt;vrtp, 0);
+ 	}
+ 	ast_string_field_set(r, peername, peer-&gt;username);
+ 	ast_string_field_set(r, authname, peer-&gt;username);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000164.html">[solid-pbx-svn] r169 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000166.html">[solid-pbx-svn] r171 - in trunk: . apps channels channels/misdn configs funcs include/asterisk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#165">[ date ]</a>
+              <a href="thread.html#165">[ thread ]</a>
+              <a href="subject.html#165">[ subject ]</a>
+              <a href="author.html#165">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

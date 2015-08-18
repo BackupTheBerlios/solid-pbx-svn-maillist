@@ -1,0 +1,276 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r406 - in trunk: . agi apps build_tools cdr channels codecs formats funcs pbx res sounds utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r406%20-%20in%20trunk%3A%20.%20agi%20apps%20build_tools%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res%20sounds%20utils&In-Reply-To=%3C200606280228.k5S2Sda1027971%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000400.html">
+   <LINK REL="Next"  HREF="000402.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r406 - in trunk: . agi apps build_tools cdr channels codecs formats funcs pbx res sounds utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r406%20-%20in%20trunk%3A%20.%20agi%20apps%20build_tools%20cdr%20channels%20codecs%20formats%20funcs%20pbx%20res%20sounds%20utils&In-Reply-To=%3C200606280228.k5S2Sda1027971%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r406 - in trunk: . agi apps build_tools cdr channels codecs formats funcs pbx res sounds utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:28:39 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000400.html">[solid-pbx-svn] r405 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000402.html">[solid-pbx-svn] r407 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#401">[ date ]</a>
+              <a href="thread.html#401">[ thread ]</a>
+              <a href="subject.html#401">[ subject ]</a>
+              <a href="author.html#401">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:28:17 +0200 (Wed, 28 Jun 2006)
+New Revision: 406
+
+Modified:
+   trunk/Makefile
+   trunk/agi/Makefile
+   trunk/apps/Makefile
+   trunk/build_tools/Makefile
+   trunk/cdr/Makefile
+   trunk/channels/Makefile
+   trunk/codecs/Makefile
+   trunk/formats/Makefile
+   trunk/funcs/Makefile
+   trunk/pbx/Makefile
+   trunk/res/Makefile
+   trunk/sounds/Makefile
+   trunk/utils/Makefile
+Log:
+Update to Asterisk SVN trunk r35423
+
+------------------------------------------------------------------------
+r35415 | russell | 2006-06-22 13:27:03 +0200 (Thu, 22 Jun 2006) | 5 lines
+
+add the 'clean', 'clean-depend', and 'dist-clean' targets as .PHONY targets
+since they are targets that do not have resulting files and are never listed
+as prerequisites to real targets.  Using .PHONY in this manner improves make
+performance by never having to check for resulting files.
+
+------------------------------------------------------------------------
+r35416 | russell | 2006-06-22 13:39:25 +0200 (Thu, 22 Jun 2006) | 1 line
+
+nothing to see here ...
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -13,7 +13,7 @@
+ 
+ .EXPORT_ALL_VARIABLES:
+ 
+-.PHONY: sounds
++.PHONY: sounds clean clean-depend dist-clean
+ 
+ # Create OPTIONS variable
+ OPTIONS=
+
+Modified: trunk/agi/Makefile
+===================================================================
+--- trunk/agi/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/agi/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++.PHONY: clean clean-depend
++
+ AGIS=agi-test.agi eagi-test eagi-sphinx-test jukebox.agi
+ 
+ LIBS=
+
+Modified: trunk/apps/Makefile
+===================================================================
+--- trunk/apps/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/apps/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++.PHONY: clean clean-depend
++
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+ endif
+
+Modified: trunk/build_tools/Makefile
+===================================================================
+--- trunk/build_tools/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/build_tools/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -1,3 +1,5 @@
++.PHONY: clean dist-clean
++
+ MENUSELECT_OBJS=menuselect.o menuselect_curses.o
+ MENUSELECT_CFLAGS=-g -c -D_GNU_SOURCE -DMENUSELECT -I../ -I../include/
+ MENUSELECT_LIBS=../mxml/libmxml.a
+
+Modified: trunk/cdr/Makefile
+===================================================================
+--- trunk/cdr/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/cdr/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++.PHONY: clean clean-depend
++
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+ endif
+
+Modified: trunk/channels/Makefile
+===================================================================
+--- trunk/channels/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/channels/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++.PHONY: clean clean-depend
++
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+ endif
+
+Modified: trunk/codecs/Makefile
+===================================================================
+--- trunk/codecs/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/codecs/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++.PHONY: clean clean-depend
++
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+ endif
+
+Modified: trunk/formats/Makefile
+===================================================================
+--- trunk/formats/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/formats/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++.PHONY: clean clean-depend
++
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+ endif
+
+Modified: trunk/funcs/Makefile
+===================================================================
+--- trunk/funcs/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/funcs/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++.PHONY: clean clean-depend
++
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+ endif
+
+Modified: trunk/pbx/Makefile
+===================================================================
+--- trunk/pbx/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/pbx/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++.PHONY: clean clean-depend
++
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+ endif
+
+Modified: trunk/res/Makefile
+===================================================================
+--- trunk/res/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/res/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++.PHONY: clean clean-depend
++
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+ endif
+
+Modified: trunk/sounds/Makefile
+===================================================================
+--- trunk/sounds/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/sounds/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++.PHONY: dist-clean
++
+ ifneq ($(wildcard ../menuselect.makeopts),)
+   include ../menuselect.makeopts
+ endif
+
+Modified: trunk/utils/Makefile
+===================================================================
+--- trunk/utils/Makefile	2006-06-28 02:27:01 UTC (rev 405)
++++ trunk/utils/Makefile	2006-06-28 02:28:17 UTC (rev 406)
+@@ -11,6 +11,8 @@
+ # the GNU General Public License
+ #
+ 
++.PHONY: clean clean-depend
++
+ UTILS:=astman smsq stereorize streamplayer aelparse
+ 
+ ifeq (${OSARCH},SunOS)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000400.html">[solid-pbx-svn] r405 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000402.html">[solid-pbx-svn] r407 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#401">[ date ]</a>
+              <a href="thread.html#401">[ thread ]</a>
+              <a href="subject.html#401">[ subject ]</a>
+              <a href="author.html#401">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

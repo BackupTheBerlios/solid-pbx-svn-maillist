@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r243 - trunk/res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r243%20-%20trunk/res&In-Reply-To=%3C200606180237.k5I2bWWU004274%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000237.html">
+   <LINK REL="Next"  HREF="000239.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r243 - trunk/res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r243%20-%20trunk/res&In-Reply-To=%3C200606180237.k5I2bWWU004274%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r243 - trunk/res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 04:37:32 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000237.html">[solid-pbx-svn] r242 - in trunk: apps channels funcs
+</A></li>
+        <LI>Next message: <A HREF="000239.html">[solid-pbx-svn] r244 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#238">[ date ]</a>
+              <a href="thread.html#238">[ thread ]</a>
+              <a href="subject.html#238">[ subject ]</a>
+              <a href="author.html#238">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 04:37:24 +0200 (Sun, 18 Jun 2006)
+New Revision: 243
+
+Modified:
+   trunk/res/res_jabber.c
+Log:
+Update to Asterisk SVN trunk r32043
+
+------------------------------------------------------------------------
+r32040 | mogorman | 2006-06-04 18:56:16 +0200 (Sun, 04 Jun 2006) | 2 lines
+
+solves some issues with jabberstatus app
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/res/res_jabber.c
+===================================================================
+--- trunk/res/res_jabber.c	2006-06-18 02:25:55 UTC (rev 242)
++++ trunk/res/res_jabber.c	2006-06-18 02:37:24 UTC (rev 243)
+@@ -325,7 +325,11 @@
+ 		return -1;
+ 	}
+ 
+-	resource = strsep(&amp;screenname, &quot;/&quot;);
++	if(!strchr(screename, '/')) {
++		resource = NULL;
++	} else {
++		resource = strsep(&amp;screenname, &quot;/&quot;);
++	}
+ 
+ 	client = ast_aji_get_client(sender);
+ 	if (!client) {
+@@ -347,16 +351,12 @@
+ 					while (r) {
+ 						if (!strcasecmp(r-&gt;resource, resource)) {
+ 							stat = r-&gt;status; 
+-							break;
+ 						}
+ 						r = r-&gt;next;
+ 					}
+-					if(stat != 7) break;
+-					ast_log(LOG_WARNING, &quot;Resource not found %s\n&quot;, resource);
+-					break;
++					if (stat == 7) ast_log(LOG_NOTICE, &quot;Resource not found %s\n&quot;, resource);
+ 				} else {
+ 					stat = r-&gt;status; 
+-					break;
+ 				}
+ 			}
+ 		}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000237.html">[solid-pbx-svn] r242 - in trunk: apps channels funcs
+</A></li>
+	<LI>Next message: <A HREF="000239.html">[solid-pbx-svn] r244 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#238">[ date ]</a>
+              <a href="thread.html#238">[ thread ]</a>
+              <a href="subject.html#238">[ subject ]</a>
+              <a href="author.html#238">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

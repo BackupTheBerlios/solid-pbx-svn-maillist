@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r222 - in trunk: . include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r222%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200606170341.k5H3f4Kq028988%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000216.html">
+   <LINK REL="Next"  HREF="000218.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r222 - in trunk: . include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r222%20-%20in%20trunk%3A%20.%20include/asterisk&In-Reply-To=%3C200606170341.k5H3f4Kq028988%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r222 - in trunk: . include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 17 05:41:04 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000216.html">[solid-pbx-svn] r221 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000218.html">[solid-pbx-svn] r223 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#217">[ date ]</a>
+              <a href="thread.html#217">[ thread ]</a>
+              <a href="subject.html#217">[ subject ]</a>
+              <a href="author.html#217">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-17 05:41:02 +0200 (Sat, 17 Jun 2006)
+New Revision: 222
+
+Modified:
+   trunk/channel.c
+   trunk/include/asterisk/channel.h
+Log:
+Update to Asterisk SVN trunk r31522
+
+------------------------------------------------------------------------
+r31522 | kpfleming | 2006-06-01 22:53:17 +0200 (Thu, 01 Jun 2006) | 10 lines
+
+Merged revisions 31520 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r31520 | kpfleming | 2006-06-01 15:27:50 -0500 (Thu, 01 Jun 2006) | 2 lines
+
+handle Zap transfers behind chan_agent properly so the agent doesn't get stuck waiting for the call to hang up
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channel.c
+===================================================================
+--- trunk/channel.c	2006-06-17 03:39:04 UTC (rev 221)
++++ trunk/channel.c	2006-06-17 03:41:02 UTC (rev 222)
+@@ -2829,6 +2829,14 @@
+ {
+ 	int res = -1;
+ 
++	/* each of these channels may be sitting behind a channel proxy (i.e. chan_agent)
++	   and if so, we don't really want to masquerade it, but its proxy */
++	if (original-&gt;_bridge &amp;&amp; (original-&gt;_bridge != ast_bridged_channel(original)))
++		original = original-&gt;_bridge;
++
++	if (clone-&gt;_bridge &amp;&amp; (clone-&gt;_bridge != ast_bridged_channel(clone)))
++		clone = clone-&gt;_bridge;
++
+ 	if (original == clone) {
+ 		ast_log(LOG_WARNING, &quot;Can't masquerade channel '%s' into itself!\n&quot;, original-&gt;name);
+ 		return -1;
+
+Modified: trunk/include/asterisk/channel.h
+===================================================================
+--- trunk/include/asterisk/channel.h	2006-06-17 03:39:04 UTC (rev 221)
++++ trunk/include/asterisk/channel.h	2006-06-17 03:41:02 UTC (rev 222)
+@@ -311,8 +311,9 @@
+ 	/*! Current active data generator */
+ 	struct ast_generator *generator;
+ 
+-	/*! Who are we bridged to, if we're bridged  Do not access directly,
+-	    use ast_bridged_channel(chan) */
++	/*! Who are we bridged to, if we're bridged. Who is proxying for us,
++	  if we are proxied (i.e. chan_agent).
++	  Do not access directly, use ast_bridged_channel(chan) */
+ 	struct ast_channel *_bridge;
+ 	/*! Channel that will masquerade as us */
+ 	struct ast_channel *masq;		
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000216.html">[solid-pbx-svn] r221 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000218.html">[solid-pbx-svn] r223 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#217">[ date ]</a>
+              <a href="thread.html#217">[ thread ]</a>
+              <a href="subject.html#217">[ subject ]</a>
+              <a href="author.html#217">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

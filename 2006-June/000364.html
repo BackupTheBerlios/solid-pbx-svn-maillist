@@ -1,0 +1,292 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r369 - in trunk: apps build_tools doc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r369%20-%20in%20trunk%3A%20apps%20build_tools%20doc&In-Reply-To=%3C200606280134.k5S1YeFC015455%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000363.html">
+   <LINK REL="Next"  HREF="000365.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r369 - in trunk: apps build_tools doc</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r369%20-%20in%20trunk%3A%20apps%20build_tools%20doc&In-Reply-To=%3C200606280134.k5S1YeFC015455%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r369 - in trunk: apps build_tools doc">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:34:40 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000363.html">[solid-pbx-svn] r368 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000365.html">[solid-pbx-svn] r370 - in trunk: . build_tools cdr channels codecs configs formats pbx res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#364">[ date ]</a>
+              <a href="thread.html#364">[ thread ]</a>
+              <a href="subject.html#364">[ subject ]</a>
+              <a href="author.html#364">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:34:33 +0200 (Wed, 28 Jun 2006)
+New Revision: 369
+
+Modified:
+   trunk/apps/Makefile
+   trunk/apps/app_voicemail.c
+   trunk/build_tools/get_moduledeps
+   trunk/build_tools/prep_moduledeps
+   trunk/doc/radius.txt
+Log:
+Update to Asterisk SVN trunk r34493
+
+------------------------------------------------------------------------
+r34491 | file | 2006-06-16 18:16:21 +0200 (Fri, 16 Jun 2006) | 2 lines
+
+Update the RADIUS CDR module documentation (issue #7377 reported by phsultan)
+
+------------------------------------------------------------------------
+r34492 | russell | 2006-06-16 18:17:43 +0200 (Fri, 16 Jun 2006) | 4 lines
+
+add support for setting the CFLAGS for voicemail storage options in menuselect
+
+Thanks to kpfleming for the Makefile magic :)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/Makefile
+===================================================================
+--- trunk/apps/Makefile	2006-06-28 01:33:50 UTC (rev 368)
++++ trunk/apps/Makefile	2006-06-28 01:34:33 UTC (rev 369)
+@@ -15,17 +15,10 @@
+ 
+ SELECTED_MODS:=$(filter-out $(MENUSELECT_APPS),$(patsubst %.c,%,$(wildcard app_*.c)))
+ 
+-# If you have UnixODBC you can use ODBC voicemail
+-# storage
+-#
+-# Uncomment to use ODBC storage
+-#CFLAGS+=-DUSE_ODBC_STORAGE
+-# Uncomment for extended ODBC voicemail storage
+-#CFLAGS+=-DEXTENDED_ODBC_STORAGE
+-# See doc/README.odbcstorage for more information
+-
+ MODS:=$(patsubst %,%.so,$(SELECTED_MODS))
+ 
++app_voicemail.o: CFLAGS+=$(patsubst %,-D%,$(MENUSELECT_app_voicemail))
++
+ all: $(MODS)
+ 
+ clean-depend:
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-06-28 01:33:50 UTC (rev 368)
++++ trunk/apps/app_voicemail.c	2006-06-28 01:34:33 UTC (rev 369)
+@@ -41,6 +41,23 @@
+  *				 Bartosz Supczinski &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">Bartosz.Supczinski at dir.pl</A>&gt;
+  */
+ 
++/*** MAKEOPTS
++&lt;category name=&quot;MENUSELECT_app_voicemail&quot; displayname=&quot;Voicemail Build Options&quot; positive_output=&quot;yes&quot; force_clean_on_change=&quot;yes&quot;&gt;
++	&lt;member name=&quot;IMAP_STORAGE&quot; displayname=&quot;Storage of Voicemail using IMAP&quot;&gt;
++		&lt;depend&gt;cc-client&lt;/depend&gt;
++		&lt;defaultenabled&gt;no&lt;/defaultenabled&gt;
++	&lt;/member&gt;
++	&lt;member name=&quot;ODBC_STORAGE&quot; displayname=&quot;Storage of Voicemail using ODBC&quot;&gt;
++		&lt;depend&gt;unixodbc&lt;/depend&gt;
++		&lt;defaultenabled&gt;no&lt;/defaultenabled&gt;
++	&lt;/member&gt;
++	&lt;member name=&quot;EXTENDED_ODBC_STORAGE&quot; displayname=&quot;Storage of Voicemail using ODBC (extended)&quot;&gt;
++		&lt;depend&gt;unixodbc&lt;/depend&gt;
++		&lt;defaultenabled&gt;no&lt;/defaultenabled&gt;
++	&lt;/member&gt;
++&lt;/category&gt;
++ ***/
++
+ #include &quot;asterisk.h&quot;
+ 
+ ASTERISK_FILE_VERSION(__FILE__, &quot;$Revision$&quot;)
+@@ -81,7 +98,7 @@
+ #include &quot;asterisk/stringfields.h&quot;
+ #include &quot;asterisk/smdi.h&quot;
+ #define SMDI_MWI_WAIT_TIMEOUT 1000 /* 1 second */
+-#ifdef USE_ODBC_STORAGE
++#ifdef ODBC_STORAGE
+ #include &quot;asterisk/res_odbc.h&quot;
+ #endif
+ 
+@@ -293,7 +310,7 @@
+ 
+ static void apply_options(struct ast_vm_user *vmu, const char *options);
+ 
+-#ifdef USE_ODBC_STORAGE
++#ifdef ODBC_STORAGE
+ static char odbc_database[80];
+ static char odbc_table[80];
+ #define RETRIEVE(a,b) retrieve_file(a,b)
+@@ -842,7 +859,7 @@
+ }
+ 
+ 
+-#ifdef USE_ODBC_STORAGE
++#ifdef ODBC_STORAGE
+ static int retrieve_file(char *dir, int msgnum)
+ {
+ 	int x = 0;
+@@ -1294,7 +1311,7 @@
+ 		}
+ 		fdlen = lseek(fd, 0, SEEK_END);
+ 		lseek(fd, 0, SEEK_SET);
+-		printf(&quot;Length is %d\n&quot;, fdlen);
++		printf(&quot;Length is %zd\n&quot;, fdlen);
+ 		fdm = mmap(NULL, fdlen, PROT_READ | PROT_WRITE, MAP_SHARED,fd, 0);
+ 		if (!fdm) {
+ 			ast_log(LOG_WARNING, &quot;Memory map failed!\n&quot;);
+@@ -2019,7 +2036,7 @@
+ 	return (id &gt;= 0 &amp;&amp; id &lt; (sizeof(msgs)/sizeof(msgs[0]))) ? msgs[id] : &quot;Unknown&quot;;
+ }
+ 
+-#ifdef USE_ODBC_STORAGE
++#ifdef ODBC_STORAGE
+ static int inboxcount(const char *mailbox, int *newmsgs, int *oldmsgs)
+ {
+ 	int x = -1;
+@@ -6187,7 +6204,7 @@
+ 			astsearch = &quot;no&quot;;
+ 		ast_set2_flag((&amp;globalflags), ast_true(astsearch), VM_SEARCH);
+ 
+-#ifdef USE_ODBC_STORAGE
++#ifdef ODBC_STORAGE
+ 		strcpy(odbc_database, &quot;asterisk&quot;);
+ 		if ((thresholdstr = ast_variable_retrieve(cfg, &quot;general&quot;, &quot;odbcstorage&quot;))) {
+ 			ast_copy_string(odbc_database, thresholdstr, sizeof(odbc_database));
+@@ -6618,7 +6635,7 @@
+ 
+ 	ast_install_vm_functions(has_voicemail, inboxcount, messagecount);
+ 
+-#if defined(USE_ODBC_STORAGE) &amp;&amp; !defined(EXTENDED_ODBC_STORAGE)
++#if defined(ODBC_STORAGE) &amp;&amp; !defined(EXTENDED_ODBC_STORAGE)
+ 	ast_log(LOG_WARNING, &quot;The current ODBC storage table format will be changed soon.&quot;
+ 				&quot;Please update your tables as per the README and edit the apps/Makefile &quot;
+ 				&quot;and uncomment the line containing EXTENDED_ODBC_STORAGE to enable the &quot;
+
+Modified: trunk/build_tools/get_moduledeps
+===================================================================
+--- trunk/build_tools/get_moduledeps	2006-06-28 01:33:50 UTC (rev 368)
++++ trunk/build_tools/get_moduledeps	2006-06-28 01:34:33 UTC (rev 369)
+@@ -1,3 +0,0 @@
+-/\/\*\*\* MODULEINFO/ {printit=1; next}
+-/\*\*\*\// {exit}
+-// {if (printit) print}
+
+Modified: trunk/build_tools/prep_moduledeps
+===================================================================
+--- trunk/build_tools/prep_moduledeps	2006-06-28 01:33:50 UTC (rev 368)
++++ trunk/build_tools/prep_moduledeps	2006-06-28 01:34:33 UTC (rev 369)
+@@ -39,15 +39,21 @@
+ 		get_description ${file}
+ 		desc=${TDESC}
+ 		echo -e &quot;\t\t&lt;member name=\&quot;${fname%%.c}\&quot; displayname=\&quot;${desc}\&quot;&gt;&quot;
+-		awk -f build_tools/get_moduledeps ${file}
++		awk -f build_tools/get_moduleinfo ${file}
+ 		echo -e &quot;\t\t&lt;/member&gt;&quot;
+ 	done
+ 	echo -e &quot;\t&lt;/category&gt;&quot;
++
++	for file in ${dir}/${prefix}*.c
++	do
++		awk -f build_tools/get_makeopts ${file} &gt;&gt; .makeoptstmp
++	done
+ }
+ 
+ echo &quot;&lt;?xml version=&quot;1.0&quot;?&gt;&quot;
+ echo
+ echo &quot;&lt;menu&gt;&quot;
++rm -f .makeoptstmp
+ process_dir apps app APPS Applications
+ process_dir cdr cdr CDR &quot;Call Detail Recording&quot;
+ process_dir channels chan CHANNELS &quot;Channel Drivers&quot;
+@@ -58,4 +64,6 @@
+ process_dir res res RES &quot;Resource Modules&quot;
+ cat build_tools/cflags.xml
+ cat sounds/sounds.xml
++cat .makeoptstmp
++rm -f .makeoptstmp
+ echo &quot;&lt;/menu&gt;&quot;
+
+Modified: trunk/doc/radius.txt
+===================================================================
+--- trunk/doc/radius.txt	2006-06-28 01:33:50 UTC (rev 368)
++++ trunk/doc/radius.txt	2006-06-28 01:34:33 UTC (rev 369)
+@@ -81,15 +81,16 @@
+ 		File &quot;dictionary&quot;
+ 			
+ 		Asterisk uses some attributes that are not included in the 
+-		dictionary of radiusclient library, therefore it is necesarry to add 
+-		them. A file called dictionary.asterisk was created to list all new 
+-		attributes used by Asterisk. Add into file
++		dictionary of radiusclient library, therefore it is necessary to add 
++		them. A file called dictionary.digium (kept in the contrib dir)
++ 		was created to list all new attributes used by Asterisk. 
++		Add to the end of the main dictionary file
+ 		/usr/local/etc/radiusclient-ng/dictionary
+ 		the line:
+ 
+-			$INCLUDE /path/to/dictionary.asterisk
++			$INCLUDE /path/to/dictionary.digium
+ 
+- 2.FreeRADIUS Server
++ 2.FreeRADIUS Server (Version 1.1.1)
+  	2.a Installation
+ 			
+ 		Download sources tarball from:
+@@ -135,9 +136,13 @@
+ 
+ 		File &quot;dictionary&quot;
+ 			
++		Note : as of version 1.1.2, the dictionary.digium file ships with FreeRADIUS. 
++		The following procedure brings the dictionary.digium file to previous versions 
++		of FreeRADIUS.
++		
+ 		File /usr/local/etc/raddb/dictionary contains the dictionary of 
+ 		FreeRADIUS server. You have to add the same dictionary file 
+-		(dictionary.asterisk), which you added to the dictionary of radiusclient-ng
++		(dictionary.digium), which you added to the dictionary of radiusclient-ng
+ 		library. You can include it into the main file, adding the following line at the
+ 		end of file '/usr/local/etc/raddb/dictionary':
+ 			
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000363.html">[solid-pbx-svn] r368 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000365.html">[solid-pbx-svn] r370 - in trunk: . build_tools cdr channels codecs configs formats pbx res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#364">[ date ]</a>
+              <a href="thread.html#364">[ thread ]</a>
+              <a href="subject.html#364">[ subject ]</a>
+              <a href="author.html#364">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

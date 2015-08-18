@@ -1,0 +1,270 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r373 - in trunk: apps build_tools
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r373%20-%20in%20trunk%3A%20apps%20build_tools&In-Reply-To=%3C200606280137.k5S1bapg016396%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000367.html">
+   <LINK REL="Next"  HREF="000369.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r373 - in trunk: apps build_tools</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r373%20-%20in%20trunk%3A%20apps%20build_tools&In-Reply-To=%3C200606280137.k5S1bapg016396%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r373 - in trunk: apps build_tools">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:37:36 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000367.html">[solid-pbx-svn] r372 - in trunk/channels: . misdn
+</A></li>
+        <LI>Next message: <A HREF="000369.html">[solid-pbx-svn] r374 - in trunk/channels: . misdn
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#368">[ date ]</a>
+              <a href="thread.html#368">[ thread ]</a>
+              <a href="subject.html#368">[ subject ]</a>
+              <a href="author.html#368">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:37:31 +0200 (Wed, 28 Jun 2006)
+New Revision: 373
+
+Modified:
+   trunk/apps/app_voicemail.c
+   trunk/build_tools/cflags.xml
+   trunk/build_tools/menuselect.c
+   trunk/build_tools/menuselect.h
+   trunk/build_tools/prep_moduledeps
+Log:
+Update to Asterisk SVN trunk r34583
+
+------------------------------------------------------------------------
+r34577 | kpfleming | 2006-06-18 14:52:08 +0200 (Sun, 18 Jun 2006) | 7 lines
+
+commit russell's menuselect/buildoptions work with some changes:
+  reverted per-directory .cleancount support
+  added ability for 'remove_on_change' to support multiple filenames
+  add 'remove_on_change' support to members, not just categories
+  only do 'remove_on_change' removals if the config is actually saved
+  add a 'remove_on_change' entry for each module found by prep_moduledeps so that if it gets turned off any existing .o/.so files will disappear
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-06-28 01:36:40 UTC (rev 372)
++++ trunk/apps/app_voicemail.c	2006-06-28 01:37:31 UTC (rev 373)
+@@ -42,7 +42,7 @@
+  */
+ 
+ /*** MAKEOPTS
+-&lt;category name=&quot;MENUSELECT_app_voicemail&quot; displayname=&quot;Voicemail Build Options&quot; positive_output=&quot;yes&quot; force_clean_on_change=&quot;yes&quot;&gt;
++&lt;category name=&quot;MENUSELECT_app_voicemail&quot; displayname=&quot;Voicemail Build Options&quot; positive_output=&quot;yes&quot; remove_on_change=&quot;apps/app_voicemail.o&quot;&gt;
+ 	&lt;member name=&quot;ODBC_STORAGE&quot; displayname=&quot;Storage of Voicemail using ODBC&quot;&gt;
+ 		&lt;depend&gt;unixodbc&lt;/depend&gt;
+ 		&lt;defaultenabled&gt;no&lt;/defaultenabled&gt;
+
+Modified: trunk/build_tools/cflags.xml
+===================================================================
+--- trunk/build_tools/cflags.xml	2006-06-28 01:36:40 UTC (rev 372)
++++ trunk/build_tools/cflags.xml	2006-06-28 01:37:31 UTC (rev 373)
+@@ -1,4 +1,4 @@
+-	&lt;category name=&quot;MENUSELECT_CFLAGS&quot; displayname=&quot;Compiler Flags&quot; positive_output=&quot;yes&quot; force_clean_on_change=&quot;yes&quot;&gt;
++	&lt;category name=&quot;MENUSELECT_CFLAGS&quot; displayname=&quot;Compiler Flags&quot; positive_output=&quot;yes&quot; remove_on_change=&quot;.lastclean&quot;&gt;
+ 		&lt;member name=&quot;DEBUG_CHANNEL_LOCKS&quot; displayname=&quot;Debug Channel Locking&quot;&gt;
+ 		&lt;/member&gt;
+ 		&lt;member name=&quot;DEBUG_SCHEDULER&quot; displayname=&quot;Enable Scheduler Debugging Output&quot;&gt;
+
+Modified: trunk/build_tools/menuselect.c
+===================================================================
+--- trunk/build_tools/menuselect.c	2006-06-28 01:36:40 UTC (rev 372)
++++ trunk/build_tools/menuselect.c	2006-06-28 01:37:31 UTC (rev 373)
+@@ -70,9 +70,6 @@
+ /*! This is set when the --check-deps argument is provided. */
+ static int check_deps = 0;
+ 
+-/*! Force a clean of the source tree */
+-static int force_clean = 0;
+-
+ /*! \brief return a pointer to the first non-whitespace character */
+ static inline char *skip_blanks(char *str)
+ {
+@@ -175,8 +172,7 @@
+ 		cat-&gt;displayname = mxmlElementGetAttr(cur, &quot;displayname&quot;);
+ 		if ((tmp = mxmlElementGetAttr(cur, &quot;positive_output&quot;)))
+ 			cat-&gt;positive_output = !strcasecmp(tmp, &quot;yes&quot;);
+-		if ((tmp = mxmlElementGetAttr(cur, &quot;force_clean_on_change&quot;)))
+-			cat-&gt;force_clean_on_change = !strcasecmp(tmp, &quot;yes&quot;);
++		cat-&gt;remove_on_change = mxmlElementGetAttr(cur, &quot;remove_on_change&quot;);
+ 
+ 		if (add_category(cat)) {
+ 			free(cat);
+@@ -193,8 +189,10 @@
+ 			mem-&gt;name = mxmlElementGetAttr(cur2, &quot;name&quot;);
+ 			mem-&gt;displayname = mxmlElementGetAttr(cur2, &quot;displayname&quot;);
+ 		
++			mem-&gt;remove_on_change = mxmlElementGetAttr(cur2, &quot;remove_on_change&quot;);
++
+ 			if (!cat-&gt;positive_output)
+-				mem-&gt;enabled = 1;
++				mem-&gt;was_enabled = mem-&gt;enabled = 1;
+ 	
+ 			cur3 = mxmlFindElement(cur2, cur2, &quot;defaultenabled&quot;, NULL, NULL, MXML_DESCEND);
+ 			if (cur3 &amp;&amp; cur3-&gt;child)
+@@ -348,7 +346,7 @@
+ 			continue;
+ 		AST_LIST_TRAVERSE(&amp;cat-&gt;members, mem, list) {
+ 			if (!strcmp(member, mem-&gt;name)) {
+-				mem-&gt;enabled = cat-&gt;positive_output;
++				mem-&gt;was_enabled = mem-&gt;enabled = cat-&gt;positive_output;
+ 				break;
+ 			}
+ 		}
+@@ -374,8 +372,6 @@
+ 
+ 	if (mem &amp;&amp; !(mem-&gt;depsfailed || mem-&gt;conflictsfailed)) {
+ 		mem-&gt;enabled = !mem-&gt;enabled;
+-		if (cat-&gt;force_clean_on_change)
+-			force_clean = 1;
+ 	}
+ }
+ 
+@@ -507,6 +503,34 @@
+ 
+ 	fclose(f);
+ 
++	/* Traverse all categories and members and remove any files that are supposed
++	   to be removed when an item has been changed */
++	AST_LIST_TRAVERSE(&amp;categories, cat, list) {
++		unsigned int had_changes = 0;
++		char *file, *buf;
++
++		AST_LIST_TRAVERSE(&amp;cat-&gt;members, mem, list) {
++			if (mem-&gt;enabled == mem-&gt;was_enabled)
++				continue;
++
++			had_changes = 1;
++
++			if (mem-&gt;remove_on_change) {
++				for (buf = strdupa(mem-&gt;remove_on_change), file = strsep(&amp;buf, &quot; &quot;);
++				     file;
++				     file = strsep(&amp;buf, &quot; &quot;))
++					unlink(file);
++			}
++		}
++
++		if (cat-&gt;remove_on_change &amp;&amp; had_changes) {
++			for (buf = strdupa(cat-&gt;remove_on_change), file = strsep(&amp;buf, &quot; &quot;);
++			     file;
++			     file = strsep(&amp;buf, &quot; &quot;))
++				unlink(file);
++		}
++	}
++
+ 	return 0;
+ }
+ 
+@@ -522,7 +546,8 @@
+ 	AST_LIST_TRAVERSE(&amp;categories, cat, list) {
+ 		fprintf(stderr, &quot;Category: '%s'\n&quot;, cat-&gt;name);
+ 		AST_LIST_TRAVERSE(&amp;cat-&gt;members, mem, list) {
+-			fprintf(stderr, &quot;   ==&gt;&gt; Member: '%s'  (%s)\n&quot;, mem-&gt;name, mem-&gt;enabled ? &quot;Enabled&quot; : &quot;Disabled&quot;);
++			fprintf(stderr, &quot;   ==&gt;&gt; Member: '%s'  (%s)&quot;, mem-&gt;name, mem-&gt;enabled ? &quot;Enabled&quot; : &quot;Disabled&quot;);
++			fprintf(stderr, &quot;        Was %s\n&quot;, mem-&gt;was_enabled ? &quot;Enabled&quot; : &quot;Disabled&quot;);
+ 			AST_LIST_TRAVERSE(&amp;mem-&gt;deps, dep, list)
+ 				fprintf(stderr, &quot;      --&gt; Depends on: '%s'\n&quot;, dep-&gt;name);
+ 			if (!AST_LIST_EMPTY(&amp;mem-&gt;deps))
+@@ -701,11 +726,5 @@
+ 	free_trees();
+ 	free_member_list();
+ 
+-	/* In some cases, such as modifying the CFLAGS for the build,
+-	 * a &quot;make clean&quot; needs to be forced.  Removing the .lastclean 
+-	 * file does this. */
+-	if (force_clean)
+-		unlink(&quot;.lastclean&quot;);
+-
+ 	exit(res);
+ }
+
+Modified: trunk/build_tools/menuselect.h
+===================================================================
+--- trunk/build_tools/menuselect.h	2006-06-28 01:36:40 UTC (rev 372)
++++ trunk/build_tools/menuselect.h	2006-06-28 01:37:31 UTC (rev 373)
+@@ -52,8 +52,12 @@
+ 	const char *displayname;
+ 	/*! Default setting */
+ 	const char *defaultenabled;
++	/*! Delete these file(s) if this member changes */
++	const char *remove_on_change;
+ 	/*! This module is currently selected */
+ 	unsigned int enabled:1;
++	/*! This module was enabled when the config was loaded */
++	unsigned int was_enabled:1;
+ 	/*! This module has failed dependencies */
+ 	unsigned int depsfailed:1;
+ 	/*! This module has failed conflicts */
+@@ -71,10 +75,10 @@
+ 	const char *name;
+ 	/*! the name displayed in the menu */
+ 	const char *displayname;
+-	/*! Display what is selected, as opposed to not selected */
++	/*! Delete these file(s) if anything in this category changes */
++	const char *remove_on_change;
++	/*! Output what is selected, as opposed to not selected */
+ 	unsigned int positive_output:1;
+-	/*! Force a clean of the source tree if anything in this category changes */
+-	unsigned int force_clean_on_change:1;
+ 	/*! the list of possible values to be set in this variable */
+ 	AST_LIST_HEAD_NOLOCK(, member) members;
+ 	/*! for linking */
+
+Modified: trunk/build_tools/prep_moduledeps
+===================================================================
+--- trunk/build_tools/prep_moduledeps	2006-06-28 01:36:40 UTC (rev 372)
++++ trunk/build_tools/prep_moduledeps	2006-06-28 01:37:31 UTC (rev 373)
+@@ -38,7 +38,7 @@
+ 		fname=${file##${dir}/}
+ 		get_description ${file}
+ 		desc=${TDESC}
+-		echo -e &quot;\t\t&lt;member name=\&quot;${fname%%.c}\&quot; displayname=\&quot;${desc}\&quot;&gt;&quot;
++		echo -e &quot;\t\t&lt;member name=\&quot;${fname%%.c}\&quot; displayname=\&quot;${desc}\&quot; remove_on_change=\&quot;${dir}/${fname%%.c}.o ${dir}/${fname%%.c}.so\&quot;&gt;&quot;
+ 		awk -f build_tools/get_moduleinfo ${file}
+ 		echo -e &quot;\t\t&lt;/member&gt;&quot;
+ 	done
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000367.html">[solid-pbx-svn] r372 - in trunk/channels: . misdn
+</A></li>
+	<LI>Next message: <A HREF="000369.html">[solid-pbx-svn] r374 - in trunk/channels: . misdn
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#368">[ date ]</a>
+              <a href="thread.html#368">[ thread ]</a>
+              <a href="subject.html#368">[ subject ]</a>
+              <a href="author.html#368">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

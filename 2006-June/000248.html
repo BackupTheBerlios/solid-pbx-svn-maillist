@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r253 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r253%20-%20trunk/channels&In-Reply-To=%3C200606181225.k5ICPXMQ022389%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000247.html">
+   <LINK REL="Next"  HREF="000249.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r253 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r253%20-%20trunk/channels&In-Reply-To=%3C200606181225.k5ICPXMQ022389%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r253 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 14:25:33 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000247.html">[solid-pbx-svn] r252 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000249.html">[solid-pbx-svn] r254 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#248">[ date ]</a>
+              <a href="thread.html#248">[ thread ]</a>
+              <a href="subject.html#248">[ subject ]</a>
+              <a href="author.html#248">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 14:25:30 +0200 (Sun, 18 Jun 2006)
+New Revision: 253
+
+Modified:
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r32193
+
+------------------------------------------------------------------------
+r32185 | oej | 2006-06-05 08:36:18 +0200 (Mon, 05 Jun 2006) | 2 lines
+
+Do not use ':' as a separator between arguments (kept around for 1.4 for backwards compatibility)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-06-18 11:25:25 UTC (rev 252)
++++ trunk/channels/chan_iax2.c	2006-06-18 12:25:30 UTC (rev 253)
+@@ -9398,8 +9398,10 @@
+ 		return 0;
+ 	}
+ 
+-	if ((colname = strchr(peername, ':')))
++	if ((colname = strchr(peername, ':')))	/*! \todo : will be removed after the 1.4 relese */
+ 		*colname++ = '\0';
++	else if ((colname = strchr(peername, '|')))
++		*colname++ = '\0';
+ 	else
+ 		colname = &quot;ip&quot;;
+ 
+@@ -9446,7 +9448,7 @@
+ struct ast_custom_function iaxpeer_function = {
+ 	.name = &quot;IAXPEER&quot;,
+ 	.synopsis = &quot;Gets IAX peer information&quot;,
+-	.syntax = &quot;IAXPEER(&lt;peername|CURRENTCHANNEL&gt;[:item])&quot;,
++	.syntax = &quot;IAXPEER(&lt;peername|CURRENTCHANNEL&gt;[|item])&quot;,
+ 	.read = function_iaxpeer,
+ 	.desc = &quot;If peername specified, valid items are:\n&quot;
+ 	&quot;- ip (default)          The IP address.\n&quot;
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-18 11:25:25 UTC (rev 252)
++++ trunk/channels/chan_sip.c	2006-06-18 12:25:30 UTC (rev 253)
+@@ -9980,8 +9980,10 @@
+ 	char *colname;
+ 	char iabuf[INET_ADDRSTRLEN];
+ 
+-	if ((colname = strchr(data, ':')))
++	if ((colname = strchr(data, ':')))	/*! \todo Will be deprecated after 1.4 */
+ 		*colname++ = '\0';
++	else if ((colname = strchr(data, '|')))
++		*colname++ = '\0';
+ 	else
+ 		colname = &quot;ip&quot;;
+ 
+@@ -10039,7 +10041,7 @@
+ struct ast_custom_function sippeer_function = {
+ 	.name = &quot;SIPPEER&quot;,
+ 	.synopsis = &quot;Gets SIP peer information&quot;,
+-	.syntax = &quot;SIPPEER(&lt;peername&gt;[:item])&quot;,
++	.syntax = &quot;SIPPEER(&lt;peername&gt;[|item])&quot;,
+ 	.read = function_sippeer,
+ 	.desc = &quot;Valid items are:\n&quot;
+ 	&quot;- ip (default)          The IP address.\n&quot;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000247.html">[solid-pbx-svn] r252 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000249.html">[solid-pbx-svn] r254 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#248">[ date ]</a>
+              <a href="thread.html#248">[ thread ]</a>
+              <a href="subject.html#248">[ subject ]</a>
+              <a href="author.html#248">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

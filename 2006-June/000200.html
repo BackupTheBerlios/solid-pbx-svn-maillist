@@ -1,0 +1,174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r205 - in trunk: . cdr res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r205%20-%20in%20trunk%3A%20.%20cdr%20res&In-Reply-To=%3C200606010025.k510Plmc005640%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000199.html">
+   <LINK REL="Next"  HREF="000201.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r205 - in trunk: . cdr res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r205%20-%20in%20trunk%3A%20.%20cdr%20res&In-Reply-To=%3C200606010025.k510Plmc005640%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r205 - in trunk: . cdr res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Thu Jun  1 02:25:47 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000199.html">[solid-pbx-svn] r204 - in trunk: . apps
+</A></li>
+        <LI>Next message: <A HREF="000201.html">[solid-pbx-svn] r206 - in trunk: channels configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#200">[ date ]</a>
+              <a href="thread.html#200">[ thread ]</a>
+              <a href="subject.html#200">[ subject ]</a>
+              <a href="author.html#200">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-01 02:25:36 +0200 (Thu, 01 Jun 2006)
+New Revision: 205
+
+Modified:
+   trunk/Makefile
+   trunk/cdr/cdr_radius.c
+   trunk/res/res_agi.c
+Log:
+Update to Asterisk SVN trunk r31226
+
+------------------------------------------------------------------------
+r31195 | russell | 2006-06-01 01:51:39 +0200 (Thu, 01 Jun 2006) | 11 lines
+
+Merged revisions 31194 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r31194 | russell | 2006-05-31 19:50:00 -0400 (Wed, 31 May 2006) | 3 lines
+
+if the connection to a FastAGI server fails because of a timeout, log a more
+informative log message
+
+.......
+
+------------------------------------------------------------------------
+r31225 | russell | 2006-06-01 02:09:18 +0200 (Thu, 01 Jun 2006) | 3 lines
+
+fix the problem where defaults.h is missing after a forced make clean in a
+different way that actually works
+
+------------------------------------------------------------------------
+r31226 | russell | 2006-06-01 02:15:25 +0200 (Thu, 01 Jun 2006) | 2 lines
+
+change a warning message to a debug message
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-31 23:25:48 UTC (rev 204)
++++ trunk/Makefile	2006-06-01 00:25:36 UTC (rev 205)
+@@ -371,7 +371,7 @@
+ 	@echo &quot; +               make install                +&quot;  
+ 	@echo &quot; +-------------------------------------------+&quot;  
+ 
+-all: cleantest defaults.h config.status menuselect.makeopts depend asterisk subdirs
++all: cleantest config.status menuselect.makeopts depend asterisk subdirs
+ 
+ config.status: configure
+ 	@CFLAGS=&quot;&quot; ./configure
+@@ -907,6 +907,7 @@
+ cleantest:
+ 	@if cmp -s .cleancount .lastclean ; then echo ; else \
+ 		$(MAKE) clean; cp -f .cleancount .lastclean;\
++		$(MAKE) defaults.h;\
+ 	fi
+ 
+ _uninstall:
+
+Modified: trunk/cdr/cdr_radius.c
+===================================================================
+--- trunk/cdr/cdr_radius.c	2006-05-31 23:25:48 UTC (rev 204)
++++ trunk/cdr/cdr_radius.c	2006-06-01 00:25:36 UTC (rev 205)
+@@ -47,6 +47,7 @@
+ #include &quot;asterisk/module.h&quot;
+ #include &quot;asterisk/logger.h&quot;
+ #include &quot;asterisk/utils.h&quot;
++#include &quot;asterisk/options.h&quot;
+ 
+ /*! ISO 8601 standard format */
+ #define DATE_FORMAT &quot;%Y-%m-%d %T %z&quot;
+@@ -216,7 +217,8 @@
+ 	VALUE_PAIR *send = NULL;
+ 
+ 	if (build_radius_record(&amp;send, cdr)) {
+-		ast_log(LOG_WARNING, &quot;Unable to create RADIUS record. CDR not recorded!\n&quot;);
++		if (option_debug)
++			ast_log(LOG_DEBUG, &quot;Unable to create RADIUS record. CDR not recorded!\n&quot;);
+ 		return result;
+ 	}
+ 	
+
+Modified: trunk/res/res_agi.c
+===================================================================
+--- trunk/res/res_agi.c	2006-05-31 23:25:48 UTC (rev 204)
++++ trunk/res/res_agi.c	2006-06-01 00:25:36 UTC (rev 205)
+@@ -149,6 +149,7 @@
+ 	struct sockaddr_in sin;
+ 	struct hostent *hp;
+ 	struct ast_hostent ahp;
++	int res;
+ 
+ 	/* agiusl is &quot;<A HREF="agi://host.domain[:port">agi://host.domain[:port</A>][/script/name]&quot; */
+ 	host = ast_strdupa(agiurl + 6);	/* Remove <A HREF="agi://">agi://</A> */
+@@ -200,9 +201,13 @@
+ 
+ 	pfds[0].fd = s;
+ 	pfds[0].events = POLLOUT;
+-	while (poll(pfds, 1, MAX_AGI_CONNECT) != 1) {
++	while ((res = poll(pfds, 1, MAX_AGI_CONNECT)) != 1) {
+ 		if (errno != EINTR) {
+-			ast_log(LOG_WARNING, &quot;Connect to '%s' failed: %s\n&quot;, agiurl, strerror(errno));
++			if (!res) {
++				ast_log(LOG_WARNING, &quot;FastAGI connection to '%s' timed out after MAX_AGI_CONNECT (%d) milliseconds.\n&quot;,
++					agiurl, MAX_AGI_CONNECT);
++			} else
++				ast_log(LOG_WARNING, &quot;Connect to '%s' failed: %s\n&quot;, agiurl, strerror(errno));
+ 			close(s);
+ 			return AGI_RESULT_FAILURE;
+ 		}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000199.html">[solid-pbx-svn] r204 - in trunk: . apps
+</A></li>
+	<LI>Next message: <A HREF="000201.html">[solid-pbx-svn] r206 - in trunk: channels configs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#200">[ date ]</a>
+              <a href="thread.html#200">[ thread ]</a>
+              <a href="subject.html#200">[ subject ]</a>
+              <a href="author.html#200">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

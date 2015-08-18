@@ -1,0 +1,273 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r126 - in trunk: . channels res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r126%20-%20in%20trunk%3A%20.%20channels%20res&In-Reply-To=%3C200605101528.k4AFSi4r001922%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000121.html">
+   <LINK REL="Next"  HREF="000123.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r126 - in trunk: . channels res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r126%20-%20in%20trunk%3A%20.%20channels%20res&In-Reply-To=%3C200605101528.k4AFSi4r001922%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r126 - in trunk: . channels res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed May 10 17:28:44 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000121.html">[solid-pbx-svn] r125 - in trunk: . apps build_tools channels funcs include/asterisk pbx res
+</A></li>
+        <LI>Next message: <A HREF="000123.html">[solid-pbx-svn] r127 - in trunk: apps channels configs funcs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#122">[ date ]</a>
+              <a href="thread.html#122">[ thread ]</a>
+              <a href="subject.html#122">[ subject ]</a>
+              <a href="author.html#122">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-10 17:28:41 +0200 (Wed, 10 May 2006)
+New Revision: 126
+
+Modified:
+   trunk/Makefile
+   trunk/channels/chan_h323.c
+   trunk/res/res_monitor.c
+   trunk/rtp.c
+Log:
+Update to Asterisk SVN trunk r26526
+
+------------------------------------------------------------------------
+r26492 | russell | 2006-05-10 16:35:38 +0200 (Wed, 10 May 2006) | 3 lines
+
+suppress the output from generating defaults.h and versions.h, as well as
+checking the cleancount
+
+------------------------------------------------------------------------
+r26495 | kpfleming | 2006-05-10 17:00:33 +0200 (Wed, 10 May 2006) | 2 lines
+
+update the -&gt;indicate() callback for the new arguments
+
+------------------------------------------------------------------------
+r26525 | markster | 2006-05-10 17:13:26 +0200 (Wed, 10 May 2006) | 2 lines
+
+Fix buglet on debug
+
+------------------------------------------------------------------------
+r26526 | russell | 2006-05-10 17:17:58 +0200 (Wed, 10 May 2006) | 2 lines
+
+use the channel lock wrappers (issue #7128)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-10 13:30:35 UTC (rev 125)
++++ trunk/Makefile	2006-05-10 15:28:41 UTC (rev 126)
+@@ -512,18 +512,18 @@
+ 	docbook2txt asterisk.sgml
+ 
+ defaults.h: makeopts
+-	build_tools/make_defaults_h &gt; $@.tmp
+-	if cmp -s $@.tmp $@ ; then echo ; else \
++	@build_tools/make_defaults_h &gt; $@.tmp
++	@if cmp -s $@.tmp $@ ; then echo ; else \
+ 		mv $@.tmp $@ ; \
+ 	fi
+-	rm -f $@.tmp
++	@rm -f $@.tmp
+ 
+ include/asterisk/version.h:
+-	build_tools/make_version_h &gt; $@.tmp
+-	if cmp -s $@.tmp $@ ; then echo; else \
++	@build_tools/make_version_h &gt; $@.tmp
++	@if cmp -s $@.tmp $@ ; then echo; else \
+ 		mv $@.tmp $@ ; \
+ 	fi
+-	rm -f $@.tmp
++	@rm -f $@.tmp
+ 
+ stdtime/libtime.a:
+ 	CFLAGS=&quot;$(MOD_SUBDIR_CFLAGS) $(ASTCFLAGS)&quot; $(MAKE) -C stdtime libtime.a
+@@ -957,7 +957,7 @@
+ # last clean count we had
+ 
+ cleantest:
+-	if cmp -s .cleancount .lastclean ; then echo ; else \
++	@if cmp -s .cleancount .lastclean ; then echo ; else \
+ 		$(MAKE) clean; cp -f .cleancount .lastclean;\
+ 	fi
+ 
+
+Modified: trunk/channels/chan_h323.c
+===================================================================
+--- trunk/channels/chan_h323.c	2006-05-10 13:30:35 UTC (rev 125)
++++ trunk/channels/chan_h323.c	2006-05-10 15:28:41 UTC (rev 126)
+@@ -204,7 +204,7 @@
+ static int oh323_answer(struct ast_channel *c);
+ static struct ast_frame *oh323_read(struct ast_channel *c);
+ static int oh323_write(struct ast_channel *c, struct ast_frame *frame);
+-static int oh323_indicate(struct ast_channel *c, int condition);
++static int oh323_indicate(struct ast_channel *c, int condition, const void *data, size_t datalen);
+ static int oh323_fixup(struct ast_channel *oldchan, struct ast_channel *newchan);
+ 
+ static const struct ast_channel_tech oh323_tech = {
+@@ -625,7 +625,7 @@
+ 	return res;
+ }
+ 
+-static int oh323_indicate(struct ast_channel *c, int condition)
++static int oh323_indicate(struct ast_channel *c, int condition, const void *data, size_t datalen)
+ {
+ 
+ 	struct oh323_pvt *pvt = (struct oh323_pvt *) c-&gt;tech_pvt;
+
+Modified: trunk/res/res_monitor.c
+===================================================================
+--- trunk/res/res_monitor.c	2006-05-10 13:30:35 UTC (rev 125)
++++ trunk/res/res_monitor.c	2006-05-10 15:28:41 UTC (rev 126)
+@@ -52,12 +52,12 @@
+ 
+ #define LOCK_IF_NEEDED(lock, needed) do { \
+ 	if (needed) \
+-		ast_mutex_lock(lock); \
++		ast_channel_lock(lock); \
+ 	} while(0)
+ 
+ #define UNLOCK_IF_NEEDED(lock, needed) do { \
+ 	if (needed) \
+-		ast_mutex_unlock(lock); \
++		ast_channel_unlock(lock); \
+ 	} while (0)
+ 
+ static unsigned long seq = 0;
+@@ -112,13 +112,13 @@
+ 
+ static int ast_monitor_set_state(struct ast_channel *chan, int state)
+ {
+-	LOCK_IF_NEEDED(&amp;chan-&gt;lock, 1);
++	LOCK_IF_NEEDED(chan, 1);
+ 	if (!chan-&gt;monitor) {
+-		UNLOCK_IF_NEEDED(&amp;chan-&gt;lock, 1);
++		UNLOCK_IF_NEEDED(chan, 1);
+ 		return -1;
+ 	}
+ 	chan-&gt;monitor-&gt;state = state;
+-	UNLOCK_IF_NEEDED(&amp;chan-&gt;lock, 1);
++	UNLOCK_IF_NEEDED(chan, 1);
+ 	return 0;
+ }
+ 
+@@ -129,7 +129,7 @@
+ 	int res = 0;
+ 	char tmp[256];
+ 
+-	LOCK_IF_NEEDED(&amp;chan-&gt;lock, need_lock);
++	LOCK_IF_NEEDED(chan, need_lock);
+ 
+ 	if (!(chan-&gt;monitor)) {
+ 		struct ast_channel_monitor *monitor;
+@@ -144,7 +144,7 @@
+ 		}
+ 
+ 		if (!(monitor = ast_calloc(1, sizeof(*monitor)))) {
+-			UNLOCK_IF_NEEDED(&amp;chan-&gt;lock, need_lock);
++			UNLOCK_IF_NEEDED(chan, need_lock);
+ 			return -1;
+ 		}
+ 
+@@ -226,7 +226,7 @@
+ 		res = -1;
+ 	}
+ 
+-	UNLOCK_IF_NEEDED(&amp;chan-&gt;lock, need_lock);
++	UNLOCK_IF_NEEDED(chan, need_lock);
+ 
+ 	return res;
+ }
+@@ -236,7 +236,7 @@
+ {
+ 	int delfiles = 0;
+ 
+-	LOCK_IF_NEEDED(&amp;chan-&gt;lock, need_lock);
++	LOCK_IF_NEEDED(chan, need_lock);
+ 
+ 	if (chan-&gt;monitor) {
+ 		char filename[ FILENAME_MAX ];
+@@ -305,7 +305,7 @@
+ 		chan-&gt;monitor = NULL;
+ 	}
+ 
+-	UNLOCK_IF_NEEDED(&amp;chan-&gt;lock, need_lock);
++	UNLOCK_IF_NEEDED(chan, need_lock);
+ 
+ 	return 0;
+ }
+@@ -342,7 +342,7 @@
+ 		return -1;
+ 	}
+ 
+-	LOCK_IF_NEEDED(&amp;chan-&gt;lock, need_lock);
++	LOCK_IF_NEEDED(chan, need_lock);
+ 
+ 	if (chan-&gt;monitor) {
+ 		int directory = strchr(fname_base, '/') ? 1 : 0;
+@@ -359,7 +359,7 @@
+ 		ast_log(LOG_WARNING, &quot;Cannot change monitor filename of channel %s to %s, monitoring not started\n&quot;, chan-&gt;name, fname_base);
+ 	}
+ 
+-	UNLOCK_IF_NEEDED(&amp;chan-&gt;lock, need_lock);
++	UNLOCK_IF_NEEDED(chan, need_lock);
+ 
+ 	return 0;
+ }
+
+Modified: trunk/rtp.c
+===================================================================
+--- trunk/rtp.c	2006-05-10 13:30:35 UTC (rev 125)
++++ trunk/rtp.c	2006-05-10 15:28:41 UTC (rev 126)
+@@ -763,7 +763,7 @@
+ 	}
+ 	if (!srcpr) {
+ 		if (option_debug)
+-			ast_log(LOG_DEBUG, &quot;Channel '%s' has no RTP, not doing anything\n&quot;, src-&gt;name);
++			ast_log(LOG_DEBUG, &quot;Channel '%s' has no RTP, not doing anything\n&quot;, src ? src-&gt;name : &quot;&lt;unspecified&gt;&quot;);
+ 		ast_channel_unlock(dest);
+ 		if (src)
+ 			ast_channel_unlock(src);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000121.html">[solid-pbx-svn] r125 - in trunk: . apps build_tools channels funcs include/asterisk pbx res
+</A></li>
+	<LI>Next message: <A HREF="000123.html">[solid-pbx-svn] r127 - in trunk: apps channels configs funcs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#122">[ date ]</a>
+              <a href="thread.html#122">[ thread ]</a>
+              <a href="subject.html#122">[ subject ]</a>
+              <a href="author.html#122">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

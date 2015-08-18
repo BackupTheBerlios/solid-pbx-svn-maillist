@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r305 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r305%20-%20trunk&In-Reply-To=%3C200606240218.k5O2IGPu024887%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000299.html">
+   <LINK REL="Next"  HREF="000301.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r305 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r305%20-%20trunk&In-Reply-To=%3C200606240218.k5O2IGPu024887%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r305 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 24 04:18:16 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000299.html">[solid-pbx-svn] r304 - in trunk: . channels include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000301.html">[solid-pbx-svn] r306 - in trunk: . build_tools channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#300">[ date ]</a>
+              <a href="thread.html#300">[ thread ]</a>
+              <a href="subject.html#300">[ subject ]</a>
+              <a href="author.html#300">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-24 04:18:12 +0200 (Sat, 24 Jun 2006)
+New Revision: 305
+
+Modified:
+   trunk/UPGRADE.txt
+Log:
+Update to Asterisk SVN trunk r33093
+
+------------------------------------------------------------------------
+r33089 | kpfleming | 2006-06-08 21:48:36 +0200 (Thu, 08 Jun 2006) | 2 lines
+
+document the new sound/moh file installation process
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/UPGRADE.txt
+===================================================================
+--- trunk/UPGRADE.txt	2006-06-24 02:16:55 UTC (rev 304)
++++ trunk/UPGRADE.txt	2006-06-24 02:18:12 UTC (rev 305)
+@@ -43,6 +43,39 @@
+ builds, the file can be copied to '~/.asterisk.makeopts' or 
+ '/etc/asterisk.makeopts'.
+ 
++Sound (prompt) and Music On Hold files:
++
++Beginning with Asterisk 1.4, the sound files and music on hold files supplied for
++use with Asterisk have been replaced with new versions produced from high quality
++master recordings, and are available in three languages (English, French and
++Spanish) and in five formats (WAV (uncompressed), mu-Law, a-Law, GSM and G.729).
++In addition, the music on hold files provided by FreePlay Music are now available
++in the same five formats, but no longer available in MP3 format.
++
++The Asterisk 1.4 tarball packages will only include English prompts in GSM format,
++(as were supplied with previous releases) and the FreePlay MOH files in WAV format.
++All of the other variations can be installed by running 'make menuselect' and
++selecting the packages you wish to install; when you run 'make install', those
++packages will be downloaded and installed along with the standard files included
++in the tarball.
++
++If for some reason you expect to not have Internet access at the time you will be
++running 'make install', you can make your package selections using menuselect and
++then run 'make sounds' to download (only) the sound packages; this will leave the
++sound packages in the 'sounds' subdirectory to be used later during installation.
++
++WARNING: Asterisk 1.4 supports a new layout for sound files in multiple languages;
++instead of the alternate-language files being stored in subdirectories underneath
++the existing files (for French, that would be digits/fr, letters/fr, phonetic/fr,
++etc.) the new layout creates one directory under /var/lib/asterisk/sounds for the
++language itself, then places all the sound files for that language under that
++directory and its subdirectories. This is the layout that will be created if you
++select non-English languages to be installed via menuselect, HOWEVER Asterisk does
++not default to this layout and will not find the files in the places it expects them
++to be. If you wish to use this layout, make sure you put 'languageprefix=yes' in your
++/etc/asterisk/asterisk.conf file, so that Asterisk will know how the files were
++installed.
++
+ PBX Core:
+ 
+ * The (very old and undocumented) ability to use BYEXTENSION for dialing
+@@ -265,11 +298,3 @@
+ 	ASTETCDIR	/usr/local/etc/asterisk
+ 	ASTBINDIR	/usr/local/bin/asterisk
+ 	ASTSBINDIR	/usr/local/sbin/asterisk
+-
+-Sounds:
+-
+-* The phonetic sounds directory has been removed from the asterisk-sounds
+-  package because they are now included directly in Asterisk.  However, it is
+-  important to note that the phonetic sounds that existed in asterisk-sounds 
+-  used a different naming convention than the sounds in Asterisk.  For example,
+-  instead of alpha.gsm and bravo.gsm, Asterisk has a_p.gsm and b_p.gsm.
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000299.html">[solid-pbx-svn] r304 - in trunk: . channels include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000301.html">[solid-pbx-svn] r306 - in trunk: . build_tools channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#300">[ date ]</a>
+              <a href="thread.html#300">[ thread ]</a>
+              <a href="subject.html#300">[ subject ]</a>
+              <a href="author.html#300">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r324 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r324%20-%20trunk/apps&In-Reply-To=%3C200606272350.k5RNombf028829%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000318.html">
+   <LINK REL="Next"  HREF="000320.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r324 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r324%20-%20trunk/apps&In-Reply-To=%3C200606272350.k5RNombf028829%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r324 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 01:50:48 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000318.html">[solid-pbx-svn] r323 - in trunk: pbx pbx/ael utils
+</A></li>
+        <LI>Next message: <A HREF="000320.html">[solid-pbx-svn] r325 - in trunk: apps res/snmp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#319">[ date ]</a>
+              <a href="thread.html#319">[ thread ]</a>
+              <a href="subject.html#319">[ subject ]</a>
+              <a href="author.html#319">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 01:50:40 +0200 (Wed, 28 Jun 2006)
+New Revision: 324
+
+Modified:
+   trunk/apps/app_speech_utils.c
+   trunk/apps/app_zapbarge.c
+   trunk/apps/app_zapscan.c
+Log:
+Update to Asterisk SVN trunk r33453
+
+------------------------------------------------------------------------
+r33446 | russell | 2006-06-11 16:44:58 +0200 (Sun, 11 Jun 2006) | 2 lines
+
+don't leak a frame when breaking out of the main loop of this app
+
+------------------------------------------------------------------------
+r33447 | russell | 2006-06-11 16:48:25 +0200 (Sun, 11 Jun 2006) | 2 lines
+
+don't leak a frame when exiting when the user presses '#'
+
+------------------------------------------------------------------------
+r33448 | russell | 2006-06-11 16:52:04 +0200 (Sun, 11 Jun 2006) | 2 lines
+
+don't leak a frame when breaking out of the loop on a timeout
+
+------------------------------------------------------------------------
+r33450 | russell | 2006-06-11 16:59:09 +0200 (Sun, 11 Jun 2006) | 9 lines
+
+Blocked revisions 33449 via svnmerge
+
+.......
+r33449 | russell | 2006-06-11 10:56:55 -0400 (Sun, 11 Jun 2006) | 2 lines
+
+backport a couple of frame leak fixes from the trunk (revisions 33446, 33447)
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_speech_utils.c
+===================================================================
+--- trunk/apps/app_speech_utils.c	2006-06-27 23:45:44 UTC (rev 323)
++++ trunk/apps/app_speech_utils.c	2006-06-27 23:50:40 UTC (rev 324)
+@@ -576,6 +576,8 @@
+ 			time(&amp;current);
+ 			if ((current-start) &gt;= timeout) {
+ 				done = 1;
++				if (f)
++					ast_frfree(f);
+ 				break;
+ 			}
+ 		}
+
+Modified: trunk/apps/app_zapbarge.c
+===================================================================
+--- trunk/apps/app_zapbarge.c	2006-06-27 23:45:44 UTC (rev 323)
++++ trunk/apps/app_zapbarge.c	2006-06-27 23:50:40 UTC (rev 324)
+@@ -221,6 +221,7 @@
+ 				break;
+ 			if ((f-&gt;frametype == AST_FRAME_DTMF) &amp;&amp; (f-&gt;subclass == '#')) {
+ 				ret = 0;
++				ast_frfree(f);
+ 				break;
+ 			} else if (fd != chan-&gt;fds[0]) {
+ 				if (f-&gt;frametype == AST_FRAME_VOICE) {
+
+Modified: trunk/apps/app_zapscan.c
+===================================================================
+--- trunk/apps/app_zapscan.c	2006-06-27 23:45:44 UTC (rev 323)
++++ trunk/apps/app_zapscan.c	2006-06-27 23:50:40 UTC (rev 324)
+@@ -276,6 +276,8 @@
+ 					ast_log(LOG_WARNING, &quot;Failed to read frame: %s\n&quot;, strerror(errno));
+ 			}
+         }
++	if (f)
++		ast_frfree(f);
+         if (fd != chan-&gt;fds[0])
+ 			close(fd);
+         else {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000318.html">[solid-pbx-svn] r323 - in trunk: pbx pbx/ael utils
+</A></li>
+	<LI>Next message: <A HREF="000320.html">[solid-pbx-svn] r325 - in trunk: apps res/snmp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#319">[ date ]</a>
+              <a href="thread.html#319">[ thread ]</a>
+              <a href="subject.html#319">[ subject ]</a>
+              <a href="author.html#319">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

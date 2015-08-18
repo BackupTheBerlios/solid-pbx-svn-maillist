@@ -1,0 +1,331 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r62 - in trunk: . apps include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r62%20-%20in%20trunk%3A%20.%20apps%20include/asterisk&In-Reply-To=%3C200605051918.k45JIbfi025680%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000058.html">
+   <LINK REL="Next"  HREF="000060.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r62 - in trunk: . apps include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r62%20-%20in%20trunk%3A%20.%20apps%20include/asterisk&In-Reply-To=%3C200605051918.k45JIbfi025680%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r62 - in trunk: . apps include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May  5 21:18:37 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000058.html">[solid-pbx-svn] r61 - trunk/channels/h323
+</A></li>
+        <LI>Next message: <A HREF="000060.html">[solid-pbx-svn] r63 - trunk/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#59">[ date ]</a>
+              <a href="thread.html#59">[ thread ]</a>
+              <a href="subject.html#59">[ subject ]</a>
+              <a href="author.html#59">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-05 21:18:15 +0200 (Fri, 05 May 2006)
+New Revision: 62
+
+Modified:
+   trunk/app.c
+   trunk/apps/app_voicemail.c
+   trunk/include/asterisk/app.h
+Log:
+Update to Asterisk SVN trunk r24981
+
+------------------------------------------------------------------------
+r24981 | bweschke | 2006-05-05 21:10:11 +0200 (Fri, 05 May 2006) | 3 lines
+
+ Fix 4 bugs in voicemail. #7064 ( supczinskib and jcollie ) 
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/app.c
+===================================================================
+--- trunk/app.c	2006-05-05 19:11:43 UTC (rev 61)
++++ trunk/app.c	2006-05-05 19:18:15 UTC (rev 62)
+@@ -535,7 +535,23 @@
+ static int global_silence_threshold = 128;
+ static int global_maxsilence = 0;
+ 
+-static int __ast_play_and_record(struct ast_channel *chan, const char *playfile, const char *recordfile, int maxtime, const char *fmt, int *duration, int beep, int silencethreshold, int maxsilence, const char *path, int prepend)
++/*! Optionally play a sound file or a beep, then record audio and video from the channel.
++ * @param chan Channel to playback to/record from.
++ * @param playfile Filename of sound to play before recording begins.
++ * @param recordfile Filename to record to.
++ * @param maxtime Maximum length of recording (in milliseconds).
++ * @param fmt Format(s) to record message in. Multiple formats may be specified by separating them with a '|'.
++ * @param duration Where to store actual length of the recorded message (in milliseconds).
++ * @param beep Whether to play a beep before starting to record.
++ * @param silencethreshold 
++ * @param maxsilence Length of silence that will end a recording (in milliseconds).
++ * @param path Optional filesystem path to unlock.
++ * @param prepend If true, prepend the recorded audio to an existing file.
++ * @param acceptdtmf DTMF digits that will end the recording.
++ * @param canceldtmf DTMF digits that will cancel the recording.
++ */
++
++static int __ast_play_and_record(struct ast_channel *chan, const char *playfile, const char *recordfile, int maxtime, const char *fmt, int *duration, int beep, int silencethreshold, int maxsilence, const char *path, int prepend, const char *acceptdtmf, const char *canceldtmf)
+ {
+ 	int d = 0;
+ 	char *fmts;
+@@ -700,18 +716,17 @@
+ 					outmsg = 2;
+ 					break;
+ 				}
+-				if (f-&gt;subclass == '#') {
++				if (strchr(acceptdtmf, f-&gt;subclass)) {
+ 					if (option_verbose &gt; 2)
+ 						ast_verbose(VERBOSE_PREFIX_3 &quot;User ended message by pressing %c\n&quot;, f-&gt;subclass);
+-					res = '#';
++					res = f-&gt;subclass;
+ 					outmsg = 2;
+ 					break;
+ 				}
+-				if (f-&gt;subclass == '0') {
+-				/* Check for a '0' during message recording also, in case caller wants operator */
++				if (strchr(canceldtmf, f-&gt;subclass)) {
+ 					if (option_verbose &gt; 2)
+-						ast_verbose(VERBOSE_PREFIX_3 &quot;User cancelled by pressing %c\n&quot;, f-&gt;subclass);
+-					res = '0';
++						ast_verbose(VERBOSE_PREFIX_3 &quot;User cancelled message by pressing %c\n&quot;, f-&gt;subclass);
++					res = f-&gt;subclass;
+ 					outmsg = 0;
+ 					break;
+ 				}
+@@ -793,14 +808,22 @@
+ 	return res;
+ }
+ 
++static char default_acceptdtmf[] = &quot;#&quot;;
++static char default_canceldtmf[] = &quot;&quot;;
++
++int ast_play_and_record_full(struct ast_channel *chan, const char *playfile, const char *recordfile, int maxtime, const char *fmt, int *duration, int silencethreshold, int maxsilence, const char *path, const char *acceptdtmf, const char *canceldtmf)
++{
++	return __ast_play_and_record(chan, playfile, recordfile, maxtime, fmt, duration, 0, silencethreshold, maxsilence, path, 0, S_OR(acceptdtmf, default_acceptdtmf), S_OR(canceldtmf, default_canceldtmf));
++}
++
+ int ast_play_and_record(struct ast_channel *chan, const char *playfile, const char *recordfile, int maxtime, const char *fmt, int *duration, int silencethreshold, int maxsilence, const char *path)
+ {
+-	return __ast_play_and_record(chan, playfile, recordfile, maxtime, fmt, duration, 0, silencethreshold, maxsilence, path, 0);
++	return __ast_play_and_record(chan, playfile, recordfile, maxtime, fmt, duration, 0, silencethreshold, maxsilence, path, 0, default_acceptdtmf, default_canceldtmf);
+ }
+ 
+ int ast_play_and_prepend(struct ast_channel *chan, char *playfile, char *recordfile, int maxtime, char *fmt, int *duration, int beep, int silencethreshold, int maxsilence)
+ {
+-	return __ast_play_and_record(chan, playfile, recordfile, maxtime, fmt, duration, beep, silencethreshold, maxsilence, NULL, 1);
++	return __ast_play_and_record(chan, playfile, recordfile, maxtime, fmt, duration, beep, silencethreshold, maxsilence, NULL, 1, default_acceptdtmf, default_canceldtmf);
+ }
+ 
+ /* Channel group core functions */
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-05 19:11:43 UTC (rev 61)
++++ trunk/apps/app_voicemail.c	2006-05-05 19:18:15 UTC (rev 62)
+@@ -669,14 +669,10 @@
+ 		char *user = NULL, *pass = NULL, *rest = NULL, *comment = NULL, *tmpctx = NULL, *tmpctxend = NULL;
+ 
+ 		/* Read in the line */
+-		fgets(inbuf, sizeof(inbuf), configin);
++		if (fgets(inbuf, sizeof(inbuf), configin) == NULL)
++			continue;
+ 		linenum++;
+ 
+-		if (ast_strlen_zero(inbuf)) {
+-			fprintf(configout, &quot;\n&quot;);
+-			continue;
+-		}
+-
+ 		/* Make a backup of it */
+ 		ast_copy_string(orig, inbuf, sizeof(orig));
+ 
+@@ -2409,6 +2405,7 @@
+ 	int duration = 0;
+ 	int ausemacro = 0;
+ 	int ousemacro = 0;
++	int ouseexten = 0;
+ 	char date[256];
+ 	char dir[256];
+ 	char fn[256];
+@@ -2464,14 +2461,20 @@
+ 	create_dirpath(dir, sizeof(dir), vmu-&gt;context, ext, &quot;INBOX&quot;);
+ 
+ 	/* Check current or macro-calling context for special extensions */
+-	if (!ast_strlen_zero(vmu-&gt;exit)) {
+-		if (ast_exists_extension(chan, vmu-&gt;exit, &quot;o&quot;, 1, chan-&gt;cid.cid_num))
++	if (ast_test_flag(vmu, VM_OPERATOR)) {
++		if (!ast_strlen_zero(vmu-&gt;exit)) {
++			if (ast_exists_extension(chan, vmu-&gt;exit, &quot;o&quot;, 1, chan-&gt;cid.cid_num)) {
++				strncat(ecodes, &quot;0&quot;, sizeof(ecodes) - strlen(ecodes) - 1);
++				ouseexten = 1;
++			}
++		} else if (ast_exists_extension(chan, chan-&gt;context, &quot;o&quot;, 1, chan-&gt;cid.cid_num)) {
+ 			strncat(ecodes, &quot;0&quot;, sizeof(ecodes) - strlen(ecodes) - 1);
+-	} else if (ast_exists_extension(chan, chan-&gt;context, &quot;o&quot;, 1, chan-&gt;cid.cid_num))
+-		strncat(ecodes, &quot;0&quot;, sizeof(ecodes) - strlen(ecodes) - 1);
+-	else if (!ast_strlen_zero(chan-&gt;macrocontext) &amp;&amp; ast_exists_extension(chan, chan-&gt;macrocontext, &quot;o&quot;, 1, chan-&gt;cid.cid_num)) {
+-		strncat(ecodes, &quot;0&quot;, sizeof(ecodes) - strlen(ecodes) - 1);
+-		ousemacro = 1;
++			ouseexten = 1;
++		}
++		else if (!ast_strlen_zero(chan-&gt;macrocontext) &amp;&amp; ast_exists_extension(chan, chan-&gt;macrocontext, &quot;o&quot;, 1, chan-&gt;cid.cid_num)) {
++			strncat(ecodes, &quot;0&quot;, sizeof(ecodes) - strlen(ecodes) - 1);
++			ousemacro = 1;
++		}
+ 	}
+ 
+ 	if (!ast_strlen_zero(vmu-&gt;exit)) {
+@@ -2531,10 +2534,11 @@
+ 		pbx_builtin_setvar_helper(chan, &quot;VMSTATUS&quot;, &quot;USEREXIT&quot;);
+ 		return 0;
+ 	}
++
+ 	/* Check for a '0' here */
+ 	if (res == '0') {
+ 	transfer:
+-		if (ast_test_flag(vmu, VM_OPERATOR)) {
++		if(ouseexten || ousemacro) {
+ 			chan-&gt;exten[0] = 'o';
+ 			chan-&gt;exten[1] = '\0';
+ 			if (!ast_strlen_zero(vmu-&gt;exit)) {
+@@ -2546,12 +2550,8 @@
+ 			chan-&gt;priority = 0;
+ 			free_user(vmu);
+ 			pbx_builtin_setvar_helper(chan, &quot;VMSTATUS&quot;, &quot;USEREXIT&quot;);
+-			return 0;
+-		} else {
+-			ast_play_and_wait(chan, &quot;vm-sorry&quot;);
+-			pbx_builtin_setvar_helper(chan, &quot;VMSTATUS&quot;, &quot;USEREXIT&quot;);
+-			return 0;
+ 		}
++		return 0;
+ 	}
+ 	if (res &lt; 0) {
+ 		free_user(vmu);
+@@ -5387,7 +5387,7 @@
+ 			while ((cmd &gt; -1) &amp;&amp; (cmd != 't') &amp;&amp; (cmd != '#')) {
+ 				switch(cmd) {
+ 				case '1': /* Reply */
+-					if (vms.lastmsg &gt; -1) {
++					if (vms.lastmsg &gt; -1 &amp;&amp; !vms.starting) {
+ 						cmd = advanced_options(chan, vmu, &amp;vms, vms.curmsg, 1, record_gain);
+ 						if (cmd == ERROR_LOCK_PATH) {
+ 							res = cmd;
+@@ -5398,9 +5398,9 @@
+ 					cmd = 't';
+ 					break;
+ 				case '2': /* Callback */
+-					if (option_verbose &gt; 2)
++					if (option_verbose &gt; 2 &amp;&amp; !vms.starting)
+ 						ast_verbose( VERBOSE_PREFIX_3 &quot;Callback Requested\n&quot;);
+-					if (!ast_strlen_zero(vmu-&gt;callback) &amp;&amp; vms.lastmsg &gt; -1) {
++					if (!ast_strlen_zero(vmu-&gt;callback) &amp;&amp; vms.lastmsg &gt; -1 &amp;&amp; !vms.starting) {
+ 						cmd = advanced_options(chan, vmu, &amp;vms, vms.curmsg, 2, record_gain);
+ 						if (cmd == 9) {
+ 							silentexit = 1;
+@@ -5415,7 +5415,7 @@
+ 					cmd = 't';
+ 					break;
+ 				case '3': /* Envelope */
+-					if (vms.lastmsg &gt; -1) {
++					if (vms.lastmsg &gt; -1 &amp;&amp; !vms.starting) {
+ 						cmd = advanced_options(chan, vmu, &amp;vms, vms.curmsg, 3, record_gain);
+ 						if (cmd == ERROR_LOCK_PATH) {
+ 							res = cmd;
+@@ -6581,6 +6581,9 @@
+ 			res = play_message_datetime(chan, vmu, origtime, filename);
+ 		if (!res)
+ 			res = play_message_callerid(chan, vms, cid, context, 0);
++
++		res = 't';
++
+ 	} else if (option == 2) { /* Call back */
+ 
+ 		if (!ast_strlen_zero(cid)) {
+@@ -6725,6 +6728,9 @@
+  	int recorded = 0;
+  	int message_exists = 0;
+ 	signed char zero_gain = 0;
++	char *acceptdtmf = &quot;#&quot;;
++	char *canceldtmf = &quot;&quot;;
++
+  	/* Note that urgent and private are for flagging messages as such in the future */
+  
+ 	/* barf if no pointer passed to store duration in */
+@@ -6776,7 +6782,9 @@
+  			/* After an attempt has been made to record message, we have to take care of INTRO and beep for incoming messages, but not for greetings */
+ 			if (record_gain)
+ 				ast_channel_setoption(chan, AST_OPTION_RXGAIN, &amp;record_gain, sizeof(record_gain), 0);
+-			cmd = ast_play_and_record(chan, playfile, recordfile, maxtime, fmt, duration, silencethreshold, maxsilence, unlockdir);
++			if (ast_test_flag(vmu, VM_OPERATOR))
++				canceldtmf = &quot;0&quot;;
++			cmd = ast_play_and_record_full(chan, playfile, recordfile, maxtime, fmt, duration, silencethreshold, maxsilence, unlockdir, acceptdtmf, canceldtmf);
+ 			if (record_gain)
+ 				ast_channel_setoption(chan, AST_OPTION_RXGAIN, &amp;zero_gain, sizeof(zero_gain), 0);
+  			if (cmd == -1) {
+@@ -6839,6 +6847,10 @@
+  				return 1;
+ #endif
+  		case '0':
++			if(!ast_test_flag(vmu, VM_OPERATOR)) {
++ 				cmd = ast_play_and_wait(chan, &quot;vm-sorry&quot;);
++ 				break;
++			}
+ 			if (message_exists || recorded) {
+ 				cmd = ast_play_and_wait(chan, &quot;vm-saveoper&quot;);
+ 				if (!cmd)
+
+Modified: trunk/include/asterisk/app.h
+===================================================================
+--- trunk/include/asterisk/app.h	2006-05-05 19:11:43 UTC (rev 61)
++++ trunk/include/asterisk/app.h	2006-05-05 19:18:15 UTC (rev 62)
+@@ -140,6 +140,8 @@
+ /*! Play a stream and wait for a digit, returning the digit that was pressed */
+ int ast_play_and_wait(struct ast_channel *chan, const char *fn);
+ 
++int ast_play_and_record_full(struct ast_channel *chan, const char *playfile, const char *recordfile, int maxtime_sec, const char *fmt, int *duration, int silencethreshold, int maxsilence_ms, const char *path, const char *acceptdtmf, const char *canceldtmf);
++
+ /*! Record a file for a max amount of time (in seconds), in a given list of formats separated by '|', outputting the duration of the recording, and with a maximum 
+  \n
+  permitted silence time in milliseconds of 'maxsilence' under 'silencethreshold' or use '-1' for either or both parameters for defaults. 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000058.html">[solid-pbx-svn] r61 - trunk/channels/h323
+</A></li>
+	<LI>Next message: <A HREF="000060.html">[solid-pbx-svn] r63 - trunk/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#59">[ date ]</a>
+              <a href="thread.html#59">[ thread ]</a>
+              <a href="subject.html#59">[ subject ]</a>
+              <a href="author.html#59">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

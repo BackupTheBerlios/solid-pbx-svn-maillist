@@ -1,0 +1,348 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r26 - in trunk: . apps include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r26%20-%20in%20trunk%3A%20.%20apps%20include/asterisk&In-Reply-To=%3C200605011518.k41FIWCC024073%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000022.html">
+   <LINK REL="Next"  HREF="000024.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r26 - in trunk: . apps include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r26%20-%20in%20trunk%3A%20.%20apps%20include/asterisk&In-Reply-To=%3C200605011518.k41FIWCC024073%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r26 - in trunk: . apps include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May  1 17:18:32 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000022.html">[solid-pbx-svn] r25 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000024.html">[solid-pbx-svn] r27 - in trunk: apps utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#23">[ date ]</a>
+              <a href="thread.html#23">[ thread ]</a>
+              <a href="subject.html#23">[ subject ]</a>
+              <a href="author.html#23">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-01 17:18:24 +0200 (Mon, 01 May 2006)
+New Revision: 26
+
+Modified:
+   trunk/apps/app_speech_utils.c
+   trunk/include/asterisk/pbx.h
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r23952
+
+------------------------------------------------------------------------
+r23929 | russell | 2006-05-01 16:57:48 +0200 (Mon, 01 May 2006) | 2 lines
+
+remove \n from the end of a couple of synopsis fields
+
+------------------------------------------------------------------------
+r23950 | russell | 2006-05-01 17:09:51 +0200 (Mon, 01 May 2006) | 3 lines
+
+- convert the list of dialplan function to the list macros
+- add missing locking of the functions list in the &quot;show functions&quot; CLI command
+
+------------------------------------------------------------------------
+r23952 | russell | 2006-05-01 17:13:10 +0200 (Mon, 01 May 2006) | 1 line
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_speech_utils.c
+===================================================================
+--- trunk/apps/app_speech_utils.c	2006-05-01 11:18:20 UTC (rev 25)
++++ trunk/apps/app_speech_utils.c	2006-05-01 15:18:24 UTC (rev 26)
+@@ -168,7 +168,7 @@
+ 
+ static struct ast_custom_function speech_score_function = {
+         .name = &quot;SPEECH_SCORE&quot;,
+-        .synopsis = &quot;Gets the confidence score of a result.\n&quot;,
++        .synopsis = &quot;Gets the confidence score of a result.&quot;,
+         .syntax = &quot;SPEECH_SCORE(result number)&quot;,
+         .desc =
+         &quot;Gets the confidence score of a result.\n&quot;,
+@@ -194,7 +194,7 @@
+ 
+ static struct ast_custom_function speech_text_function = {
+         .name = &quot;SPEECH_TEXT&quot;,
+-        .synopsis = &quot;Gets the recognized text of a result.\n&quot;,
++        .synopsis = &quot;Gets the recognized text of a result.&quot;,
+         .syntax = &quot;SPEECH_TEXT(result number)&quot;,
+         .desc =
+         &quot;Gets the recognized text of a result.\n&quot;,
+
+Modified: trunk/include/asterisk/pbx.h
+===================================================================
+--- trunk/include/asterisk/pbx.h	2006-05-01 11:18:20 UTC (rev 25)
++++ trunk/include/asterisk/pbx.h	2006-05-01 15:18:24 UTC (rev 26)
+@@ -71,7 +71,7 @@
+ 	const char *syntax;		/*!&lt; Syntax description */
+ 	int (*read)(struct ast_channel *, char *, char *, char *, size_t);	/*!&lt; Read function, if read is supported */
+ 	int (*write)(struct ast_channel *, char *, char *, const char *);	/*!&lt; Write function, if write is supported */
+-	struct ast_custom_function *next;
++	AST_LIST_ENTRY(ast_custom_function) acflist;
+ };
+ 
+ /*! \brief All switch functions have the same interface, so define a type for them */
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-01 11:18:20 UTC (rev 25)
++++ trunk/pbx.c	2006-05-01 15:18:24 UTC (rev 26)
+@@ -244,8 +244,7 @@
+ AST_MUTEX_DEFINE_STATIC(maxcalllock);
+ static int countcalls = 0;
+ 
+-AST_MUTEX_DEFINE_STATIC(acflock); 		/*!&lt; Lock for the custom function list */
+-static struct ast_custom_function *acf_root = NULL;
++AST_LIST_HEAD_STATIC(acf_root, ast_custom_function);
+ 
+ /*! \brief Declaration of builtin applications */
+ static struct pbx_builtin {
+@@ -1032,17 +1031,19 @@
+ 	}
+ 
+ 	ast_cli(fd, &quot;%s Custom Functions:\n--------------------------------------------------------------------------------\n&quot;, like ? &quot;Matching&quot; : &quot;Installed&quot;);
+-	
+-	for (acf = acf_root ; acf; acf = acf-&gt;next) {
++
++	AST_LIST_LOCK(&amp;acf_root);
++	AST_LIST_TRAVERSE(&amp;acf_root, acf, acflist) {
+ 		if (!like || strstr(acf-&gt;name, argv[3])) {
+ 			count_acf++;
+ 			ast_cli(fd, &quot;%-20.20s  %-35.35s  %s\n&quot;, acf-&gt;name, acf-&gt;syntax, acf-&gt;synopsis);
+ 		}
+ 	}
++	AST_LIST_UNLOCK(&amp;acf_root);
+ 
+ 	ast_cli(fd, &quot;%d %scustom functions installed.\n&quot;, count_acf, like ? &quot;matching &quot; : &quot;&quot;);
+ 
+-	return 0;
++	return RESULT_SUCCESS;
+ }
+ 
+ static int handle_show_function(int fd, int argc, char *argv[])
+@@ -1108,122 +1109,83 @@
+ 	int which = 0;
+ 	int wordlen = strlen(word);
+ 
+-	/* try to lock functions list ... */
+-	if (ast_mutex_lock(&amp;acflock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock function list\n&quot;);
+-		return NULL;
+-	}
+-
+ 	/* case-insensitive for convenience in this 'complete' function */
+- 	for (acf = acf_root; acf &amp;&amp; !ret; acf = acf-&gt;next) {
+- 		if (!strncasecmp(word, acf-&gt;name, wordlen) &amp;&amp; ++which &gt; state)
++	AST_LIST_LOCK(&amp;acf_root);
++	AST_LIST_TRAVERSE(&amp;acf_root, acf, acflist) {
++ 		if (!strncasecmp(word, acf-&gt;name, wordlen) &amp;&amp; ++which &gt; state) {
+  			ret = strdup(acf-&gt;name);
++			break;
++		}
+ 	}
++	AST_LIST_UNLOCK(&amp;acf_root);
+ 
+-	ast_mutex_unlock(&amp;acflock);
+-
+ 	return ret; 
+ }
+ 
+-struct ast_custom_function* ast_custom_function_find(const char *name) 
++struct ast_custom_function *ast_custom_function_find(const char *name) 
+ {
+-	struct ast_custom_function *acfptr;
++	struct ast_custom_function *acf = NULL;
+ 
+-	/* try to lock functions list ... */
+-	if (ast_mutex_lock(&amp;acflock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock function list\n&quot;);
+-		return NULL;
+-	}
+-
+-	for (acfptr = acf_root; acfptr; acfptr = acfptr-&gt;next) {
+-		if (!strcmp(name, acfptr-&gt;name))
++	AST_LIST_LOCK(&amp;acf_root);
++	AST_LIST_TRAVERSE(&amp;acf_root, acf, acflist) {
++		if (!strcmp(name, acf-&gt;name))
+ 			break;
+ 	}
+-
+-	ast_mutex_unlock(&amp;acflock);
++	AST_LIST_UNLOCK(&amp;acf_root);
+ 	
+-	return acfptr;
++	return acf;
+ }
+ 
+ int ast_custom_function_unregister(struct ast_custom_function *acf) 
+ {
+-	struct ast_custom_function *cur, *prev = NULL;
+-	int res = -1;
++	struct ast_custom_function *cur;
+ 
+ 	if (!acf)
+ 		return -1;
+ 
+-	/* try to lock functions list ... */
+-	if (ast_mutex_lock(&amp;acflock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock function list\n&quot;);
+-		return -1;
+-	}
+-
+-	for (cur = acf_root; cur; prev = cur, cur = cur-&gt;next) {
++	AST_LIST_LOCK(&amp;acf_root);
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;acf_root, cur, acflist) {
+ 		if (cur == acf) {
+-			if (prev)
+-				prev-&gt;next = acf-&gt;next;
+-			else
+-				acf_root = acf-&gt;next;
+-			res = 0;
++			AST_LIST_REMOVE_CURRENT(&amp;acf_root, acflist);
++			if (option_verbose &gt; 1)
++				ast_verbose(VERBOSE_PREFIX_2 &quot;Unregistered custom function %s\n&quot;, acf-&gt;name);
+ 			break;
+ 		}
+ 	}
++	AST_LIST_TRAVERSE_SAFE_END
++	AST_LIST_UNLOCK(&amp;acf_root);		
+ 
+-	ast_mutex_unlock(&amp;acflock);
+-
+-	if (!res &amp;&amp; option_verbose &gt; 1)
+-		ast_verbose(VERBOSE_PREFIX_2 &quot;Unregistered custom function %s\n&quot;, acf-&gt;name);
+-
+-	return res;
++	return acf ? 0 : -1;
+ }
+ 
+ int ast_custom_function_register(struct ast_custom_function *acf) 
+ {
+-	struct ast_custom_function *cur, *last = NULL;
+-	int found = 0;
++	struct ast_custom_function *cur;
+ 
+ 	if (!acf)
+ 		return -1;
+ 
+-	/* try to lock functions list ... */
+-	if (ast_mutex_lock(&amp;acflock)) {
+-		ast_log(LOG_ERROR, &quot;Unable to lock function list. Failed registering function %s\n&quot;, acf-&gt;name);
+-		return -1;
+-	}
++	AST_LIST_LOCK(&amp;acf_root);
+ 
+ 	if (ast_custom_function_find(acf-&gt;name)) {
+ 		ast_log(LOG_ERROR, &quot;Function %s already registered.\n&quot;, acf-&gt;name);
+-		ast_mutex_unlock(&amp;acflock);
++		AST_LIST_UNLOCK(&amp;acf_root);
+ 		return -1;
+ 	}
+ 
+-	for (cur = acf_root; cur; cur = cur-&gt;next) {
+-		if (strcmp(acf-&gt;name, cur-&gt;name) &lt; 0) {
+-			found = 1;
+-			if (last) {
+-				acf-&gt;next = cur;
+-				last-&gt;next = acf;
+-			} else {
+-				acf-&gt;next = acf_root;
+-				acf_root = acf;
+-			}
++	/* Store in alphabetical order */
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;acf_root, cur, acflist) {
++		if (strcasecmp(acf-&gt;name, cur-&gt;name) &lt; 0) {
++			AST_LIST_INSERT_BEFORE_CURRENT(&amp;acf_root, acf, acflist);	
+ 			break;
+ 		}
+-		last = cur;
+ 	}
++	AST_LIST_TRAVERSE_SAFE_END
++	if (!cur)
++		AST_LIST_INSERT_TAIL(&amp;acf_root, acf, acflist);
+ 
+-	/* Wasn't before anything else, put it at the end */
+-	if (!found) {
+-		if (last)
+-			last-&gt;next = acf;
+-		else
+-			acf_root = acf;
+-		acf-&gt;next = NULL;
+-	}
++	AST_LIST_UNLOCK(&amp;acf_root);
+ 
+-	ast_mutex_unlock(&amp;acflock);
+-
+ 	if (option_verbose &gt; 1)
+ 		ast_verbose(VERBOSE_PREFIX_2 &quot;Registered custom function %s\n&quot;, acf-&gt;name);
+ 
+@@ -2650,7 +2612,7 @@
+ /*! \brief Dynamically register a new dial plan application */
+ int ast_register_application(const char *app, int (*execute)(struct ast_channel *, void *), const char *synopsis, const char *description)
+ {
+-	struct ast_app *tmp, *prev = NULL;
++	struct ast_app *tmp, *cur = NULL;
+ 	char tmps[80];
+ 	int length;
+ 
+@@ -2676,14 +2638,14 @@
+ 	tmp-&gt;description = description;
+ 
+ 	/* Store in alphabetical order */
+-	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;apps, prev, list) {
+-		if (strcasecmp(tmp-&gt;name, prev-&gt;name) &lt; 0) {
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;apps, cur, list) {
++		if (strcasecmp(tmp-&gt;name, cur-&gt;name) &lt; 0) {
+ 			AST_LIST_INSERT_BEFORE_CURRENT(&amp;apps, tmp, list);	
+ 			break;
+ 		}
+ 	}
+ 	AST_LIST_TRAVERSE_SAFE_END
+-	if (!prev)
++	if (!cur)
+ 		AST_LIST_INSERT_TAIL(&amp;apps, tmp, list);
+ 
+ 	if (option_verbose &gt; 1)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000022.html">[solid-pbx-svn] r25 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000024.html">[solid-pbx-svn] r27 - in trunk: apps utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#23">[ date ]</a>
+              <a href="thread.html#23">[ thread ]</a>
+              <a href="subject.html#23">[ subject ]</a>
+              <a href="author.html#23">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

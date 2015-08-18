@@ -1,0 +1,670 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r58 - in trunk: . apps channels channels/misdn configs include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r58%20-%20in%20trunk%3A%20.%20apps%20channels%20channels/misdn%20configs%20include/asterisk&In-Reply-To=%3C200605051719.k45HJ0Lm002643%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000054.html">
+   <LINK REL="Next"  HREF="000056.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r58 - in trunk: . apps channels channels/misdn configs include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r58%20-%20in%20trunk%3A%20.%20apps%20channels%20channels/misdn%20configs%20include/asterisk&In-Reply-To=%3C200605051719.k45HJ0Lm002643%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r58 - in trunk: . apps channels channels/misdn configs include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May  5 19:19:00 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000054.html">[solid-pbx-svn] r57 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000056.html">[solid-pbx-svn] r59 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#55">[ date ]</a>
+              <a href="thread.html#55">[ thread ]</a>
+              <a href="subject.html#55">[ subject ]</a>
+              <a href="author.html#55">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-05 19:18:41 +0200 (Fri, 05 May 2006)
+New Revision: 58
+
+Modified:
+   trunk/apps/app_while.c
+   trunk/channels/chan_misdn.c
+   trunk/channels/misdn/chan_misdn_config.h
+   trunk/channels/misdn/isdn_lib.c
+   trunk/channels/misdn/isdn_lib.h
+   trunk/channels/misdn_config.c
+   trunk/configs/misdn.conf.sample
+   trunk/include/asterisk/pbx.h
+   trunk/pbx.c
+   trunk/sched.c
+   trunk/utils.c
+Log:
+Update to Asterisk SVN trunk r24910
+
+------------------------------------------------------------------------
+r24876 | russell | 2006-05-05 18:34:35 +0200 (Fri, 05 May 2006) | 2 lines
+
+oops :)
+
+------------------------------------------------------------------------
+r24878 | russell | 2006-05-05 18:36:43 +0200 (Fri, 05 May 2006) | 2 lines
+
+constify the argument to pbx_checkcondition
+
+------------------------------------------------------------------------
+r24879 | crichter | 2006-05-05 18:38:15 +0200 (Fri, 05 May 2006) | 1 line
+
+Added option far_alerting. This option makes it possible to generate a Ringing on other channels if they feel that they should have inband ringing, but there is non in reality. I need this due to the fact that asterisk has not the possibility to transmit progress indicators thus chan_sip and others do not know wether they should generate a Rining tone themselves if they receive AST_CONTROL_RINGING..
+------------------------------------------------------------------------
+r24880 | russell | 2006-05-05 18:46:46 +0200 (Fri, 05 May 2006) | 2 lines
+
+use ast_malloc instead of malloc
+
+------------------------------------------------------------------------
+r24910 | russell | 2006-05-05 19:09:27 +0200 (Fri, 05 May 2006) | 3 lines
+
+convert the list of scheduled items in a scheduler context to use the
+list macros.  Also, use ast_calloc instead of malloc in one place
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_while.c
+===================================================================
+--- trunk/apps/app_while.c	2006-05-05 15:18:29 UTC (rev 57)
++++ trunk/apps/app_while.c	2006-05-05 17:18:41 UTC (rev 58)
+@@ -277,7 +277,7 @@
+ 	}
+ 	
+ 
+-	if ((!end &amp;&amp; !pbx_check_condition(condition)) || (end == 2)) {
++	if ((!end &amp;&amp; !pbx_checkcondition(condition)) || (end == 2)) {
+ 		/* Condition Met (clean up helper vars) */
+ 		const char *goto_str;
+ 		pbx_builtin_setvar_helper(chan, varname, NULL);
+
+Modified: trunk/channels/chan_misdn.c
+===================================================================
+--- trunk/channels/chan_misdn.c	2006-05-05 15:18:29 UTC (rev 57)
++++ trunk/channels/chan_misdn.c	2006-05-05 17:18:41 UTC (rev 58)
+@@ -112,6 +112,7 @@
+ 	TONE_NONE=0,
+ 	TONE_DIAL,
+ 	TONE_ALERTING,
++	TONE_FAR_ALERTING,
+ 	TONE_BUSY,
+ 	TONE_CUSTOM,
+ 	TONE_FILE
+@@ -186,6 +187,8 @@
+ 	int zero_read_cnt;
+ 	int dropped_frame_cnt;
+ 
++	int far_alerting;
++
+ 	const struct tone_zone_sound *ts;
+ 	
+ 	struct chan_list *peer;
+@@ -1263,6 +1266,8 @@
+ 
+ 	misdn_cfg_get( port, MISDN_CFG_NEED_MORE_INFOS, &amp;bc-&gt;need_more_infos, sizeof(int));
+ 	
++	misdn_cfg_get( port, MISDN_CFG_FAR_ALERTING, &amp;ch-&gt;far_alerting, sizeof(int));
++	
+ 	int hdlc=0;
+ 	misdn_cfg_get( port, MISDN_CFG_HDLC, &amp;hdlc, sizeof(int));
+ 	
+@@ -1705,6 +1710,8 @@
+ 	}
+ 	
+ 	p-&gt;state = MISDN_CONNECTED;
++	misdn_lib_echo(p-&gt;bc,0);
++	tone_indicate(p, TONE_NONE);
+ 
+ 	if ( ast_strlen_zero(p-&gt;bc-&gt;cad) ) {
+ 		chan_misdn_log(2,p-&gt;bc-&gt;port,&quot; --&gt; empty cad using dad\n&quot;);
+@@ -2058,7 +2065,6 @@
+ 	
+ 	read(tmp-&gt;pipe[0],blah,sizeof(blah));
+ 	
+-	
+ 	len = misdn_ibuf_usedcount(tmp-&gt;bc-&gt;astbuf);
+ 
+ 	if (!len) {
+@@ -2141,7 +2147,7 @@
+ 	if ( !(frame-&gt;subclass &amp; prefformat)) {
+ 		
+ 		chan_misdn_log(-1, ch-&gt;bc-&gt;port, &quot;Got Unsupported Frame with Format:%d\n&quot;, frame-&gt;subclass);
+-		return -1;
++		return 0;
+ 	}
+ 	
+ 
+@@ -2184,7 +2190,7 @@
+ 
+ 		return 0;
+ 	}
+-	
++
+ 	chan_misdn_log(9, ch-&gt;bc-&gt;port, &quot;Sending :%d bytes 2 MISDN\n&quot;,frame-&gt;samples);
+ 	/*if speech flip bits*/
+ 	if ( misdn_cap_is_speech(ch-&gt;bc-&gt;capability) )
+@@ -2318,6 +2324,13 @@
+ 		ts=ast_get_indication_tone(ast-&gt;zone,&quot;ring&quot;);
+ 		misdn_lib_tone_generator_stop(cl-&gt;bc);
+ 		break;
++	case TONE_FAR_ALERTING:
++	/* VERY UGLY HACK, BECAUSE CHAN_SIP DOES NOT GENERATE TONES */
++		chan_misdn_log(2,cl-&gt;bc-&gt;port,&quot; --&gt; Ring\n&quot;);
++		ts=ast_get_indication_tone(ast-&gt;zone,&quot;ring&quot;);
++		misdn_lib_tone_generator_start(cl-&gt;bc);
++		misdn_lib_echo(cl-&gt;bc,1);
++		break;
+ 	case TONE_BUSY:
+ 		chan_misdn_log(2,cl-&gt;bc-&gt;port,&quot; --&gt; Busy\n&quot;);
+ 		ts=ast_get_indication_tone(ast-&gt;zone,&quot;busy&quot;);
+@@ -2611,7 +2624,9 @@
+ 		tmp-&gt;nativeformats = prefformat;
+ 
+ 		tmp-&gt;readformat = format;
++		tmp-&gt;rawreadformat = format;
+ 		tmp-&gt;writeformat = format;
++		tmp-&gt;rawwriteformat = format;
+     
+ 		tmp-&gt;tech_pvt = chlist;
+ 		
+@@ -3533,7 +3548,15 @@
+ 		cb_log(1,bc-&gt;port,&quot;Set State Ringing\n&quot;);
+ 		
+ 		if ( misdn_cap_is_speech(bc-&gt;capability) &amp;&amp; misdn_inband_avail(bc)) {
++			cb_log(1,bc-&gt;port,&quot;Starting Tones, we have inband Data\n&quot;);
+ 			start_bc_tones(ch);
++		} else {
++			cb_log(1,bc-&gt;port,&quot;We have no inband Data, the other end must create ringing\n&quot;);
++			if (ch-&gt;far_alerting) {
++				cb_log(1,bc-&gt;port,&quot;The other end can not do ringing eh ?.. we must do all ourself..&quot;);
++				start_bc_tones(ch);
++				tone_indicate(ch, TONE_FAR_ALERTING);
++			}
+ 		}
+ 	}
+ 	break;
+@@ -3543,6 +3566,9 @@
+ 	
+ 		struct ast_channel *bridged=AST_BRIDGED_P(ch-&gt;ast);
+ 		
++		misdn_lib_echo(bc,0);
++		tone_indicate(ch, TONE_NONE);
++
+ 		if (bridged &amp;&amp; strcasecmp(bridged-&gt;tech-&gt;type,&quot;mISDN&quot;)) {
+ 			struct chan_list *bridged_ch=MISDN_ASTERISK_TECH_PVT(bridged);
+ 
+
+Modified: trunk/channels/misdn/chan_misdn_config.h
+===================================================================
+--- trunk/channels/misdn/chan_misdn_config.h	2006-05-05 15:18:29 UTC (rev 57)
++++ trunk/channels/misdn/chan_misdn_config.h	2006-05-05 17:18:41 UTC (rev 58)
+@@ -23,6 +23,7 @@
+ 	/* port config items */
+ 	MISDN_CFG_FIRST = 0,
+ 	MISDN_CFG_GROUPNAME,           /* char[] */
++	MISDN_CFG_FAR_ALERTING,        /* int (bool) */
+ 	MISDN_CFG_RXGAIN,              /* int */
+ 	MISDN_CFG_TXGAIN,              /* int */
+ 	MISDN_CFG_TE_CHOOSE_CHANNEL,   /* int (bool) */
+
+Modified: trunk/channels/misdn/isdn_lib.c
+===================================================================
+--- trunk/channels/misdn/isdn_lib.c	2006-05-05 15:18:29 UTC (rev 57)
++++ trunk/channels/misdn/isdn_lib.c	2006-05-05 17:18:41 UTC (rev 58)
+@@ -3064,8 +3064,6 @@
+ int queue_l2l3(msg_t *msg) {
+ 	iframe_t *frm= (iframe_t*)msg-&gt;data;
+ 	struct misdn_stack *stack;
+-	int err=0;
+-
+ 	stack=find_stack_by_addr( frm-&gt;addr );
+ 
+ 	
+@@ -3261,7 +3259,6 @@
+ 		     stack=stack-&gt;next ) { 
+ 
+ 			while ( (msg=msg_dequeue(&amp;stack-&gt;upqueue)) ) {
+-				int res=0;
+ 				/** Handle L2/3 Signalling after bchans **/ 
+ 				if (!handle_frm_nt(msg)) {
+ 					/* Maybe it's TE */
+@@ -3848,3 +3845,13 @@
+ 	}
+ 	
+ }
++
++
++
++void misdn_lib_echo(struct misdn_bchannel *bc, int onoff)
++{
++	cb_log(1,bc-&gt;port, &quot; --&gt; ECHO %s\n&quot;, onoff?&quot;ON&quot;:&quot;OFF&quot;);
++	manager_ph_control(bc, onoff?CMX_ECHO_ON:CMX_ECHO_OFF, 0);
++}
++
++
+
+Modified: trunk/channels/misdn/isdn_lib.h
+===================================================================
+--- trunk/channels/misdn/isdn_lib.h	2006-05-05 15:18:29 UTC (rev 57)
++++ trunk/channels/misdn/isdn_lib.h	2006-05-05 17:18:41 UTC (rev 58)
+@@ -392,6 +392,8 @@
+ void misdn_lib_bridge( struct misdn_bchannel * bc1, struct misdn_bchannel *bc2);
+ void misdn_lib_split_bridge( struct misdn_bchannel * bc1, struct misdn_bchannel *bc2);
+ 
++void misdn_lib_echo(struct misdn_bchannel *bc, int onoff);
++
+ unsigned char * flip_buf_bits ( unsigned char * buf , int len);
+ 
+ int misdn_lib_is_ptp(int port);
+
+Modified: trunk/channels/misdn_config.c
+===================================================================
+--- trunk/channels/misdn_config.c	2006-05-05 15:18:29 UTC (rev 57)
++++ trunk/channels/misdn_config.c	2006-05-05 17:18:41 UTC (rev 58)
+@@ -87,6 +87,7 @@
+ 	{ &quot;rxgain&quot;, MISDN_CFG_RXGAIN, MISDN_CTYPE_INT, &quot;0&quot;, NONE },
+ 	{ &quot;txgain&quot;, MISDN_CFG_TXGAIN, MISDN_CTYPE_INT, &quot;0&quot;, NONE },
+ 	{ &quot;te_choose_channel&quot;, MISDN_CFG_TE_CHOOSE_CHANNEL, MISDN_CTYPE_BOOL, &quot;no&quot;, NONE },
++	{ &quot;far_alerting&quot;, MISDN_CFG_FAR_ALERTING, MISDN_CTYPE_BOOL, &quot;no&quot;, NONE },
+ 	{ &quot;pmp_l1_check&quot;, MISDN_CFG_PMP_L1_CHECK, MISDN_CTYPE_BOOL, &quot;yes&quot;, NONE },
+ 	{ &quot;hdlc&quot;, MISDN_CFG_HDLC, MISDN_CTYPE_BOOL, &quot;no&quot;, NONE },
+ 	{ &quot;context&quot;, MISDN_CFG_CONTEXT, MISDN_CTYPE_STR, &quot;default&quot;, NONE },
+
+Modified: trunk/configs/misdn.conf.sample
+===================================================================
+--- trunk/configs/misdn.conf.sample	2006-05-05 15:18:29 UTC (rev 57)
++++ trunk/configs/misdn.conf.sample	2006-05-05 17:18:41 UTC (rev 58)
+@@ -108,6 +108,12 @@
+ ; 
+ senddtmf=yes
+ 
++;
++; If we should generate Ringing for chan_sip and others
++;
++far_alerting=no
++
++
+ ; Prefixes for national and international, those are put before the 
+ ; oad if an according dialplan is set by the other end. 
+ ;
+
+Modified: trunk/include/asterisk/pbx.h
+===================================================================
+--- trunk/include/asterisk/pbx.h	2006-05-05 15:18:29 UTC (rev 57)
++++ trunk/include/asterisk/pbx.h	2006-05-05 17:18:41 UTC (rev 58)
+@@ -693,7 +693,7 @@
+ int ast_pbx_outgoing_app(const char *type, int format, void *data, int timeout, const char *app, const char *appdata, int *reason, int sync, const char *cid_num, const char *cid_name, struct ast_variable *vars, const char *account, struct ast_channel **locked_channel);
+ 
+ /* Evaluate a condition for non-falseness and return a boolean */
+-int pbx_checkcondition(char *condition);
++int pbx_checkcondition(const char *condition);
+ 
+ /* Functions for returning values from structures */
+ const char *ast_get_context_name(struct ast_context *con);
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-05 15:18:29 UTC (rev 57)
++++ trunk/pbx.c	2006-05-05 17:18:41 UTC (rev 58)
+@@ -5480,7 +5480,7 @@
+ 	ast_mutex_unlock(&amp;globalslock);
+ }
+ 
+-int pbx_checkcondition(char *condition) 
++int pbx_checkcondition(const char *condition) 
+ {
+ 	if (ast_strlen_zero(condition))	/* NULL or empty strings are false */
+ 		return 0;
+
+Modified: trunk/sched.c
+===================================================================
+--- trunk/sched.c	2006-05-05 15:18:29 UTC (rev 57)
++++ trunk/sched.c	2006-05-05 17:18:41 UTC (rev 58)
+@@ -44,29 +44,30 @@
+ #include &quot;asterisk/channel.h&quot;
+ #include &quot;asterisk/lock.h&quot;
+ #include &quot;asterisk/utils.h&quot;
++#include &quot;asterisk/linkedlists.h&quot;
+ 
+ /* Determine if a is sooner than b */
+ #define SOONER(a,b) (((b).tv_sec &gt; (a).tv_sec) || \
+ 					 (((b).tv_sec == (a).tv_sec) &amp;&amp; ((b).tv_usec &gt; (a).tv_usec)))
+ 
+ struct sched {
+-	struct sched *next;		/*!&lt; Next event in the list */
+-	int id; 			/*!&lt; ID number of event */
+-	struct timeval when;		/*!&lt; Absolute time event should take place */
+-	int resched;			/*!&lt; When to reschedule */
+-	int variable;			/*!&lt; Use return value from callback to reschedule */
+-	void *data; 			/*!&lt; Data */
+-	ast_sched_cb callback;		/*!&lt; Callback */
++	AST_LIST_ENTRY(sched) list;
++	int id;                       /*!&lt; ID number of event */
++	struct timeval when;          /*!&lt; Absolute time event should take place */
++	int resched;                  /*!&lt; When to reschedule */
++	int variable;                 /*!&lt; Use return value from callback to reschedule */
++	void *data;                   /*!&lt; Data */
++	ast_sched_cb callback;        /*!&lt; Callback */
+ };
+ 
+ struct sched_context {
+ 	ast_mutex_t lock;
+-	int eventcnt;			/*!&lt; Number of events processed */
+-	int schedcnt;			/*!&lt; Number of outstanding schedule events */
+- 	struct sched *schedq;		/*!&lt; Schedule entry and main queue */
++	int eventcnt;                           /*!&lt; Number of events processed */
++	int schedcnt;                           /*!&lt; Number of outstanding schedule events */
++ 	AST_LIST_HEAD_NOLOCK(, sched) schedq;   /*!&lt; Schedule entry and main queue */
+ 
+ #ifdef SCHED_MAX_CACHE
+-	struct sched *schedc;		/*!&lt; Cache of unused schedule structures and how many */
++	AST_LIST_HEAD_NOLOCK(, sched) schedc;   /*!&lt; Cache of unused schedule structures and how many */
+ 	int schedccnt;
+ #endif
+ };
+@@ -86,24 +87,20 @@
+ 
+ void sched_context_destroy(struct sched_context *con)
+ {
+-	struct sched *s, *sl;
++	struct sched *s;
++
+ 	ast_mutex_lock(&amp;con-&gt;lock);
++
+ #ifdef SCHED_MAX_CACHE
+ 	/* Eliminate the cache */
+-	s = con-&gt;schedc;
+-	while(s) {
+-		sl = s;
+-		s = s-&gt;next;
+-		free(sl);
+-	}
++	while ((s = AST_LIST_REMOVE_HEAD(&amp;con-&gt;schedc, list)))
++		free(s);
+ #endif
++
+ 	/* And the queue */
+-	s = con-&gt;schedq;
+-	while(s) {
+-		sl = s;
+-		s = s-&gt;next;
+-		free(sl);
+-	}
++	while ((s = AST_LIST_REMOVE_HEAD(&amp;con-&gt;schedq, list)))
++		free(s);
++	
+ 	/* And the context */
+ 	ast_mutex_unlock(&amp;con-&gt;lock);
+ 	ast_mutex_destroy(&amp;con-&gt;lock);
+@@ -112,19 +109,19 @@
+ 
+ static struct sched *sched_alloc(struct sched_context *con)
+ {
++	struct sched *tmp;
++
+ 	/*
+ 	 * We keep a small cache of schedule entries
+ 	 * to minimize the number of necessary malloc()'s
+ 	 */
+-	struct sched *tmp;
+ #ifdef SCHED_MAX_CACHE
+-	if (con-&gt;schedc) {
+-		tmp = con-&gt;schedc;
+-		con-&gt;schedc = con-&gt;schedc-&gt;next;
++	if ((tmp = AST_LIST_REMOVE_HEAD(&amp;con-&gt;schedc, list)))
+ 		con-&gt;schedccnt--;
+-	} else
++	else
+ #endif
+-		tmp = malloc(sizeof(struct sched));
++		tmp = ast_calloc(1, sizeof(*tmp));
++
+ 	return tmp;
+ }
+ 
+@@ -137,8 +134,7 @@
+ 
+ #ifdef SCHED_MAX_CACHE	 
+ 	if (con-&gt;schedccnt &lt; SCHED_MAX_CACHE) {
+-		tmp-&gt;next = con-&gt;schedc;
+-		con-&gt;schedc = tmp;
++		AST_LIST_INSERT_HEAD(&amp;con-&gt;schedc, tmp, list);
+ 		con-&gt;schedccnt++;
+ 	} else
+ #endif
+@@ -152,18 +148,20 @@
+ int ast_sched_wait(struct sched_context *con)
+ {
+ 	int ms;
++
+ 	DEBUG(ast_log(LOG_DEBUG, &quot;ast_sched_wait()\n&quot;));
++
+ 	ast_mutex_lock(&amp;con-&gt;lock);
+-	if (!con-&gt;schedq) {
++	if (AST_LIST_EMPTY(&amp;con-&gt;schedq)) {
+ 		ms = -1;
+ 	} else {
+-		ms = ast_tvdiff_ms(con-&gt;schedq-&gt;when, ast_tvnow());
++		ms = ast_tvdiff_ms(AST_LIST_FIRST(&amp;con-&gt;schedq)-&gt;when, ast_tvnow());
+ 		if (ms &lt; 0)
+ 			ms = 0;
+ 	}
+ 	ast_mutex_unlock(&amp;con-&gt;lock);
++
+ 	return ms;
+-	
+ }
+ 
+ 
+@@ -175,20 +173,18 @@
+ static void schedule(struct sched_context *con, struct sched *s)
+ {
+ 	 
+-	struct sched *last=NULL;
+-	struct sched *current=con-&gt;schedq;
+-	while(current) {
+-		if (SOONER(s-&gt;when, current-&gt;when))
++	struct sched *cur = NULL;
++	
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;con-&gt;schedq, cur, list) {
++		if (SOONER(s-&gt;when, cur-&gt;when)) {
++			AST_LIST_INSERT_BEFORE_CURRENT(&amp;con-&gt;schedq, s, list);
+ 			break;
+-		last = current;
+-		current = current-&gt;next;
++		}
+ 	}
+-	/* Insert this event into the schedule */
+-	s-&gt;next = current;
+-	if (last) 
+-		last-&gt;next = s;
+-	else
+-		con-&gt;schedq = s;
++	AST_LIST_TRAVERSE_SAFE_END
++	if (!cur)
++		AST_LIST_INSERT_TAIL(&amp;con-&gt;schedq, s, list);
++	
+ 	con-&gt;schedcnt++;
+ }
+ 
+@@ -231,7 +227,6 @@
+ 		tmp-&gt;data = data;
+ 		tmp-&gt;resched = when;
+ 		tmp-&gt;variable = variable;
+-		tmp-&gt;when = ast_tv(0, 0);
+ 		if (sched_settime(&amp;tmp-&gt;when, when)) {
+ 			sched_release(con, tmp);
+ 		} else {
+@@ -260,44 +255,41 @@
+  */
+ int ast_sched_del(struct sched_context *con, int id)
+ {
+-	struct sched *last=NULL, *s;
++	struct sched  *s;
++
+ 	DEBUG(ast_log(LOG_DEBUG, &quot;ast_sched_del()\n&quot;));
++	
+ 	ast_mutex_lock(&amp;con-&gt;lock);
+-	s = con-&gt;schedq;
+-	while(s) {
++	AST_LIST_TRAVERSE_SAFE_BEGIN(&amp;con-&gt;schedq, s, list) {
+ 		if (s-&gt;id == id) {
+-			if (last)
+-				last-&gt;next = s-&gt;next;
+-			else
+-				con-&gt;schedq = s-&gt;next;
++			AST_LIST_REMOVE_CURRENT(&amp;con-&gt;schedq, list);
+ 			con-&gt;schedcnt--;
+ 			sched_release(con, s);
+ 			break;
+ 		}
+-		last = s;
+-		s = s-&gt;next;
+ 	}
++	AST_LIST_TRAVERSE_SAFE_END
++
+ #ifdef DUMP_SCHEDULER
+ 	/* Dump contents of the context while we have the lock so nothing gets screwed up by accident. */
+ 	ast_sched_dump(con);
+ #endif
+ 	ast_mutex_unlock(&amp;con-&gt;lock);
++
+ 	if (!s) {
+ 		ast_log(LOG_NOTICE, &quot;Attempted to delete nonexistent schedule entry %d!\n&quot;, id);
+ #ifdef DO_CRASH
+ 		CRASH;
+ #endif
+ 		return -1;
+-	} else
+-		return 0;
++	}
++	
++	return 0;
+ }
+ 
++/*! \brief Dump the contents of the scheduler to stderr */
+ void ast_sched_dump(const struct sched_context *con)
+ {
+-	/*
+-	 * Dump the contents of the scheduler to
+-	 * stderr
+-	 */
+ 	struct sched *q;
+ 	struct timeval tv = ast_tvnow();
+ #ifdef SCHED_MAX_CACHE
+@@ -309,7 +301,7 @@
+ 	ast_log(LOG_DEBUG, &quot;=============================================================\n&quot;);
+ 	ast_log(LOG_DEBUG, &quot;|ID    Callback          Data              Time  (sec:ms)   |\n&quot;);
+ 	ast_log(LOG_DEBUG, &quot;+-----+-----------------+-----------------+-----------------+\n&quot;);
+- 	for (q = con-&gt;schedq; q; q = q-&gt;next) {
++	AST_LIST_TRAVERSE(&amp;con-&gt;schedq, q, list) {
+  		struct timeval delta =  ast_tvsub(q-&gt;when, tv);
+ 
+ 		ast_log(LOG_DEBUG, &quot;|%.4d | %-15p | %-15p | %.6ld : %.6ld |\n&quot;, 
+@@ -336,7 +328,7 @@
+ 		
+ 	ast_mutex_lock(&amp;con-&gt;lock);
+ 	for(;;) {
+-		if (!con-&gt;schedq)
++		if (AST_LIST_EMPTY(&amp;con-&gt;schedq))
+ 			break;
+ 		
+ 		/* schedule all events which are going to expire within 1ms.
+@@ -345,9 +337,8 @@
+ 		 * close together.
+ 		 */
+ 		tv = ast_tvadd(ast_tvnow(), ast_tv(0, 1000));
+-		if (SOONER(con-&gt;schedq-&gt;when, tv)) {
+-			current = con-&gt;schedq;
+-			con-&gt;schedq = con-&gt;schedq-&gt;next;
++		if (SOONER(AST_LIST_FIRST(&amp;con-&gt;schedq)-&gt;when, tv)) {
++			current = AST_LIST_REMOVE_HEAD(&amp;con-&gt;schedq, list);
+ 			con-&gt;schedcnt--;
+ 
+ 			/*
+@@ -391,15 +382,16 @@
+ 	DEBUG(ast_log(LOG_DEBUG, &quot;ast_sched_when()\n&quot;));
+ 
+ 	ast_mutex_lock(&amp;con-&gt;lock);
+-	for (s = con-&gt;schedq; s; s = s-&gt;next) {
++	AST_LIST_TRAVERSE(&amp;con-&gt;schedq, s, list) {
+ 		if (s-&gt;id == id)
+ 			break;
+ 	}
+-	secs=-1;
+-	if (s!=NULL) {
++	secs = -1;
++	if (s) {
+ 		struct timeval now = ast_tvnow();
+ 		secs = s-&gt;when.tv_sec - now.tv_sec;
+ 	}
+ 	ast_mutex_unlock(&amp;con-&gt;lock);
++	
+ 	return secs;
+ }
+
+Modified: trunk/utils.c
+===================================================================
+--- trunk/utils.c	2006-05-05 15:18:29 UTC (rev 57)
++++ trunk/utils.c	2006-05-05 17:18:41 UTC (rev 58)
+@@ -781,7 +781,7 @@
+ char *strndup(const char *s, size_t n)
+ {
+ 	size_t len = strnlen(s, n);
+-	char *new = malloc(len + 1);
++	char *new = ast_malloc(len + 1);
+ 
+ 	if (!new)
+ 		return NULL;
+@@ -802,7 +802,7 @@
+ 	va_copy(ap2, ap);
+ 	size = vsnprintf(&amp;s, 1, fmt, ap2);
+ 	va_end(ap2);
+-	*strp = malloc(size + 1);
++	*strp = ast_malloc(size + 1);
+ 	if (!*strp)
+ 		return -1;
+ 	vsnprintf(*strp, size + 1, fmt, ap);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000054.html">[solid-pbx-svn] r57 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000056.html">[solid-pbx-svn] r59 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#55">[ date ]</a>
+              <a href="thread.html#55">[ thread ]</a>
+              <a href="subject.html#55">[ subject ]</a>
+              <a href="author.html#55">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

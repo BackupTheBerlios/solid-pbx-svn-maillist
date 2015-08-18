@@ -1,0 +1,1545 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r179 - in trunk: . apps channels include/asterisk utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r179%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk%20utils&In-Reply-To=%3C200605192115.k4JLFLc2006022%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000173.html">
+   <LINK REL="Next"  HREF="000175.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r179 - in trunk: . apps channels include/asterisk utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r179%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk%20utils&In-Reply-To=%3C200605192115.k4JLFLc2006022%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r179 - in trunk: . apps channels include/asterisk utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May 19 23:15:21 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000173.html">[solid-pbx-svn] r178 - in trunk: channels pbx
+</A></li>
+        <LI>Next message: <A HREF="000175.html">[solid-pbx-svn] r180 - in trunk: . apps channels pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#174">[ date ]</a>
+              <a href="thread.html#174">[ thread ]</a>
+              <a href="subject.html#174">[ subject ]</a>
+              <a href="author.html#174">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-19 23:15:13 +0200 (Fri, 19 May 2006)
+New Revision: 179
+
+Modified:
+   trunk/Makefile
+   trunk/UPGRADE.txt
+   trunk/acinclude.m4
+   trunk/app.c
+   trunk/apps/app_hasnewvoicemail.c
+   trunk/apps/app_voicemail.c
+   trunk/asterisk.c
+   trunk/channels/chan_iax2.c
+   trunk/channels/chan_sip.c
+   trunk/channels/chan_skinny.c
+   trunk/cli.c
+   trunk/configure
+   trunk/configure.ac
+   trunk/include/asterisk/app.h
+   trunk/makeopts.in
+   trunk/manager.c
+   trunk/pbx.c
+   trunk/utils/Makefile
+   trunk/utils/smsq.c
+Log:
+Update to Asterisk SVN trunk r28831
+
+------------------------------------------------------------------------
+r28791 | russell | 2006-05-19 21:19:27 +0200 (Fri, 19 May 2006) | 11 lines
+
+Merged revisions 28790 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r28790 | russell | 2006-05-19 15:18:41 -0400 (Fri, 19 May 2006) | 3 lines
+
+fix the build of smsq with -Werror.  I learned something new about format
+strings from this patch!  (issue #7141, Mithraen)
+
+.......
+
+------------------------------------------------------------------------
+r28792 | file | 2006-05-19 21:35:16 +0200 (Fri, 19 May 2006) | 2 lines
+
+Fix tab completion when you just do a plain tab without entering anything, and also fix show application tab completion. (issue #7089 reported by blitzrage)
+
+------------------------------------------------------------------------
+r28795 | kpfleming | 2006-05-19 21:43:33 +0200 (Fri, 19 May 2006) | 10 lines
+
+Merged revisions 28794 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r28794 | kpfleming | 2006-05-19 14:39:55 -0500 (Fri, 19 May 2006) | 2 lines
+
+use the specified 'subscribecontext' for a peer rather than the context found via the target domain (domain contexts are for calls, not for subscriptions) (issue #7122, reported by raarts)
+
+.......
+
+------------------------------------------------------------------------
+r28796 | russell | 2006-05-19 21:46:10 +0200 (Fri, 19 May 2006) | 4 lines
+
+we have to build local copies of aelflex.o, aelbison.o, and pbx_ael.o as well
+to make sure aelparse doesn't use versions of these objects compiled with astmm
+support (issue #7122)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/Makefile	2006-05-19 21:15:13 UTC (rev 179)
+@@ -82,42 +82,28 @@
+ # Define standard directories for various platforms
+ # These apply if they are not redefined in asterisk.conf 
+ ifeq ($(OSARCH),SunOS)
+-  ASTETCDIR=$(INSTALL_PREFIX)/etc/opt/asterisk
+-  ASTLIBDIR=$(INSTALL_PREFIX)/opt/asterisk/lib
+-  ASTVARLIBDIR=$(INSTALL_PREFIX)/var/opt/asterisk/lib
+-  ASTSPOOLDIR=$(INSTALL_PREFIX)/var/opt/asterisk/spool
+-  ASTLOGDIR=$(INSTALL_PREFIX)/var/opt/asterisk/log
+-  ASTHEADERDIR=$(INSTALL_PREFIX)/opt/asterisk/usr/include/asterisk
+-  ASTBINDIR=$(INSTALL_PREFIX)/opt/asterisk/usr/bin
+-  ASTSBINDIR=$(INSTALL_PREFIX)/opt/asterisk/usr/sbin
+-  ASTVARRUNDIR=$(INSTALL_PREFIX)/var/opt/asterisk/run
+-  ASTMANDIR=$(INSTALL_PREFIX)/opt/asterisk/usr/share/man
++  ASTETCDIR=/etc/opt/asterisk
++  ASTLIBDIR=/opt/asterisk/lib
++  ASTVARLIBDIR=/var/opt/asterisk/lib
++  ASTSPOOLDIR=/var/opt/asterisk/spool
++  ASTLOGDIR=/var/opt/asterisk/log
++  ASTHEADERDIR=/opt/asterisk/usr/include/asterisk
++  ASTBINDIR=/opt/asterisk/usr/bin
++  ASTSBINDIR=/opt/asterisk/usr/sbin
++  ASTVARRUNDIR=/var/opt/asterisk/run
++  ASTMANDIR=/opt/asterisk/usr/share/man
+ else
+-ifeq ($(OSARCH),FreeBSD)
+-  PREFIX?=/usr/local
+-  ASTETCDIR=$(INSTALL_PREFIX)$(PREFIX)/etc/asterisk
+-  ASTLIBDIR=$(INSTALL_PREFIX)$(PREFIX)/lib/asterisk
+-  ASTVARLIBDIR=$(INSTALL_PREFIX)$(PREFIX)/share/asterisk
+-  ASTSPOOLDIR=$(INSTALL_PREFIX)/var/spool/asterisk
+-  ASTLOGDIR=$(INSTALL_PREFIX)/var/log/asterisk
+-  ASTHEADERDIR=$(INSTALL_PREFIX)$(PREFIX)/include/asterisk
+-  ASTBINDIR=$(INSTALL_PREFIX)$(PREFIX)/bin
+-  ASTSBINDIR=$(INSTALL_PREFIX)$(PREFIX)/sbin
+-  ASTVARRUNDIR=$(INSTALL_PREFIX)/var/run
+-  ASTMANDIR=$(INSTALL_PREFIX)$(PREFIX)/man
+-else
+-  ASTETCDIR=$(INSTALL_PREFIX)/etc/asterisk
+-  ASTLIBDIR=$(INSTALL_PREFIX)/usr/lib/asterisk
+-  ASTVARLIBDIR=$(INSTALL_PREFIX)/var/lib/asterisk
+-  ASTSPOOLDIR=$(INSTALL_PREFIX)/var/spool/asterisk
+-  ASTLOGDIR=$(INSTALL_PREFIX)/var/log/asterisk
+-  ASTHEADERDIR=$(INSTALL_PREFIX)/usr/include/asterisk
+-  ASTBINDIR=$(INSTALL_PREFIX)/usr/bin
+-  ASTSBINDIR=$(INSTALL_PREFIX)/usr/sbin
+-  ASTVARRUNDIR=$(INSTALL_PREFIX)/var/run
+-  ASTMANDIR=$(INSTALL_PREFIX)/usr/share/man
++  ASTETCDIR=$(sysconfdir)/asterisk
++  ASTLIBDIR=$(libdir)/asterisk
++  ASTVARLIBDIR=$(localstatedir)/lib/asterisk
++  ASTSPOOLDIR=$(localstatedir)/spool/asterisk
++  ASTLOGDIR=$(localstatedir)/log/asterisk
++  ASTHEADERDIR=$(includedir)/asterisk
++  ASTBINDIR=$(bindir)
++  ASTSBINDIR=$(sbindir)
++  ASTVARRUNDIR=$(localstatedir)/run
++  ASTMANDIR=$(mandir)
+ endif
+-endif
+ ASTDATADIR?=$(ASTVARLIBDIR)
+ 
+ # Asterisk.conf is located in ASTETCDIR or by using the -C flag
+
+Modified: trunk/UPGRADE.txt
+===================================================================
+--- trunk/UPGRADE.txt	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/UPGRADE.txt	2006-05-19 21:15:13 UTC (rev 179)
+@@ -107,6 +107,12 @@
+   to specify which DTMF digits can be used to accept a recording and
+   which digits can be used to cancel a recording.
+ 
++* ast_app_messagecount has been renamed to ast_app_inboxcount.  There is now a
++  new ast_app_messagecount function which takes a single context/mailbox/folder
++  mailbox specification and returns the message count for that folder only.
++  This addresses the deficiency of not being able to count the number of
++  messages in folders other than INBOX and Old.
++
+ Manager:
+ 
+ * After executing the 'status' manager action, the &quot;Status&quot; manager events
+
+Modified: trunk/acinclude.m4
+===================================================================
+--- trunk/acinclude.m4	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/acinclude.m4	2006-05-19 21:15:13 UTC (rev 179)
+@@ -20,17 +20,17 @@
+ PBX_LIB$1=0
+ 
+ if test &quot;${USE_$1}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${$1_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${$1_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${$1_DIR}/lib&quot;
+    fi
+-   AC_CHECK_LIB([$1], [$2], [:], [], ${libdir} $6)
++   AC_CHECK_LIB([$1], [$2], [:], [], ${pbxlibdir} $6)
+ 
+    if test &quot;${ac_cv_lib_$1_$2}&quot; = &quot;yes&quot;; then
+       $1_LIB=&quot;-l$1 $6&quot;
+       $4_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${$1_DIR}&quot; != &quot;x&quot;; then
+-         $1_LIB=&quot;${libdir} ${$1_LIB}&quot;
++         $1_LIB=&quot;${pbxlibdir} ${$1_LIB}&quot;
+ 	 $1_INCLUDE=&quot;-I${$1_DIR}/include&quot;
+ 	 if test &quot;x$3&quot; != &quot;x&quot; ; then
+ 	    AC_CHECK_HEADER([${$1_DIR}/include/$3], [$4_HEADER_FOUND=1], [$4_HEADER_FOUND=0] )
+
+Modified: trunk/app.c
+===================================================================
+--- trunk/app.c	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/app.c	2006-05-19 21:15:13 UTC (rev 179)
+@@ -145,23 +145,23 @@
+ }
+ 
+ static int (*ast_has_voicemail_func)(const char *mailbox, const char *folder) = NULL;
+-static int (*ast_messagecount_func)(const char *mailbox, int *newmsgs, int *oldmsgs) = NULL;
+-static int (*ast_messagecount2_func)(const char *context, const char *mailbox, const char *folder) = NULL;
++static int (*ast_inboxcount_func)(const char *mailbox, int *newmsgs, int *oldmsgs) = NULL;
++static int (*ast_messagecount_func)(const char *context, const char *mailbox, const char *folder) = NULL;
+ 
+ void ast_install_vm_functions(int (*has_voicemail_func)(const char *mailbox, const char *folder),
+-			      int (*messagecount_func)(const char *mailbox, int *newmsgs, int *oldmsgs),
+-			      int (*messagecount2_func)(const char *context, const char *mailbox, const char *folder))
++			      int (*inboxcount_func)(const char *mailbox, int *newmsgs, int *oldmsgs),
++			      int (*messagecount_func)(const char *context, const char *mailbox, const char *folder))
+ {
+ 	ast_has_voicemail_func = has_voicemail_func;
++	ast_inboxcount_func = inboxcount_func;
+ 	ast_messagecount_func = messagecount_func;
+-	ast_messagecount2_func = messagecount2_func;
+ }
+ 
+ void ast_uninstall_vm_functions(void)
+ {
+ 	ast_has_voicemail_func = NULL;
++	ast_inboxcount_func = NULL;
+ 	ast_messagecount_func = NULL;
+-	ast_messagecount2_func = NULL;
+ }
+ 
+ int ast_app_has_voicemail(const char *mailbox, const char *folder)
+@@ -178,15 +178,15 @@
+ }
+ 
+ 
+-int ast_app_messagecount(const char *mailbox, int *newmsgs, int *oldmsgs)
++int ast_app_inboxcount(const char *mailbox, int *newmsgs, int *oldmsgs)
+ {
+ 	static int warned = 0;
+ 	if (newmsgs)
+ 		*newmsgs = 0;
+ 	if (oldmsgs)
+ 		*oldmsgs = 0;
+-	if (ast_messagecount_func)
+-		return ast_messagecount_func(mailbox, newmsgs, oldmsgs);
++	if (ast_inboxcount_func)
++		return ast_inboxcount_func(mailbox, newmsgs, oldmsgs);
+ 
+ 	if (!warned &amp;&amp; (option_verbose &gt; 2)) {
+ 		warned++;
+@@ -196,11 +196,11 @@
+ 	return 0;
+ }
+ 
+-int ast_app_messagecount2(const char *context, const char *mailbox, const char *folder)
++int ast_app_messagecount(const char *context, const char *mailbox, const char *folder)
+ {
+ 	static int warned = 0;
+-	if (ast_messagecount2_func)
+-		return ast_messagecount2_func(context, mailbox, folder);
++	if (ast_messagecount_func)
++		return ast_messagecount_func(context, mailbox, folder);
+ 
+ 	if (!warned &amp;&amp; (option_verbose &gt; 2)) {
+ 		warned++;
+
+Modified: trunk/apps/app_hasnewvoicemail.c
+===================================================================
+--- trunk/apps/app_hasnewvoicemail.c	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/apps/app_hasnewvoicemail.c	2006-05-19 21:15:13 UTC (rev 179)
+@@ -128,7 +128,7 @@
+ 			priority_jump = 1;
+ 	}
+ 
+-	vmcount = ast_app_messagecount2(context, vmbox, vmfolder);
++	vmcount = ast_app_messagecount(context, vmbox, vmfolder);
+ 	/* Set the count in the channel variable */
+ 	if (varname) {
+ 		snprintf(tmp, sizeof(tmp), &quot;%d&quot;, vmcount);
+@@ -177,7 +177,7 @@
+ 		args.folder = &quot;INBOX&quot;;
+ 	}
+ 
+-	snprintf(buf, len, &quot;%d&quot;, ast_app_messagecount2(context, args.vmbox, args.folder));
++	snprintf(buf, len, &quot;%d&quot;, ast_app_messagecount(context, args.vmbox, args.folder));
+ 
+ 	LOCAL_USER_REMOVE(u);
+ 	
+
+Modified: trunk/apps/app_voicemail.c
+===================================================================
+--- trunk/apps/app_voicemail.c	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/apps/app_voicemail.c	2006-05-19 21:15:13 UTC (rev 179)
+@@ -2012,7 +2012,7 @@
+ }
+ 
+ #ifdef USE_ODBC_STORAGE
+-static int messagecount(const char *mailbox, int *newmsgs, int *oldmsgs)
++static int inboxcount(const char *mailbox, int *newmsgs, int *oldmsgs)
+ {
+ 	int x = -1;
+ 	int res;
+@@ -2127,7 +2127,7 @@
+ 	return x;
+ }
+ 
+-static int messagecount2(const char *context, const char *mailbox, const char *folder)
++static int messagecount(const char *context, const char *mailbox, const char *folder)
+ {
+ 	struct odbc_obj *obj = NULL;
+ 	int nummsgs = 0;
+@@ -2193,7 +2193,7 @@
+ 	else
+ 		context = &quot;default&quot;;
+ 
+-	if (messagecount2(context, tmp, folder))
++	if (messagecount(context, tmp, folder))
+ 		return 1;
+ 	else
+ 		return 0;
+@@ -2201,42 +2201,20 @@
+ 
+ #else
+ 
+-static int __has_voicemail(const char *mailbox, const char *folder, int shortcircuit)
++static int __has_voicemail(const char *context, const char *mailbox, const char *folder, int shortcircuit)
+ {
+ 	DIR *dir;
+ 	struct dirent *de;
+ 	char fn[256];
+-	char tmp[256]=&quot;&quot;;
+-	char *mb, *cur;
+-	char *context;
+ 	int ret = 0;
+ 	if (!folder)
+ 		folder = &quot;INBOX&quot;;
+ 	/* If no mailbox, return immediately */
+ 	if (ast_strlen_zero(mailbox))
+ 		return 0;
+-	if (strchr(mailbox, ',')) {
+-		ast_copy_string(tmp, mailbox, sizeof(tmp));
+-		mb = tmp;
+-		ret = 0;
+-		while((cur = strsep(&amp;mb, &quot;,&quot;))) {
+-			if (!ast_strlen_zero(cur)) {
+-				if ((ret += __has_voicemail(cur, folder, shortcircuit))) {
+-					if (shortcircuit)
+-						return 1; 
+-				}
+-			}
+-		}
+-		return ret;
+-	}
+-	ast_copy_string(tmp, mailbox, sizeof(tmp));
+-	context = strchr(tmp, '@');
+-	if (context) {
+-		*context = '\0';
+-		context++;
+-	} else
++	if (!context)
+ 		context = &quot;default&quot;;
+-	snprintf(fn, sizeof(fn), &quot;%s%s/%s/%s&quot;, VM_SPOOL_DIR, context, tmp, folder);
++	snprintf(fn, sizeof(fn), &quot;%s%s/%s/%s&quot;, VM_SPOOL_DIR, context, mailbox, folder);
+ 	dir = opendir(fn);
+ 	if (!dir)
+ 		return 0;
+@@ -2255,21 +2233,26 @@
+ 
+ static int has_voicemail(const char *mailbox, const char *folder)
+ {
+-	return __has_voicemail(mailbox, folder, 1);
++	char tmp[256], *tmp2 = tmp, *mbox, *context;
++	ast_copy_string(tmp, mailbox, sizeof(tmp));
++	while ((mbox = strsep(&amp;tmp2, &quot;,&quot;))) {
++		if ((context = strchr(tmp2, '@')))
++			*context++ = '\0';
++		else
++			context = &quot;default&quot;;
++		if (__has_voicemail(context, mbox, folder, 1))
++			return 1;
++	}
++	return 0;
+ }
+ 
+-static int messagecount2(const char *context, const char *mailbox, const char *folder)
++static int messagecount(const char *context, const char *mailbox, const char *folder)
+ {
+-	char tmp[256];
+-	snprintf(tmp, sizeof(tmp), &quot;%s@%s&quot;, mailbox, context);
+-	return __has_voicemail(tmp, folder, 0);
++	return __has_voicemail(context, mailbox, folder, 0);
+ }
+ 
+-static int messagecount(const char *mailbox, int *newmsgs, int *oldmsgs)
++static int inboxcount(const char *mailbox, int *newmsgs, int *oldmsgs)
+ {
+-	DIR *dir;
+-	struct dirent *de;
+-	char fn[256];
+ 	char tmp[256];
+ 	char *context;
+ 
+@@ -2288,7 +2271,7 @@
+ 		mb = tmp;
+ 		while((cur = strsep(&amp;mb, &quot;, &quot;))) {
+ 			if (!ast_strlen_zero(cur)) {
+-				if (messagecount(cur, newmsgs ? &amp;tmpnew : NULL, oldmsgs ? &amp;tmpold : NULL))
++				if (inboxcount(cur, newmsgs ? &amp;tmpnew : NULL, oldmsgs ? &amp;tmpold : NULL))
+ 					return -1;
+ 				else {
+ 					if (newmsgs)
+@@ -2307,32 +2290,10 @@
+ 		context++;
+ 	} else
+ 		context = &quot;default&quot;;
+-	if (newmsgs) {
+-		snprintf(fn, sizeof(fn), &quot;%s%s/%s/INBOX&quot;, VM_SPOOL_DIR, context, tmp);
+-		dir = opendir(fn);
+-		if (dir) {
+-			while ((de = readdir(dir))) {
+-				if ((strlen(de-&gt;d_name) &gt; 3) &amp;&amp; !strncasecmp(de-&gt;d_name, &quot;msg&quot;, 3) &amp;&amp;
+-					!strcasecmp(de-&gt;d_name + strlen(de-&gt;d_name) - 3, &quot;txt&quot;))
+-						(*newmsgs)++;
+-					
+-			}
+-			closedir(dir);
+-		}
+-	}
+-	if (oldmsgs) {
+-		snprintf(fn, sizeof(fn), &quot;%s%s/%s/Old&quot;, VM_SPOOL_DIR, context, tmp);
+-		dir = opendir(fn);
+-		if (dir) {
+-			while ((de = readdir(dir))) {
+-				if ((strlen(de-&gt;d_name) &gt; 3) &amp;&amp; !strncasecmp(de-&gt;d_name, &quot;msg&quot;, 3) &amp;&amp;
+-					!strcasecmp(de-&gt;d_name + strlen(de-&gt;d_name) - 3, &quot;txt&quot;))
+-						(*oldmsgs)++;
+-					
+-			}
+-			closedir(dir);
+-		}
+-	}
++	if (newmsgs)
++		*newmsgs = __has_voicemail(context, tmp, &quot;INBOX&quot;, 0);
++	if (oldmsgs)
++		*oldmsgs = __has_voicemail(context, tmp, &quot;Old&quot;, 0);
+ 	return 0;
+ }
+ 
+@@ -2410,7 +2371,7 @@
+ #else
+ 	if (!ast_strlen_zero(externnotify)) {
+ #endif
+-		if (messagecount(ext_context, &amp;newvoicemails, &amp;oldvoicemails)) {
++		if (inboxcount(ext_context, &amp;newvoicemails, &amp;oldvoicemails)) {
+ 			ast_log(LOG_ERROR, &quot;Problem in calculating number of voicemail messages available for extension %s\n&quot;, extension);
+ 		} else {
+ 			snprintf(arguments, sizeof(arguments), &quot;%s %s %s %d&amp;&quot;, externnotify, context, extension, newvoicemails);
+@@ -3417,7 +3378,7 @@
+ 
+ 	/* Leave voicemail for someone */
+ 	if (ast_app_has_voicemail(ext_context, NULL)) {
+-		ast_app_messagecount(ext_context, &amp;newmsgs, &amp;oldmsgs);
++		ast_app_inboxcount(ext_context, &amp;newmsgs, &amp;oldmsgs);
+ 	}
+ 	manager_event(EVENT_FLAG_CALL, &quot;MessageWaiting&quot;, &quot;Mailbox: %s@%s\r\nWaiting: %d\r\nNew: %d\r\nOld: %d\r\n&quot;, vmu-&gt;mailbox, vmu-&gt;context, ast_app_has_voicemail(ext_context, NULL), newmsgs, oldmsgs);
+ 	run_externnotify(vmu-&gt;context, vmu-&gt;mailbox);
+@@ -6654,7 +6615,7 @@
+ 	/* compute the location of the voicemail spool directory */
+ 	snprintf(VM_SPOOL_DIR, sizeof(VM_SPOOL_DIR), &quot;%s/voicemail/&quot;, ast_config_AST_SPOOL_DIR);
+ 
+-	ast_install_vm_functions(has_voicemail, messagecount, messagecount2);
++	ast_install_vm_functions(has_voicemail, inboxcount, messagecount);
+ 
+ #if defined(USE_ODBC_STORAGE) &amp;&amp; !defined(EXTENDED_ODBC_STORAGE)
+ 	ast_log(LOG_WARNING, &quot;The current ODBC storage table format will be changed soon.&quot;
+
+Modified: trunk/asterisk.c
+===================================================================
+--- trunk/asterisk.c	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/asterisk.c	2006-05-19 21:15:13 UTC (rev 179)
+@@ -2027,13 +2027,17 @@
+ 
+ 	if (ast_opt_exec &amp;&amp; data) {  /* hack to print output then exit if asterisk -rx is used */
+ 		char tempchar;
++#ifdef __Darwin__
+ 		struct pollfd fds[0];
+ 		fds[0].fd = ast_consock;
+ 		fds[0].events = POLLIN;
+ 		fds[0].revents = 0;
+-		while(poll(fds, 1, 100) &gt; 0) {
++		while (poll(fds, 1, 100) &gt; 0) {
+ 			ast_el_read_char(el, &amp;tempchar);
+ 		}
++#else
++		while (!ast_el_read_char(el, &amp;tempchar));
++#endif
+ 		return;
+ 	}
+ 	for (;;) {
+
+Modified: trunk/channels/chan_iax2.c
+===================================================================
+--- trunk/channels/chan_iax2.c	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/channels/chan_iax2.c	2006-05-19 21:15:13 UTC (rev 179)
+@@ -5677,7 +5677,7 @@
+ 		iax_ie_append_addr(&amp;ied, IAX_IE_APPARENT_ADDR, &amp;p-&gt;addr);
+ 		if (!ast_strlen_zero(p-&gt;mailbox)) {
+ 			int new, old;
+-			ast_app_messagecount(p-&gt;mailbox, &amp;new, &amp;old);
++			ast_app_inboxcount(p-&gt;mailbox, &amp;new, &amp;old);
+ 			if (new &gt; 255)
+ 				new = 255;
+ 			if (old &gt; 255)
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/channels/chan_sip.c	2006-05-19 21:15:13 UTC (rev 179)
+@@ -11702,14 +11702,19 @@
+ 		return 0;
+ 	}
+ 
+-	/* Initialize the context if it hasn't been already */
++	/* Get destination right away */
++	gotdest = get_destination(p, NULL);
++
++	/* Initialize the context if it hasn't been already;
++	   note this is done _after_ handling any domain lookups,
++	   because the context specified there is for calls, not
++	   subscriptions
++	*/
+ 	if (!ast_strlen_zero(p-&gt;subscribecontext))
+ 		ast_string_field_set(p, context, p-&gt;subscribecontext);
+ 	else if (ast_strlen_zero(p-&gt;context))
+ 		ast_string_field_set(p, context, default_context);
+ 
+-	/* Get destination right away */
+-	gotdest = get_destination(p, NULL);
+ 	build_contact(p);
+ 	if (gotdest) {
+ 		transmit_response(p, &quot;404 Not Found&quot;, req);
+@@ -12193,7 +12198,7 @@
+ 	int newmsgs, oldmsgs;
+ 
+ 	/* Check for messages */
+-	ast_app_messagecount(peer-&gt;mailbox, &amp;newmsgs, &amp;oldmsgs);
++	ast_app_inboxcount(peer-&gt;mailbox, &amp;newmsgs, &amp;oldmsgs);
+ 	
+ 	time(&amp;peer-&gt;lastmsgcheck);
+ 	
+
+Modified: trunk/channels/chan_skinny.c
+===================================================================
+--- trunk/channels/chan_skinny.c	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/channels/chan_skinny.c	2006-05-19 21:15:13 UTC (rev 179)
+@@ -1311,7 +1311,7 @@
+ 		if (skinnydebug) {
+ 			ast_verbose(&quot;Checking for voicemail Skinny %s@%s\n&quot;, sub-&gt;parent-&gt;name, sub-&gt;parent-&gt;parent-&gt;name);
+ 		}
+-		ast_app_messagecount(sub-&gt;parent-&gt;mailbox, &amp;new, &amp;old);
++		ast_app_inboxcount(sub-&gt;parent-&gt;mailbox, &amp;new, &amp;old);
+ 		if (skinnydebug) {
+ 			ast_verbose(&quot;Skinny %s@%s has voicemail!\n&quot;, sub-&gt;parent-&gt;name, sub-&gt;parent-&gt;parent-&gt;name);
+ 		}
+
+Modified: trunk/cli.c
+===================================================================
+--- trunk/cli.c	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/cli.c	2006-05-19 21:15:13 UTC (rev 179)
+@@ -1313,7 +1313,7 @@
+ 	int matchnum=0;
+ 	char *ret = NULL;
+ 	char matchstr[80] = &quot;&quot;;
+-	int tws;
++	int tws = 0;
+ 	char *dup = parse_args(text, &amp;x, argv, sizeof(argv) / sizeof(argv[0]), &amp;tws);
+ 
+ 	if (!dup)	/* error */
+@@ -1321,9 +1321,12 @@
+ 	argindex = (!ast_strlen_zero(word) &amp;&amp; x&gt;0) ? x-1 : x;
+ 	/* rebuild the command, ignore tws */
+ 	ast_join(matchstr, sizeof(matchstr)-1, argv);
+-	if (tws)
++	matchlen = strlen(matchstr);
++	if (tws) {
+ 		strcat(matchstr, &quot; &quot;); /* XXX */
+-	matchlen = strlen(matchstr);
++		if (matchlen)
++			matchlen++;
++	}
+ 	if (lock)
+ 		AST_LIST_LOCK(&amp;helpers);
+ 	while( !ret &amp;&amp; (e = cli_next(&amp;i)) ) {
+
+Modified: trunk/configure
+===================================================================
+--- trunk/configure	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/configure	2006-05-19 21:15:13 UTC (rev 179)
+@@ -276,7 +276,6 @@
+ 
+ ac_unique_file=&quot;asterisk&quot;
+ ac_unique_file=&quot;asterisk.c&quot;
+-ac_default_prefix=
+ # Factoring default headers for most tests.
+ ac_includes_default=&quot;\
+ #include &lt;stdio.h&gt;
+@@ -1466,8 +1465,27 @@
+ 
+ 
+ 
++case &quot;${host}&quot; in
++     *freebsd*)
++     ac_default_prefix=/usr/local
++     ;;
++     *)
++     ac_default_prefix=/usr
++     ;;
++esac
+ 
++if test ${sysconfdir} = '${prefix}/etc'; then
++   sysconfdir=/etc
++fi
+ 
++if test ${localstatedir} = '${prefix}/var'; then
++   localstatedir=/var
++fi
++
++if test ${mandir} = '${prefix}/man'; then
++   mandir=/usr/share/man
++fi
++
+ ### ** Platform.
+ 
+ cat &gt;&gt;confdefs.h &lt;&lt;_ACEOF
+@@ -4911,9 +4929,9 @@
+ PBX_LIBasound=0
+ 
+ if test &quot;${USE_asound}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${asound_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${asound_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${asound_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for snd_spcm_init in -lasound&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for snd_spcm_init in -lasound... $ECHO_C&quot; &gt;&amp;6
+@@ -4921,7 +4939,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lasound ${libdir} -lm -ldl $LIBS&quot;
++LIBS=&quot;-lasound ${pbxlibdir} -lm -ldl $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -4988,7 +5006,7 @@
+       asound_LIB=&quot;-lasound -lm -ldl&quot;
+       ALSA_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${asound_DIR}&quot; != &quot;x&quot;; then
+-         asound_LIB=&quot;${libdir} ${asound_LIB}&quot;
++         asound_LIB=&quot;${pbxlibdir} ${asound_LIB}&quot;
+ 	 asound_INCLUDE=&quot;-I${asound_DIR}/include&quot;
+ 	 if test &quot;xalsa/asoundlib.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${asound_DIR}/include/alsa/asoundlib.h&quot; | $as_tr_sh`
+@@ -5342,9 +5360,9 @@
+ PBX_LIBcurses=0
+ 
+ if test &quot;${USE_curses}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${curses_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${curses_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${curses_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for initscr in -lcurses&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for initscr in -lcurses... $ECHO_C&quot; &gt;&amp;6
+@@ -5352,7 +5370,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lcurses ${libdir}  $LIBS&quot;
++LIBS=&quot;-lcurses ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -5419,7 +5437,7 @@
+       curses_LIB=&quot;-lcurses &quot;
+       CURSES_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${curses_DIR}&quot; != &quot;x&quot;; then
+-         curses_LIB=&quot;${libdir} ${curses_LIB}&quot;
++         curses_LIB=&quot;${pbxlibdir} ${curses_LIB}&quot;
+ 	 curses_INCLUDE=&quot;-I${curses_DIR}/include&quot;
+ 	 if test &quot;xcurses.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${curses_DIR}/include/curses.h&quot; | $as_tr_sh`
+@@ -5773,9 +5791,9 @@
+ PBX_LIBnbs=0
+ 
+ if test &quot;${USE_nbs}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${nbs_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${nbs_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${nbs_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for nbs_connect in -lnbs&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for nbs_connect in -lnbs... $ECHO_C&quot; &gt;&amp;6
+@@ -5783,7 +5801,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lnbs ${libdir}  $LIBS&quot;
++LIBS=&quot;-lnbs ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -5850,7 +5868,7 @@
+       nbs_LIB=&quot;-lnbs &quot;
+       NBS_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${nbs_DIR}&quot; != &quot;x&quot;; then
+-         nbs_LIB=&quot;${libdir} ${nbs_LIB}&quot;
++         nbs_LIB=&quot;${pbxlibdir} ${nbs_LIB}&quot;
+ 	 nbs_INCLUDE=&quot;-I${nbs_DIR}/include&quot;
+ 	 if test &quot;xnbs.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${nbs_DIR}/include/nbs.h&quot; | $as_tr_sh`
+@@ -6204,9 +6222,9 @@
+ PBX_LIBncurses=0
+ 
+ if test &quot;${USE_ncurses}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${ncurses_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${ncurses_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${ncurses_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for initscr in -lncurses&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for initscr in -lncurses... $ECHO_C&quot; &gt;&amp;6
+@@ -6214,7 +6232,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lncurses ${libdir}  $LIBS&quot;
++LIBS=&quot;-lncurses ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -6281,7 +6299,7 @@
+       ncurses_LIB=&quot;-lncurses &quot;
+       NCURSES_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${ncurses_DIR}&quot; != &quot;x&quot;; then
+-         ncurses_LIB=&quot;${libdir} ${ncurses_LIB}&quot;
++         ncurses_LIB=&quot;${pbxlibdir} ${ncurses_LIB}&quot;
+ 	 ncurses_INCLUDE=&quot;-I${ncurses_DIR}/include&quot;
+ 	 if test &quot;xcurses.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${ncurses_DIR}/include/curses.h&quot; | $as_tr_sh`
+@@ -6635,9 +6653,9 @@
+ PBX_LIBnewt=0
+ 
+ if test &quot;${USE_newt}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${newt_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${newt_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${newt_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for newtBell in -lnewt&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for newtBell in -lnewt... $ECHO_C&quot; &gt;&amp;6
+@@ -6645,7 +6663,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lnewt ${libdir}  $LIBS&quot;
++LIBS=&quot;-lnewt ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -6712,7 +6730,7 @@
+       newt_LIB=&quot;-lnewt &quot;
+       NEWT_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${newt_DIR}&quot; != &quot;x&quot;; then
+-         newt_LIB=&quot;${libdir} ${newt_LIB}&quot;
++         newt_LIB=&quot;${pbxlibdir} ${newt_LIB}&quot;
+ 	 newt_INCLUDE=&quot;-I${newt_DIR}/include&quot;
+ 	 if test &quot;xnewt.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${newt_DIR}/include/newt.h&quot; | $as_tr_sh`
+@@ -7066,9 +7084,9 @@
+ PBX_LIBodbc=0
+ 
+ if test &quot;${USE_odbc}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${odbc_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${odbc_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${odbc_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for SQLConnect in -lodbc&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for SQLConnect in -lodbc... $ECHO_C&quot; &gt;&amp;6
+@@ -7076,7 +7094,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lodbc ${libdir}  $LIBS&quot;
++LIBS=&quot;-lodbc ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -7143,7 +7161,7 @@
+       odbc_LIB=&quot;-lodbc &quot;
+       UNIXODBC_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${odbc_DIR}&quot; != &quot;x&quot;; then
+-         odbc_LIB=&quot;${libdir} ${odbc_LIB}&quot;
++         odbc_LIB=&quot;${pbxlibdir} ${odbc_LIB}&quot;
+ 	 odbc_INCLUDE=&quot;-I${odbc_DIR}/include&quot;
+ 	 if test &quot;xsql.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${odbc_DIR}/include/sql.h&quot; | $as_tr_sh`
+@@ -7497,9 +7515,9 @@
+ PBX_LIBogg=0
+ 
+ if test &quot;${USE_ogg}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${ogg_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${ogg_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${ogg_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for ogg_sync_init in -logg&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for ogg_sync_init in -logg... $ECHO_C&quot; &gt;&amp;6
+@@ -7507,7 +7525,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-logg ${libdir}  $LIBS&quot;
++LIBS=&quot;-logg ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -7574,7 +7592,7 @@
+       ogg_LIB=&quot;-logg &quot;
+       OGG_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${ogg_DIR}&quot; != &quot;x&quot;; then
+-         ogg_LIB=&quot;${libdir} ${ogg_LIB}&quot;
++         ogg_LIB=&quot;${pbxlibdir} ${ogg_LIB}&quot;
+ 	 ogg_INCLUDE=&quot;-I${ogg_DIR}/include&quot;
+ 	 if test &quot;x&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${ogg_DIR}/include/&quot; | $as_tr_sh`
+@@ -7928,9 +7946,9 @@
+ PBX_LIBosptk=0
+ 
+ if test &quot;${USE_osptk}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${osptk_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${osptk_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${osptk_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for OSPPCryptoDecrypt in -losptk&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for OSPPCryptoDecrypt in -losptk... $ECHO_C&quot; &gt;&amp;6
+@@ -7938,7 +7956,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-losptk ${libdir} -lcrypto -lssl $LIBS&quot;
++LIBS=&quot;-losptk ${pbxlibdir} -lcrypto -lssl $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -8005,7 +8023,7 @@
+       osptk_LIB=&quot;-losptk -lcrypto -lssl&quot;
+       OSPTK_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${osptk_DIR}&quot; != &quot;x&quot;; then
+-         osptk_LIB=&quot;${libdir} ${osptk_LIB}&quot;
++         osptk_LIB=&quot;${pbxlibdir} ${osptk_LIB}&quot;
+ 	 osptk_INCLUDE=&quot;-I${osptk_DIR}/include&quot;
+ 	 if test &quot;xosp/osp.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${osptk_DIR}/include/osp/osp.h&quot; | $as_tr_sh`
+@@ -8359,9 +8377,9 @@
+ PBX_LIBpopt=0
+ 
+ if test &quot;${USE_popt}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${popt_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${popt_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${popt_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for poptStrerror in -lpopt&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for poptStrerror in -lpopt... $ECHO_C&quot; &gt;&amp;6
+@@ -8369,7 +8387,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lpopt ${libdir}  $LIBS&quot;
++LIBS=&quot;-lpopt ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -8436,7 +8454,7 @@
+       popt_LIB=&quot;-lpopt &quot;
+       POPT_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${popt_DIR}&quot; != &quot;x&quot;; then
+-         popt_LIB=&quot;${libdir} ${popt_LIB}&quot;
++         popt_LIB=&quot;${pbxlibdir} ${popt_LIB}&quot;
+ 	 popt_INCLUDE=&quot;-I${popt_DIR}/include&quot;
+ 	 if test &quot;xpopt.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${popt_DIR}/include/popt.h&quot; | $as_tr_sh`
+@@ -8790,9 +8808,9 @@
+ PBX_LIBpri=0
+ 
+ if test &quot;${USE_pri}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${pri_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${pri_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${pri_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for pri_call in -lpri&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for pri_call in -lpri... $ECHO_C&quot; &gt;&amp;6
+@@ -8800,7 +8818,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lpri ${libdir}  $LIBS&quot;
++LIBS=&quot;-lpri ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -8867,7 +8885,7 @@
+       pri_LIB=&quot;-lpri &quot;
+       LIBPRI_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${pri_DIR}&quot; != &quot;x&quot;; then
+-         pri_LIB=&quot;${libdir} ${pri_LIB}&quot;
++         pri_LIB=&quot;${pbxlibdir} ${pri_LIB}&quot;
+ 	 pri_INCLUDE=&quot;-I${pri_DIR}/include&quot;
+ 	 if test &quot;xlibpri.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${pri_DIR}/include/libpri.h&quot; | $as_tr_sh`
+@@ -9221,9 +9239,9 @@
+ PBX_LIBspeex=0
+ 
+ if test &quot;${USE_speex}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${speex_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${speex_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${speex_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for speex_encode in -lspeex&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for speex_encode in -lspeex... $ECHO_C&quot; &gt;&amp;6
+@@ -9231,7 +9249,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lspeex ${libdir} -lm $LIBS&quot;
++LIBS=&quot;-lspeex ${pbxlibdir} -lm $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -9298,7 +9316,7 @@
+       speex_LIB=&quot;-lspeex -lm&quot;
+       SPEEX_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${speex_DIR}&quot; != &quot;x&quot;; then
+-         speex_LIB=&quot;${libdir} ${speex_LIB}&quot;
++         speex_LIB=&quot;${pbxlibdir} ${speex_LIB}&quot;
+ 	 speex_INCLUDE=&quot;-I${speex_DIR}/include&quot;
+ 	 if test &quot;xspeex/speex.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${speex_DIR}/include/speex/speex.h&quot; | $as_tr_sh`
+@@ -9652,9 +9670,9 @@
+ PBX_LIBsqlite=0
+ 
+ if test &quot;${USE_sqlite}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${sqlite_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${sqlite_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${sqlite_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for sqlite_exec in -lsqlite&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for sqlite_exec in -lsqlite... $ECHO_C&quot; &gt;&amp;6
+@@ -9662,7 +9680,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lsqlite ${libdir}  $LIBS&quot;
++LIBS=&quot;-lsqlite ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -9729,7 +9747,7 @@
+       sqlite_LIB=&quot;-lsqlite &quot;
+       SQLITE_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${sqlite_DIR}&quot; != &quot;x&quot;; then
+-         sqlite_LIB=&quot;${libdir} ${sqlite_LIB}&quot;
++         sqlite_LIB=&quot;${pbxlibdir} ${sqlite_LIB}&quot;
+ 	 sqlite_INCLUDE=&quot;-I${sqlite_DIR}/include&quot;
+ 	 if test &quot;xsqlite.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${sqlite_DIR}/include/sqlite.h&quot; | $as_tr_sh`
+@@ -10083,9 +10101,9 @@
+ PBX_LIBssl=0
+ 
+ if test &quot;${USE_ssl}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${ssl_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${ssl_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${ssl_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for ssl2_connect in -lssl&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for ssl2_connect in -lssl... $ECHO_C&quot; &gt;&amp;6
+@@ -10093,7 +10111,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lssl ${libdir} -lcrypto $LIBS&quot;
++LIBS=&quot;-lssl ${pbxlibdir} -lcrypto $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -10160,7 +10178,7 @@
+       ssl_LIB=&quot;-lssl -lcrypto&quot;
+       OPENSSL_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${ssl_DIR}&quot; != &quot;x&quot;; then
+-         ssl_LIB=&quot;${libdir} ${ssl_LIB}&quot;
++         ssl_LIB=&quot;${pbxlibdir} ${ssl_LIB}&quot;
+ 	 ssl_INCLUDE=&quot;-I${ssl_DIR}/include&quot;
+ 	 if test &quot;xopenssl/ssl.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${ssl_DIR}/include/openssl/ssl.h&quot; | $as_tr_sh`
+@@ -10514,9 +10532,9 @@
+ PBX_LIBtds=0
+ 
+ if test &quot;${USE_tds}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${tds_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${tds_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${tds_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for tds_version in -ltds&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for tds_version in -ltds... $ECHO_C&quot; &gt;&amp;6
+@@ -10524,7 +10542,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-ltds ${libdir}  $LIBS&quot;
++LIBS=&quot;-ltds ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -10591,7 +10609,7 @@
+       tds_LIB=&quot;-ltds &quot;
+       FREETDS_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${tds_DIR}&quot; != &quot;x&quot;; then
+-         tds_LIB=&quot;${libdir} ${tds_LIB}&quot;
++         tds_LIB=&quot;${pbxlibdir} ${tds_LIB}&quot;
+ 	 tds_INCLUDE=&quot;-I${tds_DIR}/include&quot;
+ 	 if test &quot;xtds.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${tds_DIR}/include/tds.h&quot; | $as_tr_sh`
+@@ -10945,9 +10963,9 @@
+ PBX_LIBtermcap=0
+ 
+ if test &quot;${USE_termcap}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${termcap_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${termcap_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${termcap_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for tgetent in -ltermcap&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for tgetent in -ltermcap... $ECHO_C&quot; &gt;&amp;6
+@@ -10955,7 +10973,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-ltermcap ${libdir}  $LIBS&quot;
++LIBS=&quot;-ltermcap ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -11022,7 +11040,7 @@
+       termcap_LIB=&quot;-ltermcap &quot;
+       TERMCAP_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${termcap_DIR}&quot; != &quot;x&quot;; then
+-         termcap_LIB=&quot;${libdir} ${termcap_LIB}&quot;
++         termcap_LIB=&quot;${pbxlibdir} ${termcap_LIB}&quot;
+ 	 termcap_INCLUDE=&quot;-I${termcap_DIR}/include&quot;
+ 	 if test &quot;x&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${termcap_DIR}/include/&quot; | $as_tr_sh`
+@@ -11376,9 +11394,9 @@
+ PBX_LIBtinfo=0
+ 
+ if test &quot;${USE_tinfo}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${tinfo_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${tinfo_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${tinfo_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for tgetent in -ltinfo&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for tgetent in -ltinfo... $ECHO_C&quot; &gt;&amp;6
+@@ -11386,7 +11404,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-ltinfo ${libdir}  $LIBS&quot;
++LIBS=&quot;-ltinfo ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -11453,7 +11471,7 @@
+       tinfo_LIB=&quot;-ltinfo &quot;
+       TINFO_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${tinfo_DIR}&quot; != &quot;x&quot;; then
+-         tinfo_LIB=&quot;${libdir} ${tinfo_LIB}&quot;
++         tinfo_LIB=&quot;${pbxlibdir} ${tinfo_LIB}&quot;
+ 	 tinfo_INCLUDE=&quot;-I${tinfo_DIR}/include&quot;
+ 	 if test &quot;x&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${tinfo_DIR}/include/&quot; | $as_tr_sh`
+@@ -11807,9 +11825,9 @@
+ PBX_LIBvorbis=0
+ 
+ if test &quot;${USE_vorbis}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${vorbis_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${vorbis_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${vorbis_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for vorbis_info_init in -lvorbis&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for vorbis_info_init in -lvorbis... $ECHO_C&quot; &gt;&amp;6
+@@ -11817,7 +11835,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lvorbis ${libdir} -lm -lvorbisenc $LIBS&quot;
++LIBS=&quot;-lvorbis ${pbxlibdir} -lm -lvorbisenc $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -11884,7 +11902,7 @@
+       vorbis_LIB=&quot;-lvorbis -lm -lvorbisenc&quot;
+       VORBIS_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${vorbis_DIR}&quot; != &quot;x&quot;; then
+-         vorbis_LIB=&quot;${libdir} ${vorbis_LIB}&quot;
++         vorbis_LIB=&quot;${pbxlibdir} ${vorbis_LIB}&quot;
+ 	 vorbis_INCLUDE=&quot;-I${vorbis_DIR}/include&quot;
+ 	 if test &quot;xvorbis/codec.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${vorbis_DIR}/include/vorbis/codec.h&quot; | $as_tr_sh`
+@@ -12238,9 +12256,9 @@
+ PBX_LIBz=0
+ 
+ if test &quot;${USE_z}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${z_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${z_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${z_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for compress in -lz&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for compress in -lz... $ECHO_C&quot; &gt;&amp;6
+@@ -12248,7 +12266,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lz ${libdir}  $LIBS&quot;
++LIBS=&quot;-lz ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -12315,7 +12333,7 @@
+       z_LIB=&quot;-lz &quot;
+       ZLIB_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${z_DIR}&quot; != &quot;x&quot;; then
+-         z_LIB=&quot;${libdir} ${z_LIB}&quot;
++         z_LIB=&quot;${pbxlibdir} ${z_LIB}&quot;
+ 	 z_INCLUDE=&quot;-I${z_DIR}/include&quot;
+ 	 if test &quot;xzlib.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${z_DIR}/include/zlib.h&quot; | $as_tr_sh`
+@@ -12987,9 +13005,9 @@
+ PBX_LIBossaudio=0
+ 
+ if test &quot;${USE_ossaudio}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${ossaudio_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${ossaudio_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${ossaudio_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for oss_ioctl_mixer in -lossaudio&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for oss_ioctl_mixer in -lossaudio... $ECHO_C&quot; &gt;&amp;6
+@@ -12997,7 +13015,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lossaudio ${libdir}  $LIBS&quot;
++LIBS=&quot;-lossaudio ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -13064,7 +13082,7 @@
+       ossaudio_LIB=&quot;-lossaudio &quot;
+       OSS_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${ossaudio_DIR}&quot; != &quot;x&quot;; then
+-         ossaudio_LIB=&quot;${libdir} ${ossaudio_LIB}&quot;
++         ossaudio_LIB=&quot;${pbxlibdir} ${ossaudio_LIB}&quot;
+ 	 ossaudio_INCLUDE=&quot;-I${ossaudio_DIR}/include&quot;
+ 	 if test &quot;xsoundcard.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${ossaudio_DIR}/include/soundcard.h&quot; | $as_tr_sh`
+@@ -13423,9 +13441,9 @@
+ PBX_LIBtonezone=0
+ 
+ if test &quot;${USE_tonezone}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${tonezone_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${tonezone_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${tonezone_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for tone_zone_find in -ltonezone&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for tone_zone_find in -ltonezone... $ECHO_C&quot; &gt;&amp;6
+@@ -13433,7 +13451,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-ltonezone ${libdir}  $LIBS&quot;
++LIBS=&quot;-ltonezone ${pbxlibdir}  $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -13500,7 +13518,7 @@
+       tonezone_LIB=&quot;-ltonezone &quot;
+       ZAPTEL_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${tonezone_DIR}&quot; != &quot;x&quot;; then
+-         tonezone_LIB=&quot;${libdir} ${tonezone_LIB}&quot;
++         tonezone_LIB=&quot;${pbxlibdir} ${tonezone_LIB}&quot;
+ 	 tonezone_INCLUDE=&quot;-I${tonezone_DIR}/include&quot;
+ 	 if test &quot;xlinux/zaptel.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${tonezone_DIR}/include/linux/zaptel.h&quot; | $as_tr_sh`
+@@ -13855,9 +13873,9 @@
+ PBX_LIBtonezone=0
+ 
+ if test &quot;${USE_tonezone}&quot; != &quot;no&quot;; then
+-   libdir=&quot;&quot;
++   pbxlibdir=&quot;&quot;
+    if test &quot;x${tonezone_DIR}&quot; != &quot;x&quot;; then
+-      libdir=&quot;-L${tonezone_DIR}/lib&quot;
++      pbxlibdir=&quot;-L${tonezone_DIR}/lib&quot;
+    fi
+    echo &quot;$as_me:$LINENO: checking for tone_zone_find in -ltonezone&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for tone_zone_find in -ltonezone... $ECHO_C&quot; &gt;&amp;6
+@@ -13865,7 +13883,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-ltonezone ${libdir} -lm $LIBS&quot;
++LIBS=&quot;-ltonezone ${pbxlibdir} -lm $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -13932,7 +13950,7 @@
+       tonezone_LIB=&quot;-ltonezone -lm&quot;
+       ZAPTEL_HEADER_FOUND=&quot;1&quot;
+       if test &quot;x${tonezone_DIR}&quot; != &quot;x&quot;; then
+-         tonezone_LIB=&quot;${libdir} ${tonezone_LIB}&quot;
++         tonezone_LIB=&quot;${pbxlibdir} ${tonezone_LIB}&quot;
+ 	 tonezone_INCLUDE=&quot;-I${tonezone_DIR}/include&quot;
+ 	 if test &quot;xzaptel.h&quot; != &quot;x&quot; ; then
+ 	    as_ac_Header=`echo &quot;ac_cv_header_${tonezone_DIR}/include/zaptel.h&quot; | $as_tr_sh`
+@@ -14292,9 +14310,9 @@
+ 
+ if test &quot;${USE_GSM}&quot; != &quot;no&quot;; then
+    if test &quot;${GSM_SYSTEM}&quot; = &quot;yes&quot;; then
+-      libdir=&quot;&quot;
++      gsmlibdir=&quot;&quot;
+       if test &quot;x${GSM_DIR}&quot; != &quot;x&quot;; then
+-         libdir=&quot;-L${GSM_DIR}/lib&quot;
++         gsmlibdir=&quot;-L${GSM_DIR}/lib&quot;
+       fi
+       echo &quot;$as_me:$LINENO: checking for gsm_create in -lgsm&quot; &gt;&amp;5
+ echo $ECHO_N &quot;checking for gsm_create in -lgsm... $ECHO_C&quot; &gt;&amp;6
+@@ -14302,7 +14320,7 @@
+   echo $ECHO_N &quot;(cached) $ECHO_C&quot; &gt;&amp;6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+-LIBS=&quot;-lgsm ${libdir} $LIBS&quot;
++LIBS=&quot;-lgsm ${gsmlibdir} $LIBS&quot;
+ cat &gt;conftest.$ac_ext &lt;&lt;_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+@@ -14371,7 +14389,7 @@
+       if test &quot;${ac_cv_lib_gsm_gsm_create}&quot; = &quot;yes&quot;; then
+ 	 gsm_LIB=&quot;-lgsm&quot;
+ 	 if test &quot;x${GSM_DIR}&quot; != &quot;x&quot;; then
+-	    gsm_LIB=&quot;${libdir} ${gsm_LIB}&quot;
++	    gsm_LIB=&quot;${gsmlibdir} ${gsm_LIB}&quot;
+ 	    gsm_INCLUDE=&quot;-I${GSM_DIR}/include&quot;
+ 	 fi
+ 	 PBX_LIBgsm=1
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/configure.ac	2006-05-19 21:15:13 UTC (rev 179)
+@@ -22,8 +22,27 @@
+ AC_COPYRIGHT(&quot;Asterisk&quot;)
+ AC_REVISION($Revision$)
+ 
+-AC_PREFIX_DEFAULT()
++case &quot;${host}&quot; in
++     *freebsd*)
++     ac_default_prefix=/usr/local
++     ;;
++     *)
++     ac_default_prefix=/usr
++     ;;
++esac
+ 
++if test ${sysconfdir} = '${prefix}/etc'; then
++   sysconfdir=/etc
++fi
++
++if test ${localstatedir} = '${prefix}/var'; then
++   localstatedir=/var
++fi
++
++if test ${mandir} = '${prefix}/man'; then
++   mandir=/usr/share/man
++fi
++
+ ### ** Platform.
+ AC_DEFINE_UNQUOTED(PBX_PLATFORM, &quot;${host}&quot;,
+ [Define this to be the canonical name (cpu-vendor-os) of your system.])
+@@ -251,16 +270,16 @@
+ 
+ if test &quot;${USE_GSM}&quot; != &quot;no&quot;; then
+    if test &quot;${GSM_SYSTEM}&quot; = &quot;yes&quot;; then
+-      libdir=&quot;&quot;
++      gsmlibdir=&quot;&quot;
+       if test &quot;x${GSM_DIR}&quot; != &quot;x&quot;; then
+-         libdir=&quot;-L${GSM_DIR}/lib&quot;
++         gsmlibdir=&quot;-L${GSM_DIR}/lib&quot;
+       fi
+       AC_CHECK_LIB([gsm], [gsm_create], AC_DEFINE_UNQUOTED([HAVE_GSM], 1,
+-      [Define to indicate the GSM library]), [], ${libdir})
++      [Define to indicate the GSM library]), [], ${gsmlibdir})
+       if test &quot;${ac_cv_lib_gsm_gsm_create}&quot; = &quot;yes&quot;; then
+ 	 gsm_LIB=&quot;-lgsm&quot;
+ 	 if test &quot;x${GSM_DIR}&quot; != &quot;x&quot;; then
+-	    gsm_LIB=&quot;${libdir} ${gsm_LIB}&quot;
++	    gsm_LIB=&quot;${gsmlibdir} ${gsm_LIB}&quot;
+ 	    gsm_INCLUDE=&quot;-I${GSM_DIR}/include&quot;
+ 	 fi
+ 	 PBX_LIBgsm=1
+
+Modified: trunk/include/asterisk/app.h
+===================================================================
+--- trunk/include/asterisk/app.h	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/include/asterisk/app.h	2006-05-19 21:15:13 UTC (rev 179)
+@@ -100,8 +100,8 @@
+ int ast_app_getdata_full(struct ast_channel *c, char *prompt, char *s, int maxlen, int timeout, int audiofd, int ctrlfd);
+ 
+ void ast_install_vm_functions(int (*has_voicemail_func)(const char *mailbox, const char *folder),
+-			      int (*messagecount_func)(const char *mailbox, int *newmsgs, int *oldmsgs),
+-			      int (*messagecount2_func)(const char *context, const char *mailbox, const char *folder));
++			      int (*inboxcount_func)(const char *mailbox, int *newmsgs, int *oldmsgs),
++			      int (*messagecount_func)(const char *context, const char *mailbox, const char *folder));
+   
+ void ast_uninstall_vm_functions(void);
+ 
+@@ -109,10 +109,10 @@
+ int ast_app_has_voicemail(const char *mailbox, const char *folder);
+ 
+ /*! Determine number of new/old messages in a mailbox */
+-int ast_app_messagecount(const char *mailbox, int *newmsgs, int *oldmsgs);
++int ast_app_inboxcount(const char *mailbox, int *newmsgs, int *oldmsgs);
+ 
+ /*! Determine number of messages in a given mailbox and folder */
+-int ast_app_messagecount2(const char *context, const char *mailbox, const char *folder);
++int ast_app_messagecount(const char *context, const char *mailbox, const char *folder);
+ 
+ /*! Safely spawn an external program while closing file descriptors 
+ 	\note This replaces the \b system call in all Asterisk modules
+
+Modified: trunk/makeopts.in
+===================================================================
+--- trunk/makeopts.in	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/makeopts.in	2006-05-19 21:15:13 UTC (rev 179)
+@@ -20,8 +20,21 @@
+ OSARCH=@PBX_OSTYPE@
+ OSREV=@PBX_OSREV@
+ 
+-INSTALL_PREFIX=@prefix@
++prefix = @prefix@
++exec_prefix = @exec_prefix@
+ 
++bindir = @bindir@
++datadir = @datadir@
++includedir = @includedir@
++infodir = @infodir@
++libdir = @libdir@
++libexecdir = @libexecdir@
++localstatedir = @localstatedir@
++mandir = @mandir@
++sbindir = @sbindir@
++sharedstatedir = @sharedstatedir@
++sysconfdir = @sysconfdir@
++
+ AST_DEVMODE=@AST_DEVMODE@
+ 
+ OGG_LIB=@ogg_LIB@
+
+Modified: trunk/manager.c
+===================================================================
+--- trunk/manager.c	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/manager.c	2006-05-19 21:15:13 UTC (rev 179)
+@@ -1520,7 +1520,7 @@
+ 		astman_send_error(s, m, &quot;Mailbox not specified&quot;);
+ 		return 0;
+ 	}
+-	ast_app_messagecount(mailbox, &amp;newmsgs, &amp;oldmsgs);
++	ast_app_inboxcount(mailbox, &amp;newmsgs, &amp;oldmsgs);
+ 	if (!ast_strlen_zero(id)) {
+ 		snprintf(idText, sizeof(idText), &quot;ActionID: %s\r\n&quot;,id);
+ 	}
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/pbx.c	2006-05-19 21:15:13 UTC (rev 179)
+@@ -2864,8 +2864,10 @@
+ 	/* return the n-th [partial] matching entry */
+ 	AST_LIST_LOCK(&amp;apps);
+ 	AST_LIST_TRAVERSE(&amp;apps, a, list) {
+-		if (!strncasecmp(word, a-&gt;name, wordlen) &amp;&amp; ++which &gt; state)
++		if (!strncasecmp(word, a-&gt;name, wordlen) &amp;&amp; ++which &gt; state) {
+ 			ret = strdup(a-&gt;name);
++			break;
++		}
+ 	}
+ 	AST_LIST_UNLOCK(&amp;apps);
+ 
+
+Modified: trunk/utils/Makefile
+===================================================================
+--- trunk/utils/Makefile	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/utils/Makefile	2006-05-19 21:15:13 UTC (rev 179)
+@@ -11,10 +11,7 @@
+ # the GNU General Public License
+ #
+ 
+-#
+-# Don't use ast mm routines
+-#
+-UTILS:=astman smsq stereorize streamplayer #aelparse
++UTILS:=astman smsq stereorize streamplayer aelparse
+ 
+ ifeq (${OSARCH},SunOS)
+   SOL=../strcompat.o
+@@ -76,9 +73,18 @@
+ check_expr: check_expr.c ast_expr2.o ast_expr2f.o
+ 	$(CC) $(CFLAGS) -o $@ $^
+ 
+-aelparse : ../pbx/ael/aelflex.o ../pbx/ael/aelbison.o ../pbx/pbx_ael.o ael_main.o ast_expr2f.o ast_expr2.o
+-	$(CC) $(CFLAGS) -g -o aelparse ../pbx/ael/aelflex.o ../pbx/ael/aelbison.o ael_main.o ../pbx/pbx_ael.o ast_expr2f.o ast_expr2.o
++aelflex.o: ../pbx/ael/ael_lex.c ../include/asterisk/ael_structs.h ../pbx/ael/ael.tab.h
++	$(CC) $(CFLAGS) -I../pbx/ -c -o $@ $&lt;
+ 
++aelbison.o: ../pbx/ael/ael.tab.c ../pbx/ael/ael.tab.h ../include/asterisk/ael_structs.h
++	$(CC) $(CFLAGS) -I../pbx/ -c -o $@ $&lt;
++
++pbx_ael.o: ../pbx/pbx_ael.c
++	$(CC) $(CFLAGS) -c -o $@ $&lt;
++
++aelparse : aelflex.o aelbison.o pbx_ael.o ael_main.o ast_expr2f.o ast_expr2.o
++	$(CC) $(CFLAGS) -g -o aelparse aelflex.o aelbison.o ael_main.o pbx_ael.o ast_expr2f.o ast_expr2.o
++
+ ael_main.o : ael_main.c ../include/asterisk/ael_structs.h
+ 	$(CC) $(CFLAGS) -c -g -o ael_main.o ael_main.c
+ 
+
+Modified: trunk/utils/smsq.c
+===================================================================
+--- trunk/utils/smsq.c	2006-05-19 18:19:06 UTC (rev 178)
++++ trunk/utils/smsq.c	2006-05-19 21:15:13 UTC (rev 179)
+@@ -142,7 +142,7 @@
+          p = channel;
+       p = strchr (p, 'X');
+       if (p)
+-         fprintf (f, &quot;%.*s%c%s\n&quot;, p - channel, channel, subaddress, p + 1);
++         fprintf (f, &quot;%.*s%c%s\n&quot;, (int)(p - channel), channel, subaddress, p + 1);
+       else
+          fprintf (f, &quot;%s\n&quot;, channel);
+    }
+@@ -153,7 +153,7 @@
+    {
+       p = strchr (callerid, 'X');
+       if (p)
+-         fprintf (f, &quot;%.*s%c%s&quot;, p - callerid, callerid, subaddress, p + 1);
++         fprintf (f, &quot;%.*s%c%s&quot;, (int)(p - callerid), callerid, subaddress, p + 1);
+       else
+          fprintf (f, &quot;%s&quot;, callerid);
+    }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000173.html">[solid-pbx-svn] r178 - in trunk: channels pbx
+</A></li>
+	<LI>Next message: <A HREF="000175.html">[solid-pbx-svn] r180 - in trunk: . apps channels pbx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#174">[ date ]</a>
+              <a href="thread.html#174">[ thread ]</a>
+              <a href="subject.html#174">[ subject ]</a>
+              <a href="author.html#174">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

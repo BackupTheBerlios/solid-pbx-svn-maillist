@@ -1,0 +1,266 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r115 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r115%20-%20trunk&In-Reply-To=%3C200605091858.k49IwjQu019653%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000110.html">
+   <LINK REL="Next"  HREF="000112.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r115 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r115%20-%20trunk&In-Reply-To=%3C200605091858.k49IwjQu019653%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r115 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  9 20:58:45 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000110.html">[solid-pbx-svn] r114 - in trunk: . agi apps build_tools cdr channels channels/h323 channels/misdn codecs codecs/gsm codecs/gsm/inc codecs/gsm/src codecs/ilbc codecs/lpc10 configs contrib contrib/firmware/iax contrib/init.d contrib/scripts contrib/thirdparty contrib/utils cygwin db1-ast db1-ast/btree db1-ast/db db1-ast/hash db1-ast/include db1-ast/mpool db1-ast/recno doc editline editline/TEST editline/np editline/readline formats funcs images include include/asterisk include/solaris-compat include/solaris-compat/sys keys mxml pbx pbx/ael pbx/ael/ael-test pbx/ael/ael-test/ael-test1 pbx/ael/ael-test/ael-test2 pbx/ael/ael-test/ael-test3 pbx/ael/ael-test/ael-test4 pbx/ael/ael-test/ael-test5 pbx/ael/ael-test/ael-test6 pbx/ael/ael-test/ael-test7 redhat res res/snmp sounds sounds/dictate sounds/digits sounds/letters sounds/phonetic static-http stdtime utils
+</A></li>
+        <LI>Next message: <A HREF="000112.html">[solid-pbx-svn] r116 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#113">[ date ]</a>
+              <a href="thread.html#113">[ thread ]</a>
+              <a href="subject.html#113">[ subject ]</a>
+              <a href="author.html#113">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-09 20:58:41 +0200 (Tue, 09 May 2006)
+New Revision: 115
+
+Modified:
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r26216
+
+------------------------------------------------------------------------
+r26216 | rizzo | 2006-05-09 20:34:30 +0200 (Tue, 09 May 2006) | 14 lines
+
+implement the new sorting algorithm for extensions,
+see the documentation near functions ext_cmp1() and ext_cmp().
+
+All sorting decisions are now in one place so it is easy
+to revise them.
+
+NOTE
+the major change is that now most specific patterns come first,
+so there might be differences in how diaplans behave.
+If you really really really need to revert to the old sorting order
+while you adapt your dialplan, you can uncomment the '#if 0' line
+in ext_cmp().
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-09 18:13:46 UTC (rev 114)
++++ trunk/pbx.c	2006-05-09 18:58:41 UTC (rev 115)
+@@ -561,6 +561,127 @@
+ }
+ 
+ /*!
++ * \brief helper functions to sort extensions and patterns in the desired way,
++ * so that more specific patterns appear first.
++ *
++ * ext_cmp1 compares individual characters (or sets of), returning
++ * an int where bits 0-7 are the ASCII code of the first char in the set,
++ * while bit 8-15 are the cardinality of the set minus 1.
++ * This way more specific patterns (smaller cardinality) appear first.
++ * Wildcards have a special value, so that we can directly compare them to
++ * sets by subtracting the two values. In particular:
++ * 	0x000xx		one character, xx
++ * 	0x0yyxx		yy character set starting with xx
++ * 	0x10000		'.' (one or more of anything)
++ * 	0x20000		'!' (zero or more of anything)
++ * 	0x30000		NUL (end of string)
++ * 	0x40000		error in set.
++ * The pointer to the string is advanced according to needs.
++ * NOTES:
++ *	1. the empty set is equivalent to NUL.
++ *	2. given that a full set has always 0 as the first element,
++ *	   we could encode the special cases as 0xffXX where XX
++ *	   is 1, 2, 3, 4 as used above.
++ */
++static int ext_cmp1(const char **p)
++{
++	uint32_t chars[8];
++	int c, cmin = 0xff, count = 0;
++	const char *end;
++
++	/* load, sign extend and advance pointer until we find
++	 * a valid character.
++	 */
++	while ( (c = *(*p)++) &amp;&amp; (c == ' ' || c == '-') )
++		;	/* ignore some characters */
++
++	/* always return unless we have a set of chars */
++	switch (c) {
++	default:	/* ordinary character */
++		return 0x0000 | (c &amp; 0xff);
++
++	case 'N':	/* 2..9 */
++		return 0x0700 | '2' ;
++
++	case 'X':	/* 0..9 */
++		return 0x0900 | '0';
++
++	case 'Z':	/* 1..9 */
++		return 0x0800 | '1';
++
++	case '.':	/* wildcard */
++		return 0x10000;
++
++	case '!':	/* earlymatch */
++		return 0x20000;	/* less specific than NULL */
++
++	case '\0':	/* empty string */
++		*p = NULL;
++		return 0x30000;
++
++	case '[':	/* pattern */
++		break;
++	}
++	/* locate end of set */
++	end = strchr(*p, ']');	
++
++	if (end == NULL) {
++		ast_log(LOG_WARNING, &quot;Wrong usage of [] in the extension\n&quot;);
++		return 0x40000;	/* XXX make this entry go last... */
++	}
++
++	bzero(chars, sizeof(chars));	/* clear all chars in the set */
++	for (; *p &lt; end  ; (*p)++) {
++		unsigned char c1, c2;	/* first-last char in range */
++		c1 = (unsigned char)((*p)[0]);
++		if (*p + 2 &lt; end &amp;&amp; (*p)[1] == '-') { /* this is a range */
++			c2 = (unsigned char)((*p)[2]);
++			*p += 2;	/* skip a total of 3 chars */
++		} else			/* individual character */
++			c2 = c1;
++		if (c1 &lt; cmin)
++			cmin = c1;
++		for (; c1 &lt;= c2; c1++) {
++			uint32_t mask = 1 &lt;&lt; (c1 % 32);
++			if ( (chars[ c1 / 32 ] &amp; mask) == 0)
++				count += 0x100;
++			chars[ c1 / 32 ] |= mask;
++		}
++	}
++	(*p)++;
++	return count == 0 ? 0x30000 : (count | cmin);
++}
++
++/*!
++ * \brief the full routine to compare extensions in rules.
++ */
++static int ext_cmp(const char *a, const char *b)
++{
++	/* make sure non-patterns come first.
++	 * If a is not a pattern, it either comes first or
++	 * we use strcmp to compare the strings.
++	 */
++	int ret = 0;
++
++	if (a[0] != '_')
++		return (b[0] == '_') ? -1 : strcmp(a, b);
++
++	/* Now we know a is a pattern; if b is not, a comes first */
++	if (b[0] != '_')
++		return 1;
++#if 0	/* old mode for ext matching */
++	return strcmp(a, b);
++#endif
++	/* ok we need full pattern sorting routine */
++	while (!ret &amp;&amp; a &amp;&amp; b)
++		ret = ext_cmp1(&amp;a) - ext_cmp1(&amp;b);
++	if (ret == 0)
++		return 0;
++	else
++		return (ret &gt; 0) ? 1 : -1;
++}
++
++/*!
+  * When looking up extensions, we can have different requests
+  * identified by the 'action' argument, as follows.
+  * Note that the coding is such that the low 4 bits are the
+@@ -4162,10 +4283,10 @@
+ 	} } while(0)
+ 
+ 	/*
+-	 * This is a fairly complex routine.  Different extensions are kept
+-	 * in order by the extension number.  Then, extensions of different
+-	 * priorities (same extension) are kept in a list, according to the
+-	 * peer pointer.
++	 * Sort extensions (or patterns) according to the rules indicated above.
++	 * These are implemented by the function ext_cmp()).
++	 * All priorities for the same ext/pattern/cid are kept in a list,
++	 * using the 'peer' field  as a link field..
+ 	 */
+ 	struct ast_exten *tmp, *e, *el = NULL;
+ 	int res;
+@@ -4226,14 +4347,7 @@
+ 
+ 	ast_mutex_lock(&amp;con-&gt;lock);
+ 	for (e = con-&gt;root; e; el = e, e = e-&gt;next) {   /* scan the extension list */
+-		/* XXX should use ext_cmp() to sort patterns correctly */
+-		/* almost strcmp, but make sure patterns are always last! */
+-		if (e-&gt;exten[0] != '_' &amp;&amp; extension[0] == '_')
+-			res = -1;
+-		else if (e-&gt;exten[0] == '_' &amp;&amp; extension[0] != '_')
+-			res = 1;
+-		else
+-			res= strcmp(e-&gt;exten, extension);
++		res = ext_cmp(e-&gt;exten, extension);
+ 		if (res == 0) { /* extension match, now look at cidmatch */
+ 			if (!e-&gt;matchcid &amp;&amp; !tmp-&gt;matchcid)
+ 				res = 0;
+@@ -4257,7 +4371,10 @@
+ 			}
+ 			return ret;
+ 	}
+-	/* ok found the insertion place, right before 'e' (if any) */
++	/*
++	 * not an exact match, this is the first entry with this pattern,
++	 * so insert in the main list right before 'e' (if any)
++	 */
+ 	tmp-&gt;next = e;
+ 	if (el)
+ 		el-&gt;next = tmp;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000110.html">[solid-pbx-svn] r114 - in trunk: . agi apps build_tools cdr channels channels/h323 channels/misdn codecs codecs/gsm codecs/gsm/inc codecs/gsm/src codecs/ilbc codecs/lpc10 configs contrib contrib/firmware/iax contrib/init.d contrib/scripts contrib/thirdparty contrib/utils cygwin db1-ast db1-ast/btree db1-ast/db db1-ast/hash db1-ast/include db1-ast/mpool db1-ast/recno doc editline editline/TEST editline/np editline/readline formats funcs images include include/asterisk include/solaris-compat include/solaris-compat/sys keys mxml pbx pbx/ael pbx/ael/ael-test pbx/ael/ael-test/ael-test1 pbx/ael/ael-test/ael-test2 pbx/ael/ael-test/ael-test3 pbx/ael/ael-test/ael-test4 pbx/ael/ael-test/ael-test5 pbx/ael/ael-test/ael-test6 pbx/ael/ael-test/ael-test7 redhat res res/snmp sounds sounds/dictate sounds/digits sounds/letters sounds/phonetic static-http stdtime utils
+</A></li>
+	<LI>Next message: <A HREF="000112.html">[solid-pbx-svn] r116 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#113">[ date ]</a>
+              <a href="thread.html#113">[ thread ]</a>
+              <a href="subject.html#113">[ subject ]</a>
+              <a href="author.html#113">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

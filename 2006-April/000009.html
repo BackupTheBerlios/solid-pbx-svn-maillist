@@ -1,0 +1,483 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r12 - in trunk: . res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-April/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r12%20-%20in%20trunk%3A%20.%20res&In-Reply-To=%3C200604291418.k3TEI7Nu010421%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000008.html">
+   <LINK REL="Next"  HREF="000011.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r12 - in trunk: . res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r12%20-%20in%20trunk%3A%20.%20res&In-Reply-To=%3C200604291418.k3TEI7Nu010421%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r12 - in trunk: . res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Apr 29 16:18:07 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000008.html">[solid-pbx-svn] r11 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000011.html">[solid-pbx-svn] r13 - in trunk: . apps build_tools channels channels/misdn include/asterisk mxml pbx pbx/ael res res/snmp utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#9">[ date ]</a>
+              <a href="thread.html#9">[ thread ]</a>
+              <a href="subject.html#9">[ subject ]</a>
+              <a href="author.html#9">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-04-29 16:18:03 +0200 (Sat, 29 Apr 2006)
+New Revision: 12
+
+Modified:
+   trunk/acinclude.m4
+   trunk/res/res_musiconhold.c
+Log:
+Update to Asterisk SVN trunk r23353
+------------------------------------------------------------------------
+r23334 | russell | 2006-04-29 15:15:05 +0200 (Sat, 29 Apr 2006) | 6 lines
+
+- convert lists to use linked list macros
+- instead of allocating a frame on the stack every time the music on hold
+  generator is called, put a frame in the mohdata structure.  Also, initialize
+  the parts of the frame that will never change when the mohdata struct is
+  allocatted and only change the necessary parts in the generator function.
+
+------------------------------------------------------------------------
+r23335 | russell | 2006-04-29 15:32:38 +0200 (Sat, 29 Apr 2006) | 3 lines
+
+if the &quot;action-if-found&quot; is left empty, AC_CHECK_LIB will add a default result
+instead which can break things in the rest of the script (issue #7043)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/acinclude.m4
+===================================================================
+--- trunk/acinclude.m4	2006-04-29 12:33:55 UTC (rev 11)
++++ trunk/acinclude.m4	2006-04-29 14:18:03 UTC (rev 12)
+@@ -20,7 +20,7 @@
+ PBX_LIB$1=0
+ 
+ if test &quot;${USE_$1}&quot; != &quot;no&quot;; then	
+-   AC_CHECK_LIB([$1], [$2], [], [], -L${$1_DIR}/lib $6)
++   AC_CHECK_LIB([$1], [$2], [:], [], -L${$1_DIR}/lib $6)
+ 
+    if test &quot;${ac_cv_lib_$1_$2}&quot; = &quot;yes&quot;; then
+       $1_LIB=&quot;-l$1 $6&quot;
+
+Modified: trunk/res/res_musiconhold.c
+===================================================================
+--- trunk/res/res_musiconhold.c	2006-04-29 12:33:55 UTC (rev 11)
++++ trunk/res/res_musiconhold.c	2006-04-29 14:18:03 UTC (rev 12)
+@@ -70,6 +70,7 @@
+ #include &quot;asterisk/utils.h&quot;
+ #include &quot;asterisk/cli.h&quot;
+ #include &quot;asterisk/stringfields.h&quot;
++#include &quot;asterisk/linkedlists.h&quot;
+ 
+ #define MAX_MOHFILES 512
+ #define MAX_MOHFILE_LEN 128
+@@ -139,25 +140,24 @@
+ 	int pid;		/* PID of mpg123 */
+ 	time_t start;
+ 	pthread_t thread;
+-	struct mohdata *members;
+ 	/* Source of audio */
+ 	int srcfd;
+ 	/* FD for timing source */
+ 	int pseudofd;
+-	struct mohclass *next;
++	AST_LIST_HEAD_NOLOCK(, mohdata) members;
++	AST_LIST_ENTRY(mohclass) list;
+ };
+ 
+ struct mohdata {
+ 	int pipe[2];
+ 	int origwfmt;
+ 	struct mohclass *parent;
+-	struct mohdata *next;
++	struct ast_frame f;
++	AST_LIST_ENTRY(mohdata) list;
+ };
+ 
+-static struct mohclass *mohclasses;
++AST_LIST_HEAD_STATIC(mohclasses, mohclass);
+ 
+-AST_MUTEX_DEFINE_STATIC(moh_lock);
+-
+ #define LOCAL_MPG_123 &quot;/usr/local/bin/mpg123&quot;
+ #define MPG_123 &quot;/usr/bin/mpg123&quot;
+ #define MAX_MP3S 256
+@@ -165,18 +165,16 @@
+ 
+ static void ast_moh_free_class(struct mohclass **class) 
+ {
+-	struct mohdata *members, *mtmp;
++	struct mohdata *member;
+ 	
+-	members = (*class)-&gt;members;
+-	while(members) {
+-		mtmp = members;
+-		members = members-&gt;next;
+-		free(mtmp);
+-	}
++	while ((member = AST_LIST_REMOVE_HEAD(&amp;((*class)-&gt;members), list)))
++		free(member);
++	
+ 	if ((*class)-&gt;thread) {
+ 		pthread_cancel((*class)-&gt;thread);
+ 		(*class)-&gt;thread = 0;
+ 	}
++
+ 	free(*class);
+ 	*class = NULL;
+ }
+@@ -515,7 +513,7 @@
+ 			}
+ 			res = 8 * MOH_MS_INTERVAL;	/* 8 samples per millisecond */
+ 		}
+-		if (!class-&gt;members)
++		if (AST_LIST_EMPTY(&amp;class-&gt;members))
+ 			continue;
+ 		/* Read mp3 audio */
+ 		len = ast_codec_get_len(class-&gt;format, res);
+@@ -538,16 +536,15 @@
+ 			continue;
+ 		}
+ 		pthread_testcancel();
+-		ast_mutex_lock(&amp;moh_lock);
+-		moh = class-&gt;members;
+-		while (moh) {
++		AST_LIST_LOCK(&amp;mohclasses);
++		AST_LIST_TRAVERSE(&amp;class-&gt;members, moh, list) {
+ 			/* Write data */
+-			if ((res = write(moh-&gt;pipe[1], sbuf, res2)) != res2) 
++			if ((res = write(moh-&gt;pipe[1], sbuf, res2)) != res2) {
+ 				if (option_debug)
+ 					ast_log(LOG_DEBUG, &quot;Only wrote %d of %d bytes to pipe\n&quot;, res, res2);
+-			moh = moh-&gt;next;
++			}
+ 		}
+-		ast_mutex_unlock(&amp;moh_lock);
++		AST_LIST_UNLOCK(&amp;mohclasses);
+ 	}
+ 	return NULL;
+ }
+@@ -607,60 +604,58 @@
+ 	return 0;
+ }
+ 
++/*! \note This function should be called with the mohclasses list locked */
+ static struct mohclass *get_mohbyname(const char *name)
+ {
+-	struct mohclass *moh;
+-	moh = mohclasses;
+-	while (moh) {
++	struct mohclass *moh = NULL;
++
++	AST_LIST_TRAVERSE(&amp;mohclasses, moh, list) {
+ 		if (!strcasecmp(name, moh-&gt;name))
+-			return moh;
+-		moh = moh-&gt;next;
++			break;
+ 	}
+-	return NULL;
++
++	return moh;
+ }
+ 
+ static struct mohdata *mohalloc(struct mohclass *cl)
+ {
+ 	struct mohdata *moh;
+ 	long flags;	
++	
+ 	if (!(moh = ast_calloc(1, sizeof(*moh))))
+ 		return NULL;
++	
+ 	if (pipe(moh-&gt;pipe)) {
+ 		ast_log(LOG_WARNING, &quot;Failed to create pipe: %s\n&quot;, strerror(errno));
+ 		free(moh);
+ 		return NULL;
+ 	}
++
+ 	/* Make entirely non-blocking */
+ 	flags = fcntl(moh-&gt;pipe[0], F_GETFL);
+ 	fcntl(moh-&gt;pipe[0], F_SETFL, flags | O_NONBLOCK);
+ 	flags = fcntl(moh-&gt;pipe[1], F_GETFL);
+ 	fcntl(moh-&gt;pipe[1], F_SETFL, flags | O_NONBLOCK);
++
++	moh-&gt;f.frametype = AST_FRAME_VOICE;
++	moh-&gt;f.subclass = cl-&gt;format;
++	moh-&gt;f.offset = AST_FRIENDLY_OFFSET;
++
+ 	moh-&gt;parent = cl;
+-	moh-&gt;next = cl-&gt;members;
+-	cl-&gt;members = moh;
++	AST_LIST_INSERT_HEAD(&amp;cl-&gt;members, moh, list);
++	
+ 	return moh;
+ }
+ 
+ static void moh_release(struct ast_channel *chan, void *data)
+ {
+-	struct mohdata *moh = data, *prev, *cur;
++	struct mohdata *moh = data;
+ 	int oldwfmt;
+-	ast_mutex_lock(&amp;moh_lock);
+-	/* Unlink */
+-	prev = NULL;
+-	cur = moh-&gt;parent-&gt;members;
+-	while (cur) {
+-		if (cur == moh) {
+-			if (prev)
+-				prev-&gt;next = cur-&gt;next;
+-			else
+-				moh-&gt;parent-&gt;members = cur-&gt;next;
+-			break;
+-		}
+-		prev = cur;
+-		cur = cur-&gt;next;
+-	}
+-	ast_mutex_unlock(&amp;moh_lock);
++
++	AST_LIST_LOCK(&amp;mohclasses);
++	AST_LIST_REMOVE(&amp;moh-&gt;parent-&gt;members, moh, list);	
++	AST_LIST_UNLOCK(&amp;mohclasses);
++	
+ 	close(moh-&gt;pipe[0]);
+ 	close(moh-&gt;pipe[1]);
+ 	oldwfmt = moh-&gt;origwfmt;
+@@ -693,7 +688,6 @@
+ 
+ static int moh_generate(struct ast_channel *chan, void *data, int len, int samples)
+ {
+-	struct ast_frame f;
+ 	struct mohdata *moh = data;
+ 	short buf[1280 + AST_FRIENDLY_OFFSET / 2];
+ 	int res;
+@@ -708,25 +702,14 @@
+ 		len = sizeof(buf) - AST_FRIENDLY_OFFSET;
+ 	}
+ 	res = read(moh-&gt;pipe[0], buf + AST_FRIENDLY_OFFSET/2, len);
+-#if 0
+-	if (res != len) {
+-		ast_log(LOG_WARNING, &quot;Read only %d of %d bytes: %s\n&quot;, res, len, strerror(errno));
+-	}
+-#endif
+ 	if (res &lt;= 0)
+ 		return 0;
+ 
+-	memset(&amp;f, 0, sizeof(f));
+-	
+-	f.frametype = AST_FRAME_VOICE;
+-	f.subclass = moh-&gt;parent-&gt;format;
+-	f.mallocd = 0;
+-	f.datalen = res;
+-	f.data = buf + AST_FRIENDLY_OFFSET / 2;
+-	f.offset = AST_FRIENDLY_OFFSET;
+-	f.samples = ast_codec_get_samples(&amp;f);
++	moh-&gt;f.datalen = res;
++	moh-&gt;f.data = buf + AST_FRIENDLY_OFFSET / 2;
++	moh-&gt;f.samples = ast_codec_get_samples(&amp;moh-&gt;f);
+ 
+-	if (ast_write(chan, &amp;f) &lt; 0) {
++	if (ast_write(chan, &amp;moh-&gt;f) &lt; 0) {
+ 		ast_log(LOG_WARNING, &quot;Failed to write frame to '%s': %s\n&quot;, chan-&gt;name, strerror(errno));
+ 		return -1;
+ 	}
+@@ -804,7 +787,7 @@
+ #ifdef HAVE_ZAPTEL
+ 	int x;
+ #endif
+-	ast_mutex_lock(&amp;moh_lock);
++	AST_LIST_LOCK(&amp;mohclasses);
+ 	if (get_mohbyname(moh-&gt;name)) {
+ 		if (reload) {
+ 			ast_log(LOG_DEBUG, &quot;Music on Hold class '%s' left alone from initial load.\n&quot;, moh-&gt;name);
+@@ -812,10 +795,10 @@
+ 			ast_log(LOG_WARNING, &quot;Music on Hold class '%s' already exists\n&quot;, moh-&gt;name);
+ 		}
+ 		free(moh);	
+-		ast_mutex_unlock(&amp;moh_lock);
++		AST_LIST_UNLOCK(&amp;mohclasses);
+ 		return -1;
+ 	}
+-	ast_mutex_unlock(&amp;moh_lock);
++	AST_LIST_UNLOCK(&amp;mohclasses);
+ 
+ 	time(&amp;moh-&gt;start);
+ 	moh-&gt;start -= respawn_time;
+@@ -864,10 +847,11 @@
+ 		ast_moh_free_class(&amp;moh);
+ 		return -1;
+ 	}
+-	ast_mutex_lock(&amp;moh_lock);
+-	moh-&gt;next = mohclasses;
+-	mohclasses = moh;
+-	ast_mutex_unlock(&amp;moh_lock);
++
++	AST_LIST_LOCK(&amp;mohclasses);
++	AST_LIST_INSERT_HEAD(&amp;mohclasses, moh, list);
++	AST_LIST_UNLOCK(&amp;mohclasses);
++	
+ 	return 0;
+ }
+ 
+@@ -887,9 +871,9 @@
+ 		class = chan-&gt;musicclass;
+ 	if (ast_strlen_zero(class))
+ 		class = &quot;default&quot;;
+-	ast_mutex_lock(&amp;moh_lock);
++	AST_LIST_LOCK(&amp;mohclasses);
+ 	mohclass = get_mohbyname(class);
+-	ast_mutex_unlock(&amp;moh_lock);
++	AST_LIST_UNLOCK(&amp;mohclasses);
+ 
+ 	if (!mohclass) {
+ 		ast_log(LOG_WARNING, &quot;No class: %s\n&quot;, (char *)class);
+@@ -1060,16 +1044,15 @@
+ 
+ static void ast_moh_destroy(void)
+ {
+-	struct mohclass *moh, *tmp;
++	struct mohclass *moh;
+ 	char buff[8192];
+-	int bytes, tbytes=0, stime = 0, pid = 0;
++	int bytes, tbytes = 0, stime = 0, pid = 0;
+ 
+ 	if (option_verbose &gt; 1)
+ 		ast_verbose(VERBOSE_PREFIX_2 &quot;Destroying musiconhold processes\n&quot;);
+-	ast_mutex_lock(&amp;moh_lock);
+-	moh = mohclasses;
+ 
+-	while (moh) {
++	AST_LIST_LOCK(&amp;mohclasses);
++	while ((moh = AST_LIST_REMOVE_HEAD(&amp;mohclasses, list))) {
+ 		if (moh-&gt;pid) {
+ 			ast_log(LOG_DEBUG, &quot;killing %d!\n&quot;, moh-&gt;pid);
+ 			stime = time(NULL) + 2;
+@@ -1083,18 +1066,14 @@
+ 			kill(pid, SIGTERM);
+ 			usleep(100000);
+ 			kill(pid, SIGKILL);
+-			while ((ast_wait_for_input(moh-&gt;srcfd, 100) &gt; 0) &amp;&amp; (bytes = read(moh-&gt;srcfd, buff, 8192)) &amp;&amp; time(NULL) &lt; stime) {
++			while ((ast_wait_for_input(moh-&gt;srcfd, 100) &gt; 0) &amp;&amp; (bytes = read(moh-&gt;srcfd, buff, 8192)) &amp;&amp; time(NULL) &lt; stime)
+ 				tbytes = tbytes + bytes;
+-			}
+ 			ast_log(LOG_DEBUG, &quot;mpg123 pid %d and child died after %d bytes read\n&quot;, pid, tbytes);
+ 			close(moh-&gt;srcfd);
+ 		}
+-		tmp = moh;
+-		moh = moh-&gt;next;
+-		ast_moh_free_class(&amp;tmp);
++		ast_moh_free_class(&amp;moh);
+ 	}
+-	mohclasses = NULL;
+-	ast_mutex_unlock(&amp;moh_lock);
++	AST_LIST_UNLOCK(&amp;mohclasses);
+ }
+ 
+ static void moh_on_off(int on)
+@@ -1108,7 +1087,7 @@
+ 			else
+ 				ast_deactivate_generator(chan);
+ 		}
+-		ast_mutex_unlock(&amp;chan-&gt;lock);
++		ast_channel_unlock(chan);
+ 	}
+ }
+ 
+@@ -1129,8 +1108,8 @@
+ 	int i;
+ 	struct mohclass *class;
+ 
+-	ast_mutex_lock(&amp;moh_lock);
+-	for (class = mohclasses; class; class = class-&gt;next) {
++	AST_LIST_LOCK(&amp;mohclasses);
++	AST_LIST_TRAVERSE(&amp;mohclasses, class, list) {
+ 		if (!class-&gt;total_files)
+ 			continue;
+ 
+@@ -1138,7 +1117,7 @@
+ 		for (i = 0; i &lt; class-&gt;total_files; i++)
+ 			ast_cli(fd, &quot;\tFile: %s\n&quot;, class-&gt;filearray[i]);
+ 	}
+-	ast_mutex_unlock(&amp;moh_lock);
++	AST_LIST_UNLOCK(&amp;mohclasses);
+ 
+ 	return 0;
+ }
+@@ -1147,8 +1126,8 @@
+ {
+ 	struct mohclass *class;
+ 
+-	ast_mutex_lock(&amp;moh_lock);
+-	for (class = mohclasses; class; class = class-&gt;next) {
++	AST_LIST_LOCK(&amp;mohclasses);
++	AST_LIST_TRAVERSE(&amp;mohclasses, class, list) {
+ 		ast_cli(fd, &quot;Class: %s\n&quot;, class-&gt;name);
+ 		ast_cli(fd, &quot;\tMode: %s\n&quot;, S_OR(class-&gt;mode,&quot;&lt;none&gt;&quot;));
+ 		ast_cli(fd, &quot;\tDirectory: %s\n&quot;, S_OR(class-&gt;dir, &quot;&lt;none&gt;&quot;));
+@@ -1156,7 +1135,7 @@
+ 			ast_cli(fd, &quot;\tApplication: %s\n&quot;, S_OR(class-&gt;args, &quot;&lt;none&gt;&quot;));
+ 		ast_cli(fd, &quot;\tFormat: %s\n&quot;, ast_getformatname(class-&gt;format));
+ 	}
+-	ast_mutex_unlock(&amp;moh_lock);
++	AST_LIST_UNLOCK(&amp;mohclasses);
+ 
+ 	return 0;
+ }
+@@ -1173,12 +1152,14 @@
+     
+ 	if (!load_moh_classes(reload)) 		/* Load classes from config */
+ 		return 0;			/* Return if nothing is found */
+-	moh = mohclasses;
+-	while (moh) {
++
++	AST_LIST_LOCK(&amp;mohclasses);
++	AST_LIST_TRAVERSE(&amp;mohclasses, moh, list) {
+ 		if (moh-&gt;total_files)
+ 			moh_scan_files(moh);
+-		moh = moh-&gt;next;
+ 	}
++	AST_LIST_UNLOCK(&amp;mohclasses);
++
+ 	return 1;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000008.html">[solid-pbx-svn] r11 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000011.html">[solid-pbx-svn] r13 - in trunk: . apps build_tools channels channels/misdn include/asterisk mxml pbx pbx/ael res res/snmp utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#9">[ date ]</a>
+              <a href="thread.html#9">[ thread ]</a>
+              <a href="subject.html#9">[ subject ]</a>
+              <a href="author.html#9">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

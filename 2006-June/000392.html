@@ -1,0 +1,283 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r397 - in trunk: channels res
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r397%20-%20in%20trunk%3A%20channels%20res&In-Reply-To=%3C200606280209.k5S29MQc021488%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000391.html">
+   <LINK REL="Next"  HREF="000393.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r397 - in trunk: channels res</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r397%20-%20in%20trunk%3A%20channels%20res&In-Reply-To=%3C200606280209.k5S29MQc021488%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r397 - in trunk: channels res">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:09:22 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000391.html">[solid-pbx-svn] r396 - in trunk: apps formats
+</A></li>
+        <LI>Next message: <A HREF="000393.html">[solid-pbx-svn] r398 - in trunk/channels: . misdn
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#392">[ date ]</a>
+              <a href="thread.html#392">[ thread ]</a>
+              <a href="subject.html#392">[ subject ]</a>
+              <a href="author.html#392">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:08:36 +0200 (Wed, 28 Jun 2006)
+New Revision: 397
+
+Modified:
+   trunk/channels/chan_sip.c
+   trunk/res/res_features.c
+Log:
+Update to Asterisk SVN trunk r35213
+
+------------------------------------------------------------------------
+r35209 | oej | 2006-06-21 09:13:20 +0200 (Wed, 21 Jun 2006) | 2 lines
+
+Finally fix parking and go back to metermaids
+
+------------------------------------------------------------------------
+r35210 | oej | 2006-06-21 09:49:29 +0200 (Wed, 21 Jun 2006) | 3 lines
+
+- Doxygen and some formatting fixes in res_features
+- Get rid of compiler warnings in chan_sip
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-28 02:06:59 UTC (rev 396)
++++ trunk/channels/chan_sip.c	2006-06-28 02:08:36 UTC (rev 397)
+@@ -11971,6 +11971,10 @@
+ 	copy_request(&amp;req, &amp;d-&gt;req);
+ 	free(d);
+ 
++	if (!transferee || !transferer) {
++		ast_log(LOG_ERROR, &quot;Missing channels for parking! Transferer %s Transferee %s\n&quot;, transferer ? &quot;&lt;available&gt;&quot; : &quot;&lt;missing&gt;&quot;, transferee ? &quot;&lt;available&gt;&quot; : &quot;&lt;missing&gt;&quot; );
++		return NULL;
++	}
+ 	if (option_debug &gt; 3) 
+ 		ast_log(LOG_DEBUG, &quot;SIP Park: Transferer channel %s, Transferee %s\n&quot;, transferer-&gt;name, transferee-&gt;name);
+ 
+@@ -12092,7 +12096,8 @@
+ 		d-&gt;chan1 = transferee;	/* Transferee */
+ 		d-&gt;chan2 = transferer;	/* Transferer */
+ 		d-&gt;seqno = seqno;
+-		if (!ast_pthread_create(&amp;th, NULL, sip_park_thread, d)) {
++		if (ast_pthread_create(&amp;th, NULL, sip_park_thread, d) &lt; 0) {
++			/* Could not start thread */
+ 			free(d);	/* We don't need it anymore. If thread is created, d will be free'd
+ 					   by sip_park_thread() */
+ 			return 0;
+
+Modified: trunk/res/res_features.c
+===================================================================
+--- trunk/res/res_features.c	2006-06-28 02:06:59 UTC (rev 396)
++++ trunk/res/res_features.c	2006-06-28 02:08:36 UTC (rev 397)
+@@ -80,18 +80,18 @@
+ 
+ static char *parkedcall = &quot;ParkedCall&quot;;
+ 
+-static int parkingtime = DEFAULT_PARK_TIME; 		/*!&lt; No more than 45 seconds parked before you do something with them */
+-static char parking_con[AST_MAX_EXTENSION];		/*!&lt; Context for which parking is made accessible */
+-static char parking_con_dial[AST_MAX_EXTENSION];	/*!&lt; Context for dialback for parking (KLUDGE) */
+-static char parking_ext[AST_MAX_EXTENSION];		/*!&lt; Extension you type to park the call */
+-static char pickup_ext[AST_MAX_EXTENSION];		/*!&lt; Call pickup extension */
+-static int parking_start;				/*!&lt; First available extension for parking */
+-static int parking_stop;				/*!&lt; Last available extension for parking */
++static int parkingtime = DEFAULT_PARK_TIME;                /*!&lt; No more than 45 seconds parked before you do something with them */
++static char parking_con[AST_MAX_EXTENSION];                /*!&lt; Context for which parking is made accessible */
++static char parking_con_dial[AST_MAX_EXTENSION];           /*!&lt; Context for dialback for parking (KLUDGE) */
++static char parking_ext[AST_MAX_EXTENSION];                /*!&lt; Extension you type to park the call */
++static char pickup_ext[AST_MAX_EXTENSION];                 /*!&lt; Call pickup extension */
++static int parking_start;                                  /*!&lt; First available extension for parking */
++static int parking_stop;                                   /*!&lt; Last available extension for parking */
+ 
+-static char courtesytone[256];				/*!&lt; Courtesy tone */
+-static int parkedplay = 0;				/*!&lt; Who to play the courtesy tone to */
+-static char xfersound[256];				/*!&lt; Call transfer sound */
+-static char xferfailsound[256];				/*!&lt; Call transfer failure sound */
++static char courtesytone[256];                             /*!&lt; Courtesy tone */
++static int parkedplay = 0;                                 /*!&lt; Who to play the courtesy tone to */
++static char xfersound[256];                                /*!&lt; Call transfer sound */
++static char xferfailsound[256];                            /*!&lt; Call transfer failure sound */
+ 
+ static int parking_offset;
+ static int parkfindnext;
+@@ -103,7 +103,7 @@
+ 
+ static int atxfernoanswertimeout;
+ 
+-static char *registrar = &quot;res_features&quot;;		/*!&lt; Registrar for operations */
++static char *registrar = &quot;res_features&quot;;		   /*!&lt; Registrar for operations */
+ 
+ /* module and CLI command definitions */
+ static char *synopsis = &quot;Answer a parked call&quot;;
+@@ -129,14 +129,13 @@
+ static int monitor_ok = 1;
+ 
+ struct parkeduser {
+-	struct ast_channel *chan;
+-	struct timeval start;
+-	int parkingnum;
+-	/* Where to go if our parking time expires */
+-	char context[AST_MAX_CONTEXT];
++	struct ast_channel *chan;                   /*!&lt; Parking channel */
++	struct timeval start;                       /*!&lt; Time the parking started */
++	int parkingnum;                             /*!&lt; Parking lot */
++	char context[AST_MAX_CONTEXT];              /*!&lt; Where to go if our parking time expires */
+ 	char exten[AST_MAX_EXTENSION];
+ 	int priority;
+-	int parkingtime;
++	int parkingtime;                            /*!&lt; Maximum length in parking lot before return */
+ 	int notquiteyet;
+ 	char peername[1024];
+ 	unsigned char moh_trys;
+@@ -269,7 +268,7 @@
+ }
+ 
+ /*! \brief Park a call 
+- 	We put the user in the parking list, then wake up the parking thread to be sure it looks
++ 	\note We put the user in the parking list, then wake up the parking thread to be sure it looks
+ 	after these channels too */
+ int ast_park_call(struct ast_channel *chan, struct ast_channel *peer, int timeout, int *extout)
+ {
+@@ -278,9 +277,9 @@
+ 	char exten[AST_MAX_EXTENSION];
+ 	struct ast_context *con;
+ 	
+-	if (!(pu = ast_calloc(1, sizeof(*pu)))) {
++	if (!(pu = ast_calloc(1, sizeof(*pu)))) 
+ 		return -1;
+-	}
++
+ 	ast_mutex_lock(&amp;parking_lock);
+ 	parking_range = parking_stop - parking_start+1;
+ 	for (i = 0; i &lt; parking_range; i++) {
+@@ -309,7 +308,7 @@
+ 	pu-&gt;chan = chan;
+ 	/* Start music on hold */
+ 	if (chan != peer) {
+-		ast_indicate(pu-&gt;chan, AST_CONTROL_HOLD);
++		ast_indicate(pu-&gt;chan, AST_CONTROL_HOLD);	/* Indicate to peer that we're on hold */
+ 		ast_moh_start(pu-&gt;chan, NULL);
+ 	}
+ 	pu-&gt;start = ast_tvnow();
+@@ -349,22 +348,21 @@
+ 		S_OR(pu-&gt;chan-&gt;cid.cid_name, &quot;&lt;unknown&gt;&quot;)
+ 		);
+ 
+-	if (peer) {
+-		if (adsipark &amp;&amp; adsi_available(peer))
+-			adsi_announce_park(peer, pu-&gt;parkingnum);
+-		if (adsipark &amp;&amp; adsi_available(peer))
+-			adsi_unload_session(peer);
++	if (peer &amp;&amp; adsipark &amp;&amp; adsi_available(peer)) {
++		adsi_announce_park(peer, pu-&gt;parkingnum);
++		adsi_unload_session(peer);
+ 	}
++
+ 	con = ast_context_find(parking_con);
+-	if (!con) {
++	if (!con) 
+ 		con = ast_context_create(NULL, parking_con, registrar);
+-		if (!con)
+-			ast_log(LOG_ERROR, &quot;Parking context '%s' does not exist and unable to create\n&quot;, parking_con);
+-	}
+-	if (con) {
++	if (!con)	/* Still no context? Bad */
++		ast_log(LOG_ERROR, &quot;Parking context '%s' does not exist and unable to create\n&quot;, parking_con);
++	else {		/* Add extension to context */
+ 		snprintf(exten, sizeof(exten), &quot;%d&quot;, x);
+ 		ast_add_extension2(con, 1, exten, 1, NULL, NULL, parkedcall, strdup(exten), FREE, registrar);
+ 	}
++	/* Tell the peer channel the number of the parking space */
+ 	if (peer) 
+ 		ast_say_digits(peer, pu-&gt;parkingnum, &quot;&quot;, peer-&gt;language);
+ 	if (pu-&gt;notquiteyet) {
+@@ -382,27 +380,27 @@
+ 	struct ast_frame *f;
+ 
+ 	/* Make a new, fake channel that we'll use to masquerade in the real one */
+-	if ((chan = ast_channel_alloc(0))) {
+-		/* Let us keep track of the channel name */
+-		ast_string_field_build(chan, name, &quot;Parked/%s&quot;,rchan-&gt;name);
+-
+-		/* Make formats okay */
+-		chan-&gt;readformat = rchan-&gt;readformat;
+-		chan-&gt;writeformat = rchan-&gt;writeformat;
+-		ast_channel_masquerade(chan, rchan);
+-
+-		/* Setup the extensions and such */
+-		set_c_e_p(chan, rchan-&gt;context, rchan-&gt;exten, rchan-&gt;priority);
+-
+-		/* Make the masq execute */
+-		f = ast_read(chan);
+-		if (f)
+-			ast_frfree(f);
+-		ast_park_call(chan, peer, timeout, extout);
+-	} else {
++	if (!(chan = ast_channel_alloc(0))) {
+ 		ast_log(LOG_WARNING, &quot;Unable to create parked channel\n&quot;);
+ 		return -1;
+ 	}
++	/* Let us keep track of the channel name */
++	ast_string_field_build(chan, name, &quot;Parked/%s&quot;,rchan-&gt;name);
++
++	/* Make formats okay */
++	chan-&gt;readformat = rchan-&gt;readformat;
++	chan-&gt;writeformat = rchan-&gt;writeformat;
++	ast_channel_masquerade(chan, rchan);
++
++	/* Setup the extensions and such */
++	set_c_e_p(chan, rchan-&gt;context, rchan-&gt;exten, rchan-&gt;priority);
++
++	/* Make the masq execute */
++	f = ast_read(chan);
++	if (f)
++		ast_frfree(f);
++
++	ast_park_call(chan, peer, timeout, extout);
+ 	return 0;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000391.html">[solid-pbx-svn] r396 - in trunk: apps formats
+</A></li>
+	<LI>Next message: <A HREF="000393.html">[solid-pbx-svn] r398 - in trunk/channels: . misdn
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#392">[ date ]</a>
+              <a href="thread.html#392">[ thread ]</a>
+              <a href="subject.html#392">[ subject ]</a>
+              <a href="author.html#392">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

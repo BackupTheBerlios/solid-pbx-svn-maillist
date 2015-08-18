@@ -1,0 +1,288 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r294 - in trunk: . apps build_tools
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r294%20-%20in%20trunk%3A%20.%20apps%20build_tools&In-Reply-To=%3C200606231733.k5NHXfBT026925%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000288.html">
+   <LINK REL="Next"  HREF="000289.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r294 - in trunk: . apps build_tools</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r294%20-%20in%20trunk%3A%20.%20apps%20build_tools&In-Reply-To=%3C200606231733.k5NHXfBT026925%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r294 - in trunk: . apps build_tools">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri Jun 23 19:33:41 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000288.html">[solid-pbx-svn] r293 - trunk/apps
+</A></li>
+        <LI>Next message: <A HREF="000289.html">[solid-pbx-svn] r295 - trunk/sounds
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#291">[ date ]</a>
+              <a href="thread.html#291">[ thread ]</a>
+              <a href="subject.html#291">[ subject ]</a>
+              <a href="author.html#291">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-23 19:33:38 +0200 (Fri, 23 Jun 2006)
+New Revision: 294
+
+Modified:
+   trunk/Makefile
+   trunk/apps/app_followme.c
+   trunk/build_tools/prep_moduledeps
+   trunk/build_tools/sounds.xml
+Log:
+Update to Asterisk SVN trunk r32893
+
+------------------------------------------------------------------------
+r32884 | russell | 2006-06-07 22:08:29 +0200 (Wed, 07 Jun 2006) | 2 lines
+
+fix a typo in an option name in config parsing
+
+------------------------------------------------------------------------
+r32885 | kpfleming | 2006-06-07 22:19:40 +0200 (Wed, 07 Jun 2006) | 2 lines
+
+prepare for using sound files from out of the source tree
+
+------------------------------------------------------------------------
+r32886 | kpfleming | 2006-06-07 22:54:30 +0200 (Wed, 07 Jun 2006) | 2 lines
+
+woo-hoo, now it knows how to download the sound packages... doesn't install them yet though
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-06-23 17:25:24 UTC (rev 293)
++++ trunk/Makefile	2006-06-23 17:33:38 UTC (rev 294)
+@@ -13,6 +13,8 @@
+ 
+ .EXPORT_ALL_VARIABLES:
+ 
++.PHONY: sounds
++
+ # Create OPTIONS variable
+ OPTIONS=
+ 
+@@ -378,7 +380,7 @@
+ 	@echo &quot; +               make install                +&quot;  
+ 	@echo &quot; +-------------------------------------------+&quot;  
+ 
+-all: cleantest config.status menuselect.makeopts depend asterisk subdirs
++all: cleantest config.status menuselect.makeopts depend asterisk subdirs sounds
+ 
+ config.status: configure
+ 	@CFLAGS=&quot;&quot; ./configure
+@@ -533,52 +535,6 @@
+ 	for x in static-http/*; do \
+ 		$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTDATADIR)/static-http ; \
+ 	done
+-	mkdir -p $(DESTDIR)$(ASTDATADIR)/sounds/digits
+-	mkdir -p $(DESTDIR)$(ASTDATADIR)/sounds/priv-callerintros
+-	for x in sounds/digits/*.gsm; do \
+-		if $(GREP) -q &quot;^%`basename $$x`%&quot; sounds.txt; then \
+-			$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTDATADIR)/sounds/digits ; \
+-		else \
+-			echo &quot;No description for $$x&quot;; \
+-			exit 1; \
+-		fi; \
+-	done
+-	mkdir -p $(DESTDIR)$(ASTDATADIR)/sounds/dictate
+-	for x in sounds/dictate/*.gsm; do \
+-		if $(GREP) -q &quot;^%`basename $$x`%&quot; sounds.txt; then \
+-			$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTDATADIR)/sounds/dictate ; \
+-		else \
+-			echo &quot;No description for $$x&quot;; \
+-			exit 1; \
+-		fi; \
+-	done
+-	mkdir -p $(DESTDIR)$(ASTDATADIR)/sounds/letters
+-	for x in sounds/letters/*.gsm; do \
+-		if $(GREP) -q &quot;^%`basename $$x`%&quot; sounds.txt; then \
+-			$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTDATADIR)/sounds/letters ; \
+-		else \
+-			echo &quot;No description for $$x&quot;; \
+-			exit 1; \
+-		fi; \
+-	done
+-	mkdir -p $(DESTDIR)$(ASTDATADIR)/sounds/phonetic
+-	for x in sounds/phonetic/*.gsm; do \
+-		if $(GREP) -q &quot;^%`basename $$x`%&quot; sounds.txt; then \
+-			$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTDATADIR)/sounds/phonetic ; \
+-		else \
+-			echo &quot;No description for $$x&quot;; \
+-			exit 1; \
+-		fi; \
+-	done
+-	for x in sounds/demo-* sounds/vm-* sounds/transfer* sounds/pbx-* sounds/ss-* sounds/beep* sounds/dir-* sounds/conf-* sounds/agent-* sounds/invalid* sounds/tt-* sounds/auth-* sounds/privacy-* sounds/queue-* sounds/spy-* sounds/priv-* sounds/screen-* sounds/hello-*; do \
+-		if $(GREP) -q &quot;^%`basename $$x`%&quot; sounds.txt; then \
+-			$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTDATADIR)/sounds ; \
+-		else \
+-			echo &quot;No description for $$x&quot;; \
+-			exit 1; \
+-		fi; \
+-	done
+-	mkdir -p $(DESTDIR)$(ASTDATADIR)/mohmp3
+ 	mkdir -p $(DESTDIR)$(ASTDATADIR)/images
+ 	for x in images/*.jpg; do \
+ 		$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTDATADIR)/images ; \
+@@ -640,7 +596,6 @@
+ 	if [ -n &quot;$(OLDHEADERS)&quot; ]; then \
+ 		rm -f $(addprefix $(DESTDIR)$(ASTHEADERDIR)/,$(OLDHEADERS)) ;\
+ 	fi
+-	mkdir -p $(DESTDIR)$(ASTDATADIR)/sounds
+ 	mkdir -p $(DESTDIR)$(ASTLOGDIR)/cdr-csv
+ 	mkdir -p $(DESTDIR)$(ASTLOGDIR)/cdr-custom
+ 	mkdir -p $(DESTDIR)$(ASTDATADIR)/keys
+@@ -762,20 +717,6 @@
+ 	else \
+ 		echo &quot;Skipping asterisk.conf creation&quot;; \
+ 	fi
+-	mkdir -p $(DESTDIR)$(ASTDATADIR)/sounds ; \
+-	for x in sounds/demo-*; do \
+-		if $(GREP) -q &quot;^%`basename $$x`%&quot; sounds.txt; then \
+-			$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTDATADIR)/sounds ; \
+-		else \
+-			echo &quot;No description for $$x&quot;; \
+-			exit 1; \
+-		fi; \
+-	done
+-	mkdir -p $(DESTDIR)$(ASTDATADIR)/mohmp3 ; \
+-	for x in sounds/*.mp3; do \
+-		$(INSTALL) -m 644 $$x $(DESTDIR)$(ASTDATADIR)/mohmp3 ; \
+-	done
+-	rm -f $(DESTDIR)$(ASTDATADIR)/mohmp3/sample-hold.mp3
+ 	mkdir -p $(DESTDIR)$(ASTSPOOLDIR)/voicemail/default/1234/INBOX
+ 	:&gt; $(DESTDIR)$(ASTSPOOLDIR)/voicemail/default/1234/unavail.gsm
+ 	for x in vm-theperson digits/1 digits/2 digits/3 digits/4 vm-isunavail; do \
+@@ -905,6 +846,9 @@
+ %_env:
+ 	$(MAKE) -C $(shell echo $@ | sed &quot;s/_env//g&quot;) env
+ 
++sounds:
++	$(MAKE) -C sounds all
++
+ env:
+ 	env
+ 
+@@ -924,7 +868,6 @@
+ 	rm -f $(DESTDIR)$(ASTSBINDIR)/astgenkey
+ 	rm -f $(DESTDIR)$(ASTSBINDIR)/autosupport
+ 	rm -rf $(DESTDIR)$(ASTHEADERDIR)
+-	rm -rf $(DESTDIR)$(ASTDATADIR)/sounds
+ 	rm -rf $(DESTDIR)$(ASTDATADIR)/firmware
+ 	rm -rf $(DESTDIR)$(ASTMANDIR)/man8
+ 	for x in $(SUBDIRS); do $(MAKE) -C $$x uninstall || exit 1 ; done
+@@ -961,7 +904,7 @@
+ 	@cd mxml &amp;&amp; unset CFLAGS LIBS &amp;&amp; test -f config.h || ./configure
+ 	$(MAKE) -C mxml libmxml.a
+ 
+-makeopts.xml: $(foreach dir,$(MOD_SUBDIRS),$(dir)/*.c) build_tools/cflags.xml build_tools/sounds.xml
++makeopts.xml: $(foreach dir,$(MOD_SUBDIRS),$(dir)/*.c) build_tools/cflags.xml sounds/sounds.xml
+ 	@echo &quot;Generating list of available modules ...&quot;
+ 	@build_tools/prep_moduledeps &gt; $@
+ 
+
+Modified: trunk/apps/app_followme.c
+===================================================================
+--- trunk/apps/app_followme.c	2006-06-23 17:25:24 UTC (rev 293)
++++ trunk/apps/app_followme.c	2006-06-23 17:33:38 UTC (rev 294)
+@@ -234,7 +234,7 @@
+ 		ast_copy_string(f-&gt;nextindp, val, sizeof(f-&gt;nextindp));
+ 	} else if (!strcasecmp(param, &quot;call-from-prompt&quot;)) {
+ 		ast_copy_string(f-&gt;callfromprompt, val, sizeof(f-&gt;callfromprompt));
+-	} else if (!strcasecmp(param, &quot;followme-recording-prompt&quot;)) {
++	} else if (!strcasecmp(param, &quot;followme-norecording-prompt&quot;)) {
+ 		ast_copy_string(f-&gt;norecordingprompt, val, sizeof(f-&gt;norecordingprompt));
+ 	} else if (!strcasecmp(param, &quot;followme-options-prompt&quot;)) {
+ 		ast_copy_string(f-&gt;optionsprompt, val, sizeof(f-&gt;optionsprompt));
+
+Modified: trunk/build_tools/prep_moduledeps
+===================================================================
+--- trunk/build_tools/prep_moduledeps	2006-06-23 17:25:24 UTC (rev 293)
++++ trunk/build_tools/prep_moduledeps	2006-06-23 17:33:38 UTC (rev 294)
+@@ -57,5 +57,5 @@
+ process_dir pbx pbx PBX &quot;PBX Modules&quot;
+ process_dir res res RES &quot;Resource Modules&quot;
+ cat build_tools/cflags.xml
+-cat build_tools/sounds.xml
++cat sounds/sounds.xml
+ echo &quot;&lt;/menu&gt;&quot;
+
+Modified: trunk/build_tools/sounds.xml
+===================================================================
+--- trunk/build_tools/sounds.xml	2006-06-23 17:25:24 UTC (rev 293)
++++ trunk/build_tools/sounds.xml	2006-06-23 17:33:38 UTC (rev 294)
+@@ -1,33 +0,0 @@
+-	&lt;category name=&quot;MENUSELECT_SOUNDS&quot; displayname=&quot;Sound Packages&quot; positive_output=&quot;yes&quot;&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_EN_WAV&quot; displayname=&quot;Core Sounds - English, WAV format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_EN_ULAW&quot; displayname=&quot;Core Sounds - English, mu-Law format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_EN_ALAW&quot; displayname=&quot;Core Sounds - English, a-Law format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_EN_GSM&quot; displayname=&quot;Core Sounds - English, GSM format&quot; &gt;
+-			&lt;defaultenabled&gt;yes&lt;/defaultenabled&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_EN_G729&quot; displayname=&quot;Core Sounds - English, G.729 format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_ES_WAV&quot; displayname=&quot;Core Sounds - Spanish, WAV format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_ES_ULAW&quot; displayname=&quot;Core Sounds - Spanish, mu-Law format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_ES_ALAW&quot; displayname=&quot;Core Sounds - Spanish, a-Law format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_ES_GSM&quot; displayname=&quot;Core Sounds - Spanish, GSM format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_ES_G729&quot; displayname=&quot;Core Sounds - Spanish, G.729 format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_FR_WAV&quot; displayname=&quot;Core Sounds - French, WAV format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_FR_ULAW&quot; displayname=&quot;Core Sounds - French, mu-Law format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_FR_ALAW&quot; displayname=&quot;Core Sounds - French, a-Law format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_FR_GSM&quot; displayname=&quot;Core Sounds - French, GSM format&quot;&gt;
+-		&lt;/member&gt;
+-		&lt;member name=&quot;CORE_SOUNDS_FR_G729&quot; displayname=&quot;Core Sounds - French, G.729 format&quot;&gt;
+-		&lt;/member&gt;
+-	&lt;/category&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000288.html">[solid-pbx-svn] r293 - trunk/apps
+</A></li>
+	<LI>Next message: <A HREF="000289.html">[solid-pbx-svn] r295 - trunk/sounds
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#291">[ date ]</a>
+              <a href="thread.html#291">[ thread ]</a>
+              <a href="subject.html#291">[ subject ]</a>
+              <a href="author.html#291">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

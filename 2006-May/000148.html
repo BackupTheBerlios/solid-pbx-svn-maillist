@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r153 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r153%20-%20trunk/apps&In-Reply-To=%3C200605151629.k4FGTxDH004974%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000147.html">
+   <LINK REL="Next"  HREF="000149.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r153 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r153%20-%20trunk/apps&In-Reply-To=%3C200605151629.k4FGTxDH004974%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r153 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Mon May 15 18:29:59 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000147.html">[solid-pbx-svn] r152 - trunk/utils
+</A></li>
+        <LI>Next message: <A HREF="000149.html">[solid-pbx-svn] r154 - trunk/funcs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#148">[ date ]</a>
+              <a href="thread.html#148">[ thread ]</a>
+              <a href="subject.html#148">[ subject ]</a>
+              <a href="author.html#148">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-15 18:29:58 +0200 (Mon, 15 May 2006)
+New Revision: 153
+
+Modified:
+   trunk/apps/app_speech_utils.c
+Log:
+Update to Asterisk SVN trunk r27223
+
+------------------------------------------------------------------------
+r27194 | file | 2006-05-15 17:30:21 +0200 (Mon, 15 May 2006) | 2 lines
+
+Make sure that the channel is answered before doing SpeechBackground. (issue #josh-wait-I-dont-have-issue-numbers)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_speech_utils.c
+===================================================================
+--- trunk/apps/app_speech_utils.c	2006-05-14 22:51:33 UTC (rev 152)
++++ trunk/apps/app_speech_utils.c	2006-05-15 16:29:58 UTC (rev 153)
+@@ -512,6 +512,12 @@
+                 return -1;
+         }
+ 
++	/* If channel is not already answered, then answer it */
++	if (chan-&gt;_state != AST_STATE_UP &amp;&amp; ast_answer(chan)) {
++		LOCAL_USER_REMOVE(u);
++		return -1;
++	}
++
+         /* Record old read format */
+         oldreadformat = chan-&gt;readformat;
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000147.html">[solid-pbx-svn] r152 - trunk/utils
+</A></li>
+	<LI>Next message: <A HREF="000149.html">[solid-pbx-svn] r154 - trunk/funcs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#148">[ date ]</a>
+              <a href="thread.html#148">[ thread ]</a>
+              <a href="subject.html#148">[ subject ]</a>
+              <a href="author.html#148">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

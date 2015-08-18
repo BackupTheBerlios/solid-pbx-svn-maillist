@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r238 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r238%20-%20trunk/apps&In-Reply-To=%3C200606180157.k5I1vK2K027026%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000232.html">
+   <LINK REL="Next"  HREF="000234.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r238 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r238%20-%20trunk/apps&In-Reply-To=%3C200606180157.k5I1vK2K027026%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r238 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sun Jun 18 03:57:20 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000232.html">[solid-pbx-svn] r237 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000234.html">[solid-pbx-svn] r239 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#233">[ date ]</a>
+              <a href="thread.html#233">[ thread ]</a>
+              <a href="subject.html#233">[ subject ]</a>
+              <a href="author.html#233">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-18 03:57:10 +0200 (Sun, 18 Jun 2006)
+New Revision: 238
+
+Modified:
+   trunk/apps/app_queue.c
+Log:
+Update to Asterisk SVN trunk r31923
+
+------------------------------------------------------------------------
+r31922 | kpfleming | 2006-06-04 05:45:54 +0200 (Sun, 04 Jun 2006) | 10 lines
+
+Merged revisions 31921 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r31921 | kpfleming | 2006-06-03 22:43:35 -0500 (Sat, 03 Jun 2006) | 2 lines
+
+return bridge exit logic to what it was before i broke it :-(
+
+.......
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_queue.c
+===================================================================
+--- trunk/apps/app_queue.c	2006-06-18 01:54:42 UTC (rev 237)
++++ trunk/apps/app_queue.c	2006-06-18 01:57:10 UTC (rev 238)
+@@ -2606,7 +2606,7 @@
+ 		if (bridge != AST_PBX_NO_HANGUP_PEER)
+ 			ast_hangup(peer);
+ 		update_queue(qe-&gt;parent, member);
+-		res = bridge ? -1 : 0;
++		res = bridge ? bridge : 1;
+ 	}
+ out:
+ 	hangupcalls(outgoing, NULL);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000232.html">[solid-pbx-svn] r237 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000234.html">[solid-pbx-svn] r239 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#233">[ date ]</a>
+              <a href="thread.html#233">[ thread ]</a>
+              <a href="subject.html#233">[ subject ]</a>
+              <a href="author.html#233">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r217 - trunk/build_tools
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r217%20-%20trunk/build_tools&In-Reply-To=%3C200606170325.k5H3PunT017554%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000211.html">
+   <LINK REL="Next"  HREF="000213.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r217 - trunk/build_tools</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r217%20-%20trunk/build_tools&In-Reply-To=%3C200606170325.k5H3PunT017554%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r217 - trunk/build_tools">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Sat Jun 17 05:25:56 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000211.html">[solid-pbx-svn] r216 - trunk/sounds
+</A></li>
+        <LI>Next message: <A HREF="000213.html">[solid-pbx-svn] r218 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#212">[ date ]</a>
+              <a href="thread.html#212">[ thread ]</a>
+              <a href="subject.html#212">[ subject ]</a>
+              <a href="author.html#212">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-17 05:25:53 +0200 (Sat, 17 Jun 2006)
+New Revision: 217
+
+Modified:
+   trunk/build_tools/menuselect.c
+   trunk/build_tools/menuselect.h
+   trunk/build_tools/menuselect_curses.c
+Log:
+Update to Asterisk SVN trunk r31443
+
+------------------------------------------------------------------------
+r31443 | russell | 2006-06-01 19:40:50 +0200 (Thu, 01 Jun 2006) | 2 lines
+
+allow menuselect to display dependencies and conflicts for modules
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/build_tools/menuselect.c
+===================================================================
+--- trunk/build_tools/menuselect.c	2006-06-17 02:58:08 UTC (rev 216)
++++ trunk/build_tools/menuselect.c	2006-06-17 03:25:53 UTC (rev 217)
+@@ -40,20 +40,6 @@
+ 
+ #undef MENUSELECT_DEBUG
+ 
+-struct depend {
+-	/*! the name of the dependency */
+-	const char *name;
+-	/*! for linking */
+-	AST_LIST_ENTRY(depend) list;
+-};
+-
+-struct conflict {
+-	/*! the name of the conflict */
+-	const char *name;
+-	/*! for linking */
+-	AST_LIST_ENTRY(conflict) list;
+-};
+-
+ /*! The list of categories */
+ struct categories categories = AST_LIST_HEAD_NOLOCK_INIT_VALUE;
+ 
+
+Modified: trunk/build_tools/menuselect.h
+===================================================================
+--- trunk/build_tools/menuselect.h	2006-06-17 02:58:08 UTC (rev 216)
++++ trunk/build_tools/menuselect.h	2006-06-17 03:25:53 UTC (rev 217)
+@@ -31,9 +31,20 @@
+ #define OUTPUT_MAKEOPTS_DEFAULT &quot;menuselect.makeopts&quot;
+ #define MENUSELECT_DEPS         &quot;build_tools/menuselect-deps&quot;
+ 
+-struct depend;
+-struct conflict;
++struct depend {
++	/*! the name of the dependency */
++	const char *name;
++	/*! for linking */
++	AST_LIST_ENTRY(depend) list;
++};
+ 
++struct conflict {
++	/*! the name of the conflict */
++	const char *name;
++	/*! for linking */
++	AST_LIST_ENTRY(conflict) list;
++};
++
+ struct member {
+ 	/*! What will be sent to the makeopts file */
+ 	const char *name;
+
+Modified: trunk/build_tools/menuselect_curses.c
+===================================================================
+--- trunk/build_tools/menuselect_curses.c	2006-06-17 02:58:08 UTC (rev 216)
++++ trunk/build_tools/menuselect_curses.c	2006-06-17 03:25:53 UTC (rev 217)
+@@ -126,7 +126,9 @@
+ {
+ 	int i = 0;
+ 	int j = 0;
+-	struct member *mem;
++	struct member *mem, *curmem = NULL;
++	struct depend *dep;
++	struct conflict *con;
+ 	char buf[64];
+ 	const char *desc = NULL;
+ 
+@@ -146,16 +148,36 @@
+ 		waddstr(menu, buf);
+ 		
+ 		if (curopt + 1 == i)
+-			desc = mem-&gt;displayname;
++			curmem = mem;
+ 
+ 		if (i == end)
+ 			break;
+ 	}
+ 
+-	if (desc) {
++	if (curmem-&gt;displayname) {
+ 		wmove(menu, end - start + 2, max_x / 2 - 16);
+-		waddstr(menu, desc);
++		waddstr(menu, curmem-&gt;displayname);
+ 	}
++	if (!AST_LIST_EMPTY(&amp;curmem-&gt;deps)) {
++		wmove(menu, end - start + 3, max_x / 2 - 16);
++		snprintf(buf, sizeof(buf), &quot;Depends on: &quot;);
++		AST_LIST_TRAVERSE(&amp;curmem-&gt;deps, dep, list) {
++			strncat(buf, dep-&gt;name, sizeof(buf) - strlen(buf) - 1);
++			if (AST_LIST_NEXT(dep, list))
++				strncat(buf, &quot;, &quot;, sizeof(buf) - strlen(buf) - 1);
++		}
++		waddstr(menu, buf);
++	}
++	if (!AST_LIST_EMPTY(&amp;curmem-&gt;conflicts)) {
++		wmove(menu, end - start + 4, max_x / 2 - 16);
++		snprintf(buf, sizeof(buf), &quot;Conflicts with: &quot;);
++		AST_LIST_TRAVERSE(&amp;curmem-&gt;conflicts, con, list) {
++			strncat(buf, con-&gt;name, sizeof(buf) - strlen(buf) - 1);
++			if (AST_LIST_NEXT(con, list))
++				strncat(buf, &quot;, &quot;, sizeof(buf) - strlen(buf) - 1);
++		}
++		waddstr(menu, buf);
++	}
+ 	wmove(menu, curopt - start, max_x / 2 - 9);
+ 
+ 	wrefresh(menu);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000211.html">[solid-pbx-svn] r216 - trunk/sounds
+</A></li>
+	<LI>Next message: <A HREF="000213.html">[solid-pbx-svn] r218 - trunk/res
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#212">[ date ]</a>
+              <a href="thread.html#212">[ thread ]</a>
+              <a href="subject.html#212">[ subject ]</a>
+              <a href="author.html#212">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

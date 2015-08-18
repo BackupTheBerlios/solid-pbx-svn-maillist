@@ -1,0 +1,679 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r354 - in trunk: . apps channels include/asterisk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r354%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk&In-Reply-To=%3C200606280123.k5S1NdAi013116%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000348.html">
+   <LINK REL="Next"  HREF="000350.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r354 - in trunk: . apps channels include/asterisk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r354%20-%20in%20trunk%3A%20.%20apps%20channels%20include/asterisk&In-Reply-To=%3C200606280123.k5S1NdAi013116%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r354 - in trunk: . apps channels include/asterisk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 03:23:39 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000348.html">[solid-pbx-svn] r353 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000350.html">[solid-pbx-svn] r355 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#349">[ date ]</a>
+              <a href="thread.html#349">[ thread ]</a>
+              <a href="subject.html#349">[ subject ]</a>
+              <a href="author.html#349">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 03:23:32 +0200 (Wed, 28 Jun 2006)
+New Revision: 354
+
+Modified:
+   trunk/abstract_jb.c
+   trunk/apps/app_amd.c
+   trunk/apps/app_chanspy.c
+   trunk/apps/app_dumpchan.c
+   trunk/channels/chan_agent.c
+   trunk/fixedjitterbuf.c
+   trunk/include/asterisk/abstract_jb.h
+   trunk/include/asterisk/plc.h
+   trunk/include/asterisk/udptl.h
+   trunk/jitterbuf.c
+   trunk/plc.c
+   trunk/udptl.c
+Log:
+Update to Asterisk SVN trunk r34093
+
+------------------------------------------------------------------------
+r34090 | kpfleming | 2006-06-14 16:12:56 +0200 (Wed, 14 Jun 2006) | 10 lines
+
+Merged revisions 34087 via svnmerge from 
+<A HREF="https://origsvn.digium.com/svn/asterisk/branches/1.2">https://origsvn.digium.com/svn/asterisk/branches/1.2</A>
+
+.......
+r34087 | kpfleming | 2006-06-14 09:07:53 -0500 (Wed, 14 Jun 2006) | 2 lines
+
+clarify file headers that mention disclaimer usage
+
+.......
+
+------------------------------------------------------------------------
+r34093 | oej | 2006-06-14 16:46:19 +0200 (Wed, 14 Jun 2006) | 3 lines
+
+- Use our standard of doxygen comments, not javadoc style
+- small reformatting changes
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/abstract_jb.c
+===================================================================
+--- trunk/abstract_jb.c	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/abstract_jb.c	2006-06-28 01:23:32 UTC (rev 354)
+@@ -6,8 +6,6 @@
+  * Contributors:
+  * Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
+  *
+- * Copyright on this file is disclaimed to Digium for inclusion in Asterisk
+- *
+  * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
+  * the Asterisk project. Please do not directly contact
+  * any of the maintainers of this project for assistance;
+@@ -17,6 +15,9 @@
+  * This program is free software, distributed under the terms of
+  * the GNU General Public License Version 2. See the LICENSE file
+  * at the top of the source tree.
++ *
++ * A license has been granted to Digium (via disclaimer) for the use of
++ * this code.
+  */
+ 
+ /*! \file
+
+Modified: trunk/apps/app_amd.c
+===================================================================
+--- trunk/apps/app_amd.c	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/apps/app_amd.c	2006-06-28 01:23:32 UTC (rev 354)
+@@ -5,8 +5,6 @@
+  *
+  * Claude Klimos (<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">claude.klimos at aheeva.com</A>)
+  *
+- * Disclaimed to Digium
+- *
+  * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
+  * the Asterisk project. Please do not directly contact
+  * any of the maintainers of this project for assistance;
+@@ -16,6 +14,9 @@
+  * This program is free software, distributed under the terms of
+  * the GNU General Public License Version 2. See the LICENSE file
+  * at the top of the source tree.
++ *
++ * A license has been granted to Digium (via disclaimer) for the use of
++ * this code.
+  */
+ 
+ #include &lt;stdio.h&gt;
+
+Modified: trunk/apps/app_chanspy.c
+===================================================================
+--- trunk/apps/app_chanspy.c	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/apps/app_chanspy.c	2006-06-28 01:23:32 UTC (rev 354)
+@@ -4,7 +4,8 @@
+  * Copyright (C) 2005 Anthony Minessale II (<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">anthmct at yahoo.com</A>)
+  * Copyright (C) 2005 - 2006, Digium, Inc.
+  *
+- * Disclaimed to Digium
++ * A license has been granted to Digium (via disclaimer) for the use of
++ * this code.
+  *
+  * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
+  * the Asterisk project. Please do not directly contact
+
+Modified: trunk/apps/app_dumpchan.c
+===================================================================
+--- trunk/apps/app_dumpchan.c	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/apps/app_dumpchan.c	2006-06-28 01:23:32 UTC (rev 354)
+@@ -5,7 +5,8 @@
+  *
+  * Anthony Minessale &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">anthmct at yahoo.com</A>&gt;
+  *
+- * disclaimed to Digium
++ * A license has been granted to Digium (via disclaimer) for the use of
++ * this code.
+  *
+  * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
+  * the Asterisk project. Please do not directly contact
+
+Modified: trunk/channels/chan_agent.c
+===================================================================
+--- trunk/channels/chan_agent.c	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/channels/chan_agent.c	2006-06-28 01:23:32 UTC (rev 354)
+@@ -144,16 +144,14 @@
+ 
+ static char moh[80] = &quot;default&quot;;
+ 
+-#define AST_MAX_AGENT	80		/**&lt; Agent ID or Password max length */
++#define AST_MAX_AGENT	80                          /*!&lt; Agent ID or Password max length */
+ #define AST_MAX_BUF	256
+ #define AST_MAX_FILENAME_LEN	256
+ 
+-/** Persistent Agents astdb family */
+-static const char pa_family[] = &quot;/Agents&quot;;
+-/** The maximum length of each persistent member agent database entry */
+-#define PA_MAX_LEN 2048
+-/** queues.conf [general] option */
+-static int persistent_agents = 0;
++static const char pa_family[] = &quot;/Agents&quot;;          /*!&lt; Persistent Agents astdb family */
++#define PA_MAX_LEN 2048                             /*!&lt; The maximum length of each persistent member agent database entry */
++
++static int persistent_agents = 0;                   /*!&lt; queues.conf [general] option */
+ static void dump_agents(void);
+ 
+ static ast_group_t group;
+@@ -177,37 +175,35 @@
+ 
+ #define GETAGENTBYCALLERID	&quot;AGENTBYCALLERID&quot;
+ 
+-/**
+- * Structure representing an agent.
+- */
++/*! \brief * Structure representing an agent.  */
+ struct agent_pvt {
+-	ast_mutex_t lock;              /**&lt; Channel private lock */
+-	int dead;                      /**&lt; Poised for destruction? */
+-	int pending;                   /**&lt; Not a real agent -- just pending a match */
+-	int abouttograb;               /**&lt; About to grab */
+-	int autologoff;                /**&lt; Auto timeout time */
+-	int ackcall;                   /**&lt; ackcall */
+-	time_t loginstart;             /**&lt; When agent first logged in (0 when logged off) */
+-	time_t start;                  /**&lt; When call started */
+-	struct timeval lastdisc;       /**&lt; When last disconnected */
+-	int wrapuptime;                /**&lt; Wrapup time in ms */
+-	ast_group_t group;             /**&lt; Group memberships */
+-	int acknowledged;              /**&lt; Acknowledged */
+-	char moh[80];                  /**&lt; Which music on hold */
+-	char agent[AST_MAX_AGENT];     /**&lt; Agent ID */
+-	char password[AST_MAX_AGENT];  /**&lt; Password for Agent login */
++	ast_mutex_t lock;              /*!&lt; Channel private lock */
++	int dead;                      /*!&lt; Poised for destruction? */
++	int pending;                   /*!&lt; Not a real agent -- just pending a match */
++	int abouttograb;               /*!&lt; About to grab */
++	int autologoff;                /*!&lt; Auto timeout time */
++	int ackcall;                   /*!&lt; ackcall */
++	time_t loginstart;             /*!&lt; When agent first logged in (0 when logged off) */
++	time_t start;                  /*!&lt; When call started */
++	struct timeval lastdisc;       /*!&lt; When last disconnected */
++	int wrapuptime;                /*!&lt; Wrapup time in ms */
++	ast_group_t group;             /*!&lt; Group memberships */
++	int acknowledged;              /*!&lt; Acknowledged */
++	char moh[80];                  /*!&lt; Which music on hold */
++	char agent[AST_MAX_AGENT];     /*!&lt; Agent ID */
++	char password[AST_MAX_AGENT];  /*!&lt; Password for Agent login */
+ 	char name[AST_MAX_AGENT];
+-	ast_mutex_t app_lock;          /**&lt; Synchronization between owning applications */
+-	volatile pthread_t owning_app; /**&lt; Owning application thread id */
+-	volatile int app_sleep_cond;   /**&lt; Sleep condition for the login app */
+-	struct ast_channel *owner;     /**&lt; Agent */
+-	char loginchan[80];            /**&lt; channel they logged in from */
+-	char logincallerid[80];        /**&lt; Caller ID they had when they logged in */
+-	struct ast_channel *chan;      /**&lt; Channel we use */
+-	AST_LIST_ENTRY(agent_pvt) list;	/**&lt; Next Agent in the linked list. */
++	ast_mutex_t app_lock;          /*!&lt; Synchronization between owning applications */
++	volatile pthread_t owning_app; /*!&lt; Owning application thread id */
++	volatile int app_sleep_cond;   /*!&lt; Sleep condition for the login app */
++	struct ast_channel *owner;     /*!&lt; Agent */
++	char loginchan[80];            /*!&lt; channel they logged in from */
++	char logincallerid[80];        /*!&lt; Caller ID they had when they logged in */
++	struct ast_channel *chan;      /*!&lt; Channel we use */
++	AST_LIST_ENTRY(agent_pvt) list;	/*!&lt; Next Agent in the linked list. */
+ };
+ 
+-static AST_LIST_HEAD_STATIC(agents, agent_pvt);	/**&lt; Holds the list of agents (loaded form agents.conf). */
++static AST_LIST_HEAD_STATIC(agents, agent_pvt);	/*!&lt; Holds the list of agents (loaded form agents.conf). */
+ 
+ #define CHECK_FORMATS(ast, p) do { \
+ 	if (p-&gt;chan) {\
+@@ -226,7 +222,7 @@
+ 	} \
+ } while(0)
+ 
+-/* Cleanup moves all the relevant FD's from the 2nd to the first, but retains things
++/*! \brief Cleanup moves all the relevant FD's from the 2nd to the first, but retains things
+    properly for a timingfd XXX This might need more work if agents were logged in as agents or other
+    totally impractical combinations XXX */
+ 
+@@ -241,6 +237,7 @@
+ 	} \
+ } while(0)
+ 
++/*--- Forward declarations */
+ static struct ast_channel *agent_request(const char *type, int format, void *data, int *cause);
+ static int agent_devicestate(void *data);
+ static void agent_logoff_maintenance(struct agent_pvt *p, char *loginchan, long logintime, const char *uniqueid, char *logcommand);
+@@ -257,6 +254,7 @@
+ static struct ast_channel *agent_bridgedchannel(struct ast_channel *chan, struct ast_channel *bridge);
+ static void set_agentbycallerid(const char *callerid, const char *agent);
+ 
++/*! \brief Channel interface description for PBX integration */
+ static const struct ast_channel_tech agent_tech = {
+ 	.type = &quot;Agent&quot;,
+ 	.description = tdesc,
+@@ -277,13 +275,13 @@
+ 	.bridged_channel = agent_bridgedchannel,
+ };
+ 
+-/**
++/*!
+  * Adds an agent to the global list of agents.
+  *
+- * @param agent A string with the username, password and real name of an agent. As defined in agents.conf. Example: &quot;13,169,John Smith&quot;
+- * @param pending If it is pending or not.
++ * \param agent A string with the username, password and real name of an agent. As defined in agents.conf. Example: &quot;13,169,John Smith&quot;
++ * \param pending If it is pending or not.
+  * @return The just created agent.
+- * @sa agent_pvt, agents.
++ * \sa agent_pvt, agents.
+  */
+ static struct agent_pvt *add_agent(char *agent, int pending)
+ {
+@@ -369,10 +367,10 @@
+ 	return p;
+ }
+ 
+-/**
++/*!
+  * Deletes an agent after doing some clean up.
+  * Further documentation: How safe is this function ? What state should the agent be to be cleaned.
+- * @param p Agent to be deleted.
++ * \param p Agent to be deleted.
+  * @returns Always 0.
+  */
+ static int agent_cleanup(struct agent_pvt *p)
+@@ -976,7 +974,7 @@
+ }
+ 
+ 
+-/**
++/*!
+  * Read configuration data. The file named agents.conf.
+  *
+  * @returns Always 0, or so it seems.
+@@ -1348,13 +1346,13 @@
+ 	return 0;
+ }
+ 
+-/**
++/*!
+  * Lists agents and their status to the Manager API.
+  * It is registered on load_module() and it gets called by the manager backend.
+- * @param s
+- * @param m
++ * \param s
++ * \param m
+  * @returns 
+- * @sa action_agent_logoff(), action_agent_callback_login(), load_module().
++ * \sa action_agent_logoff(), action_agent_callback_login(), load_module().
+  */
+ static int action_agents(struct mansession *s, struct message *m)
+ {
+@@ -1517,13 +1515,13 @@
+ 	return RESULT_SUCCESS;
+ }
+ 
+-/**
++/*!
+  * Sets an agent as no longer logged in in the Manager API.
+  * It is registered on load_module() and it gets called by the manager backend.
+- * @param s
+- * @param m
++ * \param s
++ * \param m
+  * @returns 
+- * @sa action_agents(), action_agent_callback_login(), load_module().
++ * \sa action_agents(), action_agent_callback_login(), load_module().
+  */
+ static int action_agent_logoff(struct mansession *s, struct message *m)
+ {
+@@ -1569,7 +1567,7 @@
+ 	return NULL;
+ }
+ 
+-/**
++/*!
+  * Show agents in cli.
+  */
+ static int agents_show(int fd, int argc, char **argv)
+@@ -2159,39 +2157,39 @@
+  	return -1;
+ }
+ 
+-/**
++/*!
+  * Called by the AgentLogin application (from the dial plan).
+  * 
+- * @param chan
+- * @param data
++ * \param chan
++ * \param data
+  * @returns
+- * @sa callback_login_exec(), agentmonitoroutgoing_exec(), load_module().
++ * \sa callback_login_exec(), agentmonitoroutgoing_exec(), load_module().
+  */
+ static int login_exec(struct ast_channel *chan, void *data)
+ {
+ 	return __login_exec(chan, data, 0);
+ }
+ 
+-/**
++/*!
+  *  Called by the AgentCallbackLogin application (from the dial plan).
+  * 
+- * @param chan
+- * @param data
++ * \param chan
++ * \param data
+  * @returns
+- * @sa login_exec(), agentmonitoroutgoing_exec(), load_module().
++ * \sa login_exec(), agentmonitoroutgoing_exec(), load_module().
+  */
+ static int callback_exec(struct ast_channel *chan, void *data)
+ {
+ 	return __login_exec(chan, data, 1);
+ }
+ 
+-/**
++/*!
+  * Sets an agent as logged in by callback in the Manager API.
+  * It is registered on load_module() and it gets called by the manager backend.
+- * @param s
+- * @param m
++ * \param s
++ * \param m
+  * @returns 
+- * @sa action_agents(), action_agent_logoff(), load_module().
++ * \sa action_agents(), action_agent_logoff(), load_module().
+  */
+ static int action_agent_callback_login(struct mansession *s, struct message *m)
+ {
+@@ -2267,13 +2265,13 @@
+ 	return 0;
+ }
+ 
+-/**
+- *  Called by the AgentMonitorOutgoing application (from the dial plan).
++/*!
++ *  \brief Called by the AgentMonitorOutgoing application (from the dial plan).
+  *
+- * @param chan
+- * @param data
+- * @returns
+- * @sa login_exec(), callback_login_exec(), load_module().
++ * \param chan
++ * \param data
++ * \returns
++ * \sa login_exec(), callback_login_exec(), load_module().
+  */
+ static int agentmonitoroutgoing_exec(struct ast_channel *chan, void *data)
+ {
+@@ -2319,6 +2317,7 @@
+ 			ast_log(LOG_WARNING, &quot;There is no callerid on that call, so I can't figure out which agent (if it's an agent) is placing outgoing call.\n&quot;);
+ 	}
+ 	/* check if there is n + 101 priority */
++	/*! \todo XXX Needs to check option priorityjump etc etc */
+ 	if (res) {
+ 		if (ast_exists_extension(chan, chan-&gt;context, chan-&gt;exten, chan-&gt;priority + 101, chan-&gt;cid.cid_num)) {
+ 			chan-&gt;priority+=100;
+@@ -2331,8 +2330,8 @@
+ 	return 0;
+ }
+ 
+-/**
+- * Dump AgentCallbackLogin agents to the database for persistence
++/*!
++ * \brief Dump AgentCallbackLogin agents to the ASTdb database for persistence
+  */
+ static void dump_agents(void)
+ {
+@@ -2346,7 +2345,7 @@
+ 		if (!ast_strlen_zero(cur_agent-&gt;loginchan)) {
+ 			snprintf(buf, sizeof(buf), &quot;%s;%s&quot;, cur_agent-&gt;loginchan, cur_agent-&gt;logincallerid);
+ 			if (ast_db_put(pa_family, cur_agent-&gt;agent, buf))
+-				ast_log(LOG_WARNING, &quot;failed to create persistent entry!\n&quot;);
++				ast_log(LOG_WARNING, &quot;failed to create persistent entry in ASTdb for %s!\n&quot;, buf);
+ 			else if (option_debug)
+ 				ast_log(LOG_DEBUG, &quot;Saved Agent: %s on %s\n&quot;, cur_agent-&gt;agent, cur_agent-&gt;loginchan);
+ 		} else {
+@@ -2356,8 +2355,8 @@
+ 	}
+ }
+ 
+-/**
+- * Reload the persistent agents from astdb.
++/*!
++ * \brief Reload the persistent agents from astdb.
+  */
+ static void reload_agents(void)
+ {
+@@ -2410,7 +2409,7 @@
+ 	}
+ }
+ 
+-/*! \brief Part of PBX channel interface ---*/
++/*! \brief Part of PBX channel interface */
+ static int agent_devicestate(void *data)
+ {
+ 	struct agent_pvt *p;
+@@ -2499,11 +2498,10 @@
+ 	}
+ 
+ 	if (!strcasecmp(args.item, &quot;status&quot;)) {
+-		if (agent-&gt;chan || !ast_strlen_zero(agent-&gt;loginchan)) {
+-			ast_copy_string(buf, &quot;LOGGEDIN&quot;, len);
+-		} else {
+-			ast_copy_string(buf, &quot;LOGGEDOUT&quot;, len);
+-		}
++		char *status = &quot;LOGGEDOUT&quot;;
++		if (agent-&gt;chan || !ast_strlen_zero(agent-&gt;loginchan)) 
++			status = &quot;LOGGEDIN&quot;;	
++		ast_copy_string(buf, status, len);
+ 	} else if (!strcasecmp(args.item, &quot;password&quot;)) {
+ 		ast_copy_string(buf, agent-&gt;password, len);
+ 	} else if (!strcasecmp(args.item, &quot;name&quot;)) {
+@@ -2540,11 +2538,12 @@
+ };
+ 
+ 
+-/**
+- * Initialize the Agents module.
+- * This function is being called by Asterisk when loading the module. Among other thing it registers applications, cli commands and reads the cofiguration file.
++/*!
++ * \brief Initialize the Agents module.
++ * This function is being called by Asterisk when loading the module. 
++ * Among other things it registers applications, cli commands and reads the cofiguration file.
+  *
+- * @returns int Always 0.
++ * \returns int Always 0.
+  */
+ static int load_module(void *mod)
+ {
+@@ -2558,16 +2557,20 @@
+ 	ast_register_application(app, login_exec, synopsis, descrip);
+ 	ast_register_application(app2, callback_exec, synopsis2, descrip2);
+ 	ast_register_application(app3, agentmonitoroutgoing_exec, synopsis3, descrip3);
++
+ 	/* Manager commands */
+ 	ast_manager_register2(&quot;Agents&quot;, EVENT_FLAG_AGENT, action_agents, &quot;Lists agents and their status&quot;, mandescr_agents);
+ 	ast_manager_register2(&quot;AgentLogoff&quot;, EVENT_FLAG_AGENT, action_agent_logoff, &quot;Sets an agent as no longer logged in&quot;, mandescr_agent_logoff);
+ 	ast_manager_register2(&quot;AgentCallbackLogin&quot;, EVENT_FLAG_AGENT, action_agent_callback_login, &quot;Sets an agent as logged in by callback&quot;, mandescr_agent_callback_login);
++
+ 	/* CLI Commands */
+ 	ast_cli_register(&amp;cli_show_agents);
+ 	ast_cli_register(&amp;cli_show_agents_online);
+ 	ast_cli_register(&amp;cli_agent_logoff);
++
+ 	/* Dialplan Functions */
+ 	ast_custom_function_register(&amp;agent_function);
++
+ 	/* Read in the config */
+ 	read_agent_config();
+ 	if (persistent_agents)
+
+Modified: trunk/fixedjitterbuf.c
+===================================================================
+--- trunk/fixedjitterbuf.c	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/fixedjitterbuf.c	2006-06-28 01:23:32 UTC (rev 354)
+@@ -4,8 +4,6 @@
+  * Contributors:
+  * Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
+  *
+- * Copyright on this file is disclaimed to Digium for inclusion in Asterisk
+- *
+  * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
+  * the Asterisk project. Please do not directly contact
+  * any of the maintainers of this project for assistance;
+@@ -15,6 +13,9 @@
+  * This program is free software, distributed under the terms of
+  * the GNU General Public License Version 2. See the LICENSE file
+  * at the top of the source tree.
++ *
++ * A license has been granted to Digium (via disclaimer) for the use of
++ * this code.
+  */
+ 
+ /*! \file 
+
+Modified: trunk/include/asterisk/abstract_jb.h
+===================================================================
+--- trunk/include/asterisk/abstract_jb.h	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/include/asterisk/abstract_jb.h	2006-06-28 01:23:32 UTC (rev 354)
+@@ -6,8 +6,6 @@
+  * Contributors:
+  * Slav Klenov &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">slav at securax.org</A>&gt;
+  *
+- * Copyright on this file is disclaimed to Digium for inclusion in Asterisk
+- *
+  * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
+  * the Asterisk project. Please do not directly contact
+  * any of the maintainers of this project for assistance;
+@@ -17,6 +15,9 @@
+  * This program is free software, distributed under the terms of
+  * the GNU General Public License Version 2. See the LICENSE file
+  * at the top of the source tree.
++ *
++ * A license has been granted to Digium (via disclaimer) for the use of
++ * this code.
+  */
+ 
+ /*! \file
+
+Modified: trunk/include/asterisk/plc.h
+===================================================================
+--- trunk/include/asterisk/plc.h	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/include/asterisk/plc.h	2006-06-28 01:23:32 UTC (rev 354)
+@@ -24,7 +24,9 @@
+  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+  *
+  * This version may be optionally licenced under the GNU LGPL licence.
+- * This version is disclaimed to DIGIUM for inclusion in the Asterisk project.
++ *
++ * A license has been granted to Digium (via disclaimer) for the use of
++ * this code.
+  */
+ 
+ 
+
+Modified: trunk/include/asterisk/udptl.h
+===================================================================
+--- trunk/include/asterisk/udptl.h	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/include/asterisk/udptl.h	2006-06-28 01:23:32 UTC (rev 354)
+@@ -11,7 +11,8 @@
+  * This program is free software, distributed under the terms of
+  * the GNU General Public License
+  *
+- * This version is disclaimed to DIGIUM for inclusion in the Asterisk project.
++ * A license has been granted to Digium (via disclaimer) for the use of
++ * this code.
+  */
+ 
+ #ifndef _ASTERISK_UDPTL_H
+
+Modified: trunk/jitterbuf.c
+===================================================================
+--- trunk/jitterbuf.c	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/jitterbuf.c	2006-06-28 01:23:32 UTC (rev 354)
+@@ -6,7 +6,8 @@
+  * Contributors:
+  * Steve Kann &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">stevek at stevek.com</A>&gt;
+  *
+- * Copyright on this file is disclaimed to Digium for inclusion in Asterisk
++ * A license has been granted to Digium (via disclaimer) for the use of
++ * this code.
+  *
+  * See <A HREF="http://www.asterisk.org">http://www.asterisk.org</A> for more information about
+  * the Asterisk project. Please do not directly contact
+
+Modified: trunk/plc.c
+===================================================================
+--- trunk/plc.c	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/plc.c	2006-06-28 01:23:32 UTC (rev 354)
+@@ -19,7 +19,8 @@
+  *
+  * This version may be optionally licenced under the GNU LGPL licence.
+  *
+- * This version is disclaimed to DIGIUM for inclusion in the Asterisk project.
++ * A license has been granted to Digium (via disclaimer) for the use of
++ * this code.
+  */
+ 
+ /*! \file
+
+Modified: trunk/udptl.c
+===================================================================
+--- trunk/udptl.c	2006-06-28 01:22:51 UTC (rev 353)
++++ trunk/udptl.c	2006-06-28 01:23:32 UTC (rev 354)
+@@ -11,7 +11,8 @@
+  * This program is free software, distributed under the terms of
+  * the GNU General Public License
+  *
+- * This version is disclaimed to DIGIUM for inclusion in the Asterisk project.
++ * A license has been granted to Digium (via disclaimer) for the use of
++ * this code.
+  */
+ 
+ #include &quot;asterisk.h&quot;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000348.html">[solid-pbx-svn] r353 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000350.html">[solid-pbx-svn] r355 - trunk/channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#349">[ date ]</a>
+              <a href="thread.html#349">[ thread ]</a>
+              <a href="subject.html#349">[ subject ]</a>
+              <a href="author.html#349">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

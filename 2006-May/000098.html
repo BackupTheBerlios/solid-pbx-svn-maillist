@@ -1,0 +1,652 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r99 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r99%20-%20trunk&In-Reply-To=%3C200605082224.k48MOwXc009809%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000097.html">
+   <LINK REL="Next"  HREF="000094.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r99 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r99%20-%20trunk&In-Reply-To=%3C200605082224.k48MOwXc009809%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r99 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May  9 00:24:58 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000097.html">[solid-pbx-svn] r98 - in trunk: . include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000094.html">[solid-pbx-svn] r100 - in trunk: . apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#98">[ date ]</a>
+              <a href="thread.html#98">[ thread ]</a>
+              <a href="subject.html#98">[ subject ]</a>
+              <a href="author.html#98">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-09 00:24:53 +0200 (Tue, 09 May 2006)
+New Revision: 99
+
+Modified:
+   trunk/indications.c
+   trunk/pbx.c
+Log:
+Update to Asterisk SVN trunk r25746
+
+------------------------------------------------------------------------
+r25716 | russell | 2006-05-08 23:27:47 +0200 (Mon, 08 May 2006) | 2 lines
+
+remove checks of the result of ast_mutex_lock
+
+------------------------------------------------------------------------
+r25717 | rizzo | 2006-05-08 23:49:22 +0200 (Mon, 08 May 2006) | 3 lines
+
+restructure a function reducing nesting depth.
+
+
+------------------------------------------------------------------------
+r25746 | rizzo | 2006-05-09 00:06:50 +0200 (Tue, 09 May 2006) | 3 lines
+
+more code restructuring
+
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/indications.c
+===================================================================
+--- trunk/indications.c	2006-05-08 21:18:27 UTC (rev 98)
++++ trunk/indications.c	2006-05-08 22:24:53 UTC (rev 99)
+@@ -382,10 +382,7 @@
+ 	if (country == NULL)
+ 		return 0;	/* not a single country insight */
+ 
+-	if (ast_mutex_lock(&amp;tzlock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to lock tone_zones list\n&quot;);
+-		return 0;
+-	}
++	ast_mutex_lock(&amp;tzlock);
+ 	do {
+ 		for (tz=tone_zones; tz; tz=tz-&gt;next) {
+ 			if (strcasecmp(country,tz-&gt;country)==0) {
+@@ -419,10 +416,7 @@
+ 	if (zone == NULL)
+ 		return 0;	/* not a single country insight */
+ 
+-	if (ast_mutex_lock(&amp;tzlock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to lock tone_zones list\n&quot;);
+-		return 0;
+-	}
++	ast_mutex_lock(&amp;tzlock);
+ 	for (ts=zone-&gt;tones; ts; ts=ts-&gt;next) {
+ 		if (strcasecmp(indication,ts-&gt;name)==0) {
+ 			/* found indication! */
+@@ -457,10 +451,7 @@
+ {
+ 	struct tone_zone *tz,*pz;
+ 
+-	if (ast_mutex_lock(&amp;tzlock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to lock tone_zones list\n&quot;);
+-		return -1;
+-	}
++	ast_mutex_lock(&amp;tzlock);
+ 	for (pz=NULL,tz=tone_zones; tz; pz=tz,tz=tz-&gt;next) {
+ 		if (strcasecmp(zone-&gt;country,tz-&gt;country)==0) {
+ 			/* tone_zone already there, replace */
+@@ -498,10 +489,7 @@
+ 	struct tone_zone *tz, *pz = NULL, *tmp;
+ 	int res = -1;
+ 
+-	if (ast_mutex_lock(&amp;tzlock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to lock tone_zones list\n&quot;);
+-		return -1;
+-	}
++	ast_mutex_lock(&amp;tzlock);
+ 	tz = tone_zones;
+ 	while (tz) {
+ 		if (country==NULL ||
+@@ -546,10 +534,7 @@
+ 	if (zone-&gt;alias[0])
+ 		return -1;
+ 
+-	if (ast_mutex_lock(&amp;tzlock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to lock tone_zones list\n&quot;);
+-		return -2;
+-	}
++	ast_mutex_lock(&amp;tzlock);
+ 	for (ps=NULL,ts=zone-&gt;tones; ts; ps=ts,ts=ts-&gt;next) {
+ 		if (strcasecmp(indication,ts-&gt;name)==0) {
+ 			/* indication already there, replace */
+@@ -588,10 +573,7 @@
+ 	if (zone-&gt;alias[0])
+ 		return -1;
+ 
+-	if (ast_mutex_lock(&amp;tzlock)) {
+-		ast_log(LOG_WARNING, &quot;Unable to lock tone_zones list\n&quot;);
+-		return -1;
+-	}
++	ast_mutex_lock(&amp;tzlock);
+ 	ts = zone-&gt;tones;
+ 	while (ts) {
+ 		if (strcasecmp(indication,ts-&gt;name)==0) {
+
+Modified: trunk/pbx.c
+===================================================================
+--- trunk/pbx.c	2006-05-08 21:18:27 UTC (rev 98)
++++ trunk/pbx.c	2006-05-08 22:24:53 UTC (rev 99)
+@@ -2396,15 +2396,14 @@
+ int ast_context_remove_include2(struct ast_context *con, const char *include, const char *registrar)
+ {
+ 	struct ast_include *i, *pi = NULL;
++	int ret = -1;
+ 
+-	if (ast_mutex_lock(&amp;con-&gt;lock))
+-		return -1;
++	ast_mutex_lock(&amp;con-&gt;lock);
+ 
+-	/* walk includes */
++	/* find our include */
+ 	for (i = con-&gt;includes; i; pi = i, i = i-&gt;next) {
+-		/* find our include */
+ 		if (!strcmp(i-&gt;name, include) &amp;&amp; 
+-			(!registrar || !strcmp(i-&gt;registrar, registrar))) {
++				(!registrar || !strcmp(i-&gt;registrar, registrar))) {
+ 			/* remove from list */
+ 			if (pi)
+ 				pi-&gt;next = i-&gt;next;
+@@ -2412,14 +2411,13 @@
+ 				con-&gt;includes = i-&gt;next;
+ 			/* free include and return */
+ 			free(i);
+-			ast_mutex_unlock(&amp;con-&gt;lock);
+-			return 0;
++			ret = 0;
++			break;
+ 		}
+ 	}
+ 
+-	/* we can't find the right include */
+ 	ast_mutex_unlock(&amp;con-&gt;lock);
+-	return -1;
++	return ret;
+ }
+ 
+ /*!
+@@ -2997,8 +2995,23 @@
+ 	int extension_existence;
+ };
+ 
+-static int show_dialplan_helper(int fd, char *context, char *exten, struct dialplan_counters *dpc, struct ast_include *rinclude, int includecount, char *includes[])
++/*! \brief helper function to print an extension */
++static void print_ext(struct ast_exten *e, char * buf, int buflen)
+ {
++	int prio = ast_get_extension_priority(e);
++	if (prio == PRIORITY_HINT) {
++		snprintf(buf, buflen, &quot;hint: %s&quot;,
++			ast_get_extension_app(e));
++	} else {
++		snprintf(buf, buflen, &quot;%d. %s(%s)&quot;,
++			prio, ast_get_extension_app(e),
++			(char *)ast_get_extension_app_data(e));
++	}
++}
++
++/* XXX not verified */
++static int show_dialplan_helper(int fd, const char *context, const char *exten, struct dialplan_counters *dpc, struct ast_include *rinclude, int includecount, char *includes[])   
++{
+ 	struct ast_context *c = NULL;
+ 	int res = 0, old_total_exten = dpc-&gt;total_exten;
+ 
+@@ -3006,168 +3019,139 @@
+ 
+ 	/* walk all contexts ... */
+ 	while ( (c = ast_walk_contexts(c)) ) {
+-		/* show this context? */
+-		if (!context ||
+-			!strcmp(ast_get_context_name(c), context)) {
+-			/* XXX re-indent this block */
+-				struct ast_exten *e;
+-				struct ast_include *i;
+-				struct ast_ignorepat *ip;
+-				struct ast_sw *sw;
+-				char buf[256], buf2[256];
+-				int context_info_printed = 0;
++		struct ast_exten *e;
++		struct ast_include *i;
++		struct ast_ignorepat *ip;
++		char buf[256], buf2[256];
++		int context_info_printed = 0;
+ 
+-			dpc-&gt;context_existence = 1;
+-			ast_lock_context(c);
++		if (context &amp;&amp; strcmp(ast_get_context_name(c), context))
++			continue;	/* skip this one, name doesn't match */
+ 
+-				/* are we looking for exten too? if yes, we print context
+-				 * if we our extension only
+-				 */
+-				if (!exten) {
+-					dpc-&gt;total_context++;
+-					ast_cli(fd, &quot;[ Context '%s' created by '%s' ]\n&quot;,
+-						ast_get_context_name(c), ast_get_context_registrar(c));
+-					context_info_printed = 1;
+-				}
++		dpc-&gt;context_existence = 1;
+ 
+-				/* walk extensions ... */
+-				for (e = ast_walk_context_extensions(c, NULL); e; e = ast_walk_context_extensions(c, e)) {
+-					struct ast_exten *p;
+-					int prio;
++		ast_lock_context(c);
+ 
+-					/* looking for extension? is this our extension? */
+-					if (exten &amp;&amp;
+-						!ast_extension_match(ast_get_extension_name(e), exten))
+-					{
+-						/* we are looking for extension and it's not our
+- 						 * extension, so skip to next extension */
+-						continue;
+-					}
++		/* are we looking for exten too? if yes, we print context
++		 * only if we find our extension.
++		 * Otherwise print context even if empty ?
++		 * XXX i am not sure how the rinclude is handled.
++		 * I think it ought to go inside.
++		 */
++		if (!exten) {
++			dpc-&gt;total_context++;
++			ast_cli(fd, &quot;[ Context '%s' created by '%s' ]\n&quot;,
++				ast_get_context_name(c), ast_get_context_registrar(c));
++			context_info_printed = 1;
++		}
+ 
+-					dpc-&gt;extension_existence = 1;
++		/* walk extensions ... */
++		e = NULL;
++		while ( (e = ast_walk_context_extensions(c, e)) ) {
++			struct ast_exten *p;
+ 
+-					/* may we print context info? */	
+-					if (!context_info_printed) {
+-						dpc-&gt;total_context++;
+-						if (rinclude) {
+-							/* TODO Print more info about rinclude */
+-							ast_cli(fd, &quot;[ Included context '%s' created by '%s' ]\n&quot;,
+-								ast_get_context_name(c),
+-								ast_get_context_registrar(c));
+-						} else {
+-							ast_cli(fd, &quot;[ Context '%s' created by '%s' ]\n&quot;,
+-								ast_get_context_name(c),
+-								ast_get_context_registrar(c));
+-						}
+-						context_info_printed = 1;
+-					}
+-					dpc-&gt;total_prio++;
++			if (exten &amp;&amp; !ast_extension_match(ast_get_extension_name(e), exten))
++				continue;	/* skip, extension match failed */
+ 
+-					/* write extension name and first peer */	
+-					bzero(buf, sizeof(buf));		
+-					snprintf(buf, sizeof(buf), &quot;'%s' =&gt;&quot;,
+-						ast_get_extension_name(e));
++			dpc-&gt;extension_existence = 1;
+ 
+-					prio = ast_get_extension_priority(e);
+-					if (prio == PRIORITY_HINT) {
+-						snprintf(buf2, sizeof(buf2),
+-							&quot;hint: %s&quot;,
+-							ast_get_extension_app(e));
+-					} else {
+-						snprintf(buf2, sizeof(buf2),
+-							&quot;%d. %s(%s)&quot;,
+-							prio,
+-							ast_get_extension_app(e),
+-							(char *)ast_get_extension_app_data(e));
+-					}
++			/* may we print context info? */	
++			if (!context_info_printed) {
++				dpc-&gt;total_context++;
++				if (rinclude) { /* TODO Print more info about rinclude */
++					ast_cli(fd, &quot;[ Included context '%s' created by '%s' ]\n&quot;,
++						ast_get_context_name(c), ast_get_context_registrar(c));
++				} else {
++					ast_cli(fd, &quot;[ Context '%s' created by '%s' ]\n&quot;,
++						ast_get_context_name(c), ast_get_context_registrar(c));
++				}
++				context_info_printed = 1;
++			}
++			dpc-&gt;total_prio++;
+ 
+-					ast_cli(fd, &quot;  %-17s %-45s [%s]\n&quot;, buf, buf2,
+-						ast_get_extension_registrar(e));
++			/* write extension name and first peer */	
++			snprintf(buf, sizeof(buf), &quot;'%s' =&gt;&quot;, ast_get_extension_name(e));
+ 
+-					dpc-&gt;total_exten++;
+-					/* walk next extension peers */
+-					for (p=ast_walk_extension_priorities(e, e); p; p=ast_walk_extension_priorities(e, p)) {
+-						dpc-&gt;total_prio++;
+-						bzero((void *)buf2, sizeof(buf2));
+-						bzero((void *)buf, sizeof(buf));
+-						if (ast_get_extension_label(p))
+-							snprintf(buf, sizeof(buf), &quot;   [%s]&quot;, ast_get_extension_label(p));
+-						prio = ast_get_extension_priority(p);
+-						if (prio == PRIORITY_HINT) {
+-							snprintf(buf2, sizeof(buf2),
+-								&quot;hint: %s&quot;,
+-								ast_get_extension_app(p));
+-						} else {
+-							snprintf(buf2, sizeof(buf2),
+-								&quot;%d. %s(%s)&quot;,
+-								prio,
+-								ast_get_extension_app(p),
+-								(char *)ast_get_extension_app_data(p));
+-						}
++			print_ext(e, buf2, sizeof(buf2));
+ 
+-						ast_cli(fd,&quot;  %-17s %-45s [%s]\n&quot;,
+-							buf, buf2,
+-							ast_get_extension_registrar(p));
+-					}
+-				}
++			ast_cli(fd, &quot;  %-17s %-45s [%s]\n&quot;, buf, buf2,
++				ast_get_extension_registrar(e));
+ 
+-				/* walk included and write info ... */
+-				for (i = ast_walk_context_includes(c, NULL); i; i = ast_walk_context_includes(c, i)) {
+-					bzero(buf, sizeof(buf));
+-					snprintf(buf, sizeof(buf), &quot;'%s'&quot;,
+-						ast_get_include_name(i));
+-					if (exten) {
+-						/* Check all includes for the requested extension */
+-						if (includecount &gt;= AST_PBX_MAX_STACK) {
+-							ast_log(LOG_NOTICE, &quot;Maximum include depth exceeded!\n&quot;);
+-						} else {
+-							int dupe=0;
+-							int x;
+-							for (x=0;x&lt;includecount;x++) {
+-								if (!strcasecmp(includes[x], ast_get_include_name(i))) {
+-									dupe++;
+-									break;
+-								}
+-							}
+-							if (!dupe) {
+-								includes[includecount] = (char *)ast_get_include_name(i);
+-								show_dialplan_helper(fd, (char *)ast_get_include_name(i), exten, dpc, i, includecount + 1, includes);
+-							} else {
+-								ast_log(LOG_WARNING, &quot;Avoiding circular include of %s within %s\n&quot;, ast_get_include_name(i), context);
+-							}
++			dpc-&gt;total_exten++;
++			/* walk next extension peers */
++			p = e;	/* skip the first one, we already got it */
++			while ( (p = ast_walk_extension_priorities(e, p)) ) {
++				const char *el = ast_get_extension_label(p);
++				dpc-&gt;total_prio++;
++				if (el)
++					snprintf(buf, sizeof(buf), &quot;   [%s]&quot;, el);
++				else
++					buf[0] = '\0';
++				print_ext(p, buf2, sizeof(buf2));
++
++				ast_cli(fd,&quot;  %-17s %-45s [%s]\n&quot;, buf, buf2,
++					ast_get_extension_registrar(p));
++			}
++		}
++
++		/* walk included and write info ... */
++		i = NULL;
++		while ( (i = ast_walk_context_includes(c, i)) ) {
++			snprintf(buf, sizeof(buf), &quot;'%s'&quot;, ast_get_include_name(i));
++			if (exten) {
++				/* Check all includes for the requested extension */
++				if (includecount &gt;= AST_PBX_MAX_STACK) {
++					ast_log(LOG_NOTICE, &quot;Maximum include depth exceeded!\n&quot;);
++				} else {
++					int dupe=0;
++					int x;
++					for (x=0;x&lt;includecount;x++) {
++						if (!strcasecmp(includes[x], ast_get_include_name(i))) {
++							dupe++;
++							break;
+ 						}
++					}
++					if (!dupe) {
++						includes[includecount] = (char *)ast_get_include_name(i);
++						show_dialplan_helper(fd, ast_get_include_name(i), exten, dpc, i, includecount + 1, includes);
+ 					} else {
+-						ast_cli(fd, &quot;  Include =&gt;        %-45s [%s]\n&quot;,
+-							buf, ast_get_include_registrar(i));
++						ast_log(LOG_WARNING, &quot;Avoiding circular include of %s within %s\n&quot;, ast_get_include_name(i), context);
+ 					}
+ 				}
++			} else {
++				ast_cli(fd, &quot;  Include =&gt;        %-45s [%s]\n&quot;,
++					buf, ast_get_include_registrar(i));
++			}
++		}
+ 
+-				/* walk ignore patterns and write info ... */
+-				for (ip = ast_walk_context_ignorepats(c, NULL); ip; ip = ast_walk_context_ignorepats(c, ip)) {
+-					const char *ipname = ast_get_ignorepat_name(ip);
+-					char ignorepat[AST_MAX_EXTENSION];
+-					snprintf(buf, sizeof(buf), &quot;'%s'&quot;, ipname);
+-					snprintf(ignorepat, sizeof(ignorepat), &quot;_%s.&quot;, ipname);
+-					if ((!exten) || ast_extension_match(ignorepat, exten)) {
+-						ast_cli(fd, &quot;  Ignore pattern =&gt; %-45s [%s]\n&quot;,
+-							buf, ast_get_ignorepat_registrar(ip));
+-					}
+-				}
+-				if (!rinclude) {
+-					for (sw = ast_walk_context_switches(c, NULL); sw; sw = ast_walk_context_switches(c, sw)) {
+-						snprintf(buf, sizeof(buf), &quot;'%s/%s'&quot;,
+-							ast_get_switch_name(sw),
+-							ast_get_switch_data(sw));
+-						ast_cli(fd, &quot;  Alt. Switch =&gt;    %-45s [%s]\n&quot;,
+-							buf, ast_get_switch_registrar(sw));	
+-					}
+-				}
+-	
+-				ast_unlock_context(c);
+-
+-				/* if we print something in context, make an empty line */
+-				if (context_info_printed) ast_cli(fd, &quot;\r\n&quot;);
++		/* walk ignore patterns and write info ... */
++		ip = NULL;
++		while ( (ip = ast_walk_context_ignorepats(c, ip)) ) {
++			const char *ipname = ast_get_ignorepat_name(ip);
++			char ignorepat[AST_MAX_EXTENSION];
++			snprintf(buf, sizeof(buf), &quot;'%s'&quot;, ipname);
++			snprintf(ignorepat, sizeof(ignorepat), &quot;_%s.&quot;, ipname);
++			if (!exten || ast_extension_match(ignorepat, exten)) {
++				ast_cli(fd, &quot;  Ignore pattern =&gt; %-45s [%s]\n&quot;,
++					buf, ast_get_ignorepat_registrar(ip));
++			}
+ 		}
++		if (!rinclude) {
++			struct ast_sw *sw = NULL;
++			while ( (sw = ast_walk_context_switches(c, sw)) ) {
++				snprintf(buf, sizeof(buf), &quot;'%s/%s'&quot;,
++					ast_get_switch_name(sw),
++					ast_get_switch_data(sw));
++				ast_cli(fd, &quot;  Alt. Switch =&gt;    %-45s [%s]\n&quot;,
++					buf, ast_get_switch_registrar(sw));	
++			}
++		}
++
++		ast_unlock_context(c);
++
++		/* if we print something in context, make an empty line */
++		if (context_info_printed)
++			ast_cli(fd, &quot;\r\n&quot;);
+ 	}
+ 	ast_unlock_contexts();
+ 
+@@ -3179,6 +3163,7 @@
+ 	char *exten = NULL, *context = NULL;
+ 	/* Variables used for different counters */
+ 	struct dialplan_counters counters;
++
+ 	char *incstack[AST_PBX_MAX_STACK];
+ 	memset(&amp;counters, 0, sizeof(counters));
+ 
+@@ -4781,63 +4766,56 @@
+ void __ast_context_destroy(struct ast_context *con, const char *registrar)
+ {
+ 	struct ast_context *tmp, *tmpl=NULL;
+-	struct ast_include *tmpi, *tmpil= NULL;
++	struct ast_include *tmpi;
+ 	struct ast_sw *sw;
+ 	struct ast_exten *e, *el, *en;
+-	struct ast_ignorepat *ipi, *ipl = NULL;
++	struct ast_ignorepat *ipi;
+ 
+ 	ast_mutex_lock(&amp;conlock);
+-	tmp = contexts;
+-	while(tmp) {
+-		if (((tmp-&gt;name &amp;&amp; con &amp;&amp; con-&gt;name &amp;&amp; !strcasecmp(tmp-&gt;name, con-&gt;name)) || !con) &amp;&amp;
+-		    (!registrar || !strcasecmp(registrar, tmp-&gt;registrar))) {
+-			/* Okay, let's lock the structure to be sure nobody else
+-			   is searching through it. */
+-			ast_mutex_lock(&amp;tmp-&gt;lock);
+-			if (tmpl)
+-				tmpl-&gt;next = tmp-&gt;next;
+-			else
+-				contexts = tmp-&gt;next;
+-			/* Okay, now we're safe to let it go -- in a sense, we were
+-			   ready to let it go as soon as we locked it. */
+-			ast_mutex_unlock(&amp;tmp-&gt;lock);
+-			for (tmpi = tmp-&gt;includes; tmpi; ) {
+-				/* Free includes */
+-				tmpil = tmpi;
+-				tmpi = tmpi-&gt;next;
+-				free(tmpil);
+-			}
+-			for (ipi = tmp-&gt;ignorepats; ipi; ) {
+-				/* Free ignorepats */
+-				ipl = ipi;
+-				ipi = ipi-&gt;next;
+-				free(ipl);
+-			}
+-			while ((sw = AST_LIST_REMOVE_HEAD(&amp;tmp-&gt;alts, list)))
+-				free(sw);
+-			for (e = tmp-&gt;root; e;) {
+-				for (en = e-&gt;peer; en;) {
+-					el = en;
+-					en = en-&gt;peer;
+-					destroy_exten(el);
+-				}
+-				el = e;
+-				e = e-&gt;next;
++	for (tmp = contexts; tmp; ) {
++		struct ast_context *next;	/* next starting point */
++		for (; tmp; tmpl = tmp, tmp = tmp-&gt;next) {
++			if ( (!registrar || !strcasecmp(registrar, tmp-&gt;registrar)) &amp;&amp;
++			     (!con || !strcasecmp(tmp-&gt;name, con-&gt;name)) )
++				break;	/* found it */
++		}
++		if (!tmp)	/* not found, we are done */
++			break;
++		ast_mutex_lock(&amp;tmp-&gt;lock);
++		next = tmp-&gt;next;
++		if (tmpl)
++			tmpl-&gt;next = next;
++		else
++			contexts = next;
++		/* Okay, now we're safe to let it go -- in a sense, we were
++		   ready to let it go as soon as we locked it. */
++		ast_mutex_unlock(&amp;tmp-&gt;lock);
++		for (tmpi = tmp-&gt;includes; tmpi; ) { /* Free includes */
++			struct ast_include *tmpil = tmpi;
++			tmpi = tmpi-&gt;next;
++			free(tmpil);
++		}
++		for (ipi = tmp-&gt;ignorepats; ipi; ) { /* Free ignorepats */
++			struct ast_ignorepat *ipl = ipi;
++			ipi = ipi-&gt;next;
++			free(ipl);
++		}
++		while ((sw = AST_LIST_REMOVE_HEAD(&amp;tmp-&gt;alts, list)))
++			free(sw);
++		for (e = tmp-&gt;root; e;) {
++			for (en = e-&gt;peer; en;) {
++				el = en;
++				en = en-&gt;peer;
+ 				destroy_exten(el);
+ 			}
+-			ast_mutex_destroy(&amp;tmp-&gt;lock);
+-			free(tmp);
+-			if (!con) {
+-				/* Might need to get another one -- restart */
+-				tmp = contexts;
+-				tmpl = NULL;
+-				tmpil = NULL;
+-				continue;
+-			}
+-			break;
++			el = e;
++			e = e-&gt;next;
++			destroy_exten(el);
+ 		}
+-		tmpl = tmp;
+-		tmp = tmp-&gt;next;
++		ast_mutex_destroy(&amp;tmp-&gt;lock);
++		free(tmp);
++		/* if we have a specific match, we are done, otherwise continue */
++		tmp = con ? NULL : next;
+ 	}
+ 	ast_mutex_unlock(&amp;conlock);
+ }
+@@ -5031,14 +5009,14 @@
+ 		ast_log(LOG_WARNING, &quot;Invalid Time Spec: %s\nCorrect usage: %s\n&quot;, s, usage);
+ 		return -1;
+ 	}
+-		
++
+ 	if (!ast_check_timing(&amp;timing))	/* outside the valid time window, just return */
+ 		return 0;
+ 
+ 	/* now split appname|appargs */
+ 	if ((s = strchr(appname, '|')))
+ 		*s++ = '\0';
+-		
++
+ 	if ((app = pbx_findapp(appname))) {
+ 		return pbx_exec(chan, app, S_OR(s, &quot;&quot;));
+ 	} else {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000097.html">[solid-pbx-svn] r98 - in trunk: . include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000094.html">[solid-pbx-svn] r100 - in trunk: . apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#98">[ date ]</a>
+              <a href="thread.html#98">[ thread ]</a>
+              <a href="subject.html#98">[ subject ]</a>
+              <a href="author.html#98">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

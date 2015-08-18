@@ -1,0 +1,113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r293 - trunk/apps
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r293%20-%20trunk/apps&In-Reply-To=%3C200606231725.k5NHPQ1c023327%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000287.html">
+   <LINK REL="Next"  HREF="000291.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r293 - trunk/apps</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r293%20-%20trunk/apps&In-Reply-To=%3C200606231725.k5NHPQ1c023327%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r293 - trunk/apps">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri Jun 23 19:25:26 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000287.html">[solid-pbx-svn] r292 - in trunk: apps include/asterisk
+</A></li>
+        <LI>Next message: <A HREF="000291.html">[solid-pbx-svn] r294 - in trunk: . apps build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#288">[ date ]</a>
+              <a href="thread.html#288">[ thread ]</a>
+              <a href="subject.html#288">[ subject ]</a>
+              <a href="author.html#288">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-23 19:25:24 +0200 (Fri, 23 Jun 2006)
+New Revision: 293
+
+Modified:
+   trunk/apps/app_followme.c
+Log:
+Update to Asterisk SVN trunk r32883
+
+------------------------------------------------------------------------
+r32878 | russell | 2006-06-07 22:02:07 +0200 (Wed, 07 Jun 2006) | 3 lines
+
+simplify the loop that iterates through the categories in followme.conf and
+don't try to read the general section as a followme profile
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/apps/app_followme.c
+===================================================================
+--- trunk/apps/app_followme.c	2006-06-23 17:23:38 UTC (rev 292)
++++ trunk/apps/app_followme.c	2006-06-23 17:25:24 UTC (rev 293)
+@@ -279,7 +279,7 @@
+ {
+ 	struct ast_call_followme *f;
+ 	struct ast_config *cfg;
+-	char *cat, *tmp;
++	char *cat = NULL, *tmp;
+ 	struct ast_variable *var;
+ 	struct number *cur, *nm;
+ 	int new, idx;
+@@ -346,8 +346,9 @@
+ 		ast_copy_string(sorryprompt, tmpstr, sizeof(sorryprompt));
+ 
+ 	/* Chug through config file */
+-	cat = ast_category_browse(cfg, NULL);
+-	while(cat) {
++	while ((cat = ast_category_browse(cfg, cat))) {
++		if (!strcasecmp(cat, &quot;general&quot;))
++			continue;
+ 		/* Define a new profile */
+ 		/* Look for an existing one */
+ 		AST_LIST_TRAVERSE(&amp;followmes, f, entry) {
+@@ -416,7 +417,6 @@
+ 				AST_LIST_INSERT_HEAD(&amp;followmes, f, entry);
+ 			}
+ 		}
+-		cat = ast_category_browse(cfg, cat);
+ 	}
+ 	ast_config_destroy(cfg);
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000287.html">[solid-pbx-svn] r292 - in trunk: apps include/asterisk
+</A></li>
+	<LI>Next message: <A HREF="000291.html">[solid-pbx-svn] r294 - in trunk: . apps build_tools
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#288">[ date ]</a>
+              <a href="thread.html#288">[ thread ]</a>
+              <a href="subject.html#288">[ subject ]</a>
+              <a href="author.html#288">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

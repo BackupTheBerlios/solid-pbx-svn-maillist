@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r60 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r60%20-%20trunk&In-Reply-To=%3C200605051909.k45J9Qb0021532%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000056.html">
+   <LINK REL="Next"  HREF="000058.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r60 - trunk</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r60%20-%20trunk&In-Reply-To=%3C200605051909.k45J9Qb0021532%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r60 - trunk">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri May  5 21:09:26 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000056.html">[solid-pbx-svn] r59 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000058.html">[solid-pbx-svn] r61 - trunk/channels/h323
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#57">[ date ]</a>
+              <a href="thread.html#57">[ thread ]</a>
+              <a href="subject.html#57">[ subject ]</a>
+              <a href="author.html#57">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-05 21:09:14 +0200 (Fri, 05 May 2006)
+New Revision: 60
+
+Modified:
+   trunk/Makefile
+   trunk/configure.ac
+   trunk/makeopts.in
+Log:
+Fix asterisk build without ncurses (Asterisk bug #6948, casper)
+
+Modified: trunk/Makefile
+===================================================================
+--- trunk/Makefile	2006-05-05 18:18:24 UTC (rev 59)
++++ trunk/Makefile	2006-05-05 19:09:14 UTC (rev 60)
+@@ -365,9 +365,9 @@
+ endif
+ 
+ ifeq ($(OSARCH),Linux)
+-  LIBS+=-ldl -lpthread -lncurses -lm -lresolv  #-lnjamd
++  LIBS+=-ldl -lpthread $(EDITLINE_LIBS) -lm -lresolv  #-lnjamd
+ else
+-  LIBS+=-lncurses -lm
++  LIBS+=$(EDITLINE_LIBS) -lm
+ endif
+ 
+ ifeq ($(OSARCH),Darwin)
+@@ -395,11 +395,11 @@
+ endif
+ 
+ ifeq ($(OSARCH),NetBSD)
+-  LIBS+=-lpthread -lcrypto -lm -L$(CROSS_COMPILE_TARGET)/usr/pkg/lib -lncurses
++  LIBS+=-lpthread -lcrypto -lm -L$(CROSS_COMPILE_TARGET)/usr/pkg/lib $(EDITLINE_LIBS)
+ endif
+ 
+ ifeq ($(OSARCH),OpenBSD)
+-  LIBS+=-lcrypto -lpthread -lm -lncurses
++  LIBS+=-lcrypto -lpthread -lm $(EDITLINE_LIBS)
+ endif
+ 
+ ifeq ($(OSARCH),SunOS)
+
+Modified: trunk/configure.ac
+===================================================================
+--- trunk/configure.ac	2006-05-05 18:18:24 UTC (rev 59)
++++ trunk/configure.ac	2006-05-05 19:09:14 UTC (rev 60)
+@@ -174,6 +174,14 @@
+ AST_EXT_LIB([vorbis], [vorbis_info_init], [vorbis/codec.h], [VORBIS], [Vorbis], [-lm -lvorbisenc])
+ AST_EXT_LIB([z], [compress], [zlib.h], [ZLIB], [zlib])
+ 
++EDITLINE_LIBS=&quot;&quot;
++AC_CHECK_LIB([termcap], [tgetent], [EDITLINE_LIBS=&quot;-ltermcap &quot;], \
++  AC_CHECK_LIB([tinfo], [tgetent], [EDITLINE_LIBS=&quot;-ltinfo &quot;], \
++    AC_CHECK_LIB([curses], [tgetent], [EDITLINE_LIBS=&quot;-lcurses &quot;], \
++      AC_CHECK_LIB([ncurses], [tgetent], [EDITLINE_LIBS=&quot;-lncurses &quot;], \
++        AC_MSG_ERROR(*** termcap support not found)))))
++AC_SUBST(EDITLINE_LIBS)
++
+ PBX_LIBossaudio=0
+ AC_CHECK_HEADER([linux/soundcard.h],
+ 	        [
+@@ -339,7 +347,7 @@
+ esac
+ ])
+ if test &quot;${USE_VPB}&quot; != &quot;no&quot;; then
+-   echo -n &quot;checking for vpb_open in -lvpb...&quot;
++   echo -n &quot;checking for vpb_open in -lvpb... &quot;
+    saved_libs=&quot;${LIBS}&quot;
+    saved_cppflags=&quot;${CPPFLAGS}&quot;
+    if test &quot;x${VPB_DIR}&quot; != &quot;x&quot;; then
+@@ -401,7 +409,7 @@
+ 
+ PBX_QT=0
+ if test &quot;${USE_QT}&quot; != &quot;no&quot;; then
+-   echo -n &quot;checking for QDate in -lqt...&quot;
++   echo -n &quot;checking for QDate in -lqt... &quot;
+    saved_libs=&quot;${LIBS}&quot;
+    saved_cppflags=&quot;${CPPFLAGS}&quot;
+    if test &quot;x${QT_DIR}&quot; != &quot;x&quot;; then
+@@ -487,7 +495,7 @@
+ 
+ PBX_KDE=0
+ if test &quot;${USE_KDE}&quot; != &quot;no&quot;; then
+-   echo -n &quot;checking for crashHandler in -lkdecore...&quot;
++   echo -n &quot;checking for crashHandler in -lkdecore... &quot;
+    saved_ldflags=&quot;${LDFLAGS}&quot;
+    LDFLAGS=&quot;-I${KDE_DIR}/include ${LDFLAGS} -L${KDE_DIR}/lib -lkdecore&quot;
+ 	AC_LINK_IFELSE(
+@@ -566,7 +574,7 @@
+ esac
+ ])
+ if test &quot;${USE_PWLIB}&quot; != &quot;no&quot;; then
+-	echo -n &quot;checking for existence of pwlib...&quot;
++	echo -n &quot;checking for existence of pwlib... &quot;
+ 	
+ 	saved_ldflags=&quot;${LDFLAGS}&quot;
+ 	LDFLAGS=&quot;${LDFLAGS} -L${PWLIB_DIR} -l${PLATFORM_PTLIB}&quot;
+@@ -696,7 +704,7 @@
+ 
+ echo &quot;Package configured for: &quot;
+ echo &quot; OS type  : $PBX_OSTYPE&quot;
+-echo &quot; host cpu : $host_cpu&quot;
++echo &quot; Host CPU : $host_cpu&quot;
+ if test &quot;x${crossCompile}&quot; = xYes; then
+    echo &quot;&quot;
+    echo &quot; Cross Compilation = YES&quot;
+
+Modified: trunk/makeopts.in
+===================================================================
+--- trunk/makeopts.in	2006-05-05 18:18:24 UTC (rev 59)
++++ trunk/makeopts.in	2006-05-05 19:09:14 UTC (rev 60)
+@@ -101,4 +101,6 @@
+ 
+ NCURSES_LIB=@ncurses_LIB@
+ NCURSES_INCLUDE=@ncurses_INCLUDE@
+-
++ 
++EDITLINE_LIBS=@EDITLINE_LIBS@
++ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000056.html">[solid-pbx-svn] r59 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000058.html">[solid-pbx-svn] r61 - trunk/channels/h323
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#57">[ date ]</a>
+              <a href="thread.html#57">[ thread ]</a>
+              <a href="subject.html#57">[ subject ]</a>
+              <a href="author.html#57">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

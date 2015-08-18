@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r295 - trunk/sounds
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r295%20-%20trunk/sounds&In-Reply-To=%3C200606231734.k5NHYVh0027146%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000291.html">
+   <LINK REL="Next"  HREF="000290.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r295 - trunk/sounds</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r295%20-%20trunk/sounds&In-Reply-To=%3C200606231734.k5NHYVh0027146%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r295 - trunk/sounds">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Fri Jun 23 19:34:31 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000291.html">[solid-pbx-svn] r294 - in trunk: . apps build_tools
+</A></li>
+        <LI>Next message: <A HREF="000290.html">[solid-pbx-svn] r296 - in trunk: . build_tools sounds
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#289">[ date ]</a>
+              <a href="thread.html#289">[ thread ]</a>
+              <a href="subject.html#289">[ subject ]</a>
+              <a href="author.html#289">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-23 19:34:29 +0200 (Fri, 23 Jun 2006)
+New Revision: 295
+
+Added:
+   trunk/sounds/Makefile
+   trunk/sounds/sounds.xml
+Log:
+Add missing file
+
+Added: trunk/sounds/Makefile
+===================================================================
+--- trunk/sounds/Makefile	2006-06-23 17:33:38 UTC (rev 294)
++++ trunk/sounds/Makefile	2006-06-23 17:34:29 UTC (rev 295)
+@@ -0,0 +1,53 @@
++#
++# Asterisk -- A telephony toolkit for Linux.
++# 
++# Makefile for sound files
++#
++# Copyright (C) 2006, Digium, Inc.
++#
++# Kevin P. Fleming &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">kpfleming at digium.com</A>&gt;
++#
++# This program is free software, distributed under the terms of
++# the GNU General Public License
++#
++
++include ../menuselect.makeopts
++
++CORE_SOUNDS_VERSION:=1.4.0
++SOUNDS_URL:=&quot;<A HREF="http://cork.digium.internal/apache2-default">http://cork.digium.internal/apache2-default</A>&quot;
++MENUSELECT_CORE_SOUNDS:=$(subst -EN-,-en-,$(MENUSELECT_CORE_SOUNDS))
++MENUSELECT_CORE_SOUNDS:=$(subst -FR-,-fr-,$(MENUSELECT_CORE_SOUNDS))
++MENUSELECT_CORE_SOUNDS:=$(subst -ES-,-es-,$(MENUSELECT_CORE_SOUNDS))
++MENUSELECT_CORE_SOUNDS:=$(subst -WAV,-wav,$(MENUSELECT_CORE_SOUNDS))
++MENUSELECT_CORE_SOUNDS:=$(subst -ULAW,-ulaw,$(MENUSELECT_CORE_SOUNDS))
++MENUSELECT_CORE_SOUNDS:=$(subst -ALAW,-alaw,$(MENUSELECT_CORE_SOUNDS))
++MENUSELECT_CORE_SOUNDS:=$(subst -GSM,-gsm,$(MENUSELECT_CORE_SOUNDS))
++MENUSELECT_CORE_SOUNDS:=$(subst -G729,-g729,$(MENUSELECT_CORE_SOUNDS))
++CORE_SOUNDS:=$(MENUSELECT_CORE_SOUNDS:CORE-SOUNDS-%=asterisk-core-sounds-%-$(CORE_SOUNDS_VERSION).tar.gz)
++MENUSELECT_EXTRA_SOUNDS:=$(subst -EN-,-en-,$(MENUSELECT_EXTRA_SOUNDS))
++MENUSELECT_EXTRA_SOUNDS:=$(subst -FR-,-fr-,$(MENUSELECT_EXTRA_SOUNDS))
++MENUSELECT_EXTRA_SOUNDS:=$(subst -ES-,-es-,$(MENUSELECT_EXTRA_SOUNDS))
++MENUSELECT_EXTRA_SOUNDS:=$(subst -WAV,-wav,$(MENUSELECT_EXTRA_SOUNDS))
++MENUSELECT_EXTRA_SOUNDS:=$(subst -ULAW,-ulaw,$(MENUSELECT_EXTRA_SOUNDS))
++MENUSELECT_EXTRA_SOUNDS:=$(subst -ALAW,-alaw,$(MENUSELECT_EXTRA_SOUNDS))
++MENUSELECT_EXTRA_SOUNDS:=$(subst -GSM,-gsm,$(MENUSELECT_EXTRA_SOUNDS))
++MENUSELECT_EXTRA_SOUNDS:=$(subst -G729,-g729,$(MENUSELECT_EXTRA_SOUNDS))
++EXTRA_SOUNDS:=$(MENUSELECT_EXTRA_SOUNDS:EXTRA-SOUNDS-%=asterisk-extra-sounds-%.tar.gz)
++MENUSELECT_MOH:=$(subst -FREEPLAY-,-freeplay-,$(MENUSELECT_MOH))
++MENUSELECT_MOH:=$(subst -MP3,-mp3,$(MENUSELECT_MOH))
++MOH:=$(MENUSELECT_MOH:MOH-%=asterisk-moh-%.tar.gz)
++
++%.gz:
++	@wget --no-verbose --continue $(SOUNDS_URL)/$@
++
++all:	$(CORE_SOUNDS) $(EXTRA_SOUNDS) $(MOH)
++
++clean:
++
++install: all
++	mkdir -p $(DESTDIR)$(ASTDATADIR)/sounds
++	mkdir -p $(DESTDIR)$(ASTDATADIR)/mohmp3
++
++uninstall:
++	rm -rf $(DESTDIR)$(ASTDATADIR)/sounds
++	rm -rf $(DESTDIR)$(ASTDATADIR)/mohmp3
+
+Added: trunk/sounds/sounds.xml
+===================================================================
+--- trunk/sounds/sounds.xml	2006-06-23 17:33:38 UTC (rev 294)
++++ trunk/sounds/sounds.xml	2006-06-23 17:34:29 UTC (rev 295)
+@@ -0,0 +1,50 @@
++	&lt;category name=&quot;MENUSELECT_CORE_SOUNDS&quot; displayname=&quot;Core Sound Packages&quot; positive_output=&quot;yes&quot;&gt;
++		&lt;member name=&quot;CORE-SOUNDS-EN-WAV&quot; displayname=&quot;English, WAV format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-EN-ULAW&quot; displayname=&quot;English, mu-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-EN-ALAW&quot; displayname=&quot;English, a-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-EN-GSM&quot; displayname=&quot;English, GSM format&quot; &gt;
++			&lt;defaultenabled&gt;yes&lt;/defaultenabled&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-EN-G729&quot; displayname=&quot;English, G.729 format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-ES-WAV&quot; displayname=&quot;Spanish, WAV format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-ES-ULAW&quot; displayname=&quot;Spanish, mu-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-ES-ALAW&quot; displayname=&quot;Spanish, a-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-ES-GSM&quot; displayname=&quot;Spanish, GSM format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-ES-G729&quot; displayname=&quot;Spanish, G.729 format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-FR-WAV&quot; displayname=&quot;French, WAV format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-FR-ULAW&quot; displayname=&quot;French, mu-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-FR-ALAW&quot; displayname=&quot;French, a-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-FR-GSM&quot; displayname=&quot;French, GSM format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;CORE-SOUNDS-FR-G729&quot; displayname=&quot;French, G.729 format&quot;&gt;
++		&lt;/member&gt;
++	&lt;/category&gt;
++	&lt;category name=&quot;MENUSELECT_MOH&quot; displayname=&quot;Music On Hold File Package&quot; positive_output=&quot;yes&quot;&gt;
++		&lt;member name=&quot;MOH-FREEPLAY-MP3&quot; displayname=&quot;FreePlay Music On Hold Files, MP3 format&quot; &gt;
++			&lt;defaultenabled&gt;yes&lt;/defaultenabled&gt;
++		&lt;/member&gt;
++	&lt;/category&gt;
++	&lt;category name=&quot;MENUSELECT_EXTRA_SOUNDS&quot; displayname=&quot;Extras Sound Packages&quot; positive_output=&quot;yes&quot;&gt;
++		&lt;member name=&quot;EXTRA-SOUNDS-EN-WAV&quot; displayname=&quot;English, WAV format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;EXTRA-SOUNDS-EN-ULAW&quot; displayname=&quot;English, mu-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;EXTRA-SOUNDS-EN-ALAW&quot; displayname=&quot;English, a-Law format&quot;&gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;EXTRA-SOUNDS-EN-GSM&quot; displayname=&quot;English, GSM format&quot; &gt;
++		&lt;/member&gt;
++		&lt;member name=&quot;EXTRA-SOUNDS-EN-G729&quot; displayname=&quot;English, G.729 format&quot;&gt;
++		&lt;/member&gt;
++	&lt;/category&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000291.html">[solid-pbx-svn] r294 - in trunk: . apps build_tools
+</A></li>
+	<LI>Next message: <A HREF="000290.html">[solid-pbx-svn] r296 - in trunk: . build_tools sounds
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#289">[ date ]</a>
+              <a href="thread.html#289">[ thread ]</a>
+              <a href="subject.html#289">[ subject ]</a>
+              <a href="author.html#289">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

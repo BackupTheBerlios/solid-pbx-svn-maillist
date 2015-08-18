@@ -1,0 +1,239 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r400 - trunk/channels
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-June/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r400%20-%20trunk/channels&In-Reply-To=%3C200606280212.k5S2C20a022894%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000394.html">
+   <LINK REL="Next"  HREF="000395.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r400 - trunk/channels</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r400%20-%20trunk/channels&In-Reply-To=%3C200606280212.k5S2C20a022894%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r400 - trunk/channels">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Wed Jun 28 04:12:02 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000394.html">[solid-pbx-svn] r399 - trunk/channels
+</A></li>
+        <LI>Next message: <A HREF="000395.html">[solid-pbx-svn] r401 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#396">[ date ]</a>
+              <a href="thread.html#396">[ thread ]</a>
+              <a href="subject.html#396">[ subject ]</a>
+              <a href="author.html#396">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-06-28 04:11:58 +0200 (Wed, 28 Jun 2006)
+New Revision: 400
+
+Modified:
+   trunk/channels/chan_sip.c
+Log:
+Update to Asterisk SVN trunk r35293
+
+------------------------------------------------------------------------
+r35287 | oej | 2006-06-21 19:05:38 +0200 (Wed, 21 Jun 2006) | 2 lines
+
+Only formatting changes... (tabs to spaces)
+
+------------------------------------------------------------------------
+
+
+Modified: trunk/channels/chan_sip.c
+===================================================================
+--- trunk/channels/chan_sip.c	2006-06-28 02:11:22 UTC (rev 399)
++++ trunk/channels/chan_sip.c	2006-06-28 02:11:58 UTC (rev 400)
+@@ -147,41 +147,41 @@
+ #include &quot;asterisk/abstract_jb.h&quot;
+ 
+ #ifndef FALSE
+-#define FALSE	0
++#define FALSE    0
+ #endif
+ 
+ #ifndef TRUE
+-#define TRUE 1
++#define TRUE     1
+ #endif
+ 
+-#define VIDEO_CODEC_MASK	0x1fc0000 /*!&lt; Video codecs from H.261 thru AST_FORMAT_MAX_VIDEO */
++#define VIDEO_CODEC_MASK        0x1fc0000 /*!&lt; Video codecs from H.261 thru AST_FORMAT_MAX_VIDEO */
+ #ifndef IPTOS_MINCOST
+-#define IPTOS_MINCOST		0x02
++#define IPTOS_MINCOST           0x02
+ #endif
+ 
+ /* #define VOCAL_DATA_HACK */
+ 
+ #define DEFAULT_DEFAULT_EXPIRY  120
+-#define DEFAULT_MIN_EXPIRY	60
+-#define DEFAULT_MAX_EXPIRY	3600
+-#define DEFAULT_REGISTRATION_TIMEOUT	20
+-#define DEFAULT_MAX_FORWARDS	&quot;70&quot;
++#define DEFAULT_MIN_EXPIRY      60
++#define DEFAULT_MAX_EXPIRY      3600
++#define DEFAULT_REGISTRATION_TIMEOUT 20
++#define DEFAULT_MAX_FORWARDS    &quot;70&quot;
+ 
+ /* guard limit must be larger than guard secs */
+ /* guard min must be &lt; 1000, and should be &gt;= 250 */
+-#define EXPIRY_GUARD_SECS	15		/*!&lt; How long before expiry do we reregister */
+-#define EXPIRY_GUARD_LIMIT	30		/*!&lt; Below here, we use EXPIRY_GUARD_PCT instead of 
+-					 	  EXPIRY_GUARD_SECS */
+-#define EXPIRY_GUARD_MIN	500		/*!&lt; This is the minimum guard time applied. If 
+-					 	  GUARD_PCT turns out to be lower than this, it 
+-						   will use this time instead.
+-						   This is in milliseconds. */
+-#define EXPIRY_GUARD_PCT	0.20		/*!&lt; Percentage of expires timeout to use when 
+-						   below EXPIRY_GUARD_LIMIT */
+-#define DEFAULT_EXPIRY 900			/*!&lt; Expire slowly */
++#define EXPIRY_GUARD_SECS       15                /*!&lt; How long before expiry do we reregister */
++#define EXPIRY_GUARD_LIMIT      30                /*!&lt; Below here, we use EXPIRY_GUARD_PCT instead of 
++                                                   EXPIRY_GUARD_SECS */
++#define EXPIRY_GUARD_MIN        500                /*!&lt; This is the minimum guard time applied. If 
++                                                   GUARD_PCT turns out to be lower than this, it 
++                                                   will use this time instead.
++                                                   This is in milliseconds. */
++#define EXPIRY_GUARD_PCT        0.20                /*!&lt; Percentage of expires timeout to use when 
++                                                    below EXPIRY_GUARD_LIMIT */
++#define DEFAULT_EXPIRY 900                          /*!&lt; Expire slowly */
+ 
+-static int min_expiry = DEFAULT_MIN_EXPIRY;	/*!&lt; Minimum accepted registration time */
+-static int max_expiry = DEFAULT_MAX_EXPIRY;	/*!&lt; Maximum accepted registration time */
++static int min_expiry = DEFAULT_MIN_EXPIRY;        /*!&lt; Minimum accepted registration time */
++static int max_expiry = DEFAULT_MAX_EXPIRY;        /*!&lt; Maximum accepted registration time */
+ static int default_expiry = DEFAULT_DEFAULT_EXPIRY;
+ static int expiry = DEFAULT_EXPIRY;
+ 
+@@ -189,29 +189,29 @@
+ #define MAX(a,b) ((a) &gt; (b) ? (a) : (b))
+ #endif
+ 
+-#define CALLERID_UNKNOWN	&quot;Unknown&quot;
++#define CALLERID_UNKNOWN        &quot;Unknown&quot;
+ 
+-#define DEFAULT_MAXMS		2000		/*!&lt; Qualification: Must be faster than 2 seconds by default */
+-#define DEFAULT_FREQ_OK		60 * 1000	/*!&lt; Qualification: How often to check for the host to be up */
+-#define DEFAULT_FREQ_NOTOK	10 * 1000	/*!&lt; Qualification: How often to check, if the host is down... */
++#define DEFAULT_MAXMS                2000             /*!&lt; Qualification: Must be faster than 2 seconds by default */
++#define DEFAULT_FREQ_OK              60 * 1000        /*!&lt; Qualification: How often to check for the host to be up */
++#define DEFAULT_FREQ_NOTOK           10 * 1000        /*!&lt; Qualification: How often to check, if the host is down... */
+ 
+-#define DEFAULT_RETRANS		1000		/*!&lt; How frequently to retransmit Default: 2 * 500 ms in RFC 3261 */
+-#define MAX_RETRANS		6		/*!&lt; Try only 6 times for retransmissions, a total of 7 transmissions */
+-#define SIP_TRANS_TIMEOUT	32000		/*!&lt; SIP request timeout (rfc 3261) 64*T1 
+-						\todo Use known T1 for timeout (peerpoke)
+-						*/
+-#define MAX_AUTHTRIES		3		/*!&lt; Try authentication three times, then fail */
++#define DEFAULT_RETRANS              1000             /*!&lt; How frequently to retransmit Default: 2 * 500 ms in RFC 3261 */
++#define MAX_RETRANS                  6                /*!&lt; Try only 6 times for retransmissions, a total of 7 transmissions */
++#define SIP_TRANS_TIMEOUT            32000            /*!&lt; SIP request timeout (rfc 3261) 64*T1 
++                                                      \todo Use known T1 for timeout (peerpoke)
++                                                      */
++#define MAX_AUTHTRIES                3                /*!&lt; Try authentication three times, then fail */
+ 
+-#define SIP_MAX_HEADERS		64			/*!&lt; Max amount of SIP headers to read */
+-#define SIP_MAX_LINES 		64			/*!&lt; Max amount of lines in SIP attachment (like SDP) */
+-#define SIP_MAX_PACKET		4096	/*!&lt; Also from RFC 3261 (2543), should sub headers tho */
++#define SIP_MAX_HEADERS              64               /*!&lt; Max amount of SIP headers to read */
++#define SIP_MAX_LINES                64               /*!&lt; Max amount of lines in SIP attachment (like SDP) */
++#define SIP_MAX_PACKET               4096             /*!&lt; Also from RFC 3261 (2543), should sub headers tho */
+ 
+-#define	INITIAL_CSEQ		101	/*!&lt; our initial sip sequence number */
++#define INITIAL_CSEQ                 101              /*!&lt; our initial sip sequence number */
+ 
+-/*! Global jitterbuffer configuration - by default, jb is disabled */
++/*! \brief Global jitterbuffer configuration - by default, jb is disabled */
+ static struct ast_jb_conf default_jbconf =
+ {
+-	.flags = 0,
++        .flags = 0,
+ 	.max_size = -1,
+ 	.resync_threshold = -1,
+ 	.impl = &quot;&quot;
+@@ -231,8 +231,8 @@
+ \note Not a bitfield flag, since there are plans for other modes,
+ 	like &quot;only allow transfers for authenticated devices&quot; */
+ enum transfermodes {
+-	TRANSFER_OPENFORALL, 		/*!&lt; Allow all SIP transfers */
+-	TRANSFER_CLOSED,		/*!&lt; Allow no SIP transfers */
++	TRANSFER_OPENFORALL,            /*!&lt; Allow all SIP transfers */
++	TRANSFER_CLOSED,                /*!&lt; Allow no SIP transfers */
+ };
+ 
+ 
+@@ -250,12 +250,18 @@
+ */
+ 
+ enum xmittype {
+-	XMIT_CRITICAL = 2,		/*!&lt; Transmit critical SIP message reliably, with re-transmits.
+-							If it fails, it's critical and will cause a teardown of the session */
+-	XMIT_RELIABLE = 1,		/*!&lt; Transmit SIP message reliably, with re-transmits */
+-	XMIT_UNRELIABLE = 0,		/*!&lt; Transmit SIP message without bothering with re-transmits */
++	XMIT_CRITICAL = 2,              /*!&lt; Transmit critical SIP message reliably, with re-transmits.
++                                              If it fails, it's critical and will cause a teardown of the session */
++	XMIT_RELIABLE = 1,              /*!&lt; Transmit SIP message reliably, with re-transmits */
++	XMIT_UNRELIABLE = 0,            /*!&lt; Transmit SIP message without bothering with re-transmits */
+ };
+ 
++enum parse_register_result {
++	PARSE_REGISTER_FAILED,
++	PARSE_REGISTER_UPDATE,
++	PARSE_REGISTER_QUERY,
++};
++
+ enum subscriptiontype { 
+ 	NONE = 0,
+ 	TIMEOUT,
+@@ -266,13 +272,6 @@
+ 	MWI_NOTIFICATION
+ };
+ 
+-enum parse_register_result {
+-	PARSE_REGISTER_FAILED,
+-	PARSE_REGISTER_UPDATE,
+-	PARSE_REGISTER_QUERY,
+-};
+-
+-
+ static const struct cfsubscription_types {
+ 	enum subscriptiontype type;
+ 	const char * const event;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000394.html">[solid-pbx-svn] r399 - trunk/channels
+</A></li>
+	<LI>Next message: <A HREF="000395.html">[solid-pbx-svn] r401 - trunk/apps
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#396">[ date ]</a>
+              <a href="thread.html#396">[ thread ]</a>
+              <a href="subject.html#396">[ subject ]</a>
+              <a href="author.html#396">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>

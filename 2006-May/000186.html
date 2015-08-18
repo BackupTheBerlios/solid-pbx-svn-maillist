@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [solid-pbx-svn] r191 - in trunk: . utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/solid-pbx-svn/2006-May/index.html" >
+   <LINK REL="made" HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r191%20-%20in%20trunk%3A%20.%20utils&In-Reply-To=%3C200605301728.k4UHSNgb011623%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000185.html">
+   <LINK REL="Next"  HREF="000187.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[solid-pbx-svn] r191 - in trunk: . utils</H1>
+    <B>solid-pbx-svn-admin at lists.berlios.de</B> 
+    <A HREF="mailto:solid-pbx-svn%40lists.berlios.de?Subject=Re%3A%20%5Bsolid-pbx-svn%5D%20r191%20-%20in%20trunk%3A%20.%20utils&In-Reply-To=%3C200605301728.k4UHSNgb011623%40sheep.berlios.de%3E"
+       TITLE="[solid-pbx-svn] r191 - in trunk: . utils">solid-pbx-svn-admin at lists.berlios.de
+       </A><BR>
+    <I>Tue May 30 19:28:23 CEST 2006</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000185.html">[solid-pbx-svn] r190 - in trunk: . apps codecs/gsm configs res
+</A></li>
+        <LI>Next message: <A HREF="000187.html">[solid-pbx-svn] r192 - in trunk: . apps channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#186">[ date ]</a>
+              <a href="thread.html#186">[ thread ]</a>
+              <a href="subject.html#186">[ subject ]</a>
+              <a href="author.html#186">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: casper2
+Date: 2006-05-30 19:27:44 +0200 (Tue, 30 May 2006)
+New Revision: 191
+
+Modified:
+   trunk/makeopts.in
+   trunk/utils/Makefile
+Log:
+Update to Asterisk SVN trunk r30834
+
+------------------------------------------------------------------------
+r30805 | file | 2006-05-30 18:23:34 +0200 (Tue, 30 May 2006) | 2 lines
+
+Be gone foul Makefile usage! er I mean use the correct variable... UTILS instead of TARGET. (issue #7239 reported by casper)
+
+------------------------------------------------------------------------
+r30806 | jcollie | 2006-05-30 18:36:21 +0200 (Tue, 30 May 2006) | 1 line
+
+Get rid of warning about datarootdir at the end of the configure process...
+------------------------------------------------------------------------
+
+
+Modified: trunk/makeopts.in
+===================================================================
+--- trunk/makeopts.in	2006-05-30 16:25:45 UTC (rev 190)
++++ trunk/makeopts.in	2006-05-30 17:27:44 UTC (rev 191)
+@@ -24,6 +24,7 @@
+ exec_prefix = @exec_prefix@
+ 
+ bindir = @bindir@
++datarootdir = @datarootdir@
+ datadir = @datadir@
+ includedir = @includedir@
+ infodir = @infodir@
+
+Modified: trunk/utils/Makefile
+===================================================================
+--- trunk/utils/Makefile	2006-05-30 16:25:45 UTC (rev 190)
++++ trunk/utils/Makefile	2006-05-30 17:27:44 UTC (rev 191)
+@@ -40,13 +40,13 @@
+ 	done 
+ 
+ uninstall:
+-	for x in $(TARGET); do rm -f $$x $(DESTDIR)$(ASTSBINDIR)/$$x; done
++	for x in $(UTILS); do rm -f $$x $(DESTDIR)$(ASTSBINDIR)/$$x; done
+ 
+ clean-depend:
+ 	rm -f .depend
+ 
+ clean: clean-depend
+-	rm -f *.o $(TARGET) check_expr
++	rm -f *.o $(UTILS) check_expr
+ 	rm -f ast_expr2.o ast_expr2f.o
+ 
+ astman.o: astman.c
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000185.html">[solid-pbx-svn] r190 - in trunk: . apps codecs/gsm configs res
+</A></li>
+	<LI>Next message: <A HREF="000187.html">[solid-pbx-svn] r192 - in trunk: . apps channels
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#186">[ date ]</a>
+              <a href="thread.html#186">[ thread ]</a>
+              <a href="subject.html#186">[ subject ]</a>
+              <a href="author.html#186">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/solid-pbx-svn">More information about the solid-pbx-svn
+mailing list</a><br>
+</body></html>
